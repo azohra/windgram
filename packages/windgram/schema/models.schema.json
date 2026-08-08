@@ -1,0 +1,177 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Windgram model catalogue, data/models.json",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "models": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "provider": {
+            "type": "string",
+            "minLength": 1
+          },
+          "gridKm": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "stepHours": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "horizonHours": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "runIntervalHours": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "sunset": {
+            "type": "object",
+            "properties": {
+              "date": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+              },
+              "successor": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "date",
+              "successor"
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "deterministic",
+              "ensemble"
+            ]
+          },
+          "experimental": {
+            "type": "boolean"
+          },
+          "capabilities": {
+            "type": "object",
+            "properties": {
+              "levels": {
+                "type": "boolean"
+              },
+              "pressureLevels": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                }
+              },
+              "verticalVelocity": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "omega",
+                      "fromGeometricW"
+                    ]
+                  },
+                  {
+                    "type": "boolean",
+                    "const": false
+                  }
+                ]
+              },
+              "verticalVelocityLevels": {
+                "type": "array",
+                "items": {
+                  "type": "number"
+                }
+              },
+              "heatFluxes": {
+                "type": "boolean"
+              },
+              "gust": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "hourMax",
+                      "instant"
+                    ]
+                  },
+                  {
+                    "type": "boolean",
+                    "const": false
+                  }
+                ]
+              },
+              "cape": {
+                "type": "boolean"
+              },
+              "cin": {
+                "type": "boolean"
+              },
+              "pblHeight": {
+                "type": "boolean"
+              },
+              "cloudLayers": {
+                "type": "boolean"
+              },
+              "cloudProfile": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "levels",
+              "pressureLevels",
+              "verticalVelocity",
+              "heatFluxes",
+              "gust",
+              "cape",
+              "cin",
+              "pblHeight",
+              "cloudLayers",
+              "cloudProfile"
+            ]
+          }
+        },
+        "required": [
+          "slug",
+          "label",
+          "provider",
+          "gridKm",
+          "stepHours",
+          "horizonHours",
+          "kind",
+          "experimental",
+          "capabilities"
+        ]
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "models"
+  ]
+}

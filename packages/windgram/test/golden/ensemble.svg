@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 520" role="img" aria-label="Windgram for Dundee, model reps, 2026-08-09 9:00 to 14:00 (America/Vancouver): surface metric strips above a time-height field; derived series, isotherms, shading overlays and winds aloft are drawn over the profile." class="wg">
+<style>
+.wg text { font-family: var(--wg-font, "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif); }
+.wg .wg-mono { font-family: var(--wg-font-mono, "IBM Plex Mono", ui-monospace, monospace); }
+.wg-frame { fill: var(--wg-surface, #fffdf8); stroke: var(--wg-rule, #776956); }
+.wg-strip-frame { fill: var(--wg-strip-bg, #f2f4f1); stroke: var(--wg-rule, #776956); }
+.wg-gridline { stroke: var(--wg-rule, #776956); }
+.wg-hourline { stroke: var(--wg-ink, #152529); }
+.wg-text { fill: var(--wg-ink, #152529); }
+.wg-text-soft { fill: var(--wg-ink-soft, #2f454a); }
+.wg-text-mute { fill: var(--wg-ink-mute, #40565a); }
+.wg-haloed-text { stroke: var(--wg-halo, #fffdf8); paint-order: stroke; }
+.wg-halo { stroke: var(--wg-halo, #fffdf8); }
+.wg-selected-column { fill: var(--wg-accent, #913b0c); opacity: 0.05; }
+.wg-selected-line { stroke: var(--wg-accent, #913b0c); }
+.wg-launch-line { stroke: var(--wg-ink, #152529); }
+.wg-strip-pressure { stroke: var(--wg-pressure, #963f36); }
+.wg-strip-pressure-area, .wg-strip-pressure-band { fill: var(--wg-pressure, #963f36); }
+.wg-strip-precipitation { stroke: var(--wg-rain, #207a83); }
+.wg-strip-precipitation-area, .wg-strip-precipitation-band { fill: var(--wg-rain, #207a83); }
+.wg-strip-cloudCover { stroke: var(--wg-cloud, #5b6969); }
+.wg-strip-cloudCover-area, .wg-strip-cloudCover-band { fill: var(--wg-cloud, #5b6969); }
+.wg-strip-thermalStrength { stroke: var(--wg-lift, #9a7500); }
+.wg-strip-thermalStrength-area, .wg-strip-thermalStrength-band { fill: var(--wg-lift, #9a7500); }
+.wg-strip-buoyancyShear { stroke: var(--wg-bs, #6d597a); }
+.wg-strip-buoyancyShear-area, .wg-strip-buoyancyShear-band { fill: var(--wg-bs, #6d597a); }
+.wg-strip-cape { stroke: var(--wg-cape, #8a4a08); }
+.wg-strip-cape-area, .wg-strip-cape-band { fill: var(--wg-cape, #8a4a08); }
+.wg-cape-calm { fill: var(--wg-cape-calm, #dde3d5); opacity: 0.6; }
+.wg-cape-watch { fill: var(--wg-cape-watch, #e7c46c); opacity: 0.6; }
+.wg-cape-risk { fill: var(--wg-cape-risk, #d98243); opacity: 0.6; }
+.wg-cape-severe { fill: var(--wg-cape-severe, #c04f3a); opacity: 0.6; }
+.wg-cape-capped { opacity: 0.28; }
+.wg-cloud-cell { fill: var(--wg-cloud, #5b6969); }
+.wg-strip-row-label { fill: var(--wg-ink-mute, #40565a); }
+.wg-gust { fill: var(--wg-gust, #355963); }
+.wg-series-pbl { stroke: var(--wg-pbl, #56609b); }
+.wg-series-pbl-band { fill: var(--wg-pbl, #56609b); opacity: 0.16; }
+.wg-stab-very-unstable { fill: var(--wg-stab-very-unstable, #fe9996); }
+.wg-stab-unstable { fill: var(--wg-stab-unstable, #da934a); }
+.wg-stab-conditional-strong { fill: var(--wg-stab-conditional-strong, #a68300); }
+.wg-stab-conditional { fill: var(--wg-stab-conditional, #6a753f); }
+.wg-stab-near-neutral { fill: var(--wg-stab-near-neutral, #5b5f6b); }
+.wg-stab-stable { fill: var(--wg-stab-stable, #04548d); }
+.wg-stab-inverted { fill: var(--wg-stab-inverted, #004f4a); }
+.wg-stab-strong-inversion { fill: var(--wg-stab-strong-inversion, #1b3071); }
+.wg-cloud-hatch-line { stroke: var(--wg-ink-soft, #2f454a); }
+.wg-cloud-medium { fill: var(--wg-cloud, #5b6969); opacity: 0.22; }
+.wg-cloud-light { fill: var(--wg-cloud, #5b6969); opacity: 0.1; }
+.wg-ti-weak { fill: var(--wg-ti-weak, #f4e3c0); opacity: 0.55; }
+.wg-ti-fair { fill: var(--wg-ti-fair, #ecc57e); opacity: 0.55; }
+.wg-ti-good { fill: var(--wg-ti-good, #de9b4e); opacity: 0.55; }
+.wg-ti-strong { fill: var(--wg-ti-strong, #c96a33); opacity: 0.55; }
+.wg-shear-light { fill: var(--wg-shear-light, #cfc3de); opacity: 0.5; }
+.wg-shear-moderate { fill: var(--wg-shear-moderate, #a58ec4); opacity: 0.5; }
+.wg-shear-strong { fill: var(--wg-shear-strong, #7b5ea7); opacity: 0.5; }
+.wg-rh-60 { fill: var(--wg-rh-60, #d3e0e3); opacity: 0.5; }
+.wg-rh-80 { fill: var(--wg-rh-80, #a9c7cf); opacity: 0.5; }
+.wg-rh-95 { fill: var(--wg-rh-95, #7fadbb); opacity: 0.5; }
+.wg-omega-lift { fill: var(--wg-omega-lift, #8dc2a0); opacity: 0.4; }
+.wg-omega-lift-strong { fill: var(--wg-omega-lift-strong, #56a377); opacity: 0.5; }
+.wg-omega-sink { fill: var(--wg-omega-sink, #d3a68f); opacity: 0.4; }
+.wg-omega-sink-strong { fill: var(--wg-omega-sink-strong, #bd7d5c); opacity: 0.5; }
+.wg-series-boundary { stroke: var(--wg-boundary, #a46b10); }
+.wg-series-boundary-band { fill: var(--wg-boundary, #a46b10); opacity: 0.16; }
+.wg-series-cloud-base { stroke: var(--wg-cloud-base, #355963); }
+.wg-series-cloud-base-band { fill: var(--wg-cloud-base, #355963); opacity: 0.16; }
+.wg-series-usable { stroke: var(--wg-usable, #2179ad); }
+.wg-series-usable-band { fill: var(--wg-usable, #2179ad); opacity: 0.16; }
+.wg-isotherm { stroke: var(--wg-ink, #152529); }
+.wg-isotherm-freezing { stroke: var(--wg-freezing, #2b748f); }
+.wg-isotherm-label { fill: var(--wg-ink, #152529); }
+.wg-isotherm-label-freezing { fill: var(--wg-freezing, #2b748f); }
+.wg-dewpoint-isoline { stroke: var(--wg-dewpoint, #3a7d4f); }
+.wg-dewpoint-label { fill: var(--wg-dewpoint, #3a7d4f); }
+.wg-barb { stroke: var(--wg-wind, #355963); }
+.wg-barb-fill { fill: var(--wg-wind, #355963); stroke: var(--wg-wind, #355963); }
+.wg-barb-halo { stroke: var(--wg-halo, #fffdf8); }
+.wg-barb-fill-halo { fill: var(--wg-halo, #fffdf8); stroke: var(--wg-halo, #fffdf8); }
+.wg-marker-wing { fill: var(--wg-usable, #2179ad); stroke: var(--wg-usable, #2179ad); }
+.wg-marker-cloud { fill: var(--wg-cloud-marker, #f8f3d8); stroke: var(--wg-cloud-base, #355963); }
+.wg-marker-halo { fill: var(--wg-halo, #fffdf8); stroke: var(--wg-halo, #fffdf8); }
+</style>
+<defs><pattern id="wg-cloud-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" class="wg-cloud-hatch-line" stroke-width="1.2"/></pattern></defs>
+<rect x="60" y="20" width="264" height="25" class="wg-strip-frame" stroke-width="0.7"/>
+<line x1="60" y1="32.5" x2="324" y2="32.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
+<path d="M82,20 C89.33,20 111.33,20 126,20 C140.67,20 155.33,19.37 170,20 C184.67,20.63 199.33,22.5 214,23.75 C228.67,25 243.33,26.25 258,27.5 C272.67,28.75 294.67,30.63 302,31.25 L302,45 C294.67,44.58 272.67,43.54 258,42.5 C243.33,41.46 228.67,40 214,38.75 C199.33,37.5 184.67,36.25 170,35 C155.33,33.75 140.67,32.5 126,31.25 C111.33,30 89.33,28.13 82,27.5 Z" class="wg-strip-pressure-band"/>
+<path d="M82,20 C89.33,20.63 111.33,22.5 126,23.75 C140.67,25 155.33,26.25 170,27.5 C184.67,28.75 199.33,30 214,31.25 C228.67,32.5 243.33,33.75 258,35 C272.67,36.25 294.67,38.13 302,38.75 L302.00,45 L82.00,45 Z" class="wg-strip-pressure-area" opacity="0.3"/>
+<path d="M82,20 C89.33,20.63 111.33,22.5 126,23.75 C140.67,25 155.33,26.25 170,27.5 C184.67,28.75 199.33,30 214,31.25 C228.67,32.5 243.33,33.75 258,35 C272.67,36.25 294.67,38.13 302,38.75" class="wg-strip-pressure" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="31" text-anchor="end" font-size="10.5" font-weight="700" class="wg-text">Pressure</text>
+<text x="52" y="42" text-anchor="end" font-size="9.5" class="wg-text-mute">kPa</text>
+<rect x="60" y="50" width="264" height="25" class="wg-strip-frame" stroke-width="0.7"/>
+<line x1="60" y1="62.5" x2="324" y2="62.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
+<path d="M82,75 C89.33,75 111.33,75 126,75 C140.67,75 155.33,75 170,75 C184.67,75 199.33,75 214,75 C228.67,75 243.33,75 258,75 C272.67,75 294.67,75 302,75 L302,75 C294.67,75 272.67,75 258,75 C243.33,75 228.67,75 214,75 C199.33,75 184.67,75 170,75 C155.33,75 140.67,75 126,75 C111.33,75 89.33,75 82,75 Z" class="wg-strip-precipitation-band"/>
+<path d="M82,75 C89.33,75 111.33,75 126,75 C140.67,75 155.33,75 170,75 C184.67,75 199.33,75 214,75 C228.67,75 243.33,75 258,75 C272.67,75 294.67,75 302,75 L302.00,75 L82.00,75 Z" class="wg-strip-precipitation-area" opacity="0.3"/>
+<path d="M82,75 C89.33,75 111.33,75 126,75 C140.67,75 155.33,75 170,75 C184.67,75 199.33,75 214,75 C228.67,75 243.33,75 258,75 C272.67,75 294.67,75 302,75" class="wg-strip-precipitation" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="61" text-anchor="end" font-size="10.5" font-weight="700" class="wg-text">Precip</text>
+<text x="52" y="72" text-anchor="end" font-size="9.5" class="wg-text-mute">mm/h</text>
+<rect x="60" y="80" width="264" height="25" class="wg-strip-frame" stroke-width="0.7"/>
+<line x1="60" y1="92.5" x2="324" y2="92.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
+<path d="M82,97.5 C89.33,97.17 111.33,96.17 126,95.5 C140.67,94.83 155.33,94.17 170,93.5 C184.67,92.83 199.33,92.17 214,91.5 C228.67,90.83 243.33,90.17 258,89.5 C272.67,88.83 294.67,87.83 302,87.5 L302,92.5 C294.67,92.83 272.67,93.83 258,94.5 C243.33,95.17 228.67,95.83 214,96.5 C199.33,97.17 184.67,97.83 170,98.5 C155.33,99.17 140.67,99.83 126,100.5 C111.33,101.17 89.33,102.17 82,102.5 Z" class="wg-strip-cloudCover-band"/>
+<path d="M82,100 C89.33,99.67 111.33,98.67 126,98 C140.67,97.33 155.33,96.67 170,96 C184.67,95.33 199.33,94.67 214,94 C228.67,93.33 243.33,92.67 258,92 C272.67,91.33 294.67,90.33 302,90 L302.00,105 L82.00,105 Z" class="wg-strip-cloudCover-area" opacity="0.3"/>
+<path d="M82,100 C89.33,99.67 111.33,98.67 126,98 C140.67,97.33 155.33,96.67 170,96 C184.67,95.33 199.33,94.67 214,94 C228.67,93.33 243.33,92.67 258,92 C272.67,91.33 294.67,90.33 302,90" class="wg-strip-cloudCover" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="91" text-anchor="end" font-size="10.5" font-weight="700" class="wg-text">Cloud</text>
+<text x="52" y="102" text-anchor="end" font-size="9.5" class="wg-text-mute">%</text>
+<rect x="60" y="110" width="264" height="25" class="wg-strip-frame" stroke-width="0.7"/>
+<line x1="60" y1="122.5" x2="324" y2="122.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
+<path d="M82,130.83 C89.33,130.35 111.33,128.89 126,127.92 C140.67,126.94 155.33,125.97 170,125 C184.67,124.03 199.33,123.06 214,122.08 C228.67,121.11 243.33,120.14 258,119.17 C272.67,118.19 294.67,116.74 302,116.25 L302,119.58 C294.67,120.07 272.67,121.53 258,122.5 C243.33,123.47 228.67,124.44 214,125.42 C199.33,126.39 184.67,127.36 170,128.33 C155.33,129.31 140.67,130.28 126,131.25 C111.33,132.22 89.33,133.68 82,134.17 Z" class="wg-strip-thermalStrength-band"/>
+<path d="M82,132.5 C89.33,132.01 111.33,130.56 126,129.58 C140.67,128.61 155.33,127.64 170,126.67 C184.67,125.69 199.33,124.72 214,123.75 C228.67,122.78 243.33,121.81 258,120.83 C272.67,119.86 294.67,118.4 302,117.92 L302.00,135 L82.00,135 Z" class="wg-strip-thermalStrength-area" opacity="0.3"/>
+<path d="M82,132.5 C89.33,132.01 111.33,130.56 126,129.58 C140.67,128.61 155.33,127.64 170,126.67 C184.67,125.69 199.33,124.72 214,123.75 C228.67,122.78 243.33,121.81 258,120.83 C272.67,119.86 294.67,118.4 302,117.92" class="wg-strip-thermalStrength" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="121" text-anchor="end" font-size="10.5" font-weight="700" class="wg-text">w*</text>
+<text x="52" y="132" text-anchor="end" font-size="9.5" class="wg-text-mute">m/s</text>
+<rect x="60" y="148" width="264" height="340" class="wg-frame"/>
+<rect x="280" y="20" width="44" height="468" class="wg-selected-column"/>
+<line x1="302" x2="302" y1="20" y2="488" class="wg-selected-line" stroke-width="1" stroke-dasharray="3 4"/>
+<line x1="60" y1="488" x2="324" y2="488" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="491" text-anchor="end" font-size="10.5" class="wg-text-mute">1574m</text>
+<text x="332" y="491" font-size="10.5" class="wg-text-mute">5164ft</text>
+<line x1="60" y1="420" x2="324" y2="420" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="423" text-anchor="end" font-size="10.5" class="wg-text-mute">1956m</text>
+<text x="332" y="423" font-size="10.5" class="wg-text-mute">6417ft</text>
+<line x1="60" y1="352" x2="324" y2="352" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="355" text-anchor="end" font-size="10.5" class="wg-text-mute">2338m</text>
+<text x="332" y="355" font-size="10.5" class="wg-text-mute">7670ft</text>
+<line x1="60" y1="284" x2="324" y2="284" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="287" text-anchor="end" font-size="10.5" class="wg-text-mute">2720m</text>
+<text x="332" y="287" font-size="10.5" class="wg-text-mute">8924ft</text>
+<line x1="60" y1="216" x2="324" y2="216" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="219" text-anchor="end" font-size="10.5" class="wg-text-mute">3102m</text>
+<text x="332" y="219" font-size="10.5" class="wg-text-mute">10177ft</text>
+<line x1="60" y1="148" x2="324" y2="148" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="151" text-anchor="end" font-size="10.5" class="wg-text-mute">3484m</text>
+<text x="332" y="151" font-size="10.5" class="wg-text-mute">11430ft</text>
+<line x1="82" x2="82" y1="148" y2="488" class="wg-hourline" stroke-width="0.6" opacity="0.15"/>
+<text x="82" y="506" text-anchor="middle" font-size="11" class="wg-text-mute wg-mono">9</text>
+<text x="126" y="506" text-anchor="middle" font-size="11" class="wg-text-mute wg-mono">10</text>
+<line x1="170" x2="170" y1="148" y2="488" class="wg-hourline" stroke-width="0.6" opacity="0.15"/>
+<text x="170" y="506" text-anchor="middle" font-size="11" class="wg-text-mute wg-mono">11</text>
+<text x="214" y="506" text-anchor="middle" font-size="11" class="wg-text-mute wg-mono">12</text>
+<line x1="258" x2="258" y1="148" y2="488" class="wg-hourline" stroke-width="0.6" opacity="0.15"/>
+<text x="258" y="506" text-anchor="middle" font-size="11" class="wg-text-mute wg-mono">13</text>
+<text x="302" y="506" text-anchor="middle" font-size="11" class="wg-text-mute wg-mono">14</text>
+<path d="M126,429.95 C133.33,420.46 155.33,391.98 170,372.99 C184.67,354.01 199.33,335.02 214,316.03 C228.67,297.05 243.33,278.06 258,259.07 C272.67,240.09 294.67,211.61 302,202.11 L302,266.19 C294.67,275.69 272.67,304.17 258,323.15 C243.33,342.14 228.67,361.13 214,380.11 C199.33,399.1 184.67,418.09 170,437.07 C155.33,456.06 133.33,484.54 126,494.03 Z" class="wg-series-boundary-band"/>
+<path d="M82,283.99 C89.33,280.43 111.33,269.75 126,262.63 C140.67,255.51 155.33,248.39 170,241.27 C184.67,234.15 199.33,227.03 214,219.91 C228.67,212.79 243.33,205.67 258,198.55 C272.67,191.43 294.67,180.75 302,177.19 L302,255.51 C294.67,259.07 272.67,269.75 258,276.87 C243.33,283.99 228.67,291.11 214,298.23 C199.33,305.35 184.67,312.47 170,319.59 C155.33,326.71 140.67,333.83 126,340.95 C111.33,348.07 89.33,358.75 82,362.31 Z" class="wg-series-cloud-base-band"/>
+<path d="M170,332.05 C177.33,323.15 199.33,296.45 214,278.65 C228.67,260.85 243.33,243.05 258,225.25 C272.67,207.45 294.67,180.75 302,171.85 L302,260.85 C294.67,269.75 272.67,296.45 258,314.25 C243.33,332.05 228.67,349.85 214,367.65 C199.33,385.45 177.33,412.15 170,421.05 Z" class="wg-series-usable-band"/>
+<path d="M126,461.99 C133.33,452.5 155.33,424.02 170,405.03 C184.67,386.05 199.33,367.06 214,348.07 C228.67,329.09 243.33,310.1 258,291.11 C272.67,272.13 294.67,243.65 302,234.15" class="wg-halo" fill="none" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="10 5"/>
+<path d="M126,461.99 C133.33,452.5 155.33,424.02 170,405.03 C184.67,386.05 199.33,367.06 214,348.07 C228.67,329.09 243.33,310.1 258,291.11 C272.67,272.13 294.67,243.65 302,234.15" class="wg-series-boundary" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="10 5"/>
+<path d="M82,323.15 C89.33,319.59 111.33,308.91 126,301.79 C140.67,294.67 155.33,287.55 170,280.43 C184.67,273.31 199.33,266.19 214,259.07 C228.67,251.95 243.33,244.83 258,237.71 C272.67,230.59 294.67,219.91 302,216.35" class="wg-halo" fill="none" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 5"/>
+<path d="M82,323.15 C89.33,319.59 111.33,308.91 126,301.79 C140.67,294.67 155.33,287.55 170,280.43 C184.67,273.31 199.33,266.19 214,259.07 C228.67,251.95 243.33,244.83 258,237.71 C272.67,230.59 294.67,219.91 302,216.35" class="wg-series-cloud-base" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 5"/>
+<path d="M170,376.55 C177.33,367.65 199.33,340.95 214,323.15 C228.67,305.35 243.33,287.55 258,269.75 C272.67,251.95 294.67,225.25 302,216.35" class="wg-halo" fill="none" stroke-width="4.1" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M170,376.55 C177.33,367.65 199.33,340.95 214,323.15 C228.67,305.35 243.33,287.55 258,269.75 C272.67,251.95 294.67,225.25 302,216.35" class="wg-series-usable" fill="none" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+<g transform="translate(302 216.35)"><path d="M-8 2Q0-6.5 8 2Q0-1.5-8 2Z" class="wg-marker-halo" stroke-width="2.4"/><path d="M-8 2Q0-6.5 8 2Q0-1.5-8 2Z" class="wg-marker-wing" stroke-width="0.6"/></g>
+<g transform="translate(302 216.35)"><path d="M-7 2.5h14a3.2 3.2 0 0 0-.6-6.3A5 5 0 0 0-3-5a4 4 0 0 0-4 4 3 3 0 0 0 0 3.5Z" class="wg-marker-halo" stroke-width="2.4"/><path d="M-7 2.5h14a3.2 3.2 0 0 0-.6-6.3A5 5 0 0 0-3-5a4 4 0 0 0-4 4 3 3 0 0 0 0 3.5Z" class="wg-marker-cloud" stroke-width="0.6"/></g>
+<g transform="translate(82 488) rotate(240) scale(0.85)"><path d="M0 5 L0 -16 M0 -13.8 L4.5 -11.4" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -13.8 L4.5 -11.4" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(126 488) rotate(241) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(170 488) rotate(242) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(214 488) rotate(243) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L4.5 -9.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L4.5 -9.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(258 488) rotate(244) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L4.5 -9.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L4.5 -9.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(302 488) rotate(245) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L4.5 -9.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L4.5 -9.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+</svg>

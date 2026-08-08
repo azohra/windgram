@@ -1,0 +1,1417 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Windgram profile document",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "model": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "run": {
+      "type": "object",
+      "properties": {
+        "referenceTime": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+        },
+        "generatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+        }
+      },
+      "required": [
+        "referenceTime",
+        "generatedAt"
+      ]
+    },
+    "site": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "latitude": {
+          "type": "number"
+        },
+        "longitude": {
+          "type": "number"
+        },
+        "altitudeM": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "modelElevationM": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "latitude",
+        "longitude",
+        "altitudeM",
+        "modelElevationM"
+      ]
+    },
+    "hours": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "validAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "surface": {
+            "type": "object",
+            "properties": {
+              "pressurePa": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "p10": {
+                        "type": "number"
+                      },
+                      "p25": {
+                        "type": "number"
+                      },
+                      "p50": {
+                        "type": "number"
+                      },
+                      "p75": {
+                        "type": "number"
+                      },
+                      "p90": {
+                        "type": "number"
+                      },
+                      "ceiledMembers": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  }
+                ]
+              },
+              "temperatureC": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "p10": {
+                        "type": "number"
+                      },
+                      "p25": {
+                        "type": "number"
+                      },
+                      "p50": {
+                        "type": "number"
+                      },
+                      "p75": {
+                        "type": "number"
+                      },
+                      "p90": {
+                        "type": "number"
+                      },
+                      "ceiledMembers": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  }
+                ]
+              },
+              "dewPointC": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "p10": {
+                        "type": "number"
+                      },
+                      "p25": {
+                        "type": "number"
+                      },
+                      "p50": {
+                        "type": "number"
+                      },
+                      "p75": {
+                        "type": "number"
+                      },
+                      "p90": {
+                        "type": "number"
+                      },
+                      "ceiledMembers": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  }
+                ]
+              },
+              "windSpeedMs": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "p10": {
+                        "type": "number"
+                      },
+                      "p25": {
+                        "type": "number"
+                      },
+                      "p50": {
+                        "type": "number"
+                      },
+                      "p75": {
+                        "type": "number"
+                      },
+                      "p90": {
+                        "type": "number"
+                      },
+                      "ceiledMembers": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  }
+                ]
+              },
+              "windDirectionDeg": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "p10": {
+                        "type": "number"
+                      },
+                      "p25": {
+                        "type": "number"
+                      },
+                      "p50": {
+                        "type": "number"
+                      },
+                      "p75": {
+                        "type": "number"
+                      },
+                      "p90": {
+                        "type": "number"
+                      },
+                      "ceiledMembers": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  }
+                ]
+              },
+              "cloudCoverPercent": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "p10": {
+                        "type": "number"
+                      },
+                      "p25": {
+                        "type": "number"
+                      },
+                      "p50": {
+                        "type": "number"
+                      },
+                      "p75": {
+                        "type": "number"
+                      },
+                      "p90": {
+                        "type": "number"
+                      },
+                      "ceiledMembers": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  }
+                ]
+              },
+              "precipitationMmHr": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "p10": {
+                        "type": "number"
+                      },
+                      "p25": {
+                        "type": "number"
+                      },
+                      "p50": {
+                        "type": "number"
+                      },
+                      "p75": {
+                        "type": "number"
+                      },
+                      "p90": {
+                        "type": "number"
+                      },
+                      "ceiledMembers": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  }
+                ]
+              },
+              "sensibleHeatFluxWm2": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "p10": {
+                        "type": "number"
+                      },
+                      "p25": {
+                        "type": "number"
+                      },
+                      "p50": {
+                        "type": "number"
+                      },
+                      "p75": {
+                        "type": "number"
+                      },
+                      "p90": {
+                        "type": "number"
+                      },
+                      "ceiledMembers": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  }
+                ]
+              },
+              "latentHeatFluxWm2": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "p10": {
+                        "type": "number"
+                      },
+                      "p25": {
+                        "type": "number"
+                      },
+                      "p50": {
+                        "type": "number"
+                      },
+                      "p75": {
+                        "type": "number"
+                      },
+                      "p90": {
+                        "type": "number"
+                      },
+                      "ceiledMembers": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  }
+                ]
+              },
+              "windGustMs": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "p10": {
+                        "type": "number"
+                      },
+                      "p25": {
+                        "type": "number"
+                      },
+                      "p50": {
+                        "type": "number"
+                      },
+                      "p75": {
+                        "type": "number"
+                      },
+                      "p90": {
+                        "type": "number"
+                      },
+                      "ceiledMembers": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  }
+                ]
+              },
+              "capeJkg": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "p10": {
+                        "type": "number"
+                      },
+                      "p25": {
+                        "type": "number"
+                      },
+                      "p50": {
+                        "type": "number"
+                      },
+                      "p75": {
+                        "type": "number"
+                      },
+                      "p90": {
+                        "type": "number"
+                      },
+                      "ceiledMembers": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  }
+                ]
+              },
+              "cinJkg": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "p10": {
+                        "type": "number"
+                      },
+                      "p25": {
+                        "type": "number"
+                      },
+                      "p50": {
+                        "type": "number"
+                      },
+                      "p75": {
+                        "type": "number"
+                      },
+                      "p90": {
+                        "type": "number"
+                      },
+                      "ceiledMembers": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  }
+                ]
+              },
+              "pblHeightM": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "p10": {
+                        "type": "number"
+                      },
+                      "p25": {
+                        "type": "number"
+                      },
+                      "p50": {
+                        "type": "number"
+                      },
+                      "p75": {
+                        "type": "number"
+                      },
+                      "p90": {
+                        "type": "number"
+                      },
+                      "ceiledMembers": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  }
+                ]
+              },
+              "lowCloudPercent": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "p10": {
+                        "type": "number"
+                      },
+                      "p25": {
+                        "type": "number"
+                      },
+                      "p50": {
+                        "type": "number"
+                      },
+                      "p75": {
+                        "type": "number"
+                      },
+                      "p90": {
+                        "type": "number"
+                      },
+                      "ceiledMembers": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  }
+                ]
+              },
+              "midCloudPercent": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "p10": {
+                        "type": "number"
+                      },
+                      "p25": {
+                        "type": "number"
+                      },
+                      "p50": {
+                        "type": "number"
+                      },
+                      "p75": {
+                        "type": "number"
+                      },
+                      "p90": {
+                        "type": "number"
+                      },
+                      "ceiledMembers": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  }
+                ]
+              },
+              "highCloudPercent": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "p10": {
+                        "type": "number"
+                      },
+                      "p25": {
+                        "type": "number"
+                      },
+                      "p50": {
+                        "type": "number"
+                      },
+                      "p75": {
+                        "type": "number"
+                      },
+                      "p90": {
+                        "type": "number"
+                      },
+                      "ceiledMembers": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  }
+                ]
+              }
+            },
+            "required": [
+              "pressurePa",
+              "temperatureC",
+              "dewPointC",
+              "windSpeedMs",
+              "windDirectionDeg",
+              "cloudCoverPercent",
+              "precipitationMmHr",
+              "sensibleHeatFluxWm2",
+              "latentHeatFluxWm2"
+            ]
+          },
+          "levels": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "pressureHpa": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "members": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "p10": {
+                          "type": "number"
+                        },
+                        "p25": {
+                          "type": "number"
+                        },
+                        "p50": {
+                          "type": "number"
+                        },
+                        "p75": {
+                          "type": "number"
+                        },
+                        "p90": {
+                          "type": "number"
+                        },
+                        "ceiledMembers": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "members",
+                        "p10",
+                        "p25",
+                        "p50",
+                        "p75",
+                        "p90"
+                      ]
+                    }
+                  ]
+                },
+                "heightM": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "members": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "p10": {
+                          "type": "number"
+                        },
+                        "p25": {
+                          "type": "number"
+                        },
+                        "p50": {
+                          "type": "number"
+                        },
+                        "p75": {
+                          "type": "number"
+                        },
+                        "p90": {
+                          "type": "number"
+                        },
+                        "ceiledMembers": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "members",
+                        "p10",
+                        "p25",
+                        "p50",
+                        "p75",
+                        "p90"
+                      ]
+                    }
+                  ]
+                },
+                "temperatureC": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "members": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "p10": {
+                          "type": "number"
+                        },
+                        "p25": {
+                          "type": "number"
+                        },
+                        "p50": {
+                          "type": "number"
+                        },
+                        "p75": {
+                          "type": "number"
+                        },
+                        "p90": {
+                          "type": "number"
+                        },
+                        "ceiledMembers": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "members",
+                        "p10",
+                        "p25",
+                        "p50",
+                        "p75",
+                        "p90"
+                      ]
+                    }
+                  ]
+                },
+                "dewPointC": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "members": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "p10": {
+                          "type": "number"
+                        },
+                        "p25": {
+                          "type": "number"
+                        },
+                        "p50": {
+                          "type": "number"
+                        },
+                        "p75": {
+                          "type": "number"
+                        },
+                        "p90": {
+                          "type": "number"
+                        },
+                        "ceiledMembers": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "members",
+                        "p10",
+                        "p25",
+                        "p50",
+                        "p75",
+                        "p90"
+                      ]
+                    }
+                  ]
+                },
+                "windSpeedMs": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "members": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "p10": {
+                          "type": "number"
+                        },
+                        "p25": {
+                          "type": "number"
+                        },
+                        "p50": {
+                          "type": "number"
+                        },
+                        "p75": {
+                          "type": "number"
+                        },
+                        "p90": {
+                          "type": "number"
+                        },
+                        "ceiledMembers": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "members",
+                        "p10",
+                        "p25",
+                        "p50",
+                        "p75",
+                        "p90"
+                      ]
+                    }
+                  ]
+                },
+                "windDirectionDeg": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "members": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "p10": {
+                          "type": "number"
+                        },
+                        "p25": {
+                          "type": "number"
+                        },
+                        "p50": {
+                          "type": "number"
+                        },
+                        "p75": {
+                          "type": "number"
+                        },
+                        "p90": {
+                          "type": "number"
+                        },
+                        "ceiledMembers": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "members",
+                        "p10",
+                        "p25",
+                        "p50",
+                        "p75",
+                        "p90"
+                      ]
+                    }
+                  ]
+                },
+                "verticalVelocityPaS": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "members": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "p10": {
+                          "type": "number"
+                        },
+                        "p25": {
+                          "type": "number"
+                        },
+                        "p50": {
+                          "type": "number"
+                        },
+                        "p75": {
+                          "type": "number"
+                        },
+                        "p90": {
+                          "type": "number"
+                        },
+                        "ceiledMembers": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "members",
+                        "p10",
+                        "p25",
+                        "p50",
+                        "p75",
+                        "p90"
+                      ]
+                    }
+                  ]
+                },
+                "cloudFractionPercent": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "members": {
+                          "type": "integer",
+                          "exclusiveMinimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        "p10": {
+                          "type": "number"
+                        },
+                        "p25": {
+                          "type": "number"
+                        },
+                        "p50": {
+                          "type": "number"
+                        },
+                        "p75": {
+                          "type": "number"
+                        },
+                        "p90": {
+                          "type": "number"
+                        },
+                        "ceiledMembers": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        }
+                      },
+                      "required": [
+                        "members",
+                        "p10",
+                        "p25",
+                        "p50",
+                        "p75",
+                        "p90"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "pressureHpa",
+                "heightM",
+                "temperatureC",
+                "dewPointC",
+                "windSpeedMs",
+                "windDirectionDeg"
+              ]
+            }
+          },
+          "derived": {
+            "type": "object",
+            "properties": {
+              "boundaryLayerTopM": {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "p10": {
+                            "type": "number"
+                          },
+                          "p25": {
+                            "type": "number"
+                          },
+                          "p50": {
+                            "type": "number"
+                          },
+                          "p75": {
+                            "type": "number"
+                          },
+                          "p90": {
+                            "type": "number"
+                          },
+                          "ceiledMembers": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "thermalVelocityMs": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "p10": {
+                        "type": "number"
+                      },
+                      "p25": {
+                        "type": "number"
+                      },
+                      "p50": {
+                        "type": "number"
+                      },
+                      "p75": {
+                        "type": "number"
+                      },
+                      "p90": {
+                        "type": "number"
+                      },
+                      "ceiledMembers": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  }
+                ]
+              },
+              "cloudBaseM": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      "p10": {
+                        "type": "number"
+                      },
+                      "p25": {
+                        "type": "number"
+                      },
+                      "p50": {
+                        "type": "number"
+                      },
+                      "p75": {
+                        "type": "number"
+                      },
+                      "p90": {
+                        "type": "number"
+                      },
+                      "ceiledMembers": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  }
+                ]
+              },
+              "usableLiftTopM": {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991
+                          },
+                          "p10": {
+                            "type": "number"
+                          },
+                          "p25": {
+                            "type": "number"
+                          },
+                          "p50": {
+                            "type": "number"
+                          },
+                          "p75": {
+                            "type": "number"
+                          },
+                          "p90": {
+                            "type": "number"
+                          },
+                          "ceiledMembers": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "boundaryLayerTopM",
+              "thermalVelocityMs",
+              "cloudBaseM",
+              "usableLiftTopM"
+            ]
+          }
+        },
+        "required": [
+          "validAt",
+          "surface",
+          "levels",
+          "derived"
+        ]
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "model",
+    "run",
+    "site",
+    "hours"
+  ]
+}

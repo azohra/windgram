@@ -1,0 +1,246 @@
+---
+import { MODELS, omegaLevels } from "../../lib/catalogue";
+
+// Generated from data/models.json at build time (the same one-home pattern
+// as ModelHorizonChart), so the matrix can never drift from the catalogue:
+// capability columns per model, plus each model's retained pressure column
+// drawn to scale with omega-carrying levels accented.
+const capabilityColumns = [
+  { key: "heatFluxes", lines: ["heat", "flux"] },
+  { key: "gust", lines: ["gust"] },
+  { key: "cape", lines: ["CAPE"] },
+  { key: "cin", lines: ["CIN"] },
+  { key: "pblHeight", lines: ["PBL", "height"] },
+  { key: "cloudLayers", lines: ["cloud", "layers"] },
+  { key: "cloudProfile", lines: ["cloud", "profile"] },
+] as const;
+
+const COL_X = [320, 378, 436, 494, 552, 610, 668];
+const AXIS_LEFT = 720;
+const AXIS_RIGHT = 976;
+const AXIS_MAX_HPA = 1015;
+const AXIS_MIN_HPA = 500;
+const px = (hpa: number) =>
+  AXIS_LEFT + ((AXIS_MAX_HPA - hpa) / (AXIS_MAX_HPA - AXIS_MIN_HPA)) * (AXIS_RIGHT - AXIS_LEFT);
+const axisTicks = [1000, 850, 700, 500];
+
+const ROW_TOP = 58;
+const ROW_HEIGHT = 52;
+const rows = MODELS.map((model, index) => {
+  const levels = [...model.capabilities.pressureLevels].sort((a, b) => b - a);
+  const omega = omegaLevels(model.slug);
+  const gustLabel =
+    model.capabilities.gust === "hourMax"
+      ? "1 h max"
+      : model.capabilities.gust === "instant"
+        ? "instant"
+        : null;
+  return {
+    model,
+    top: ROW_TOP + index * ROW_HEIGHT,
+    centerY: ROW_TOP + index * ROW_HEIGHT + 26,
+    alt: index % 2 === 0,
+    levels,
+    omega,
+    gustLabel,
+    flag: model.experimental ? "experimental feed" : model.kind === "ensemble" ? "ensemble" : null,
+    meta: `${model.provider} · ${model.stepHours} h step · ${model.horizonHours} h`,
+  };
+});
+const legendY = ROW_TOP + rows.length * ROW_HEIGHT + 30;
+const svgHeight = legendY + 22;
+
+const fieldName = (key: (typeof capabilityColumns)[number]["key"]) =>
+  ({
+    heatFluxes: "heat fluxes",
+    gust: "gust",
+    cape: "CAPE",
+    cin: "CIN",
+    pblHeight: "PBL height",
+    cloudLayers: "cloud layers",
+    cloudProfile: "a cloud profile",
+  })[key];
+
+// The long description enumerates the same declarations the grid draws,
+// generated from the catalogue so it can never contradict the picture.
+const description = rows
+  .map(({ model, levels, omega, gustLabel }) => {
+    const published = capabilityColumns
+      .filter(({ key }) => Boolean(model.capabilities[key]))
+      .map(({ key }) => (key === "gust" ? `${gustLabel} gust` : fieldName(key)));
+    const levelText = `${levels.length} pressure levels from ${levels[0]} to ${levels[levels.length - 1]} hPa`;
+    const omegaText =
+      omega.length > 0 ? `, with vertical velocity at ${omega.join(", ")} hPa` : "";
+    const fieldText = published.length > 0 ? `publishes ${published.join(", ")}` : "publishes none of the capability fields";
+    return `${model.label} (${model.provider}): ${fieldText}; ${levelText}${omegaText}.`;
+  })
+  .join(" ");
+---
+
+<figure class="capability-matrix" aria-labelledby="capability-matrix-title capability-matrix-caption">
+  <header>
+    <h3 id="capability-matrix-title">What each model declares</h3>
+    <span>Generated from the catalogue at build time — absent cells are the feed's absences.</span>
+  </header>
+
+  <div class="graphic-scroll" tabindex="0" aria-label="Scrollable model capability matrix">
+    <svg
+      viewBox={`0 0 1000 ${svgHeight}`}
+      role="img"
+      aria-labelledby="capability-matrix-svg-title capability-matrix-svg-desc"
+    >
+      <title id="capability-matrix-svg-title">
+        Per-model capability grid with retained pressure columns drawn to scale
+      </title>
+      <desc id="capability-matrix-svg-desc">
+        {MODELS.length} models against their declared fields and pressure columns, from
+        data/models.json. {description} A blank cell means the model does not publish the field.
+      </desc>
+
+      <text x={COL_X[0]} y="26" text-anchor="middle" class="cm-group">FIELDS PUBLISHED</text>
+      <text x={AXIS_LEFT} y="26" class="cm-group">RETAINED PRESSURE COLUMN · hPa</text>
+
+      {capabilityColumns.map(({ lines }, index) =>
+        lines.map((line, lineIndex) => (
+          <text
+            x={COL_X[index]}
+            y={lines.length === 2 ? 40 + lineIndex * 11 : 51}
+            class="cm-colhead"
+          >
+            {line}
+          </text>
+        )),
+      )}
+
+      <line x1={AXIS_LEFT} y1="54" x2={AXIS_RIGHT} y2="54" class="cm-axis" />
+      {axisTicks.map((hpa) => (
+        <>
+          <line x1={px(hpa)} y1="50" x2={px(hpa)} y2="54" class="cm-axis" />
+          <text x={px(hpa)} y="44" class="cm-axis-label" text-anchor={hpa === 500 ? "end" : "middle"}>
+            {hpa}
+          </text>
+        </>
+      ))}
+
+      {rows.map(({ model, top, centerY, alt, levels, omega, gustLabel, flag, meta }) => (
+        <g>
+          {alt && <rect x="24" y={top} width="960" height={ROW_HEIGHT} class="cm-row-alt" />}
+          <text x="36" y={top + 22} class="cm-name">{model.label}</text>
+          <text x="36" y={top + 39} class="cm-name-sub">
+            {meta}
+            {flag && <tspan> — <tspan class="cm-flag">{flag}</tspan></tspan>}
+          </text>
+          {capabilityColumns.map(({ key }, columnIndex) =>
+            key === "gust" ? (
+              gustLabel ? (
+                <text x={COL_X[columnIndex]} y={centerY + 3} class="cm-gust">{gustLabel}</text>
+              ) : (
+                <text x={COL_X[columnIndex]} y={centerY + 4} class="cm-no">—</text>
+              )
+            ) : model.capabilities[key] ? (
+              <circle cx={COL_X[columnIndex]} cy={centerY} r="5" class="cm-yes" />
+            ) : (
+              <text x={COL_X[columnIndex]} y={centerY + 4} class="cm-no">—</text>
+            ),
+          )}
+          <text x="706" y={centerY + 3} class="cm-lv-count">{levels.length}</text>
+          <line
+            x1={px(levels[0])}
+            y1={centerY}
+            x2={px(levels[levels.length - 1])}
+            y2={centerY}
+            class="cm-band-base"
+          />
+          {levels
+            .filter((hpa) => !omega.includes(hpa))
+            .map((hpa) => (
+              <line x1={px(hpa)} y1={centerY - 6} x2={px(hpa)} y2={centerY + 6} class="cm-lv" />
+            ))}
+          {omega.map((hpa) => (
+            <line x1={px(hpa)} y1={centerY - 8} x2={px(hpa)} y2={centerY + 8} class="cm-lv-w" />
+          ))}
+        </g>
+      ))}
+
+      {[...Array(rows.length + 1).keys()].map((index) => (
+        <line
+          x1="24"
+          y1={ROW_TOP + index * ROW_HEIGHT}
+          x2="984"
+          y2={ROW_TOP + index * ROW_HEIGHT}
+          class="cm-row-rule"
+        />
+      ))}
+
+      <circle cx="36" cy={legendY - 4} r="5" class="cm-yes" />
+      <text x="48" y={legendY} class="cm-legend">published</text>
+      <text x="130" y={legendY} class="cm-no">—</text>
+      <text x="144" y={legendY} class="cm-legend">not published</text>
+      <line x1="248" y1={legendY - 10} x2="248" y2={legendY + 2} class="cm-lv" />
+      <text x="258" y={legendY} class="cm-legend">retained pressure level</text>
+      <line x1="412" y1={legendY - 12} x2="412" y2={legendY + 4} class="cm-lv-w" />
+      <text x="422" y={legendY} class="cm-legend">level also carries vertical velocity (ω)</text>
+      <text x="690" y={legendY} class="cm-legend">gust cells print the declared semantics</text>
+    </svg>
+  </div>
+
+  <figcaption id="capability-matrix-caption">
+    Capabilities exactly as declared in <code>data/models.json</code> (schemaVersion 1); the matrix
+    is regenerated from the catalogue on every build. Pressure columns are drawn to a common
+    1015–500 hPa scale.
+  </figcaption>
+</figure>
+
+<style>
+  .capability-matrix {
+    display: block;
+    width: min(1040px, calc(100vw - 32px));
+    margin: 28px 50% 44px;
+    transform: translateX(-50%);
+    color: var(--ink);
+    border-top: 3px solid var(--accent);
+    border-bottom: 1px solid var(--rule-strong);
+  }
+  header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 24px;
+    align-items: end;
+    padding: 18px 0 16px;
+  }
+  .capability-matrix h3 { margin: 0; font: 700 29px/1 var(--display); text-transform: uppercase; }
+  header > span { font: 13px/1.4 var(--mono); color: var(--ink-mute); }
+  .graphic-scroll {
+    overflow-x: auto;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    scrollbar-color: var(--accent) var(--surface-raised);
+  }
+  .graphic-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  svg { display: block; width: 100%; min-width: 880px; height: auto; font-family: var(--mono); }
+  .cm-group { fill: var(--ink-mute); font-size: 10px; font-weight: 700; letter-spacing: .08em; }
+  .cm-colhead { fill: var(--ink-soft); font-size: 9.5px; font-weight: 700; letter-spacing: .03em; text-anchor: middle; }
+  .cm-row-alt { fill: var(--wg-strip-bg); }
+  .cm-row-rule { stroke: var(--rule); stroke-width: .6; opacity: .55; }
+  .cm-name { fill: var(--ink); font-family: var(--display); font-size: 17px; font-weight: 700; text-transform: uppercase; letter-spacing: .01em; }
+  .cm-name-sub { fill: var(--ink-mute); font-size: 10px; }
+  .cm-flag { fill: var(--accent-strong); font-weight: 700; }
+  .cm-yes { fill: var(--ink); }
+  .cm-no { fill: var(--ink-mute); font-size: 12px; text-anchor: middle; opacity: .75; }
+  .cm-gust { fill: var(--ink-soft); font-size: 9.5px; font-weight: 600; text-anchor: middle; }
+  .cm-band-base { stroke: var(--rule); stroke-width: 1; }
+  .cm-lv { stroke: var(--ink-soft); stroke-width: 1.4; }
+  .cm-lv-w { stroke: var(--accent); stroke-width: 2.4; }
+  .cm-lv-count { fill: var(--ink-soft); font-size: 10px; text-anchor: end; }
+  .cm-axis { stroke: var(--rule-strong); stroke-width: 1; }
+  .cm-axis-label { fill: var(--ink-mute); font-size: 9.5px; }
+  .cm-legend { fill: var(--ink-mute); font-size: 10.5px; font-family: var(--sans); }
+  figcaption { padding: 12px 0 14px; font: 12px/1.5 var(--mono); color: var(--ink-mute); }
+  figcaption code { font-family: var(--mono); }
+  @media (max-width: 720px) {
+    header { grid-template-columns: 1fr; }
+    .capability-matrix h3 { font-size: 25px; }
+    header > span { font-size: 12px; }
+    .graphic-scroll { margin-inline: -8px; }
+  }
+</style>

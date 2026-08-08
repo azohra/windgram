@@ -1,0 +1,12 @@
+node_modules/
+__pycache__/
+.pytest_cache/
+.DS_Store
+.venv/
+site/dist/
+packages/windgram/dist/
+site/.astro/
+.wrangler/
+.claude/worktrees/
+notes/
+CLAUDE.md

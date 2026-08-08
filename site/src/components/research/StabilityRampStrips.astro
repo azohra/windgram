@@ -1,0 +1,183 @@
+---
+import {
+  CANADARASP_RAMP,
+  CLASS_LABELS,
+  CLASS_NAMES,
+  DEFAULT_RAMP,
+  luminanceGray,
+  oklabLightness,
+} from "./ramp-math";
+
+/* Both palettes arrive from the package exports at build time (the same
+   one-home pattern as Base.astro's --stab-* generation), each drawn as a
+   contiguous swatch strip on the surface it was designed against, with a
+   luminance-matched grayscale row beneath — what a grayscale print or a
+   fully desaturated display keeps of each design. */
+
+const LEFT = 168;
+const RIGHT = 1016;
+const COL = (RIGHT - LEFT) / 8;
+
+const ramps = [DEFAULT_RAMP, CANADARASP_RAMP].map((ramp) => {
+  const lightness = ramp.hexes.map(oklabLightness);
+  return {
+    ...ramp,
+    grays: ramp.hexes.map(luminanceGray),
+    surfaceGray: luminanceGray(ramp.surface),
+    monotone: lightness.every((value, i) => i === 0 || value < lightness[i - 1]),
+  };
+});
+
+const labelLines = CLASS_NAMES.map((name) =>
+  (CLASS_LABELS[name] ?? name).replace(" · ", " ").split(" "),
+);
+
+const LABELS_H = 44;
+const SWATCH_H = 40;
+const GRAY_H = 24;
+const PAD = 7;
+const panelHeight = 24 + (SWATCH_H + 2 * PAD) + 3 + (GRAY_H + 2 * PAD) + 20 + 26;
+const panelTop = (index: number) => LABELS_H + index * panelHeight;
+const svgHeight = LABELS_H + ramps.length * panelHeight - 14;
+
+const description = ramps
+  .map(
+    (ramp) =>
+      `The ${ramp.name} strip runs ${ramp.hexes.join(", ")} on its design surface ${ramp.surface}; ` +
+      `its luminance-matched grays are ${ramp.grays.join(", ")}, ` +
+      (ramp.monotone
+        ? "strictly darkening from most unstable to most stable, so the grayscale row keeps the class order."
+        : "which do not darken in class order, so the grayscale row loses the sequence."),
+  )
+  .join(" ");
+---
+
+<figure class="ramp-strips" aria-labelledby="ramp-strips-title ramp-strips-caption">
+  <header>
+    <h3 id="ramp-strips-title">Two palettes, and what grayscale keeps</h3>
+    <span>Swatches imported from the package exports at build time — nothing here is retyped.</span>
+  </header>
+
+  <div class="graphic-scroll" tabindex="0" aria-label="Scrollable comparison of the two stability palettes with grayscale rows">
+    <svg
+      viewBox={`0 0 1040 ${svgHeight}`}
+      role="img"
+      aria-labelledby="ramp-strips-svg-title ramp-strips-svg-desc"
+    >
+      <title id="ramp-strips-svg-title">
+        The default stability ramp and the canadarasp preset as swatch strips, each above its
+        luminance-matched grayscale row
+      </title>
+      <desc id="ramp-strips-svg-desc">
+        Eight stability classes from very unstable to strong inversion, left to right. {description}
+        In the canadarasp strip the stable swatch matches the design surface exactly, in colour and
+        in grayscale.
+      </desc>
+
+      {labelLines.map((lines, column) =>
+        lines.map((line, lineIndex) => (
+          <text
+            x={LEFT + column * COL + COL / 2}
+            y={lines.length === 2 ? 18 + lineIndex * 12 : 30}
+            class="rs-colhead"
+          >
+            {line}
+          </text>
+        )),
+      )}
+
+      {ramps.map((ramp, index) => {
+        const top = panelTop(index);
+        const swatchTop = top + 24 + PAD;
+        const grayTop = swatchTop + SWATCH_H + PAD + 3 + PAD;
+        return (
+          <g>
+            <text x="0" y={top + 14} class="rs-name">{ramp.name}</text>
+            <rect
+              x={LEFT - 14}
+              y={top + 24}
+              width={RIGHT - LEFT + 28}
+              height={SWATCH_H + 2 * PAD}
+              fill={ramp.surface}
+              class="rs-backing"
+            />
+            <rect
+              x={LEFT - 14}
+              y={top + 24 + SWATCH_H + 2 * PAD + 3}
+              width={RIGHT - LEFT + 28}
+              height={GRAY_H + 2 * PAD}
+              fill={ramp.surfaceGray}
+              class="rs-backing"
+            />
+            <text x={LEFT - 22} y={swatchTop + SWATCH_H / 2 + 4} class="rs-rowlabel">colour</text>
+            <text x={LEFT - 22} y={grayTop + GRAY_H / 2 + 4} class="rs-rowlabel">grayscale</text>
+            {ramp.hexes.map((hex, column) => (
+              <rect x={LEFT + column * COL} y={swatchTop} width={COL} height={SWATCH_H} fill={hex}>
+                <title>{`${CLASS_LABELS[CLASS_NAMES[column]]}: ${hex} on ${ramp.surface}`}</title>
+              </rect>
+            ))}
+            {ramp.grays.map((gray, column) => (
+              <rect x={LEFT + column * COL} y={grayTop} width={COL} height={GRAY_H} fill={gray}>
+                <title>{`${CLASS_LABELS[CLASS_NAMES[column]]} as grayscale: ${gray}`}</title>
+              </rect>
+            ))}
+            {ramp.hexes.map((hex, column) => (
+              <text x={LEFT + column * COL + COL / 2} y={grayTop + GRAY_H + PAD + 16} class="rs-hex">
+                {hex}
+              </text>
+            ))}
+          </g>
+        );
+      })}
+    </svg>
+  </div>
+
+  <figcaption id="ramp-strips-caption">
+    Each strip sits on the surface its palette was designed against, from the same export. The
+    grayscale rows are computed at build time as the gray of equal relative luminance (sRGB
+    linearized). The default's grays darken strictly left to right; the canadarasp preset's do not —
+    and its stable swatch disappears into its background by design.
+  </figcaption>
+</figure>
+
+<style>
+  .ramp-strips {
+    display: block;
+    width: min(1040px, calc(100vw - 32px));
+    margin: 28px 50% 44px;
+    transform: translateX(-50%);
+    color: var(--ink);
+    border-top: 3px solid var(--accent);
+    border-bottom: 1px solid var(--rule-strong);
+  }
+  header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 24px;
+    align-items: end;
+    padding: 18px 0 16px;
+  }
+  .ramp-strips h3 { margin: 0; font: 700 29px/1 var(--display); text-transform: uppercase; }
+  header > span { font: 13px/1.4 var(--mono); color: var(--ink-mute); }
+  .graphic-scroll {
+    overflow-x: auto;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    padding: 14px 10px;
+    scrollbar-color: var(--accent) var(--surface-raised);
+  }
+  .graphic-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  svg { display: block; width: 100%; min-width: 880px; height: auto; font-family: var(--mono); }
+  .rs-colhead { fill: var(--ink-soft); font-size: 10px; font-weight: 700; letter-spacing: .02em; text-anchor: middle; }
+  .rs-name { fill: var(--ink); font-family: var(--display); font-size: 17px; font-weight: 700; text-transform: uppercase; }
+  .rs-backing { stroke: var(--rule); stroke-width: 1; }
+  .rs-rowlabel { fill: var(--ink-mute); font-size: 10.5px; text-anchor: end; }
+  .rs-hex { fill: var(--ink-mute); font-size: 10px; text-anchor: middle; }
+  figcaption { padding: 12px 0 14px; font: 12px/1.5 var(--mono); color: var(--ink-mute); }
+  @media (max-width: 720px) {
+    header { grid-template-columns: 1fr; }
+    .ramp-strips h3 { font-size: 25px; }
+    header > span { font-size: 12px; }
+    .graphic-scroll { margin-inline: -8px; }
+  }
+</style>

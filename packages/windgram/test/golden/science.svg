@@ -1,0 +1,246 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 580" role="img" aria-label="Windgram for Dundee, model gfs, 2026-08-09 7:00 to 12:00 (America/Vancouver): surface metric strips above a time-height field; derived series, isotherms, shading overlays and winds aloft are drawn over the profile." class="wg">
+<style>
+.wg text { font-family: var(--wg-font, "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif); }
+.wg .wg-mono { font-family: var(--wg-font-mono, "IBM Plex Mono", ui-monospace, monospace); }
+.wg-frame { fill: var(--wg-surface, #fffdf8); stroke: var(--wg-rule, #776956); }
+.wg-strip-frame { fill: var(--wg-strip-bg, #f2f4f1); stroke: var(--wg-rule, #776956); }
+.wg-gridline { stroke: var(--wg-rule, #776956); }
+.wg-hourline { stroke: var(--wg-ink, #152529); }
+.wg-text { fill: var(--wg-ink, #152529); }
+.wg-text-soft { fill: var(--wg-ink-soft, #2f454a); }
+.wg-text-mute { fill: var(--wg-ink-mute, #40565a); }
+.wg-haloed-text { stroke: var(--wg-halo, #fffdf8); paint-order: stroke; }
+.wg-halo { stroke: var(--wg-halo, #fffdf8); }
+.wg-selected-column { fill: var(--wg-accent, #913b0c); opacity: 0.05; }
+.wg-selected-line { stroke: var(--wg-accent, #913b0c); }
+.wg-launch-line { stroke: var(--wg-ink, #152529); }
+.wg-strip-pressure { stroke: var(--wg-pressure, #963f36); }
+.wg-strip-pressure-area, .wg-strip-pressure-band { fill: var(--wg-pressure, #963f36); }
+.wg-strip-precipitation { stroke: var(--wg-rain, #207a83); }
+.wg-strip-precipitation-area, .wg-strip-precipitation-band { fill: var(--wg-rain, #207a83); }
+.wg-strip-cloudCover { stroke: var(--wg-cloud, #5b6969); }
+.wg-strip-cloudCover-area, .wg-strip-cloudCover-band { fill: var(--wg-cloud, #5b6969); }
+.wg-strip-thermalStrength { stroke: var(--wg-lift, #9a7500); }
+.wg-strip-thermalStrength-area, .wg-strip-thermalStrength-band { fill: var(--wg-lift, #9a7500); }
+.wg-strip-buoyancyShear { stroke: var(--wg-bs, #6d597a); }
+.wg-strip-buoyancyShear-area, .wg-strip-buoyancyShear-band { fill: var(--wg-bs, #6d597a); }
+.wg-strip-cape { stroke: var(--wg-cape, #8a4a08); }
+.wg-strip-cape-area, .wg-strip-cape-band { fill: var(--wg-cape, #8a4a08); }
+.wg-cape-calm { fill: var(--wg-cape-calm, #dde3d5); opacity: 0.6; }
+.wg-cape-watch { fill: var(--wg-cape-watch, #e7c46c); opacity: 0.6; }
+.wg-cape-risk { fill: var(--wg-cape-risk, #d98243); opacity: 0.6; }
+.wg-cape-severe { fill: var(--wg-cape-severe, #c04f3a); opacity: 0.6; }
+.wg-cape-capped { opacity: 0.28; }
+.wg-cloud-cell { fill: var(--wg-cloud, #5b6969); }
+.wg-strip-row-label { fill: var(--wg-ink-mute, #40565a); }
+.wg-gust { fill: var(--wg-gust, #355963); }
+.wg-series-pbl { stroke: var(--wg-pbl, #56609b); }
+.wg-series-pbl-band { fill: var(--wg-pbl, #56609b); opacity: 0.16; }
+.wg-stab-very-unstable { fill: var(--wg-stab-very-unstable, #fe9996); }
+.wg-stab-unstable { fill: var(--wg-stab-unstable, #da934a); }
+.wg-stab-conditional-strong { fill: var(--wg-stab-conditional-strong, #a68300); }
+.wg-stab-conditional { fill: var(--wg-stab-conditional, #6a753f); }
+.wg-stab-near-neutral { fill: var(--wg-stab-near-neutral, #5b5f6b); }
+.wg-stab-stable { fill: var(--wg-stab-stable, #04548d); }
+.wg-stab-inverted { fill: var(--wg-stab-inverted, #004f4a); }
+.wg-stab-strong-inversion { fill: var(--wg-stab-strong-inversion, #1b3071); }
+.wg-cloud-hatch-line { stroke: var(--wg-ink-soft, #2f454a); }
+.wg-cloud-medium { fill: var(--wg-cloud, #5b6969); opacity: 0.22; }
+.wg-cloud-light { fill: var(--wg-cloud, #5b6969); opacity: 0.1; }
+.wg-ti-weak { fill: var(--wg-ti-weak, #f4e3c0); opacity: 0.55; }
+.wg-ti-fair { fill: var(--wg-ti-fair, #ecc57e); opacity: 0.55; }
+.wg-ti-good { fill: var(--wg-ti-good, #de9b4e); opacity: 0.55; }
+.wg-ti-strong { fill: var(--wg-ti-strong, #c96a33); opacity: 0.55; }
+.wg-shear-light { fill: var(--wg-shear-light, #cfc3de); opacity: 0.5; }
+.wg-shear-moderate { fill: var(--wg-shear-moderate, #a58ec4); opacity: 0.5; }
+.wg-shear-strong { fill: var(--wg-shear-strong, #7b5ea7); opacity: 0.5; }
+.wg-rh-60 { fill: var(--wg-rh-60, #d3e0e3); opacity: 0.5; }
+.wg-rh-80 { fill: var(--wg-rh-80, #a9c7cf); opacity: 0.5; }
+.wg-rh-95 { fill: var(--wg-rh-95, #7fadbb); opacity: 0.5; }
+.wg-omega-lift { fill: var(--wg-omega-lift, #8dc2a0); opacity: 0.4; }
+.wg-omega-lift-strong { fill: var(--wg-omega-lift-strong, #56a377); opacity: 0.5; }
+.wg-omega-sink { fill: var(--wg-omega-sink, #d3a68f); opacity: 0.4; }
+.wg-omega-sink-strong { fill: var(--wg-omega-sink-strong, #bd7d5c); opacity: 0.5; }
+.wg-series-boundary { stroke: var(--wg-boundary, #a46b10); }
+.wg-series-boundary-band { fill: var(--wg-boundary, #a46b10); opacity: 0.16; }
+.wg-series-cloud-base { stroke: var(--wg-cloud-base, #355963); }
+.wg-series-cloud-base-band { fill: var(--wg-cloud-base, #355963); opacity: 0.16; }
+.wg-series-usable { stroke: var(--wg-usable, #2179ad); }
+.wg-series-usable-band { fill: var(--wg-usable, #2179ad); opacity: 0.16; }
+.wg-isotherm { stroke: var(--wg-ink, #152529); }
+.wg-isotherm-freezing { stroke: var(--wg-freezing, #2b748f); }
+.wg-isotherm-label { fill: var(--wg-ink, #152529); }
+.wg-isotherm-label-freezing { fill: var(--wg-freezing, #2b748f); }
+.wg-dewpoint-isoline { stroke: var(--wg-dewpoint, #3a7d4f); }
+.wg-dewpoint-label { fill: var(--wg-dewpoint, #3a7d4f); }
+.wg-barb { stroke: var(--wg-wind, #355963); }
+.wg-barb-fill { fill: var(--wg-wind, #355963); stroke: var(--wg-wind, #355963); }
+.wg-barb-halo { stroke: var(--wg-halo, #fffdf8); }
+.wg-barb-fill-halo { fill: var(--wg-halo, #fffdf8); stroke: var(--wg-halo, #fffdf8); }
+.wg-marker-wing { fill: var(--wg-usable, #2179ad); stroke: var(--wg-usable, #2179ad); }
+.wg-marker-cloud { fill: var(--wg-cloud-marker, #f8f3d8); stroke: var(--wg-cloud-base, #355963); }
+.wg-marker-halo { fill: var(--wg-halo, #fffdf8); stroke: var(--wg-halo, #fffdf8); }
+</style>
+<defs><pattern id="wg-cloud-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" class="wg-cloud-hatch-line" stroke-width="1.2"/></pattern></defs>
+<rect x="60" y="20" width="264" height="25" class="wg-strip-frame" stroke-width="0.7"/>
+<line x1="60" y1="32.5" x2="324" y2="32.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
+<path d="M82,20 C89.33,20.83 111.33,23.33 126,25 C140.67,26.67 155.33,28.33 170,30 C184.67,31.67 199.33,33.33 214,35 C228.67,36.67 243.33,38.33 258,40 C272.67,41.67 294.67,44.17 302,45 L302.00,45 L82.00,45 Z" class="wg-strip-pressure-area" opacity="0.3"/>
+<path d="M82,20 C89.33,20.83 111.33,23.33 126,25 C140.67,26.67 155.33,28.33 170,30 C184.67,31.67 199.33,33.33 214,35 C228.67,36.67 243.33,38.33 258,40 C272.67,41.67 294.67,44.17 302,45" class="wg-strip-pressure" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="31" text-anchor="end" font-size="10.5" font-weight="700" class="wg-text">Pressure</text>
+<text x="52" y="42" text-anchor="end" font-size="9.5" class="wg-text-mute">kPa</text>
+<rect x="60" y="50" width="264" height="25" class="wg-strip-frame" stroke-width="0.7"/>
+<line x1="60" y1="62.5" x2="324" y2="62.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
+<path d="M82,75 C89.33,75 111.33,75 126,75 C140.67,75 155.33,75 170,75 C184.67,75 199.33,75 214,75 C228.67,75 243.33,75 258,75 C272.67,75 294.67,75 302,75 L302.00,75 L82.00,75 Z" class="wg-strip-precipitation-area" opacity="0.3"/>
+<path d="M82,75 C89.33,75 111.33,75 126,75 C140.67,75 155.33,75 170,75 C184.67,75 199.33,75 214,75 C228.67,75 243.33,75 258,75 C272.67,75 294.67,75 302,75" class="wg-strip-precipitation" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="61" text-anchor="end" font-size="10.5" font-weight="700" class="wg-text">Precip</text>
+<text x="52" y="72" text-anchor="end" font-size="9.5" class="wg-text-mute">mm/h</text>
+<rect x="60" y="80" width="264" height="25" class="wg-strip-frame" stroke-width="0.7"/>
+<line x1="60" y1="92.5" x2="324" y2="92.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
+<path d="M82,102.5 C89.33,102.29 111.33,101.67 126,101.25 C140.67,100.83 155.33,100.42 170,100 C184.67,99.58 199.33,99.17 214,98.75 C228.67,98.33 243.33,97.92 258,97.5 C272.67,97.08 294.67,96.46 302,96.25 L302.00,105 L82.00,105 Z" class="wg-strip-cloudCover-area" opacity="0.3"/>
+<path d="M82,102.5 C89.33,102.29 111.33,101.67 126,101.25 C140.67,100.83 155.33,100.42 170,100 C184.67,99.58 199.33,99.17 214,98.75 C228.67,98.33 243.33,97.92 258,97.5 C272.67,97.08 294.67,96.46 302,96.25" class="wg-strip-cloudCover" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="91" text-anchor="end" font-size="10.5" font-weight="700" class="wg-text">Cloud</text>
+<text x="52" y="102" text-anchor="end" font-size="9.5" class="wg-text-mute">%</text>
+<rect x="60" y="110" width="264" height="25" class="wg-strip-frame" stroke-width="0.7"/>
+<line x1="60" y1="122.5" x2="324" y2="122.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
+<rect x="60" y="110" width="44" height="8.33" class="wg-cloud-cell" opacity="0"/>
+<rect x="104" y="110" width="44" height="8.33" class="wg-cloud-cell" opacity="0.4"/>
+<rect x="148" y="110" width="44" height="8.33" class="wg-cloud-cell" opacity="0.4"/>
+<rect x="192" y="110" width="44" height="8.33" class="wg-cloud-cell" opacity="0.4"/>
+<rect x="236" y="110" width="44" height="8.33" class="wg-cloud-cell" opacity="0.4"/>
+<rect x="280" y="110" width="44" height="8.33" class="wg-cloud-cell" opacity="0.4"/>
+<text x="332" y="116.67" font-size="7.5" class="wg-strip-row-label wg-mono">H</text>
+<rect x="60" y="118.33" width="44" height="8.33" class="wg-cloud-cell" opacity="0.05"/>
+<rect x="104" y="118.33" width="44" height="8.33" class="wg-cloud-cell" opacity="0.25"/>
+<rect x="148" y="118.33" width="44" height="8.33" class="wg-cloud-cell" opacity="0.45"/>
+<rect x="192" y="118.33" width="44" height="8.33" class="wg-cloud-cell" opacity="0.65"/>
+<rect x="236" y="118.33" width="44" height="8.33" class="wg-cloud-cell" opacity="0.9"/>
+<rect x="280" y="118.33" width="44" height="8.33" class="wg-cloud-cell" opacity="0.9"/>
+<text x="332" y="125" font-size="7.5" class="wg-strip-row-label wg-mono">M</text>
+<rect x="60" y="126.67" width="44" height="8.33" class="wg-cloud-cell" opacity="0"/>
+<rect x="104" y="126.67" width="44" height="8.33" class="wg-cloud-cell" opacity="0.12"/>
+<rect x="148" y="126.67" width="44" height="8.33" class="wg-cloud-cell" opacity="0.24"/>
+<rect x="192" y="126.67" width="44" height="8.33" class="wg-cloud-cell" opacity="0.36"/>
+<rect x="236" y="126.67" width="44" height="8.33" class="wg-cloud-cell" opacity="0.48"/>
+<rect x="280" y="126.67" width="44" height="8.33" class="wg-cloud-cell" opacity="0.6"/>
+<text x="332" y="133.33" font-size="7.5" class="wg-strip-row-label wg-mono">L</text>
+<text x="52" y="121" text-anchor="end" font-size="10.5" font-weight="700" class="wg-text">Layers</text>
+<text x="52" y="132" text-anchor="end" font-size="9.5" class="wg-text-mute">%</text>
+<rect x="60" y="140" width="264" height="25" class="wg-strip-frame" stroke-width="0.7"/>
+<line x1="60" y1="152.5" x2="324" y2="152.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
+<path d="M82,165 C89.33,164.44 111.33,162.92 126,161.67 C140.67,160.42 155.33,159.03 170,157.5 C184.67,155.97 199.33,154.03 214,152.5 C228.67,150.97 243.33,149.58 258,148.33 C272.67,147.08 294.67,145.56 302,145 L302.00,165 L82.00,165 Z" class="wg-strip-thermalStrength-area" opacity="0.3"/>
+<path d="M82,165 C89.33,164.44 111.33,162.92 126,161.67 C140.67,160.42 155.33,159.03 170,157.5 C184.67,155.97 199.33,154.03 214,152.5 C228.67,150.97 243.33,149.58 258,148.33 C272.67,147.08 294.67,145.56 302,145" class="wg-strip-thermalStrength" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="151" text-anchor="end" font-size="10.5" font-weight="700" class="wg-text">w*</text>
+<text x="52" y="162" text-anchor="end" font-size="9.5" class="wg-text-mute">m/s</text>
+<rect x="60" y="170" width="264" height="25" class="wg-strip-frame" stroke-width="0.7"/>
+<line x1="60" y1="182.5" x2="324" y2="182.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
+<rect x="60" y="170" width="44" height="25" class="wg-cape-calm"/>
+<rect x="104" y="170" width="44" height="25" class="wg-cape-watch wg-cape-capped"/>
+<rect x="148" y="170" width="44" height="25" class="wg-cape-risk"/>
+<rect x="192" y="170" width="44" height="25" class="wg-cape-severe wg-cape-capped"/>
+<rect x="236" y="170" width="44" height="25" class="wg-cape-watch"/>
+<rect x="280" y="170" width="44" height="25" class="wg-cape-calm"/>
+<path d="M82,193.24 C89.33,192.43 111.33,190.42 126,188.38 C140.67,186.35 155.33,184.09 170,181.03 C184.67,177.97 199.33,169.26 214,170 C228.67,170.74 243.33,181.5 258,185.44 C272.67,189.39 294.67,192.3 302,193.68 L302.00,195 L82.00,195 Z" class="wg-strip-cape-area" opacity="0.3"/>
+<path d="M82,193.24 C89.33,192.43 111.33,190.42 126,188.38 C140.67,186.35 155.33,184.09 170,181.03 C184.67,177.97 199.33,169.26 214,170 C228.67,170.74 243.33,181.5 258,185.44 C272.67,189.39 294.67,192.3 302,193.68" class="wg-strip-cape" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="181" text-anchor="end" font-size="10.5" font-weight="700" class="wg-text">CAPE</text>
+<text x="52" y="192" text-anchor="end" font-size="9.5" class="wg-text-mute">J/kg</text>
+<rect x="60" y="208" width="264" height="340" class="wg-frame"/>
+<path d="M265.33 507.56h58.67v1.85h-58.67ZM60 509.06h264v39.29h-264Z" class="wg-stab-very-unstable"/>
+<path d="M162.67 489.59h161.33v1.85h-161.33ZM60 491.08h264v16.83h-264ZM60 507.56h205.33v1.85h-205.33Z" class="wg-stab-unstable"/>
+<path d="M96.67 462.63h227.33v1.85h-227.33ZM60 464.12h264v25.81h-264ZM60 489.59h102.67v1.85h-102.67Z" class="wg-stab-conditional-strong"/>
+<path d="M60 208h264v254.98h-264ZM60 462.63h36.67v1.85h-36.67Z" class="wg-stab-conditional"/>
+<path d="M60 396.72h25.67v1.85h-25.67ZM60 398.22h33v1.85h-33ZM60 399.72h38.5v1.85h-38.5ZM60 401.22h45.83v1.85h-45.83ZM60 402.71h51.33v1.85h-51.33ZM60 404.21h56.83v1.85h-56.83ZM60 405.71h62.33v1.85h-62.33ZM60 407.21h67.83v1.85h-67.83ZM60 408.7h73.33v1.85h-73.33ZM60 410.2h77v1.85h-77ZM60 411.7h82.5v1.85h-82.5ZM60 413.2h86.17v1.85h-86.17ZM60 414.7h89.83v1.85h-89.83ZM60 416.19h93.5v1.85h-93.5ZM60 417.69h104.5v1.85h-104.5ZM60 419.19h154v16.83h-154ZM87.5 435.67h126.5v1.85h-126.5ZM100.33 437.16h113.67v1.85h-113.67ZM113.17 438.66h100.83v1.85h-100.83ZM126 440.16h88v1.85h-88ZM138.83 441.66h75.17v1.85h-75.17ZM153.5 443.15h60.5v1.85h-60.5ZM166.33 444.65h47.67v1.85h-47.67Z" class="wg-cloud-light"/>
+<path d="M60 354.78h36.67v1.85h-36.67ZM60 356.28h66v1.85h-66ZM60 357.78h86.17v1.85h-86.17ZM60 359.28h104.5v1.85h-104.5ZM60 360.78h154v36.3h-154ZM85.67 396.72h128.33v1.85h-128.33ZM93 398.22h121v1.85h-121ZM98.5 399.72h115.5v1.85h-115.5ZM105.83 401.22h108.17v1.85h-108.17ZM111.33 402.71h102.67v1.85h-102.67ZM116.83 404.21h97.17v1.85h-97.17ZM122.33 405.71h91.67v1.85h-91.67ZM127.83 407.21h86.17v1.85h-86.17ZM133.33 408.7h80.67v1.85h-80.67ZM137 410.2h77v1.85h-77ZM142.5 411.7h71.5v1.85h-71.5ZM146.17 413.2h67.83v1.85h-67.83ZM149.83 414.7h64.17v1.85h-64.17ZM153.5 416.19h60.5v1.85h-60.5ZM164.5 417.69h49.5v1.85h-49.5Z" class="wg-cloud-medium"/>
+<path d="M60 208h154v147.13h-154ZM96.67 354.78h117.33v1.85h-117.33ZM126 356.28h88v1.85h-88ZM146.17 357.78h67.83v1.85h-67.83ZM164.5 359.28h49.5v1.85h-49.5Z" class="wg-cloud-dense" fill="url(#wg-cloud-hatch)"/>
+<path d="M170 429.67h154v13.83h-154Z" class="wg-cloud-light"/>
+<path d="M170 419.19h154v10.83h-154Z" class="wg-cloud-medium"/>
+<path d="M170 208h154v211.54h-154Z" class="wg-cloud-dense" fill="url(#wg-cloud-hatch)"/>
+<rect x="280" y="20" width="44" height="528" class="wg-selected-column"/>
+<line x1="302" x2="302" y1="20" y2="548" class="wg-selected-line" stroke-width="1" stroke-dasharray="3 4"/>
+<line x1="60" y1="548" x2="324" y2="548" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="551" text-anchor="end" font-size="10.5" class="wg-text-mute">1073m</text>
+<text x="332" y="551" font-size="10.5" class="wg-text-mute">3519ft</text>
+<line x1="60" y1="480" x2="324" y2="480" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="483" text-anchor="end" font-size="10.5" class="wg-text-mute">1555m</text>
+<text x="332" y="483" font-size="10.5" class="wg-text-mute">5101ft</text>
+<line x1="60" y1="412" x2="324" y2="412" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="415" text-anchor="end" font-size="10.5" class="wg-text-mute">2037m</text>
+<text x="332" y="415" font-size="10.5" class="wg-text-mute">6683ft</text>
+<line x1="60" y1="344" x2="324" y2="344" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="347" text-anchor="end" font-size="10.5" class="wg-text-mute">2519m</text>
+<text x="332" y="347" font-size="10.5" class="wg-text-mute">8266ft</text>
+<line x1="60" y1="276" x2="324" y2="276" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="279" text-anchor="end" font-size="10.5" class="wg-text-mute">3002m</text>
+<text x="332" y="279" font-size="10.5" class="wg-text-mute">9848ft</text>
+<line x1="60" y1="208" x2="324" y2="208" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="211" text-anchor="end" font-size="10.5" class="wg-text-mute">3484m</text>
+<text x="332" y="211" font-size="10.5" class="wg-text-mute">11430ft</text>
+<line x1="82" x2="82" y1="208" y2="548" class="wg-hourline" stroke-width="0.6" opacity="0.15"/>
+<text x="82" y="566" text-anchor="middle" font-size="11" class="wg-text-mute wg-mono">7</text>
+<text x="126" y="566" text-anchor="middle" font-size="11" class="wg-text-mute wg-mono">8</text>
+<line x1="170" x2="170" y1="208" y2="548" class="wg-hourline" stroke-width="0.6" opacity="0.15"/>
+<text x="170" y="566" text-anchor="middle" font-size="11" class="wg-text-mute wg-mono">9</text>
+<text x="214" y="566" text-anchor="middle" font-size="11" class="wg-text-mute wg-mono">10</text>
+<line x1="258" x2="258" y1="208" y2="548" class="wg-hourline" stroke-width="0.6" opacity="0.15"/>
+<text x="258" y="566" text-anchor="middle" font-size="11" class="wg-text-mute wg-mono">11</text>
+<text x="302" y="566" text-anchor="middle" font-size="11" class="wg-text-mute wg-mono">12</text>
+<line x1="60" x2="324" y1="489.84" y2="489.84" class="wg-launch-line" stroke-width="1" stroke-dasharray="2 4" opacity="0.68"/>
+<text x="67" y="483.84" font-size="10.5" font-weight="600" class="wg-text wg-haloed-text" stroke-width="2.5">launch 1485 m</text>
+<path d="M126,476.45 C133.33,471.28 155.33,459.53 170,445.43 C184.67,431.33 199.33,405.95 214,391.85 C228.67,377.75 243.33,374.93 258,360.83 C272.67,346.74 294.67,316.19 302,307.26" class="wg-halo" fill="none" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="10 5"/>
+<path d="M126,476.45 C133.33,471.28 155.33,459.53 170,445.43 C184.67,431.33 199.33,405.95 214,391.85 C228.67,377.75 243.33,374.93 258,360.83 C272.67,346.74 294.67,316.19 302,307.26" class="wg-series-boundary" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="10 5"/>
+<path d="M82,491.6 C89.33,483.38 111.33,458.71 126,442.26 C140.67,425.81 155.33,409.36 170,392.91 C184.67,376.46 199.33,360.01 214,343.56 C228.67,327.11 243.33,310.67 258,294.22 C272.67,277.77 294.67,253.09 302,244.87" class="wg-halo" fill="none" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 3"/>
+<path d="M82,491.6 C89.33,483.38 111.33,458.71 126,442.26 C140.67,425.81 155.33,409.36 170,392.91 C184.67,376.46 199.33,360.01 214,343.56 C228.67,327.11 243.33,310.67 258,294.22 C272.67,277.77 294.67,253.09 302,244.87" class="wg-series-pbl" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 3"/>
+<path d="M82,332.64 C89.33,329.11 111.33,318.54 126,311.49 C140.67,304.44 155.33,297.39 170,290.34 C184.67,283.29 199.33,276.24 214,269.19 C228.67,262.14 243.33,255.09 258,248.04 C272.67,240.99 294.67,230.42 302,226.89" class="wg-halo" fill="none" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 5"/>
+<path d="M82,332.64 C89.33,329.11 111.33,318.54 126,311.49 C140.67,304.44 155.33,297.39 170,290.34 C184.67,283.29 199.33,276.24 214,269.19 C228.67,262.14 243.33,255.09 258,248.04 C272.67,240.99 294.67,230.42 302,226.89" class="wg-series-cloud-base" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 5"/>
+<path d="M170,422.87 C177.33,415.23 199.33,391.26 214,377.05 C228.67,362.83 243.33,351.79 258,337.57 C272.67,323.35 294.67,299.39 302,291.75" class="wg-halo" fill="none" stroke-width="4.1" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M170,422.87 C177.33,415.23 199.33,391.26 214,377.05 C228.67,362.83 243.33,351.79 258,337.57 C272.67,323.35 294.67,299.39 302,291.75" class="wg-series-usable" fill="none" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M82,421.18 L126,365.8" class="wg-halo" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 3 1 3"/>
+<path d="M82,421.18 L126,365.8" class="wg-isotherm wg-isotherm-freezing" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 3 1 3"/>
+<path d="M126,548 C133.33,543.73 155.33,530.91 170,522.37 C184.67,513.82 199.33,506.3 214,496.73 C228.67,487.16 243.33,477.37 258,464.97 C272.67,452.57 294.67,429.46 302,422.35" class="wg-halo" fill="none" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M126,548 C133.33,543.73 155.33,530.91 170,522.37 C184.67,513.82 199.33,506.3 214,496.73 C228.67,487.16 243.33,477.37 258,464.97 C272.67,452.57 294.67,429.46 302,422.35" class="wg-isotherm" fill="none" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<g transform="translate(302 291.75)"><path d="M-8 2Q0-6.5 8 2Q0-1.5-8 2Z" class="wg-marker-halo" stroke-width="2.4"/><path d="M-8 2Q0-6.5 8 2Q0-1.5-8 2Z" class="wg-marker-wing" stroke-width="0.6"/></g>
+<g transform="translate(302 226.89)"><path d="M-7 2.5h14a3.2 3.2 0 0 0-.6-6.3A5 5 0 0 0-3-5a4 4 0 0 0-4 4 3 3 0 0 0 0 3.5Z" class="wg-marker-halo" stroke-width="2.4"/><path d="M-7 2.5h14a3.2 3.2 0 0 0-.6-6.3A5 5 0 0 0-3-5a4 4 0 0 0-4 4 3 3 0 0 0 0 3.5Z" class="wg-marker-cloud" stroke-width="0.6"/></g>
+<g transform="translate(82 548) rotate(220) scale(0.85)"><path d="M0 5 L0 -16 M0 -13.8 L4.5 -11.4" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -13.8 L4.5 -11.4" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(82 522.64) rotate(200) scale(0.85)"><path d="M0 5 L0 -16 M0 -13.8 L4.5 -11.4" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -13.8 L4.5 -11.4" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(82 488.56) rotate(215) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(82 453.66) rotate(230) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L4.5 -9.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L4.5 -9.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(82 417.77) rotate(245) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(82 342.27) rotate(260) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8 M0 -8.4 L4.5 -6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8 M0 -8.4 L4.5 -6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(126 548) rotate(221) scale(0.85)"><path d="M0 5 L0 -16 M0 -13.8 L4.5 -11.4" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -13.8 L4.5 -11.4" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(126 522.35) rotate(201) scale(0.85)"><path d="M0 5 L0 -16 M0 -13.8 L4.5 -11.4" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -13.8 L4.5 -11.4" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(126 488.28) rotate(216) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(126 453.38) rotate(231) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L4.5 -9.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L4.5 -9.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(126 417.48) rotate(246) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(126 341.98) rotate(261) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8 M0 -8.4 L4.5 -6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8 M0 -8.4 L4.5 -6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(170 548) rotate(222) scale(0.85)"><path d="M0 5 L0 -16 M0 -13.8 L4.5 -11.4" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -13.8 L4.5 -11.4" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(170 522.07) rotate(202) scale(0.85)"><path d="M0 5 L0 -16 M0 -13.8 L4.5 -11.4" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -13.8 L4.5 -11.4" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(170 487.99) rotate(217) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(170 453.1) rotate(232) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L4.5 -9.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L4.5 -9.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(170 417.2) rotate(247) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(170 341.7) rotate(262) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8 M0 -8.4 L8 -4" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8 M0 -8.4 L8 -4" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(214 548) rotate(223) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(214 521.79) rotate(203) scale(0.85)"><path d="M0 5 L0 -16 M0 -13.8 L4.5 -11.4" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -13.8 L4.5 -11.4" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(214 487.71) rotate(218) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(214 452.82) rotate(233) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L4.5 -9.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L4.5 -9.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(214 416.92) rotate(248) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8 M0 -8.4 L4.5 -6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8 M0 -8.4 L4.5 -6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(214 341.42) rotate(263) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8 M0 -8.4 L8 -4" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8 M0 -8.4 L8 -4" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(258 548) rotate(224) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(258 521.51) rotate(204) scale(0.85)"><path d="M0 5 L0 -16 M0 -13.8 L4.5 -11.4" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -13.8 L4.5 -11.4" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(258 487.43) rotate(219) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(258 452.53) rotate(234) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(258 416.64) rotate(249) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8 M0 -8.4 L4.5 -6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8 M0 -8.4 L4.5 -6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(258 341.14) rotate(264) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8 M0 -8.4 L8 -4" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8 M0 -8.4 L8 -4" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(302 548) rotate(225) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(302 521.23) rotate(205) scale(0.85)"><path d="M0 5 L0 -16 M0 -13.8 L4.5 -11.4" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -13.8 L4.5 -11.4" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(302 487.15) rotate(220) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L4.5 -9.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L4.5 -9.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(302 452.25) rotate(235) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(302 416.36) rotate(250) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8 M0 -8.4 L4.5 -6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8 M0 -8.4 L4.5 -6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(302 340.86) rotate(265) scale(0.85)"><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8 M0 -8.4 L8 -4" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -16 M0 -16 L8 -11.6 M0 -12.2 L8 -7.8 M0 -8.4 L8 -4" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<text x="82" y="532" text-anchor="middle" font-size="9.5" font-weight="700" class="wg-gust wg-haloed-text wg-mono" stroke-width="2.2">G22</text>
+<text x="126" y="532" text-anchor="middle" font-size="9.5" font-weight="700" class="wg-gust wg-haloed-text wg-mono" stroke-width="2.2">G27</text>
+<text x="170" y="532" text-anchor="middle" font-size="9.5" font-weight="700" class="wg-gust wg-haloed-text wg-mono" stroke-width="2.2">G32</text>
+<text x="214" y="532" text-anchor="middle" font-size="9.5" font-weight="700" class="wg-gust wg-haloed-text wg-mono" stroke-width="2.2">G38</text>
+<text x="258" y="532" text-anchor="middle" font-size="9.5" font-weight="700" class="wg-gust wg-haloed-text wg-mono" stroke-width="2.2">G43</text>
+<text x="302" y="532" text-anchor="middle" font-size="9.5" font-weight="700" class="wg-gust wg-haloed-text wg-mono" stroke-width="2.2">G49</text>
+<text x="122" y="360.8" text-anchor="end" font-size="10.5" font-weight="700" class="wg-isotherm-label wg-isotherm-label-freezing wg-haloed-text" stroke-width="2.5">0°</text>
+<text x="298" y="417.35" text-anchor="end" font-size="10.5" font-weight="700" class="wg-isotherm-label wg-haloed-text" stroke-width="2.5">10°</text>
+</svg>

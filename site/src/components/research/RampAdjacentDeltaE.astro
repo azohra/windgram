@@ -1,0 +1,199 @@
+---
+import {
+  adjacentPairs,
+  CANADARASP_RAMP,
+  CLASS_LABELS,
+  CLASS_NAMES,
+  DEFAULT_RAMP,
+} from "./ramp-math";
+
+/* Adjacent-pair colour difference for both palettes, computed at build time
+   from the imported hexes: ΔE is Euclidean distance in OKLab scaled by 100,
+   deuteranopia simulated with the Machado 2009 matrices at severity 1.0 —
+   the same math the ramp was derived and validated with. Bars are the
+   normal-vision pair difference; the dot on each bar is the same pair under
+   simulated deuteranopia. */
+
+const LEFT = 96;
+const RIGHT = 992;
+const TOP = 68;
+const BASE = 352;
+const MAX = 34;
+
+const x = (index: number) => LEFT + (index * (RIGHT - LEFT)) / 7;
+const y = (value: number) => BASE - (Math.min(value, MAX) / MAX) * (BASE - TOP);
+
+const series = [
+  { ...DEFAULT_RAMP, css: "de-default", pairs: adjacentPairs(DEFAULT_RAMP) },
+  { ...CANADARASP_RAMP, css: "de-canadarasp", pairs: adjacentPairs(CANADARASP_RAMP) },
+].map((ramp) => ({
+  ...ramp,
+  minNormal: Math.min(...ramp.pairs.map((pair) => pair.normal)),
+  minDeutan: Math.min(...ramp.pairs.map((pair) => pair.deutan)),
+  minProtan: Math.min(...ramp.pairs.map((pair) => pair.protan)),
+}));
+
+const BAR = 20;
+const GAP = 2;
+const barX = (pairIndex: number, seriesIndex: number) => {
+  const center = (x(pairIndex) + x(pairIndex + 1)) / 2;
+  return seriesIndex === 0 ? center - BAR - GAP / 2 : center + GAP / 2;
+};
+// 4px-rounded data end, square at the baseline.
+const barPath = (left: number, top: number) => {
+  const r = Math.min(4, (BASE - top) / 2);
+  return `M ${left} ${BASE} L ${left} ${top + r} Q ${left} ${top} ${left + r} ${top} L ${left + BAR - r} ${top} Q ${left + BAR} ${top} ${left + BAR} ${top + r} L ${left + BAR} ${BASE} Z`;
+};
+
+const ticks = [0, 10, 20, 30];
+const labelLines = CLASS_NAMES.map((name) =>
+  (CLASS_LABELS[name] ?? name).replace(" · ", " ").split(" "),
+);
+const pairName = (pair: { from: string; to: string }) =>
+  `${CLASS_LABELS[pair.from]} to ${CLASS_LABELS[pair.to]}`;
+
+const description = series
+  .map(
+    (ramp) =>
+      `${ramp.name}: adjacent pairs ${ramp.pairs.map((pair) => pair.normal.toFixed(1)).join(", ")} ` +
+      `(worst ${ramp.minNormal.toFixed(1)} normal, ${ramp.minDeutan.toFixed(1)} deuteranopia, ` +
+      `${ramp.minProtan.toFixed(1)} protanopia).`,
+  )
+  .join(" ");
+---
+
+<figure class="ramp-delta-e" aria-labelledby="ramp-delta-e-title ramp-delta-e-caption">
+  <header>
+    <h3 id="ramp-delta-e-title">What adjacency costs each philosophy</h3>
+    <span>OKLab ΔE ×100 per adjacent class pair; dots are the same pair under simulated deuteranopia.</span>
+  </header>
+
+  <div class="graphic-scroll" tabindex="0" aria-label="Scrollable chart of adjacent-pair colour difference for both palettes">
+    <svg viewBox="0 0 1040 452" role="img" aria-labelledby="ramp-delta-e-svg-title ramp-delta-e-svg-desc">
+      <title id="ramp-delta-e-svg-title">
+        Adjacent-pair colour difference of the default stability ramp and the canadarasp preset,
+        under normal vision and simulated deuteranopia
+      </title>
+      <desc id="ramp-delta-e-svg-desc">
+        Seven adjacent class pairs, from very unstable through strong inversion, left to right.
+        {description} The validator's adjacent-pair target of 8 is marked.
+      </desc>
+
+      <g class="de-grid" aria-hidden="true">
+        {ticks.map((tick) => (
+          <>
+            <line x1={LEFT - 8} y1={y(tick)} x2={RIGHT} y2={y(tick)} />
+            <text x={LEFT - 16} y={y(tick) + 4}>{tick}</text>
+          </>
+        ))}
+      </g>
+      <text x="24" y={TOP - 30} class="de-axis-name">adjacent ΔE</text>
+
+      <g class="de-legend">
+        <rect x="560" y={TOP - 40} width="14" height="14" class="de-bar de-default" />
+        <text x="582" y={TOP - 29}>{series[0].name}</text>
+        <rect x="726" y={TOP - 40} width="14" height="14" class="de-bar de-canadarasp" />
+        <text x="748" y={TOP - 29}>{series[1].name}</text>
+        <circle cx="905" cy={TOP - 33} r="4.5" class="de-dot" />
+        <text x="916" y={TOP - 29}>deuteranopia</text>
+      </g>
+
+      <line x1={LEFT - 8} y1={y(8)} x2={RIGHT} y2={y(8)} class="de-target" />
+
+      {series.map((ramp, seriesIndex) => (
+        <g>
+          {ramp.pairs.map((pair, pairIndex) => (
+            <g>
+              <path d={barPath(barX(pairIndex, seriesIndex), y(pair.normal))} class={`de-bar ${ramp.css}`}>
+                <title>
+                  {`${ramp.name} — ${pairName(pair)}: ΔE ${pair.normal.toFixed(1)} normal, ${pair.deutan.toFixed(1)} deuteranopia, ${pair.protan.toFixed(1)} protanopia`}
+                </title>
+              </path>
+              <circle cx={barX(pairIndex, seriesIndex) + BAR / 2} cy={y(pair.deutan)} r="4.5" class="de-dot">
+                <title>
+                  {`${ramp.name} — ${pairName(pair)} under deuteranopia: ΔE ${pair.deutan.toFixed(1)}`}
+                </title>
+              </circle>
+              {pair.normal === ramp.minNormal && (
+                <text x={barX(pairIndex, seriesIndex) + BAR / 2} y={y(pair.normal) - 8} class="de-value">
+                  {pair.normal.toFixed(1)}
+                </text>
+              )}
+              {pair.deutan === ramp.minDeutan && ramp.minDeutan < 6 && (
+                <text x={barX(pairIndex, seriesIndex) + BAR / 2 + 12} y={y(pair.deutan) + 4} class="de-value de-value-left">
+                  {pair.deutan.toFixed(1)}
+                </text>
+              )}
+            </g>
+          ))}
+        </g>
+      ))}
+
+      <text x={RIGHT} y={y(8) - 8} class="de-target-label">ΔE 8 · adjacent-pair target</text>
+
+      {labelLines.map((lines, column) =>
+        lines.map((line, lineIndex) => (
+          <text x={x(column)} y={BASE + 22 + lineIndex * 12} class="de-colhead">
+            {line}
+          </text>
+        )),
+      )}
+    </svg>
+  </div>
+
+  <figcaption id="ramp-delta-e-caption">
+    Each bar pair sits between the two classes it separates. The default ramp holds every pair in a
+    narrow band above the target in every channel; the canadarasp preset buys far taller bars —
+    identity at maximum volume — and pays where a categorical palette is designed to pay, with one
+    pair near zero under deuteranopia. All values computed at build time from the package exports.
+  </figcaption>
+</figure>
+
+<style>
+  .ramp-delta-e {
+    display: block;
+    width: min(1040px, calc(100vw - 32px));
+    margin: 28px 50% 44px;
+    transform: translateX(-50%);
+    color: var(--ink);
+    border-top: 3px solid var(--accent);
+    border-bottom: 1px solid var(--rule-strong);
+  }
+  header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 24px;
+    align-items: end;
+    padding: 18px 0 16px;
+  }
+  .ramp-delta-e h3 { margin: 0; font: 700 29px/1 var(--display); text-transform: uppercase; }
+  header > span { font: 13px/1.4 var(--mono); color: var(--ink-mute); }
+  .graphic-scroll {
+    overflow-x: auto;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    padding: 10px 10px 4px;
+    scrollbar-color: var(--accent) var(--surface-raised);
+  }
+  .graphic-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  svg { display: block; width: 100%; min-width: 880px; height: auto; font-family: var(--mono); }
+  .de-grid line { stroke: var(--rule); stroke-width: 1; opacity: .45; }
+  .de-grid text { fill: var(--ink-mute); font-size: 11px; text-anchor: end; }
+  .de-axis-name { fill: var(--ink-mute); font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .de-legend text { fill: var(--ink-soft); font-size: 11.5px; }
+  .de-bar.de-default { fill: var(--model-1); }
+  .de-bar.de-canadarasp { fill: var(--model-2); }
+  .de-dot { fill: var(--ink); stroke: var(--surface); stroke-width: 2; }
+  .de-target { stroke: var(--accent); stroke-width: 1; }
+  .de-target-label { fill: var(--accent-strong); font-size: 10.5px; text-anchor: end; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
+  .de-value { fill: var(--ink); font-size: 11px; font-weight: 700; text-anchor: middle; paint-order: stroke; stroke: var(--surface); stroke-width: 2.4px; }
+  .de-value-left { text-anchor: start; }
+  .de-colhead { fill: var(--ink-soft); font-size: 10px; font-weight: 700; text-anchor: middle; }
+  figcaption { padding: 12px 0 14px; font: 12px/1.5 var(--mono); color: var(--ink-mute); }
+  @media (max-width: 720px) {
+    header { grid-template-columns: 1fr; }
+    .ramp-delta-e h3 { font-size: 25px; }
+    header > span { font-size: 12px; }
+    .graphic-scroll { margin-inline: -8px; }
+  }
+</style>
