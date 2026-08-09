@@ -1,6 +1,14 @@
 {
   "schemaVersion": 1,
   "runs": {
+    "gdps": {
+      "referenceTime": "2026-08-08T12:00:00Z",
+      "generatedAt": "2026-08-09T00:44:34.917Z"
+    },
+    "geps": {
+      "referenceTime": "2026-08-08T12:00:00Z",
+      "generatedAt": "2026-08-09T00:29:26.751Z"
+    },
     "gfs": {
       "referenceTime": "2026-08-08T18:00:00Z",
       "generatedAt": "2026-08-09T00:11:51.943Z"
@@ -9,13 +17,29 @@
       "referenceTime": "2026-08-08T18:00:00Z",
       "generatedAt": "2026-08-09T00:14:45.909Z"
     },
+    "hrdps-west": {
+      "referenceTime": "2026-08-08T12:00:00Z",
+      "generatedAt": "2026-08-09T00:25:11.206Z"
+    },
     "hrrr-conus": {
       "referenceTime": "2026-08-08T18:00:00Z",
       "generatedAt": "2026-08-09T00:08:41.922Z"
     },
+    "nam": {
+      "referenceTime": "2026-08-08T18:00:00Z",
+      "generatedAt": "2026-08-09T01:25:39.013Z"
+    },
     "nam-conus-nest": {
       "referenceTime": "2026-08-08T18:00:00Z",
       "generatedAt": "2026-08-09T00:16:12.685Z"
+    },
+    "rdps": {
+      "referenceTime": "2026-08-08T18:00:00Z",
+      "generatedAt": "2026-08-09T00:32:28.731Z"
+    },
+    "reps": {
+      "referenceTime": "2026-08-08T18:00:00Z",
+      "generatedAt": "2026-08-09T01:13:24.818Z"
     }
   }
 }
