@@ -217,10 +217,52 @@ for (const finding of analysis.findings) {
 Verdict enums appear only where the verdict is an arithmetic relation over
 published numbers; everything judgment-shaped ("flyable" beyond the stated
 arithmetic, "hazard", "confidence") stays downstream where it belongs.
-Findings are single-document by charter: the cross-model statement kinds
-trialled in the same spikes (consensus, outliers) died on staleness,
-elevation, and semantics artifacts, and the `compare` name is reserved
-until such a kind survives evidence (see the module docs).
+Findings are single-document by charter: cross-model statements live in
+`windgram/compare`, which compares these findings — never raw series.
+
+## Agreement with evidence (`windgram/compare`)
+
+Humans open three windgrams to read agreement and disagreement; naive
+cross-model comparison of the raw numbers reads mostly artifacts (grid
+elevation deltas, gust semantics families, run staleness, cadence — the
+documented reason the early consensus/outlier trials died).
+`compareProfiles(profiles, { timeZone })` does what a careful human does,
+explicitly: it analyzes every member with one timezone and one threshold
+set, then compares the *statements*.
+
+```ts
+import { compareProfiles } from "windgram/compare";
+
+const comparison = compareProfiles([hrdps, gfs, reps], {
+  timeZone: "America/Vancouver",
+  unavailable: [{ model: "nam", miss: "absent" }], // the roster names the whole field
+});
+for (const finding of comparison.findings) {
+  if (finding.kind === "windowAgreement") {
+    // per local day: window votes, quiet votes (with the numbers that
+    // failed), abstentions with reasons, and a timing envelope over the
+    // edges that are forecasts rather than data boundaries.
+  }
+  if (finding.kind === "heightSpread") {
+    // launch-relative peaks per model + the spread — divergence stated,
+    // never averaged: no consensus height exists that any model forecast.
+  }
+}
+```
+
+Every non-vote has a stated reason: a member whose lift never reaches
+launch is benched in the `members` ledger (`terrainMismatch` — the case
+where a model's grid puts the site 1,300 m below the real launch); a
+truncated quiet day abstains (a model lacking a day's data does not get
+to call the day); a horizon-clipped window edge stays out of the timing
+envelope. The ledger states run age, cadence, and elevation deltas as
+facts for downstream judgment — weighting is deliberately not applied
+here. The vocabulary is versioned like analyze's
+(`COMPARE_VOCABULARY_VERSION`), and version 1 ships exactly the kinds the
+2026-08-09 findings spike earned: over nine live documents, 8/8
+comparable models were unanimous on window existence with ends within an
+hour of each other, while value-level consensus over the same corpus had
+measured mostly artifacts.
 
 ## Feeding a windgram to an LLM
 
@@ -601,11 +643,22 @@ with `p50(scalar)`.
 Typed findings over one profile document (see
 [Statements with evidence](#statements-with-evidence-windgramanalyze)):
 `analyzeProfile(profile, { timeZone?, thresholds? })` →
-`WindgramAnalysis`, the finding types (`WindgramFinding` and its seven
+`WindgramAnalysis`, the finding types (`WindgramFinding` and its eight
 kinds), `DEFAULT_ANALYZE_THRESHOLDS` (the spikes' constants, embedded in
 every finding they shape, caller-movable per call), and
 `ANALYZE_VOCABULARY_VERSION`. The module docs carry the charter: analyze
-is single-document by evidence, and the `compare` name is reserved.
+is single-document by evidence; cross-document statements live in
+`windgram/compare`.
+
+### `windgram/compare`
+
+Typed statements over one site's documents across models (see
+[Agreement with evidence](#agreement-with-evidence-windgramcompare)):
+`compareProfiles(profiles, { timeZone, thresholds?, unavailable? })` →
+`WindgramComparison` — the member ledger (`ComparisonMemberLedger`,
+benching included), `windowAgreement` and `heightSpread` findings, and
+`COMPARE_VOCABULARY_VERSION`. Statements are compared, never raw series;
+agreement is reported, never manufactured.
 
 ### `windgram/transport`
 
@@ -649,6 +702,24 @@ stability, windowing, smoothing — and the pipeline never publishes those.
 The document `schemaVersion` stays 1 across these releases: profile
 additions are additive-optional, and consumers discover the rest from the
 catalogue.
+
+**0.8.0** — `windgram/compare`: agreement with evidence.
+
+- New subpath, occupying the name analyze's charter reserved, on the
+  evidence that reservation demanded: the 2026-08-09 findings spike over
+  nine live documents, where statement-level agreement tracked real
+  forecast divergence (8/8 comparable models unanimous on window
+  existence; ends within 1 h once clipped edges stopped voting) while
+  value-level consensus over the same corpus had measured artifacts.
+- `compareProfiles(profiles, { timeZone, thresholds?, unavailable? })`
+  analyzes every member identically, then compares statements: the
+  comparability ledger (kind, cadence, run age, elevation delta,
+  terrain benching), `windowAgreement` per local day (window votes,
+  quiet votes with their failed numbers, truncation abstentions, timing
+  envelopes over unclipped edges), and `heightSpread` (per-model
+  launch-relative peaks + spread — divergence stated, never averaged).
+- `analyze` exports `resolveAnalyzeThresholds` so the comparison envelope
+  echoes the resolved threshold set without restating the merge.
 
 **0.7.0** — full ensemble dropout is a valid published fact; horizon
 truncation is named on both sides of the window vocabulary.

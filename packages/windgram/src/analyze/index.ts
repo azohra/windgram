@@ -18,10 +18,11 @@
    models at one site differ in modelElevationM, gust semantics (hourMax vs
    instant, ~20-30 % apart systematically), run age, and step cadence, so a
    naive cross-model claim is wrong in exactly the ways the catalogue exists
-   to prevent. The name `compare` is RESERVED for a future sibling subpath
-   (statements over aligned collections, sitting on derive's alignByValidAt)
-   and must not be occupied until a cross-document statement kind survives
-   evidence the way terrainMismatch did. Do not backfill it casually.
+   to prevent. The name `compare` was RESERVED here until a cross-document
+   statement kind survived evidence the way terrainMismatch did; the
+   2026-08-09 findings spike was that evidence, and `compare/` now exists —
+   comparing STATEMENTS (this module's findings), never raw series, with
+   its own versioned vocabulary and its charter in its own docblock.
 
    THE VOCABULARY IS VERSIONED the way models.json capabilities are treated:
    `ANALYZE_VOCABULARY_VERSION` names the finding-kind set, consumers switch
@@ -547,6 +548,15 @@ interface Context {
   launchReferenceM: number;
   cite: (validAt: string) => CitedInstant;
   thresholds: AnalyzeThresholds;
+}
+
+/** The exact per-kind merge `analyzeProfile` applies to its `thresholds`
+ * option — exported so `compare/` can echo the resolved values in its
+ * envelope without restating the merge (one home). */
+export function resolveAnalyzeThresholds(
+  overrides?: Partial<AnalyzeThresholds>,
+): AnalyzeThresholds {
+  return mergeThresholds(overrides);
 }
 
 function mergeThresholds(overrides?: Partial<AnalyzeThresholds>): AnalyzeThresholds {
