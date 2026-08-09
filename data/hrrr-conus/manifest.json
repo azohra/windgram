@@ -1,10 +1,10 @@
 {
   "firstForecastHour": 1,
   "forecastHours": 48,
-  "generatedAt": "2026-08-09T00:08:41.922Z",
+  "generatedAt": "2026-08-09T03:08:50.153Z",
   "lastForecastHour": 48,
   "model": "hrrr-conus",
-  "referenceTime": "2026-08-08T18:00:00Z",
+  "referenceTime": "2026-08-09T00:00:00Z",
   "schemaVersion": 1,
   "sites": [
     {
@@ -25,9 +25,9 @@
     }
   ],
   "stats": {
-    "downloadBytes": 2801936496,
+    "downloadBytes": 2804364013,
     "downloads": 3409,
-    "durationMs": 111877,
+    "durationMs": 122668,
     "retries": 0
   }
 }
