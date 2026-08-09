@@ -336,6 +336,20 @@ export const windgramSiteSchema = z.object({
   modelElevationM: z
     .number()
     .describe("The model's terrain elevation at the site's grid point, metres MSL."),
+  /**
+   * The site's IANA timezone (e.g. "America/Vancouver"), echoed per-profile
+   * from the sites.json catalogue so a stored document stays interpretable
+   * on its own — local time is load-bearing for reading a windgram (the
+   * pilots' day, window edges, cap timing). Optional: absence means the
+   * document predates the echo, never that UTC applies locally.
+   */
+  timeZone: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      'The site\'s IANA timezone (e.g. "America/Vancouver"), echoed per-profile from the sites.json catalogue — local time is load-bearing for reading a windgram. Absence means the document predates the echo, never that UTC applies locally.',
+    ),
 });
 export type WindgramSite = z.infer<typeof windgramSiteSchema>;
 
@@ -696,6 +710,19 @@ export const siteCatalogueEntrySchema = z.object({
     .number()
     .describe(
       "The launch's surveyed elevation, metres MSL — the catalogue is its home. Profile site.altitudeM stores the same quantity per-profile and may be null there (a profile built before the survey keeps its null; the catalogue is current).",
+    ),
+  /**
+   * The site's IANA timezone (e.g. "America/Vancouver") — the catalogue is
+   * its home, and it is required: local time is load-bearing for reading a
+   * windgram (the pilots' day, window edges, cap timing), so every
+   * catalogued launch declares it. Builders echo it per-profile as the
+   * optional `site.timeZone`.
+   */
+  timeZone: z
+    .string()
+    .min(1)
+    .describe(
+      'The site\'s IANA timezone (e.g. "America/Vancouver") — required; the catalogue is its home. Local time is load-bearing for reading a windgram, and builders echo it per-profile as the optional site.timeZone.',
     ),
 });
 export type SiteCatalogueEntry = z.infer<typeof siteCatalogueEntrySchema>;

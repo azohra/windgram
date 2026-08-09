@@ -49,8 +49,8 @@ describe("msToKmh", () => {
     expect(msToKmh(0)).toBe(0);
   });
 
-  it("stays re-exported from windgram/scene until 0.4", async () => {
+  it("departed windgram/scene in 0.4.0, as the deprecation promised", async () => {
     const scene = await import("../src/scene/index.js");
-    expect(scene.msToKmh).toBe(msToKmh);
+    expect("msToKmh" in scene).toBe(false);
   });
 });

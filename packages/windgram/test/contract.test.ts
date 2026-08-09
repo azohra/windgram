@@ -176,6 +176,21 @@ describe("profile schema", () => {
     ).toBeNull();
   });
 
+  it("carries the optional site.timeZone echo and tolerates its absence", () => {
+    // Since the 0.4.0 wave builders echo the catalogue's timezone per
+    // document, so a stored profile self-interprets its local clock.
+    const echoed = deterministicProfile();
+    (echoed.site as { timeZone?: string }).timeZone = "America/Vancouver";
+    const parsed = parseWindgramProfile(echoed);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.site.timeZone).toBe("America/Vancouver");
+    // Absence means "predates the echo" — pre-0.4.0 documents stay valid.
+    expect(parseWindgramProfile(deterministicProfile())!.site.timeZone).toBeUndefined();
+    // A present echo must be a non-empty string.
+    (echoed.site as { timeZone?: string }).timeZone = "";
+    expect(parseWindgramProfile(echoed)).toBeNull();
+  });
+
   it("carries run.members on ensemble documents and tolerates its absence", () => {
     const parsed = parseWindgramProfile(ensembleProfile());
     expect(parsed).not.toBeNull();
@@ -420,6 +435,14 @@ describe("sites.json schema", () => {
     expect(parseSitesCatalogue(bad)).toBeNull();
   });
 
+  it("requires the IANA timezone — local time is load-bearing for reading a windgram", () => {
+    const parsed = parseSitesCatalogue(sitesCatalogue());
+    expect(parsed!.sites[0].timeZone).toBe("America/Vancouver");
+    const bad = sitesCatalogue();
+    delete (bad.sites[0] as { timeZone?: string }).timeZone;
+    expect(parseSitesCatalogue(bad)).toBeNull();
+  });
+
   it("parses from a stored string and accepts the repository's actual sites.json", () => {
     expect(parseSitesCatalogueJson(JSON.stringify(sitesCatalogue()))).not.toBeNull();
     expect(parseSitesCatalogueJson("[]")).toBeNull();
@@ -511,6 +534,7 @@ describe("JSON Schema generation", () => {
     }) as JsonSchema;
     const entry = (sites.properties!["sites"] as { items: JsonSchema }).items;
     expect(entry.properties!["elevationM"]!.description).toContain("altitudeM");
+    expect(entry.properties!["timeZone"]!.description).toContain("IANA");
   });
 
   it("matches the shipped schema/*.json artifacts — regenerate with pnpm schemas", () => {

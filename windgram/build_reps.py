@@ -483,6 +483,8 @@ def _build_documents(
                     "altitudeM": site["elevationM"],
                     # The control member's terrain stands in for the ensemble.
                     "modelElevationM": terrain[0][site["slug"]],
+                    # The catalogue's timezone echo, same as the member profiles'.
+                    **({"timeZone": site["timeZone"]} if site.get("timeZone") else {}),
                 },
                 "semantics": SEMANTICS,
                 "hours": _aggregate_hours(member_profiles),
@@ -540,6 +542,7 @@ def _derive_member_profile(
             "siteAltitudeM": site["elevationM"],
             "siteId": site["slug"],
             "siteName": site["name"],
+            "siteTimeZone": site.get("timeZone"),
         },
         model=SLUG,
         semantics=SEMANTICS,

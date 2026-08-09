@@ -115,9 +115,12 @@ in the document and are never recomputed here.
 ```ts
 import { p50, stabilityClass, surfaceLapseCPer1000Ft, windgramDisplayHours } from "windgram/derive";
 
-// Day windowing runs in the consumer's timezone — the dataset has no clock.
-// Defaults: local 07:00–21:00, days with at least five in-window hours.
-const day = windgramDisplayHours(profile.hours, { timeZone: "America/Vancouver" });
+// Day windowing runs in a timezone the consumer chooses. Documents from the
+// 0.4.0 wave echo their site's own zone (site.timeZone); older documents
+// need one supplied. Defaults: local 07:00–21:00, days with ≥ 5 in-window hours.
+const day = windgramDisplayHours(profile.hours, {
+  timeZone: profile.site.timeZone ?? "America/Vancouver",
+});
 
 for (const hour of day) {
   const wStar = p50(hour.derived.thermalVelocityMs);
@@ -147,6 +150,96 @@ rate from a window mean. Documents from the 0.3.0 wave echo those
 declarations in their own optional top-level `semantics` tag, so a stored
 profile stays interpretable without the catalogue beside it. Render the
 declaration; never fill a gap with zero.
+
+## Statements with evidence (`windgram/analyze`)
+
+`derive/` outputs quantities; `analyze/` outputs **statements**: typed
+findings over one profile document, each carrying the thresholds that
+produced it and an evidence block scoped to the hours it cites. The
+vocabulary is deliberately small and versioned
+(`ANALYZE_VOCABULARY_VERSION`) — adding a kind is a contract event, and
+version 1 ships exactly the kinds that survived the 2026-08 evidence
+spikes:
+
+- `flyableWindow` / `liftCeiling` — the compression anchors. They restate
+  the published derived series on purpose: their value is compressing a
+  13–72k-token document into a ~1–2k statement of when and how high, plus
+  the timing anchor the other findings reference. Window thresholds
+  (W\* ≥ 0.9 m/s, ≥ 300 m over launch) are embedded in every finding and
+  caller-movable; the spike's sensitivity sweep measured them low-impact.
+- `capTiming` — CAPE build vs CIN erosion vs the window's close, gated to
+  hourly deterministic documents with CIN (ensemble-median CIN is bimodal;
+  3-hourly cap timing is interpolation).
+- `windSummary` — max gust and max wind-in-band with altitude, timing, and
+  persistence. Magnitudes only, no hazard verdicts (the spikes' null
+  result; its JSDoc has the story).
+- `terrainMismatch` — model grid terrain vs surveyed launch, with the one
+  arithmetic verdict (`liftTopEverReachesLaunch`).
+- `ensembleMembership` — the per-quantity member-count profile (a p50
+  computed from 5-of-21 contributing members is a landmine) and band-width
+  magnitude/trend. Not called confidence, because it isn't.
+- `dataCaveats` — what the document cannot say: absent quantity families,
+  derived-null hours, cadence notes. Threshold-free.
+
+```ts
+import { analyzeProfile } from "windgram/analyze";
+
+const analysis = analyzeProfile(profile); // local times from site.timeZone
+for (const finding of analysis.findings) {
+  if (finding.kind === "flyableWindow") {
+    console.log(finding.day, finding.start.local, "→", finding.end.local,
+      `peak ${finding.peakLiftTopAboveLaunchM} m over launch`);
+  }
+}
+```
+
+Verdict enums appear only where the verdict is an arithmetic relation over
+published numbers; everything judgment-shaped ("flyable" beyond the stated
+arithmetic, "hazard", "confidence") stays downstream where it belongs.
+Findings are single-document by charter: the cross-model statement kinds
+trialled in the same spikes (consensus, outliers) died on staleness,
+elevation, and semantics artifacts, and the `compare` name is reserved
+until such a kind survives evidence (see the module docs).
+
+## Feeding a windgram to an LLM
+
+The dataset was built to be self-describing — SI field names, per-document
+`semantics` tags, declared absences — so the honest recipe is raw documents
+plus the published reading context, projected down only as far as the
+budget requires. Measured budgets (2026-08 spikes, chars/4; dense JSON
+tokenizes ~25 % worse):
+
+| Payload | ≈ tokens |
+| --- | ---: |
+| one deterministic profile, full horizon, with reading context¹ | 13–14k |
+| one GEPS ensemble document, full horizon, raw | 72k |
+| one local day (`projectProfile({ day })`) | ~7.7k |
+| one day, levels stripped (`dropLevels`) | ~2.4k |
+| one day, derived-block field selection | ~0.5–1.5k |
+| `analyzeProfile` findings, evidence included | 0.8–2.2k |
+
+¹ profile + its models.json entry + the "reading a windgram" and
+derivations articles from `research/`.
+
+When each is appropriate:
+
+- **Raw document + reading context** — the default. One site, one or a few
+  models: it fits any current frontier context with room to spare, and the
+  LLM sees everything, including what a findings pass would summarize away.
+- **`projectProfile`** — when horizons multiply (all-model comparison at
+  one site: ~229k raw, ~48k day-windowed, ~10k derived-only) or sites do
+  (a 40-site scan fits under derived-only projection). Pure subtraction:
+  nothing is judged on the way down.
+- **`analyzeProfile` findings** — when the budget is tight, the sites are
+  many, or you want the model reasoning over claims it can check: every
+  finding carries its thresholds and the published numbers it derives
+  from, so the LLM (or a human) can audit the statement against the
+  evidence in the same payload. Verdicts exist only where they are
+  arithmetic; everything else is magnitudes and timing.
+
+Local time is load-bearing for all three: documents carry `site.timeZone`
+(0.4.0 wave), findings and projections use it, and the caller can override
+it.
 
 ## Depth two: custom rendering with shared numbers (`scene`)
 
@@ -391,7 +484,9 @@ document kinds:
   catalogue; each entry's `elevationM` is the launch's surveyed elevation,
   the same quantity a profile stores per-document as `site.altitudeM`
   (nullable there — a profile built before the survey keeps its null; the
-  catalogue is current);
+  catalogue is current), and each entry's `timeZone` (required since
+  0.4.0) is the launch's IANA timezone, echoed per-profile as the optional
+  `site.timeZone`;
 - `runsIndexSchema` / `RunsIndex` — `data/runs.json`, the cross-model run
   index keyed by model slug.
 
@@ -435,10 +530,31 @@ with `p50(scalar)`.
   timeZone)` → `[{ dateKey, hours }]` for day tabs (each group feeds
   `buildScene`'s `hours` option directly), plus `localHourOfDay` and
   `localDateKey`;
+- projection: `projectProfile(profile, { day?, timeZone?, dropLevels?,
+  fields? })` — window to one local day (the document's `site.timeZone` by
+  default), strip levels, select field subsets per block. Pure
+  subtraction, no thresholds; the budgets it buys are tabulated in
+  [Feeding a windgram to an LLM](#feeding-a-windgram-to-an-llm);
+- alignment: `alignByValidAt(profiles)` — the minimal cross-document join:
+  the instants every profile publishes, chronological, each row carrying
+  the models' own hours keyed by slug. Rows are quantities, not claims —
+  elevation, semantics, and staleness differences are deliberately left
+  visible;
 - units: `msToKmh` (moved here from `windgram/scene` in 0.3.0 — it is a
   pure unit conversion, not scene geometry);
 - smoothing: `smooth121`, the pipeline's retired 1-2-1 kernel as a renderer
   option (only across contiguous one-hour steps).
+
+### `windgram/analyze`
+
+Typed findings over one profile document (see
+[Statements with evidence](#statements-with-evidence-windgramanalyze)):
+`analyzeProfile(profile, { timeZone?, thresholds? })` →
+`WindgramAnalysis`, the finding types (`WindgramFinding` and its seven
+kinds), `DEFAULT_ANALYZE_THRESHOLDS` (the spikes' constants, embedded in
+every finding they shape, caller-movable per call), and
+`ANALYZE_VOCABULARY_VERSION`. The module docs carry the charter: analyze
+is single-document by evidence, and the `compare` name is reserved.
 
 ### `windgram/transport`
 
@@ -455,9 +571,8 @@ The headless renderer core: `buildScene(profile, options)` and the
 hit-testing (`cursorReading`,
 `xForHour`, `yForAltitude`, …), and the low-level geometry helpers the site's
 own figures reuse (`windBarbPaths`, `sampledFieldPaths`, `curvedPath`,
-`pointPath`, `interpolateVertical`). `msToKmh` remains re-exported here
-through 0.3.x, deprecated — it moved to `windgram/derive` and the re-export
-departs in 0.4.
+`pointPath`, `interpolateVertical`). The deprecated `msToKmh` re-export
+departed in 0.4.0 as promised — import it from `windgram/derive`.
 
 ### `windgram/svg`
 
@@ -489,6 +604,26 @@ stability, windowing, smoothing — and the pipeline never publishes those.
 The document `schemaVersion` stays 1 across these releases: profile
 additions are additive-optional, and consumers discover the rest from the
 catalogue.
+
+**0.4.0** — the analysis-minimum wave, built to the evidence spikes'
+verdicts.
+
+- New `windgram/analyze` subpath: `analyzeProfile` and the version-1
+  finding vocabulary — exactly the kinds the spikes endorsed, thresholds
+  embedded, evidence scoped, verdicts only where arithmetic (see
+  [Statements with evidence](#statements-with-evidence-windgramanalyze)).
+- `derive` gains `projectProfile` (day window / levels strip / field
+  selection — the LLM-budget subtraction) and `alignByValidAt` (the
+  minimal cross-document join).
+- Contract: site catalogue entries **require** `timeZone` (IANA) —
+  pre-0.4.0 catalogues no longer validate (published data updated in the
+  same change, the 0.3.0 `runIntervalHours` precedent) — and profile
+  `site.timeZone` echoes it, optional: local time is load-bearing for
+  reading a windgram, and stored documents self-interpret their clock.
+- The README gains the measured
+  [Feeding a windgram to an LLM](#feeding-a-windgram-to-an-llm) recipe.
+- Removed: `windgram/scene`'s deprecated `msToKmh` re-export, as the
+  0.3.x deprecation promised; import from `windgram/derive`.
 
 **0.3.0** — the first-consumer feedback wave.
 

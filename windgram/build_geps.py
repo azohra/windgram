@@ -39,8 +39,10 @@ window seconds, and the build publishes the mean over the window ending at
 each valid time. Precipitation is likewise a run-total accumulation,
 differenced per window into mm/h. Hour 000 publishes neither (nothing has
 accumulated), so the first step's baseline is seeded at zero; terrain
-(HGT_SFC, per member) exists at PT000 only and is the sole hour-0
-download. Moisture is RH everywhere (no dew point in any form). A full
+(HGT_SFC, per member) exists at PT000 only, is the sole hour-0 download,
+and arrives in decametres despite metadata claiming metres (verified
+2026-08-08; see TERRAIN_DAM_TO_M) — the pressure-level heights are genuine
+metres. Moisture is RH everywhere (no dew point in any form). A full
 run moves ~14 GiB — the heaviest feed in the pipeline — so files stream:
 fetched into memory, sampled for all 21 members, and dropped.
 """
@@ -110,6 +112,23 @@ FLUX_ACCUMULATION_VARIABLES = {
 }
 PRECIP_ACCUMULATION_VARIABLE = "APCP_SFC_0"
 TERRAIN_VARIABLE = "HGT_SFC_0"
+# The legacy CMC_geps-raw surface orography arrives in DECAMETRES — CMC's GZ
+# convention — even though its GRIB metadata claims metres (paramId 228002
+# "orog", units "m", byte-identical metadata to REPS's genuinely-metric
+# HGT_SFC). Decoded 2026-08-08: the global field tops out at 586.3 with the
+# Himalaya at 579.8 and Dundee (1485 m site) at 153.6 — ×10 is smoothed 0.5°
+# terrain everywhere, ×1 puts the whole planet below 600 m. The pressure-level
+# HGT_ISBL files are genuine geopotential metres (850 hPa at Dundee: 1512);
+# only the surface field carries decametres.
+TERRAIN_DAM_TO_M = 10.0
+# Sanity band for the published terrain datum against the catalogued site
+# elevations. A 0.5° grid legitimately smooths a single summit site far above
+# the model surface, so one low reading proves nothing — but EVERY site
+# sitting more than a kilometre below its catalogued elevation is a units or
+# indexing error, not smoothing (the decametre encoding read 153.6 m at a
+# 1485 m site), and no Earth terrain reaches 9 km in any encoding.
+TERRAIN_DEFICIT_LIMIT_M = 1000.0
+TERRAIN_CEILING_M = 9000.0
 PRESSURE_FIELDS = {
     "heightM": ("HGT", lambda v: v),
     "relativeHumidityPercent": ("RH", lambda v: v),
@@ -323,8 +342,19 @@ def _build_documents(
         return _sample_scalar_members(data, sites, field)
 
     # Model terrain per member (HGT_SFC exists at PT000 only; every other
-    # download is a forecast-hour file).
-    terrain = fetch_members(TERRAIN_VARIABLE, 0, "model elevation")
+    # download is a forecast-hour file). The raw file is decametres — see
+    # TERRAIN_DAM_TO_M — scaled to metres here and then sanity-checked
+    # against the catalogued site elevations, because every published height
+    # derives from this datum.
+    terrain = {
+        member: {
+            slug: value * TERRAIN_DAM_TO_M for slug, value in member_values.items()
+        }
+        for member, member_values in fetch_members(
+            TERRAIN_VARIABLE, 0, "model elevation"
+        ).items()
+    }
+    _require_plausible_model_elevation(terrain, sites)
 
     # hours[slug][member][hour_index] → a windgram source hour in the making.
     hours: dict[str, dict[int, list[dict]]] = {
@@ -596,6 +626,7 @@ def _derive_member_profile(
             "siteAltitudeM": site["elevationM"],
             "siteId": site["slug"],
             "siteName": site["name"],
+            "siteTimeZone": site.get("timeZone"),
         },
         model=SLUG,
         semantics=SEMANTICS,
@@ -745,6 +776,37 @@ def _require_all_members(members: dict[int, dict], field: str) -> None:
     if sorted(members) != list(PERTURBATION_NUMBERS):
         raise RuntimeError(
             f"GEPS {field} file carries members {sorted(members)}, expected 0–20"
+        )
+
+
+def _require_plausible_model_elevation(
+    terrain: dict[int, dict[str, float]], sites: list[dict]
+) -> None:
+    """Fails loudly when the control member's terrain cannot be terrain —
+    the gust hour-max ≥ instantaneous assertion's idiom, applied to the
+    datum every published height derives from. The published 153.6 m at a
+    1485 m mountain site shipped for as long as nothing checked this."""
+    control = terrain[0]
+    for site in sites:
+        elevation = control[site["slug"]]
+        if elevation > TERRAIN_CEILING_M:
+            raise RuntimeError(
+                f"GEPS model elevation for {site['name']} is {elevation:.1f} m — "
+                "higher than any Earth terrain; the surface-orography encoding "
+                "has changed (see TERRAIN_DAM_TO_M)"
+            )
+    if all(
+        control[site["slug"]] < site["elevationM"] - TERRAIN_DEFICIT_LIMIT_M
+        for site in sites
+    ):
+        readings = ", ".join(
+            f"{site['name']} {control[site['slug']]:.1f} m (site {site['elevationM']} m)"
+            for site in sites
+        )
+        raise RuntimeError(
+            f"GEPS model elevation sits over {TERRAIN_DEFICIT_LIMIT_M:.0f} m below "
+            f"the catalogued elevation at every site — a units or indexing error, "
+            f"not smoothing: {readings}"
         )
 
 

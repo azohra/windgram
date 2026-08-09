@@ -1,7 +1,9 @@
 // All chart/day-tab labels use the founding catalogue's local timezone, per
 // research/windgram-derivations.md's flyable-day window (America/Vancouver).
-// A future non-Pacific site is a known gap, not a silent bug: it would need
-// its own timezone threaded through from sites.json rather than assumed here.
+// The thread-through for a future non-Pacific site now exists — sites.json
+// entries declare `timeZone` and profiles echo it as `site.timeZone` — but
+// adopting it here means per-site label formatters too, so this stays the
+// single display choice until such a site is catalogued.
 export const DISPLAY_TZ = "America/Vancouver";
 
 /* Day keys and day grouping are windgram/derive's job (localDateKey,

@@ -110,7 +110,7 @@ The [forecast model feed reference](reference/forecast-model-feeds.md) records p
 
 ## TypeScript package
 
-[`packages/windgram`](packages/windgram/) is the TypeScript companion, published to npm as `windgram` with subpath exports: `windgram/contract` (zod schemas and types for the documents above), `windgram/derive` (pure functions of published state), and `windgram/scene` + `windgram/svg` (the reference renderer; its golden SVG fixtures are the reference look). The site consumes it; other frontends can too.
+[`packages/windgram`](packages/windgram/) is the TypeScript companion, published to npm as `windgram` with subpath exports: `windgram/contract` (zod schemas and types for the documents above), `windgram/derive` (pure functions of published state), `windgram/analyze` (typed findings with evidence over one document), and `windgram/scene` + `windgram/svg` (the reference renderer; its golden SVG fixtures are the reference look). The site consumes it; other frontends can too.
 
 ## Repository
 
@@ -146,7 +146,7 @@ The ECCC builders stream whole-domain Datamart GRIB2: each file is fetched into 
 
 ## Add a site
 
-Add its slug, name, launch coordinates, and elevation to [`sites.json`](sites.json). The next successful build publishes it for every model whose domain covers the coordinates.
+Add its slug, name, launch coordinates, elevation, and IANA timezone to [`sites.json`](sites.json). The next successful build publishes it for every model whose domain covers the coordinates.
 
 ## Licence
 

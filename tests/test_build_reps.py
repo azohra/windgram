@@ -32,6 +32,7 @@ SITE = {
     "latitude": DUNDEE[0],
     "longitude": DUNDEE[1],
     "elevationM": 1485,
+    "timeZone": "America/Vancouver",
 }
 
 
@@ -718,6 +719,8 @@ def test_a_forecast_step_flows_from_datamart_files_to_the_ensemble_document(monk
 
     (document,) = result["documents"]
     assert document["site"]["modelElevationM"] == pytest.approx(100.0)
+    # The catalogue's timezone echo rides on the ensemble document too.
+    assert document["site"]["timeZone"] == "America/Vancouver"
     # Ensemble envelope: the member count in run, the transport semantics
     # (no gust key — REPS publishes none) between site and hours.
     assert document["run"]["members"] == 21

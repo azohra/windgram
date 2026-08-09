@@ -516,6 +516,7 @@ def _build_profiles(
                     "siteAltitudeM": site["elevationM"],
                     "siteId": site["slug"],
                     "siteName": site["name"],
+                    "siteTimeZone": site.get("timeZone"),
                 },
                 model=product.slug,
                 semantics=SEMANTICS,

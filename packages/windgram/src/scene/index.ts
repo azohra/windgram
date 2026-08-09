@@ -4,13 +4,8 @@
 
 export { buildScene, M_TO_FT } from "./scene.js";
 
-import { msToKmh as deriveMsToKmh } from "../derive/wind.js";
-/**
- * @deprecated Moved to `windgram/derive` in 0.3.0 — it is a pure unit
- * conversion, not scene geometry. This re-export keeps existing imports
- * working through 0.3.x and departs in 0.4; import from `windgram/derive`.
- */
-export const msToKmh: typeof deriveMsToKmh = deriveMsToKmh;
+// msToKmh moved to windgram/derive in 0.3.0; its deprecated re-export here
+// departed in 0.4.0 as the 0.3.x JSDoc promised.
 export { cursorReading, xForHour, yForAltitude, altitudeForY, hourIndexForX } from "./hit-test.js";
 export { interpolateVertical, sampledFieldPaths, type FieldNode } from "./field.js";
 export { windBarbParts, windBarbPaths, type WindBarbParts } from "./barbs.js";

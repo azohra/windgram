@@ -459,6 +459,14 @@ Verified facts (2026-08-08):
   `CMC_geps-raw_<VAR>_<LVL>_<level>_latlon0p5x0p5_YYYYMMDDHH_Phhh_allmbrs.grib2`,
   under `YYYYMMDD/WXO-DD/ensemble/geps/grib2/raw/HH/hhh/` — not the MSC
   scheme the deterministic models migrated to.
+- **The legacy `HGT_SFC` orography is in decametres and its GRIB metadata
+  lies about it** [verified 2026-08-08]: the field decodes as
+  `units=m, paramId=228002` — indistinguishable from REPS's genuinely
+  metric field — but the values are dam (global max 586.3 = the smoothed
+  Himalaya ×10; Dundee 153.6 → 1 536 m beside GDPS's 1 525 m). Pressure-
+  level `HGT_ISBL` files are true metres; only the surface datum is
+  decametric. The builder scales ×10 and guards against both this bug and
+  its inverse; any future consumer of the raw feed must too.
 - **Per-member surface-based `CAPE_SFC` and `CIN_SFC` exist at every step**
   (97 files per step; the inventory is identical at hours 024, 198, and
   384). This is the marquee: the ensemble CAPE/CIN percentile spread that

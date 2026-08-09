@@ -17,6 +17,7 @@ def source_profile() -> dict:
         "siteAltitudeM": 1485,
         "siteId": "dundee",
         "siteName": "Dundee",
+        "siteTimeZone": "America/Vancouver",
         "hours": [
             {
                 "cloudCoverPercent": 35,
@@ -76,7 +77,26 @@ def test_publishes_the_contract_envelope_with_coordinates_verbatim():
         "longitude": -117.183569,
         "altitudeM": 1485,
         "modelElevationM": 1200,
+        "timeZone": "America/Vancouver",
     }
+
+
+def test_site_time_zone_is_omitted_when_the_source_declares_none():
+    # A source without the catalogue echo (pre-timeZone catalogues, or the
+    # GEPS builder until its concurrent fix lands) publishes no timeZone key
+    # — absence, never null: the contract reads absence as "predates the
+    # echo".
+    source = source_profile()
+    del source["siteTimeZone"]
+
+    profile = derive_windgram_profile(source, model="hrdps-continental", semantics=TEST_SEMANTICS)
+
+    assert "timeZone" not in profile["site"]
+
+    source["siteTimeZone"] = None
+    profile = derive_windgram_profile(source, model="hrdps-continental", semantics=TEST_SEMANTICS)
+
+    assert "timeZone" not in profile["site"]
 
 
 def test_semantics_publish_verbatim_between_site_and_hours():

@@ -14,6 +14,7 @@ from windgram.build_geps import (
     _build_documents,
     _file_url,
     _forecast_hours,
+    _require_plausible_model_elevation,
     _sample_scalar_members,
     _sample_wind_members,
     circular_median,
@@ -468,7 +469,9 @@ def test_a_small_document_serializes_deterministically():
 E2E_HEIGHTS = {1000: 150.0, 925: 800.0, 850: 1500.0, 700: 3100.0, 500: 5700.0}
 E2E_TEMPS_K = {1000: 292.65, 925: 286.15, 850: 279.15, 700: 265.15, 500: 242.15}
 E2E_SURFACE = {
-    "HGT_SFC_0": lambda m: 100.0,  # model terrain, PT000 only
+    # Model terrain, PT000 only, in DECAMETRES — the live file's encoding,
+    # metadata notwithstanding — so the builder publishes 1450 m.
+    "HGT_SFC_0": lambda m: 145.0,
     "TMP_TGL_2m": lambda m: 293.15 + 0.1 * m,
     "RH_TGL_2m": lambda m: 50.0,
     "PRMSL_MSL_0": lambda m: 101000.0 + 10.0 * m,
@@ -525,12 +528,15 @@ def e2e_hour_fields() -> list[str]:
     return fields
 
 
-def test_a_forecast_step_flows_from_datamart_files_to_the_ensemble_document(monkeypatch):
-    files = {
-        _file_url("HGT_SFC_0", "20260807", "00", 0): ensemble_file(E2E_SURFACE["HGT_SFC_0"])
-    }
+def e2e_files(terrain=E2E_SURFACE["HGT_SFC_0"]) -> dict[str, bytes]:
+    files = {_file_url("HGT_SFC_0", "20260807", "00", 0): ensemble_file(terrain)}
     for name in e2e_hour_fields():
         files[_file_url(name, "20260807", "00", 3)] = e2e_file(name, 3)
+    return files
+
+
+def test_a_forecast_step_flows_from_datamart_files_to_the_ensemble_document(monkeypatch):
+    files = e2e_files()
     fetched: list[str] = []
 
     def fake_fetch(url, stats=None):
@@ -554,7 +560,8 @@ def test_a_forecast_step_flows_from_datamart_files_to_the_ensemble_document(monk
     ]
 
     (document,) = result["documents"]
-    assert document["site"]["modelElevationM"] == pytest.approx(100.0)
+    # 145.0 decametres in the file → 1450 m published.
+    assert document["site"]["modelElevationM"] == pytest.approx(1450.0)
     # Ensemble envelope: the member count in run, the transport semantics
     # (no gust key — GEPS publishes none) between site and hours.
     assert document["run"]["members"] == 21
@@ -594,10 +601,13 @@ def test_a_forecast_step_flows_from_datamart_files_to_the_ensemble_document(monk
     assert cin["p50"] == pytest.approx(-11.0, abs=1e-6)
     assert cin["p90"] == pytest.approx(-3.0, abs=1e-6)
 
-    # The ensemble sounding: all five pilot-band levels, ascending, each
-    # field a percentile block across the 21 members, direction a consensus.
-    assert [level["pressureHpa"] for level in hour["levels"]] == [1000, 925, 850, 700, 500]
-    level_850 = hour["levels"][2]
+    # The ensemble sounding: the levels above the model surface, ascending,
+    # each field a percentile block across the 21 members, direction a
+    # consensus. 1000 and 925 hPa sit below the 1450 m terrain — the live
+    # behaviour at these mountain sites — and every member's filter drops
+    # them, so they are not published at all.
+    assert [level["pressureHpa"] for level in hour["levels"]] == [850, 700, 500]
+    level_850 = hour["levels"][0]
     assert level_850["heightM"]["members"] == 21
     assert level_850["heightM"]["p50"] == pytest.approx(1510.0, abs=1e-3)
     assert level_850["temperatureC"]["p50"] == pytest.approx(7.0, abs=1e-3)
@@ -661,3 +671,76 @@ def test_a_six_hourly_tail_step_differences_accumulations_across_its_own_window(
     assert hour["surface"]["sensibleHeatFluxWm2"]["p50"] == pytest.approx(20.0, abs=1e-6)
     assert hour["surface"]["latentHeatFluxWm2"]["p50"] == pytest.approx(20.0, abs=1e-6)
     assert hour["surface"]["precipitationMmHr"]["p50"] == pytest.approx(1.5, abs=1e-6)
+
+
+# --- terrain units and the model-elevation sanity guard ---------------------------
+#
+# The live CMC_geps-raw HGT_SFC file is encoded in decametres while its GRIB
+# metadata claims metres (verified 2026-08-08: Dundee read 153.6 raw against
+# its 1485 m site with a global field maximum of 586.3 — ×10 is smoothed 0.5°
+# terrain everywhere, Himalaya 579.8 → 5798 m; ×1 puts the whole planet below
+# 600 m). The builder scales the field to metres and then refuses a published
+# datum that cannot be terrain — every published height derives from it.
+
+
+def test_surface_orography_decametres_publish_as_metres(monkeypatch):
+    # 153.6 is the live control-member reading at Dundee on 2026-08-08; the
+    # pre-fix builder published it verbatim as 153.6 m.
+    files = e2e_files(terrain=lambda m: 153.6)
+    monkeypatch.setattr(
+        "windgram.build_geps.fetch_bytes", lambda url, stats=None: files[url]
+    )
+
+    result = _build_documents(
+        "2026-08-07T00:00:00Z",
+        [{"forecastHour": 3, "validAt": "2026-08-07T03:00:00Z"}],
+        [SITE],
+        DownloadStats(),
+    )
+
+    (document,) = result["documents"]
+    assert document["site"]["modelElevationM"] == pytest.approx(1536.0)
+
+
+def test_the_builder_refuses_a_terrain_datum_below_every_site(monkeypatch):
+    # 15.36 dam → 153.6 m: the exact datum the decametre bug published, and
+    # what the live file would yield again if the scaling were ever dropped.
+    files = e2e_files(terrain=lambda m: 15.36)
+    monkeypatch.setattr(
+        "windgram.build_geps.fetch_bytes", lambda url, stats=None: files[url]
+    )
+
+    with pytest.raises(RuntimeError, match="units or indexing error"):
+        _build_documents(
+            "2026-08-07T00:00:00Z",
+            [{"forecastHour": 3, "validAt": "2026-08-07T03:00:00Z"}],
+            [SITE],
+            DownloadStats(),
+        )
+
+
+def test_the_guard_accepts_coarse_grid_smoothing():
+    # The live datum after the fix: 1536 m against the 1485 m site.
+    _require_plausible_model_elevation({0: {"dundee": 1536.0}}, [SITE])
+
+
+def test_one_summit_site_towering_over_the_model_surface_is_not_an_error():
+    # A 0.5° grid legitimately smooths a single summit site more than a
+    # kilometre above the model surface; the guard needs EVERY site wildly
+    # below before it calls the datum broken.
+    summit = {**SITE, "slug": "summit", "name": "Summit", "elevationM": 3400}
+    _require_plausible_model_elevation(
+        {0: {"dundee": 1536.0, "summit": 1800.0}}, [SITE, summit]
+    )
+
+
+def test_a_datum_wildly_below_every_site_fails_loudly():
+    with pytest.raises(RuntimeError, match="below the catalogued elevation at every site"):
+        _require_plausible_model_elevation({0: {"dundee": 153.6}}, [SITE])
+
+
+def test_a_datum_above_any_earth_terrain_fails_loudly():
+    # The inverse regression: were ECCC to re-encode the file in genuine
+    # metres, the ×10 scaling would publish a ~15 km surface.
+    with pytest.raises(RuntimeError, match="higher than any Earth terrain"):
+        _require_plausible_model_elevation({0: {"dundee": 15360.0}}, [SITE])

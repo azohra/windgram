@@ -11,6 +11,7 @@ SITE = {
     "latitude": 49.291977,
     "longitude": -117.183569,
     "elevationM": 1485,
+    "timeZone": "America/Vancouver",
 }
 
 
@@ -50,4 +51,4 @@ def test_the_repository_catalogue_loads_with_every_field_a_builder_samples():
 
     assert sites, "the repository catalogue must list at least one site"
     for site in sites:
-        assert {"slug", "name", "latitude", "longitude", "elevationM"} <= set(site)
+        assert {"slug", "name", "latitude", "longitude", "elevationM", "timeZone"} <= set(site)

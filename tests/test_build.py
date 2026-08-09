@@ -41,6 +41,7 @@ DUNDEE = {
     "latitude": 49.291977,
     "longitude": -117.183569,
     "elevationM": 1485,
+    "timeZone": "America/Vancouver",
 }
 ERIE = {"slug": "erie", "latitude": 49.204789, "longitude": -117.406951}
 FLAGPOLE = {"slug": "flagpole", "latitude": 49.507695, "longitude": -117.310423}
@@ -551,7 +552,9 @@ def test_build_profiles_end_to_end_against_a_fake_datamart(monkeypatch):
     (profile,) = result["profiles"]
     assert profile["model"] == "test-10km"
     assert profile["site"]["modelElevationM"] == 1000.0
-    # The published document self-interprets its varying fields.
+    # The published document self-interprets its varying fields — the
+    # catalogue's timezone echo included.
+    assert profile["site"]["timeZone"] == "America/Vancouver"
     assert profile["semantics"] == {"gust": "hourMax", "precipitation": "windowMeanRate"}
 
     # GRIB simple packing quantizes through float32, hence the tolerances.

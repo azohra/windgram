@@ -6,28 +6,32 @@
       "name": "Dundee",
       "latitude": 49.291977,
       "longitude": -117.183569,
-      "elevationM": 1485
+      "elevationM": 1485,
+      "timeZone": "America/Vancouver"
     },
     {
       "slug": "erie",
       "name": "Erie",
       "latitude": 49.204789,
       "longitude": -117.406951,
-      "elevationM": 1247
+      "elevationM": 1247,
+      "timeZone": "America/Vancouver"
     },
     {
       "slug": "flagpole",
       "name": "Flagpole",
       "latitude": 49.507695,
       "longitude": -117.310423,
-      "elevationM": 1222
+      "elevationM": 1222,
+      "timeZone": "America/Vancouver"
     },
     {
       "slug": "red-mountain",
       "name": "Red Mtn",
       "latitude": 49.091868,
       "longitude": -117.820838,
-      "elevationM": 1591
+      "elevationM": 1591,
+      "timeZone": "America/Vancouver"
     }
   ]
 }

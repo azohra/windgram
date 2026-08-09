@@ -71,6 +71,11 @@
         "modelElevationM": {
           "type": "number",
           "description": "The model's terrain elevation at the site's grid point, metres MSL."
+        },
+        "timeZone": {
+          "description": "The site's IANA timezone (e.g. \"America/Vancouver\"), echoed per-profile from the sites.json catalogue — local time is load-bearing for reading a windgram. Absence means the document predates the echo, never that UTC applies locally.",
+          "type": "string",
+          "minLength": 1
         }
       },
       "required": [

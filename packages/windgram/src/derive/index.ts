@@ -7,8 +7,11 @@
    derivation exposed here — over published inputs only — lets a renderer
    answer other sink rates without republishing anything.
 
-   Every function takes plain numbers. To run one against an ensemble
-   profile, select the median first with p50. */
+   Every derivation takes plain numbers; to run one against an ensemble
+   profile, select the median first with p50. The document-shaped helpers
+   (day windowing, projectProfile, alignByValidAt) subtract and join whole
+   documents without touching the values inside — quantities out, never
+   claims (statements with evidence live in windgram/analyze). */
 
 export { p50 } from "./ensemble.js";
 export { dewPointC, dewPointDepressionC, relativeHumidityPercent } from "./moisture.js";
@@ -51,3 +54,10 @@ export {
   type DayWindowOptions,
 } from "./day-window.js";
 export { smooth121 } from "./smoothing.js";
+export {
+  projectProfile,
+  type ProjectProfileOptions,
+  type ProjectedWindgramHour,
+  type ProjectedWindgramProfile,
+} from "./project.js";
+export { alignByValidAt, type AlignedHours } from "./align.js";

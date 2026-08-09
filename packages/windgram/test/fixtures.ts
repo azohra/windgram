@@ -132,8 +132,22 @@ export function sitesCatalogue(): SitesCatalogue {
   return {
     schemaVersion: 1,
     sites: [
-      { slug: "dundee", name: "Dundee", latitude: 49.291977, longitude: -117.183569, elevationM: 1485 },
-      { slug: "red-mountain", name: "Red Mtn", latitude: 49.091868, longitude: -117.820838, elevationM: 1591 },
+      {
+        slug: "dundee",
+        name: "Dundee",
+        latitude: 49.291977,
+        longitude: -117.183569,
+        elevationM: 1485,
+        timeZone: "America/Vancouver",
+      },
+      {
+        slug: "red-mountain",
+        name: "Red Mtn",
+        latitude: 49.091868,
+        longitude: -117.820838,
+        elevationM: 1591,
+        timeZone: "America/Vancouver",
+      },
     ],
   };
 }

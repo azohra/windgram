@@ -36,7 +36,22 @@ def derive_windgram_profile(source: dict, model: str, semantics: dict[str, str])
     when the model publishes windGustMs, "precipitation" ("instantRate" |
     "windowMeanRate") always, since precipitationMmHr is universal. The
     builder that verified the feed supplies it — never inferred here.
+
+    siteTimeZone (optional in source) is the catalogue's IANA timezone,
+    echoed into the document as site.timeZone for the same self-interpreting
+    reason: local time is load-bearing for reading a windgram, and a stored
+    profile should not need the catalogue beside it to know its clock.
     """
+    site = {
+        "id": source["siteId"],
+        "name": source["siteName"],
+        "latitude": source["latitude"],
+        "longitude": source["longitude"],
+        "altitudeM": source["siteAltitudeM"],
+        "modelElevationM": source["modelElevationM"],
+    }
+    if source.get("siteTimeZone"):
+        site["timeZone"] = source["siteTimeZone"]
     return {
         "schemaVersion": SCHEMA_VERSION,
         "model": model,
@@ -44,14 +59,7 @@ def derive_windgram_profile(source: dict, model: str, semantics: dict[str, str])
             "referenceTime": source["referenceTime"],
             "generatedAt": source["generatedAt"],
         },
-        "site": {
-            "id": source["siteId"],
-            "name": source["siteName"],
-            "latitude": source["latitude"],
-            "longitude": source["longitude"],
-            "altitudeM": source["siteAltitudeM"],
-            "modelElevationM": source["modelElevationM"],
-        },
+        "site": site,
         "semantics": semantics,
         "hours": [_derive_hour(hour, source["modelElevationM"]) for hour in source["hours"]],
     }

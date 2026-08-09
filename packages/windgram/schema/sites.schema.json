@@ -30,6 +30,11 @@
           "elevationM": {
             "type": "number",
             "description": "The launch's surveyed elevation, metres MSL — the catalogue is its home. Profile site.altitudeM stores the same quantity per-profile and may be null there (a profile built before the survey keeps its null; the catalogue is current)."
+          },
+          "timeZone": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The site's IANA timezone (e.g. \"America/Vancouver\") — required; the catalogue is its home. Local time is load-bearing for reading a windgram, and builders echo it per-profile as the optional site.timeZone."
           }
         },
         "required": [
@@ -37,7 +42,8 @@
           "name",
           "latitude",
           "longitude",
-          "elevationM"
+          "elevationM",
+          "timeZone"
         ]
       }
     }

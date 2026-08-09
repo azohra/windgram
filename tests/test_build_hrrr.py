@@ -98,6 +98,7 @@ SITE = {
     "latitude": 40.0,
     "longitude": 255.0,
     "elevationM": 1600.0,
+    "timeZone": "America/Denver",
 }
 LEVEL_HEIGHTS = {
     925: 800.0,
@@ -187,6 +188,7 @@ def test_build_profiles_publishes_omega_and_tolerates_its_absence(monkeypatch):
     )
 
     (profile,) = result["profiles"]
+    assert profile["site"]["timeZone"] == "America/Denver"  # the catalogue echo
     assert profile["semantics"] == {"gust": "instant", "precipitation": "instantRate"}
     first, second = profile["hours"]
     # Every curated level carries the sampled omega verbatim: Pa/s in,

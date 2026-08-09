@@ -411,6 +411,7 @@ def _build_profiles(run: dict, reference_time: str, sites: list[dict], stats: Do
                     "siteAltitudeM": site["elevationM"],
                     "siteId": site["slug"],
                     "siteName": site["name"],
+                    "siteTimeZone": site.get("timeZone"),
                 },
                 model=SLUG,
                 semantics=SEMANTICS,
