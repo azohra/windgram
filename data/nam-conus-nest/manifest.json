@@ -1,10 +1,10 @@
 {
   "firstForecastHour": 1,
   "forecastHours": 60,
-  "generatedAt": "2026-08-09T09:13:59.469Z",
+  "generatedAt": "2026-08-09T15:10:03.316Z",
   "lastForecastHour": 60,
   "model": "nam-conus-nest",
-  "referenceTime": "2026-08-09T06:00:00Z",
+  "referenceTime": "2026-08-09T12:00:00Z",
   "schemaVersion": 1,
   "sites": [
     {
@@ -25,9 +25,9 @@
     }
   ],
   "stats": {
-    "downloadBytes": 7150353729,
+    "downloadBytes": 7130862155,
     "downloads": 3701,
-    "durationMs": 247680,
+    "durationMs": 247959,
     "retries": 0
   }
 }
