@@ -1,6 +1,12 @@
 ---
 import { windgramProfileSchema } from "windgram/contract";
 import { p50 } from "windgram/derive";
+
+/* This component reads the fixed deterministic example document: every
+   Scalar is a plain number, so its median is never null (full dropout is
+   an ensemble-only shape). */
+const med = (value: Parameters<typeof p50>[0]): number => med(value)!;
+
 import { DEFAULT_OVERLAYS, type OverlayName } from "windgram/scene";
 import rawExample from "./forecast-example.json";
 import {
@@ -42,8 +48,8 @@ const dayLabel = new Intl.DateTimeFormat("en-US", {
 // predating the tag.
 const selectedValidAt = scene.hourValidAts[scene.selectedHourIndex];
 const selectedHour = EXAMPLE_PROFILE.hours.find((hour) => hour.validAt === selectedValidAt)!;
-const usableLift = p50(selectedHour.derived.usableLiftTopM);
-const gustMs = selectedHour.surface.windGustMs == null ? null : p50(selectedHour.surface.windGustMs);
+const usableLift = med(selectedHour.derived.usableLiftTopM);
+const gustMs = selectedHour.surface.windGustMs == null ? null : med(selectedHour.surface.windGustMs);
 const gustSemantics =
   EXAMPLE_PROFILE.semantics?.gust ??
   (modelBySlug(EXAMPLE_PROFILE.model)?.capabilities.gust || undefined);
@@ -138,13 +144,13 @@ if (
 
   <div class="hour-readout">
     <strong>{localHourLabel(selectedValidAt)}:00</strong>
-    <span>{Math.round(p50(selectedHour.surface.temperatureC))} °C</span>
+    <span>{Math.round(med(selectedHour.surface.temperatureC))} °C</span>
     <span>
-      w* {p50(selectedHour.derived.thermalVelocityMs).toFixed(1)} m/s · usable lift{" "}
+      w* {med(selectedHour.derived.thermalVelocityMs).toFixed(1)} m/s · usable lift{" "}
       {usableLift == null ? "none" : `${Math.round(usableLift).toLocaleString("en-CA")} m`}
     </span>
     {gustText && <span>{gustText}</span>}
-    <span>cloud {Math.round(p50(selectedHour.surface.cloudCoverPercent))}%</span>
+    <span>cloud {Math.round(med(selectedHour.surface.cloudCoverPercent))}%</span>
   </div>
 
   <div class="switchboard">

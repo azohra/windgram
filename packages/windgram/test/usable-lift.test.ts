@@ -27,9 +27,9 @@ describe("parameterized usable-lift top", () => {
       const rederived = usableLiftTopM({
         modelElevationM: site.modelElevationM,
         boundaryLayerTopM: p50(hour.derived.boundaryLayerTopM),
-        thermalVelocityMs: p50(hour.derived.thermalVelocityMs),
-        cloudBaseM: p50(hour.derived.cloudBaseM),
-        levels: hour.levels.map((level) => ({ heightM: p50(level.heightM) })),
+        thermalVelocityMs: p50(hour.derived.thermalVelocityMs)!,
+        cloudBaseM: p50(hour.derived.cloudBaseM)!,
+        levels: hour.levels.map((level) => ({ heightM: p50(level.heightM)! })),
       });
       const published = p50(hour.derived.usableLiftTopM);
       if (published === null) {
@@ -62,9 +62,9 @@ describe("parameterized usable-lift top", () => {
     const inputs = {
       modelElevationM: site.modelElevationM,
       boundaryLayerTopM: p50(hour.derived.boundaryLayerTopM),
-      thermalVelocityMs: p50(hour.derived.thermalVelocityMs),
-      cloudBaseM: p50(hour.derived.cloudBaseM),
-      levels: hour.levels.map((level) => ({ heightM: p50(level.heightM) })),
+      thermalVelocityMs: p50(hour.derived.thermalVelocityMs)!,
+      cloudBaseM: p50(hour.derived.cloudBaseM)!,
+      levels: hour.levels.map((level) => ({ heightM: p50(level.heightM)! })),
     };
     const floaty = usableLiftTopM(inputs, 0.7)!;
     const standard = usableLiftTopM(inputs, 1.0)!;
@@ -79,9 +79,9 @@ describe("parameterized usable-lift top", () => {
     const inputs = {
       modelElevationM: site.modelElevationM,
       boundaryLayerTopM: p50(hour.derived.boundaryLayerTopM),
-      thermalVelocityMs: p50(hour.derived.thermalVelocityMs),
-      cloudBaseM: p50(hour.derived.cloudBaseM),
-      levels: hour.levels.map((level) => ({ heightM: p50(level.heightM) })),
+      thermalVelocityMs: p50(hour.derived.thermalVelocityMs)!,
+      cloudBaseM: p50(hour.derived.cloudBaseM)!,
+      levels: hour.levels.map((level) => ({ heightM: p50(level.heightM)! })),
     };
     // W* * 2.02 is the pipeline's launch guard: a sink rate above it kills
     // the day outright.

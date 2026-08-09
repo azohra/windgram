@@ -78,11 +78,19 @@ import { localDateKey } from "../derive/day-window.js";
  * a kind is a contract event — bump this, and document the evidence that
  * justified the change (see the module charter above).
  */
-export const ANALYZE_VOCABULARY_VERSION = 2;
+export const ANALYZE_VOCABULARY_VERSION = 3;
 /* v2 (2026-08-08): adds `quietDay` — production consumer evidence: a day
    with no flyable window was expressible only by absence, so headlines
    could say "no window" but never why. The negative now carries the
-   numbers that failed, per the statements-with-evidence charter. */
+   numbers that failed, per the statements-with-evidence charter.
+   v3 (2026-08-09): horizon truncation named on both sides — the findings
+   spike over nine live documents showed a model whose run ends mid-day
+   voting "quiet" on pre-thermic hours alone, and window end-times
+   spreading 7 h purely because short-horizon runs clip their last
+   window. quietDay carries `coverage` with a `truncated` verdict (a
+   truncated quiet day is a data boundary, not a forecast, and must not
+   vote in comparisons); flyableWindow carries `clippedAtStart` /
+   `clippedAtEnd` so a clipped edge reads as ≥/≤, not as timing. */
 
 /* ------------------------------------------------------------- vocabulary */
 
@@ -269,6 +277,15 @@ export interface FlyableWindowFinding {
   /** Launch-relative peak; null when site.altitudeM is unknown. */
   peakLiftTopAboveLaunchM: number | null;
   peakThermalVelocityMs: number;
+  /**
+   * True when the window's first/last hour is the document's own first/
+   * last hour: the edge is the data's horizon, not necessarily the
+   * window's. A clipped start reads as "open since at least \<start\>", a
+   * clipped end as "still open at \<end\>" — timing comparisons must not
+   * count a clipped edge as a forecast of opening or decay.
+   */
+  clippedAtStart: boolean;
+  clippedAtEnd: boolean;
   thresholds: { wstarMinMs: number; depthMinM: number };
   evidence: {
     hours: string[];
@@ -368,6 +385,22 @@ export interface QuietDayFinding {
   peakLiftDepthM: number | null;
   peakLiftDepthAt: CitedInstant | null;
   failed: Array<"wstar" | "depth" | "coincidence">;
+  /**
+   * The hours the claim is built from. `truncated` is the arithmetic
+   * verdict that the document's own hour range clips this local day (its
+   * covered span misses the day's start or end at the model's cadence):
+   * a quiet call built from a sliver of a day — a short-horizon run
+   * ending before the thermals start — is a data boundary, not a
+   * forecast. A truncated quiet day must not vote in cross-model
+   * comparisons; it exists so "no window" and "day not fully forecast"
+   * stay distinguishable statements.
+   */
+  coverage: {
+    hours: number;
+    first: CitedInstant;
+    last: CitedInstant;
+    truncated: boolean;
+  };
   thresholds: { wstarMinMs: number; depthMinM: number };
 }
 
@@ -540,6 +573,8 @@ function median(value: Scalar | null | undefined): number | null {
 
 function band(value: Scalar | null | undefined): [number, number] | null {
   if (value !== null && value !== undefined && isEnsembleValue(value)) {
+    // Full dropout has no envelope: percentiles of zero members are null.
+    if (value.p10 === null || value.p90 === null) return null;
     return [value.p10, value.p90];
   }
   return null;
@@ -654,6 +689,11 @@ function findFlyableWindows(context: Context): FlyableWindowFinding[] {
       day: localDateKey(hours[0].validAt, context.timeZone),
       start: context.cite(hours[0].validAt),
       end: context.cite(hours[hours.length - 1].validAt),
+      // A window abutting the document's own hour range is clipped by the
+      // horizon: the edge is a data boundary, not an opening or a decay.
+      clippedAtStart: hours[0].validAt === profile.hours[0].validAt,
+      clippedAtEnd:
+        hours[hours.length - 1].validAt === profile.hours[profile.hours.length - 1].validAt,
       durationHours: hours.length * stepHours,
       peakLiftTopM: round1(peakTop),
       peakLiftTopAt: context.cite(peakHour.validAt),
@@ -704,6 +744,14 @@ function findQuietDays(
   const findings: QuietDayFinding[] = [];
   for (const [day, hours] of byDay) {
     if (windowDays.has(day)) continue;
+    /* Coverage: a continuous profile covers a full local day at cadence k
+       exactly when its first covered hour falls inside the day's first
+       step and its last inside the day's last step. Anything else means
+       the document's own horizon clips the day. */
+    const step = context.stepHours;
+    const firstLocalH = Number(context.cite(hours[0].validAt).local.slice(11, 13));
+    const lastLocalH = Number(context.cite(hours[hours.length - 1].validAt).local.slice(11, 13));
+    const truncated = !(firstLocalH < step && lastLocalH >= 24 - step);
     let peakWstar: number | null = null;
     let peakWstarAt: string | null = null;
     let peakDepth: number | null = null;
@@ -735,6 +783,12 @@ function findQuietDays(
       peakLiftDepthM: peakDepth === null ? null : round1(peakDepth),
       peakLiftDepthAt: peakDepthAt === null ? null : context.cite(peakDepthAt),
       failed,
+      coverage: {
+        hours: hours.length * step,
+        first: context.cite(hours[0].validAt),
+        last: context.cite(hours[hours.length - 1].validAt),
+        truncated,
+      },
       thresholds: { wstarMinMs, depthMinM },
     });
   }
@@ -1012,6 +1066,9 @@ function findEnsembleMembership(context: Context): EnsembleMembershipFinding[] {
     for (const hour of profile.hours) {
       const value = hour.derived[series];
       if (value === null || !isEnsembleValue(value)) continue;
+      // Full dropout carries no band; the membership counts above already
+      // state the zero, which is the finding's job for that hour.
+      if (value.p10 === null || value.p90 === null || value.p50 === null) continue;
       const width = value.p90 - value.p10;
       rows.push({
         validAt: hour.validAt,

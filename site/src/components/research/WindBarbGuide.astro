@@ -2,6 +2,12 @@
 import exampleProfile from "./forecast-example.json";
 import { windgramProfileSchema } from "windgram/contract";
 import { msToKmh, p50 } from "windgram/derive";
+
+/* This component reads the fixed deterministic example document: every
+   Scalar is a plain number, so its median is never null (full dropout is
+   an ensemble-only shape). */
+const med = (value: Parameters<typeof p50>[0]): number => med(value)!;
+
 import { modelBySlug, modelDisplayName } from "../../lib/catalogue";
 
 // The same fixed sample profile the article's windgram draws, validated
@@ -9,12 +15,12 @@ import { modelBySlug, modelDisplayName } from "../../lib/catalogue";
 const sample = windgramProfileSchema.parse(exampleProfile);
 const hours = sample.hours.map((hour) => ({
   validAt: hour.validAt,
-  thermalVelocityMs: p50(hour.derived.thermalVelocityMs),
-  usableLiftTopM: p50(hour.derived.usableLiftTopM),
+  thermalVelocityMs: med(hour.derived.thermalVelocityMs),
+  usableLiftTopM: med(hour.derived.usableLiftTopM),
   levels: hour.levels.map((level) => ({
-    heightM: p50(level.heightM),
-    windDirectionDeg: p50(level.windDirectionDeg),
-    windSpeedKmh: Math.round(msToKmh(p50(level.windSpeedMs)) * 10) / 10,
+    heightM: med(level.heightM),
+    windDirectionDeg: med(level.windDirectionDeg),
+    windSpeedKmh: Math.round(msToKmh(med(level.windSpeedMs)) * 10) / 10,
   })),
 }));
 const peak = hours.reduce((best, hour) =>

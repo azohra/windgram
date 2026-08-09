@@ -152,6 +152,30 @@ describe("flyableWindow", () => {
     expect(saturday.thresholds).toEqual({ wstarMinMs: 99, depthMinM: 300 });
   });
 
+  it("flags horizon truncation: a quiet call from a sliver of a day is a data boundary", () => {
+    const quiet = ofKind<QuietDayFinding>(analyzeProfile(geps()).findings, "quietDay");
+    const byDay = Object.fromEntries(quiet.map((finding) => [finding.day, finding]));
+    // The fully-covered middle day is a REAL quiet day (the terrain case).
+    expect(byDay["2026-08-09"].coverage.truncated).toBe(false);
+    expect(byDay["2026-08-09"].coverage.hours).toBe(24);
+    // The first day misses its early hours; the last covers 02:00-05:00
+    // local only — pre-thermic slivers whose "quiet" is the horizon.
+    expect(byDay["2026-08-08"].coverage.truncated).toBe(true);
+    expect(byDay["2026-08-10"].coverage.truncated).toBe(true);
+    expect(byDay["2026-08-10"].coverage.hours).toBe(6);
+  });
+
+  it("marks windows clipped by the document's own horizon at either edge", () => {
+    const windows = ofKind<FlyableWindowFinding>(analyzeProfile(hrrr()).findings, "flyableWindow");
+    const byDay = Object.fromEntries(windows.map((finding) => [finding.day, finding]));
+    // The document opens mid-window and ends mid-window: the first
+    // window's start and the last window's end are data boundaries.
+    expect(byDay["2026-08-08"].clippedAtStart).toBe(true);
+    expect(byDay["2026-08-08"].clippedAtEnd).toBe(false);
+    expect(byDay["2026-08-09"].clippedAtStart).toBe(false);
+    expect(byDay["2026-08-09"].clippedAtEnd).toBe(true);
+  });
+
   it("emits no quietDay for a day any window hour touches", () => {
     const findings = analyzeProfile(hrrr()).findings;
     const windowDays = new Set(

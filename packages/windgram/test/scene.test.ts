@@ -230,6 +230,20 @@ describe("series", () => {
     expect(pick(smoothed, "usableLiftTop")).not.toBe(pick(raw, "usableLiftTop"));
   });
 
+  it("renders a full-dropout position as a gap, never a fabricated point", () => {
+    const profile = ensembleSceneProfile();
+    const dropout = { members: 0, p10: null, p25: null, p50: null, p75: null, p90: null };
+    profile.hours[3].derived.usableLiftTopM = dropout as never;
+    const baseline = buildScene(ensembleSceneProfile(), { ...TZ, smooth: false });
+    const scene = buildScene(profile, { ...TZ, smooth: false });
+    const usable = (s: typeof scene) => s.series.find((entry) => entry.key === "usableLiftTop")!;
+    expect(usable(scene).path).not.toBe(usable(baseline).path);
+    expect(usable(scene).path).not.toContain("NaN");
+    expect(usable(scene).bandPath).not.toContain("NaN");
+    // The other hours keep their state: only the dropout hour is a gap.
+    expect(scene.scales.hourCount).toBe(baseline.scales.hourCount);
+  });
+
   it("exposes p25-p75 band geometry for ensemble series", () => {
     const scene = buildScene(ensembleSceneProfile(), TZ);
     const byKey = Object.fromEntries(scene.series.map((entry) => [entry.key, entry]));

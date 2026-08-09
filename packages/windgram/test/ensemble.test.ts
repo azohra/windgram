@@ -17,7 +17,11 @@ describe("p50", () => {
     expect(p50(null)).toBeNull();
   });
 
+  it("has no median for full dropout — zero members produced no value to select", () => {
+    expect(p50({ members: 0, p10: null, p25: null, p50: null, p75: null, p90: null })).toBeNull();
+  });
+
   it("feeds deterministic derivations from ensemble state", () => {
-    expect(stabilityClass(p50(ensembleValue({ p50: -2.7 })))).toBe("unstable");
+    expect(stabilityClass(p50(ensembleValue({ p50: -2.7 }))!)).toBe("unstable");
   });
 });

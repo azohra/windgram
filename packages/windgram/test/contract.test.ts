@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import {
+  isEnsembleDropout,
   isEnsembleValue,
   modelCatalogueSchema,
   parseModelCatalogue,
@@ -41,6 +42,35 @@ describe("profile schema", () => {
     expect(parsed).not.toBeNull();
     const temperature = parsed!.hours[0].surface.temperatureC;
     expect(isEnsembleValue(temperature)).toBe(true);
+  });
+
+  it("accepts full ensemble dropout — members: 0 with every percentile null", () => {
+    // The live GEPS/REPS shape: the run asked every member and none
+    // produced a value. A published fact, distinct from "not published"
+    // and from a forecast of none.
+    const dropout = { members: 0, p10: null, p25: null, p50: null, p75: null, p90: null };
+    const profile = ensembleProfile();
+    profile.hours[0].surface.capeJkg = dropout as never;
+    profile.hours[0].derived.usableLiftTopM = { ...dropout, ceiledMembers: 0 } as never;
+    const parsed = parseWindgramProfile(profile);
+    expect(parsed).not.toBeNull();
+    expect(isEnsembleDropout(parsed!.hours[0].surface.capeJkg!)).toBe(true);
+    expect(isEnsembleDropout(parsed!.hours[0].surface.temperatureC)).toBe(false);
+  });
+
+  it("rejects partial dropout — zero members with numbers, or members with nulls", () => {
+    const base = ensembleProfile();
+    const zeroWithNumbers = structuredClone(base);
+    zeroWithNumbers.hours[0].surface.capeJkg = {
+      members: 0, p10: 1, p25: 2, p50: 3, p75: 4, p90: 5,
+    } as never;
+    expect(parseWindgramProfile(zeroWithNumbers)).toBeNull();
+
+    const membersWithNulls = structuredClone(base);
+    membersWithNulls.hours[0].surface.capeJkg = {
+      members: 7, p10: null, p25: null, p50: null, p75: null, p90: null,
+    } as never;
+    expect(parseWindgramProfile(membersWithNulls)).toBeNull();
   });
 
   it("accepts an ensemble value in a level position", () => {

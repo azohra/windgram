@@ -2,6 +2,12 @@
 import exampleProfile from "./forecast-example.json";
 import { windgramProfileSchema } from "windgram/contract";
 import { lapseRateCPer1000Ft, msToKmh, p50, stabilityClass, surfaceLapseCPer1000Ft } from "windgram/derive";
+
+/* This component reads the fixed deterministic example document: every
+   Scalar is a plain number, so its median is never null (full dropout is
+   an ensemble-only shape). */
+const med = (value: Parameters<typeof p50>[0]): number => med(value)!;
+
 import {
   curvedPath,
   interpolateVertical,
@@ -61,25 +67,25 @@ const profile = {
   hours: sample.hours.map(
     (hour): Hour => ({
       validAt: hour.validAt,
-      surfaceTemperatureC: p50(hour.surface.temperatureC),
-      surfaceDewPointDepressionC: p50(hour.surface.temperatureC) - p50(hour.surface.dewPointC),
-      pressureKpa: p50(hour.surface.pressurePa) / 1000,
-      precipitationMm: p50(hour.surface.precipitationMmHr),
-      cloudCoverPercent: p50(hour.surface.cloudCoverPercent),
-      thermalVelocityMs: p50(hour.derived.thermalVelocityMs),
-      boundaryLayerTopM: p50(hour.derived.boundaryLayerTopM),
-      cloudBaseM: p50(hour.derived.cloudBaseM),
-      usableLiftTopM: p50(hour.derived.usableLiftTopM),
-      windSpeedKmh: msToKmh(p50(hour.surface.windSpeedMs)),
-      windDirectionDeg: p50(hour.surface.windDirectionDeg),
+      surfaceTemperatureC: med(hour.surface.temperatureC),
+      surfaceDewPointDepressionC: med(hour.surface.temperatureC) - med(hour.surface.dewPointC),
+      pressureKpa: med(hour.surface.pressurePa) / 1000,
+      precipitationMm: med(hour.surface.precipitationMmHr),
+      cloudCoverPercent: med(hour.surface.cloudCoverPercent),
+      thermalVelocityMs: med(hour.derived.thermalVelocityMs),
+      boundaryLayerTopM: med(hour.derived.boundaryLayerTopM),
+      cloudBaseM: med(hour.derived.cloudBaseM),
+      usableLiftTopM: med(hour.derived.usableLiftTopM),
+      windSpeedKmh: msToKmh(med(hour.surface.windSpeedMs)),
+      windDirectionDeg: med(hour.surface.windDirectionDeg),
       levels: [...hour.levels]
         .map((level) => ({
-          heightM: p50(level.heightM),
-          pressureHpa: p50(level.pressureHpa),
-          temperatureC: p50(level.temperatureC),
-          dewPointDepressionC: p50(level.temperatureC) - p50(level.dewPointC),
-          windSpeedKmh: msToKmh(p50(level.windSpeedMs)),
-          windDirectionDeg: p50(level.windDirectionDeg),
+          heightM: med(level.heightM),
+          pressureHpa: med(level.pressureHpa),
+          temperatureC: med(level.temperatureC),
+          dewPointDepressionC: med(level.temperatureC) - med(level.dewPointC),
+          windSpeedKmh: msToKmh(med(level.windSpeedMs)),
+          windDirectionDeg: med(level.windDirectionDeg),
         }))
         .sort((a, b) => a.heightM - b.heightM),
     }),

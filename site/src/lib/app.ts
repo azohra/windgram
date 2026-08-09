@@ -135,6 +135,8 @@ function renderChartForCurrentDay() {
   }
 
   const selectedHour = day.hours[Math.min(scene.selectedHourIndex, day.hours.length - 1)];
+  // Core positions can (since 0.7.0) legally be full ensemble dropout;
+  // the readout degrades to a dash rather than fabricating a number.
   const wStar = p50(selectedHour.derived.thermalVelocityMs);
   const usableLift = p50(selectedHour.derived.usableLiftTopM);
   const usable = usableLift == null ? "none" : `${Math.round(usableLift).toLocaleString()} m`;
@@ -152,11 +154,13 @@ function renderChartForCurrentDay() {
       : gustSemantics === "hourMax"
         ? ` · gusting to ${Math.round(gustMs * 3.6)} km/h`
         : ` · gusts ${Math.round(gustMs * 3.6)} km/h`;
-  hourReadoutEl.textContent = `${localHourLabel(selectedHour.validAt)}:00 · ${Math.round(
-    p50(selectedHour.surface.temperatureC),
-  )} °C · w* ${wStar.toFixed(1)} m/s · usable lift ${usable}${gust} · cloud ${Math.round(
-    p50(selectedHour.surface.cloudCoverPercent),
-  )}%`;
+  const temperatureC = p50(selectedHour.surface.temperatureC);
+  const cloudPercent = p50(selectedHour.surface.cloudCoverPercent);
+  hourReadoutEl.textContent = `${localHourLabel(selectedHour.validAt)}:00 · ${
+    temperatureC == null ? "–" : Math.round(temperatureC)
+  } °C · w* ${wStar == null ? "–" : wStar.toFixed(1)} m/s · usable lift ${usable}${gust} · cloud ${
+    cloudPercent == null ? "–" : Math.round(cloudPercent)
+  }%`;
 }
 
 async function loadSite() {

@@ -132,6 +132,8 @@ type Band = { p25: number; p75: number } | null;
 
 function bandOf(value: Scalar | null): Band {
   if (value === null || !isEnsembleValue(value)) return null;
+  // A full-dropout position has no envelope: percentiles of zero members.
+  if (value.p25 === null || value.p75 === null) return null;
   return { p25: value.p25, p75: value.p75 };
 }
 
@@ -140,29 +142,77 @@ function p50opt(value: Scalar | undefined): number | null {
   return value == null ? null : p50(value);
 }
 
-function resolveHour(hour: WindgramHour): ResolvedHour {
-  const levels = hour.levels
-    .map((level) => ({
-      pressureHpa: p50(level.pressureHpa),
-      heightM: p50(level.heightM),
-      temperatureC: p50(level.temperatureC),
-      dewPointC: p50(level.dewPointC),
-      windSpeedMs: p50(level.windSpeedMs),
-      windDirectionDeg: p50(level.windDirectionDeg),
+/* Null when the hour has no renderable state: full ensemble dropout on a
+   core surface or derived position means zero members produced the value —
+   nothing honest to draw. Levels are filtered the same way individually
+   (a level whose core fields lost every member is no level). The
+   already-nullable positions (usableLiftTopM, boundaryLayerTopM, the
+   optional science fields) flow through as null instead. */
+function resolveHour(hour: WindgramHour): ResolvedHour | null {
+  const levels: ResolvedLevel[] = [];
+  for (const level of hour.levels) {
+    const pressureHpa = p50(level.pressureHpa);
+    const heightM = p50(level.heightM);
+    const temperatureC = p50(level.temperatureC);
+    const dewPointC = p50(level.dewPointC);
+    const windSpeedMs = p50(level.windSpeedMs);
+    const windDirectionDeg = p50(level.windDirectionDeg);
+    if (
+      pressureHpa === null ||
+      heightM === null ||
+      temperatureC === null ||
+      dewPointC === null ||
+      windSpeedMs === null ||
+      windDirectionDeg === null
+    ) {
+      continue;
+    }
+    levels.push({
+      pressureHpa,
+      heightM,
+      temperatureC,
+      dewPointC,
+      windSpeedMs,
+      windDirectionDeg,
       verticalVelocityPaS: level.verticalVelocityPaS == null ? null : p50(level.verticalVelocityPaS),
       cloudFractionPercent: p50opt(level.cloudFractionPercent),
-    }))
-    .sort((left, right) => left.heightM - right.heightM);
+    });
+  }
+  levels.sort((left, right) => left.heightM - right.heightM);
+
+  const pressurePa = p50(hour.surface.pressurePa);
+  const temperatureC = p50(hour.surface.temperatureC);
+  const dewPointC = p50(hour.surface.dewPointC);
+  const windSpeedMs = p50(hour.surface.windSpeedMs);
+  const windDirectionDeg = p50(hour.surface.windDirectionDeg);
+  const cloudCoverPercent = p50(hour.surface.cloudCoverPercent);
+  const precipitationMmHr = p50(hour.surface.precipitationMmHr);
+  const thermalVelocityMs = p50(hour.derived.thermalVelocityMs);
+  const cloudBaseM = p50(hour.derived.cloudBaseM);
+  if (
+    pressurePa === null ||
+    temperatureC === null ||
+    dewPointC === null ||
+    windSpeedMs === null ||
+    windDirectionDeg === null ||
+    cloudCoverPercent === null ||
+    precipitationMmHr === null ||
+    thermalVelocityMs === null ||
+    cloudBaseM === null
+  ) {
+    return null;
+  }
+
   return {
     validAt: hour.validAt,
     surface: {
-      pressurePa: p50(hour.surface.pressurePa),
-      temperatureC: p50(hour.surface.temperatureC),
-      dewPointC: p50(hour.surface.dewPointC),
-      windSpeedMs: p50(hour.surface.windSpeedMs),
-      windDirectionDeg: p50(hour.surface.windDirectionDeg),
-      cloudCoverPercent: p50(hour.surface.cloudCoverPercent),
-      precipitationMmHr: p50(hour.surface.precipitationMmHr),
+      pressurePa,
+      temperatureC,
+      dewPointC,
+      windSpeedMs,
+      windDirectionDeg,
+      cloudCoverPercent,
+      precipitationMmHr,
       windGustMs: p50opt(hour.surface.windGustMs),
       capeJkg: p50opt(hour.surface.capeJkg),
       cinJkg: p50opt(hour.surface.cinJkg),
@@ -174,8 +224,8 @@ function resolveHour(hour: WindgramHour): ResolvedHour {
     levels,
     derived: {
       boundaryLayerTopM: p50(hour.derived.boundaryLayerTopM),
-      thermalVelocityMs: p50(hour.derived.thermalVelocityMs),
-      cloudBaseM: p50(hour.derived.cloudBaseM),
+      thermalVelocityMs,
+      cloudBaseM,
       usableLiftTopM: p50(hour.derived.usableLiftTopM),
     },
     bands: {
@@ -347,11 +397,13 @@ function isHourArray(
 }
 
 export function buildScene(profile: WindgramProfile, options: SceneOptions): SceneGraph {
+  // Index-aligned with profile.hours (hourIndices must keep meaning), with
+  // nulls where an hour had no renderable state; the nulls drop here.
   const allHours = profile.hours.map(resolveHour);
   const hourIndices = resolveHourIndices(profile, options);
-  const hours = hourIndices
-    ? hourIndices.map((index) => allHours[index]).filter((hour) => hour !== undefined)
-    : allHours;
+  const hours = (
+    hourIndices ? hourIndices.map((index) => allHours[index]) : allHours
+  ).filter((hour): hour is ResolvedHour => hour != null);
   const overlays: Record<OverlayName, boolean> = { ...DEFAULT_OVERLAYS, ...options.overlays };
   const smooth = options.smooth !== false;
   const capeClasses = options.capeClasses ?? DEFAULT_CAPE_CLASSES;

@@ -129,45 +129,87 @@
                     "type": "number"
                   },
                   {
-                    "type": "object",
-                    "properties": {
-                      "members": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991,
-                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                          },
+                          "p10": {
+                            "type": "number"
+                          },
+                          "p25": {
+                            "type": "number"
+                          },
+                          "p50": {
+                            "type": "number"
+                          },
+                          "p75": {
+                            "type": "number"
+                          },
+                          "p90": {
+                            "type": "number"
+                          },
+                          "ceiledMembers": {
+                            "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       },
-                      "p10": {
-                        "type": "number"
-                      },
-                      "p25": {
-                        "type": "number"
-                      },
-                      "p50": {
-                        "type": "number"
-                      },
-                      "p75": {
-                        "type": "number"
-                      },
-                      "p90": {
-                        "type": "number"
-                      },
-                      "ceiledMembers": {
-                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "number",
+                            "const": 0,
+                            "description": "Zero members contributed to this position — full dropout, a published fact."
+                          },
+                          "p10": {
+                            "type": "null"
+                          },
+                          "p25": {
+                            "type": "null"
+                          },
+                          "p50": {
+                            "type": "null"
+                          },
+                          "p75": {
+                            "type": "null"
+                          },
+                          "p90": {
+                            "type": "null"
+                          },
+                          "ceiledMembers": {
+                            "description": "Zero of zero contributing members were ceiling-capped.",
+                            "type": "number",
+                            "const": 0
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       }
-                    },
-                    "required": [
-                      "members",
-                      "p10",
-                      "p25",
-                      "p50",
-                      "p75",
-                      "p90"
                     ],
-                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                   }
                 ],
                 "description": "Mean-sea-level pressure, Pa. A measured quantity, so SI pascals; level pressure (levels[].pressureHpa) is the vertical coordinate and keeps conventional hectopascals — the unit split is deliberate."
@@ -178,45 +220,87 @@
                     "type": "number"
                   },
                   {
-                    "type": "object",
-                    "properties": {
-                      "members": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991,
-                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                          },
+                          "p10": {
+                            "type": "number"
+                          },
+                          "p25": {
+                            "type": "number"
+                          },
+                          "p50": {
+                            "type": "number"
+                          },
+                          "p75": {
+                            "type": "number"
+                          },
+                          "p90": {
+                            "type": "number"
+                          },
+                          "ceiledMembers": {
+                            "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       },
-                      "p10": {
-                        "type": "number"
-                      },
-                      "p25": {
-                        "type": "number"
-                      },
-                      "p50": {
-                        "type": "number"
-                      },
-                      "p75": {
-                        "type": "number"
-                      },
-                      "p90": {
-                        "type": "number"
-                      },
-                      "ceiledMembers": {
-                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "number",
+                            "const": 0,
+                            "description": "Zero members contributed to this position — full dropout, a published fact."
+                          },
+                          "p10": {
+                            "type": "null"
+                          },
+                          "p25": {
+                            "type": "null"
+                          },
+                          "p50": {
+                            "type": "null"
+                          },
+                          "p75": {
+                            "type": "null"
+                          },
+                          "p90": {
+                            "type": "null"
+                          },
+                          "ceiledMembers": {
+                            "description": "Zero of zero contributing members were ceiling-capped.",
+                            "type": "number",
+                            "const": 0
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       }
-                    },
-                    "required": [
-                      "members",
-                      "p10",
-                      "p25",
-                      "p50",
-                      "p75",
-                      "p90"
                     ],
-                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                   }
                 ],
                 "description": "2 m air temperature, degC."
@@ -227,45 +311,87 @@
                     "type": "number"
                   },
                   {
-                    "type": "object",
-                    "properties": {
-                      "members": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991,
-                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                          },
+                          "p10": {
+                            "type": "number"
+                          },
+                          "p25": {
+                            "type": "number"
+                          },
+                          "p50": {
+                            "type": "number"
+                          },
+                          "p75": {
+                            "type": "number"
+                          },
+                          "p90": {
+                            "type": "number"
+                          },
+                          "ceiledMembers": {
+                            "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       },
-                      "p10": {
-                        "type": "number"
-                      },
-                      "p25": {
-                        "type": "number"
-                      },
-                      "p50": {
-                        "type": "number"
-                      },
-                      "p75": {
-                        "type": "number"
-                      },
-                      "p90": {
-                        "type": "number"
-                      },
-                      "ceiledMembers": {
-                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "number",
+                            "const": 0,
+                            "description": "Zero members contributed to this position — full dropout, a published fact."
+                          },
+                          "p10": {
+                            "type": "null"
+                          },
+                          "p25": {
+                            "type": "null"
+                          },
+                          "p50": {
+                            "type": "null"
+                          },
+                          "p75": {
+                            "type": "null"
+                          },
+                          "p90": {
+                            "type": "null"
+                          },
+                          "ceiledMembers": {
+                            "description": "Zero of zero contributing members were ceiling-capped.",
+                            "type": "number",
+                            "const": 0
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       }
-                    },
-                    "required": [
-                      "members",
-                      "p10",
-                      "p25",
-                      "p50",
-                      "p75",
-                      "p90"
                     ],
-                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                   }
                 ],
                 "description": "2 m dew point, degC."
@@ -276,45 +402,87 @@
                     "type": "number"
                   },
                   {
-                    "type": "object",
-                    "properties": {
-                      "members": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991,
-                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                          },
+                          "p10": {
+                            "type": "number"
+                          },
+                          "p25": {
+                            "type": "number"
+                          },
+                          "p50": {
+                            "type": "number"
+                          },
+                          "p75": {
+                            "type": "number"
+                          },
+                          "p90": {
+                            "type": "number"
+                          },
+                          "ceiledMembers": {
+                            "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       },
-                      "p10": {
-                        "type": "number"
-                      },
-                      "p25": {
-                        "type": "number"
-                      },
-                      "p50": {
-                        "type": "number"
-                      },
-                      "p75": {
-                        "type": "number"
-                      },
-                      "p90": {
-                        "type": "number"
-                      },
-                      "ceiledMembers": {
-                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "number",
+                            "const": 0,
+                            "description": "Zero members contributed to this position — full dropout, a published fact."
+                          },
+                          "p10": {
+                            "type": "null"
+                          },
+                          "p25": {
+                            "type": "null"
+                          },
+                          "p50": {
+                            "type": "null"
+                          },
+                          "p75": {
+                            "type": "null"
+                          },
+                          "p90": {
+                            "type": "null"
+                          },
+                          "ceiledMembers": {
+                            "description": "Zero of zero contributing members were ceiling-capped.",
+                            "type": "number",
+                            "const": 0
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       }
-                    },
-                    "required": [
-                      "members",
-                      "p10",
-                      "p25",
-                      "p50",
-                      "p75",
-                      "p90"
                     ],
-                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                   }
                 ],
                 "description": "10 m wind speed, m/s."
@@ -325,45 +493,87 @@
                     "type": "number"
                   },
                   {
-                    "type": "object",
-                    "properties": {
-                      "members": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991,
-                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                          },
+                          "p10": {
+                            "type": "number"
+                          },
+                          "p25": {
+                            "type": "number"
+                          },
+                          "p50": {
+                            "type": "number"
+                          },
+                          "p75": {
+                            "type": "number"
+                          },
+                          "p90": {
+                            "type": "number"
+                          },
+                          "ceiledMembers": {
+                            "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       },
-                      "p10": {
-                        "type": "number"
-                      },
-                      "p25": {
-                        "type": "number"
-                      },
-                      "p50": {
-                        "type": "number"
-                      },
-                      "p75": {
-                        "type": "number"
-                      },
-                      "p90": {
-                        "type": "number"
-                      },
-                      "ceiledMembers": {
-                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "number",
+                            "const": 0,
+                            "description": "Zero members contributed to this position — full dropout, a published fact."
+                          },
+                          "p10": {
+                            "type": "null"
+                          },
+                          "p25": {
+                            "type": "null"
+                          },
+                          "p50": {
+                            "type": "null"
+                          },
+                          "p75": {
+                            "type": "null"
+                          },
+                          "p90": {
+                            "type": "null"
+                          },
+                          "ceiledMembers": {
+                            "description": "Zero of zero contributing members were ceiling-capped.",
+                            "type": "number",
+                            "const": 0
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       }
-                    },
-                    "required": [
-                      "members",
-                      "p10",
-                      "p25",
-                      "p50",
-                      "p75",
-                      "p90"
                     ],
-                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                   }
                 ],
                 "description": "10 m wind direction, meteorological convention (direction the wind comes FROM), 0-359 deg."
@@ -374,45 +584,87 @@
                     "type": "number"
                   },
                   {
-                    "type": "object",
-                    "properties": {
-                      "members": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991,
-                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                          },
+                          "p10": {
+                            "type": "number"
+                          },
+                          "p25": {
+                            "type": "number"
+                          },
+                          "p50": {
+                            "type": "number"
+                          },
+                          "p75": {
+                            "type": "number"
+                          },
+                          "p90": {
+                            "type": "number"
+                          },
+                          "ceiledMembers": {
+                            "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       },
-                      "p10": {
-                        "type": "number"
-                      },
-                      "p25": {
-                        "type": "number"
-                      },
-                      "p50": {
-                        "type": "number"
-                      },
-                      "p75": {
-                        "type": "number"
-                      },
-                      "p90": {
-                        "type": "number"
-                      },
-                      "ceiledMembers": {
-                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "number",
+                            "const": 0,
+                            "description": "Zero members contributed to this position — full dropout, a published fact."
+                          },
+                          "p10": {
+                            "type": "null"
+                          },
+                          "p25": {
+                            "type": "null"
+                          },
+                          "p50": {
+                            "type": "null"
+                          },
+                          "p75": {
+                            "type": "null"
+                          },
+                          "p90": {
+                            "type": "null"
+                          },
+                          "ceiledMembers": {
+                            "description": "Zero of zero contributing members were ceiling-capped.",
+                            "type": "number",
+                            "const": 0
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       }
-                    },
-                    "required": [
-                      "members",
-                      "p10",
-                      "p25",
-                      "p50",
-                      "p75",
-                      "p90"
                     ],
-                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                   }
                 ],
                 "description": "Total cloud cover, % 0-100."
@@ -423,45 +675,87 @@
                     "type": "number"
                   },
                   {
-                    "type": "object",
-                    "properties": {
-                      "members": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991,
-                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                          },
+                          "p10": {
+                            "type": "number"
+                          },
+                          "p25": {
+                            "type": "number"
+                          },
+                          "p50": {
+                            "type": "number"
+                          },
+                          "p75": {
+                            "type": "number"
+                          },
+                          "p90": {
+                            "type": "number"
+                          },
+                          "ceiledMembers": {
+                            "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       },
-                      "p10": {
-                        "type": "number"
-                      },
-                      "p25": {
-                        "type": "number"
-                      },
-                      "p50": {
-                        "type": "number"
-                      },
-                      "p75": {
-                        "type": "number"
-                      },
-                      "p90": {
-                        "type": "number"
-                      },
-                      "ceiledMembers": {
-                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "number",
+                            "const": 0,
+                            "description": "Zero members contributed to this position — full dropout, a published fact."
+                          },
+                          "p10": {
+                            "type": "null"
+                          },
+                          "p25": {
+                            "type": "null"
+                          },
+                          "p50": {
+                            "type": "null"
+                          },
+                          "p75": {
+                            "type": "null"
+                          },
+                          "p90": {
+                            "type": "null"
+                          },
+                          "ceiledMembers": {
+                            "description": "Zero of zero contributing members were ceiling-capped.",
+                            "type": "number",
+                            "const": 0
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       }
-                    },
-                    "required": [
-                      "members",
-                      "p10",
-                      "p25",
-                      "p50",
-                      "p75",
-                      "p90"
                     ],
-                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                   }
                 ],
                 "description": "Precipitation rate, mm/h. SEMANTICS DIFFER BY PROVIDER — declared per model in models.json capabilities.precipitation and echoed in the document's top-level semantics.precipitation: \"instantRate\" = instantaneous rate diagnostic at validAt; \"windowMeanRate\" = accumulation over the step window ending at validAt divided by the window length."
@@ -472,45 +766,87 @@
                     "type": "number"
                   },
                   {
-                    "type": "object",
-                    "properties": {
-                      "members": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991,
-                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                          },
+                          "p10": {
+                            "type": "number"
+                          },
+                          "p25": {
+                            "type": "number"
+                          },
+                          "p50": {
+                            "type": "number"
+                          },
+                          "p75": {
+                            "type": "number"
+                          },
+                          "p90": {
+                            "type": "number"
+                          },
+                          "ceiledMembers": {
+                            "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       },
-                      "p10": {
-                        "type": "number"
-                      },
-                      "p25": {
-                        "type": "number"
-                      },
-                      "p50": {
-                        "type": "number"
-                      },
-                      "p75": {
-                        "type": "number"
-                      },
-                      "p90": {
-                        "type": "number"
-                      },
-                      "ceiledMembers": {
-                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "number",
+                            "const": 0,
+                            "description": "Zero members contributed to this position — full dropout, a published fact."
+                          },
+                          "p10": {
+                            "type": "null"
+                          },
+                          "p25": {
+                            "type": "null"
+                          },
+                          "p50": {
+                            "type": "null"
+                          },
+                          "p75": {
+                            "type": "null"
+                          },
+                          "p90": {
+                            "type": "null"
+                          },
+                          "ceiledMembers": {
+                            "description": "Zero of zero contributing members were ceiling-capped.",
+                            "type": "number",
+                            "const": 0
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       }
-                    },
-                    "required": [
-                      "members",
-                      "p10",
-                      "p25",
-                      "p50",
-                      "p75",
-                      "p90"
                     ],
-                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                   }
                 ],
                 "description": "Surface sensible heat flux, W/m2."
@@ -521,45 +857,87 @@
                     "type": "number"
                   },
                   {
-                    "type": "object",
-                    "properties": {
-                      "members": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991,
-                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                          },
+                          "p10": {
+                            "type": "number"
+                          },
+                          "p25": {
+                            "type": "number"
+                          },
+                          "p50": {
+                            "type": "number"
+                          },
+                          "p75": {
+                            "type": "number"
+                          },
+                          "p90": {
+                            "type": "number"
+                          },
+                          "ceiledMembers": {
+                            "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       },
-                      "p10": {
-                        "type": "number"
-                      },
-                      "p25": {
-                        "type": "number"
-                      },
-                      "p50": {
-                        "type": "number"
-                      },
-                      "p75": {
-                        "type": "number"
-                      },
-                      "p90": {
-                        "type": "number"
-                      },
-                      "ceiledMembers": {
-                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "number",
+                            "const": 0,
+                            "description": "Zero members contributed to this position — full dropout, a published fact."
+                          },
+                          "p10": {
+                            "type": "null"
+                          },
+                          "p25": {
+                            "type": "null"
+                          },
+                          "p50": {
+                            "type": "null"
+                          },
+                          "p75": {
+                            "type": "null"
+                          },
+                          "p90": {
+                            "type": "null"
+                          },
+                          "ceiledMembers": {
+                            "description": "Zero of zero contributing members were ceiling-capped.",
+                            "type": "number",
+                            "const": 0
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       }
-                    },
-                    "required": [
-                      "members",
-                      "p10",
-                      "p25",
-                      "p50",
-                      "p75",
-                      "p90"
                     ],
-                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                   }
                 ],
                 "description": "Surface latent heat flux, W/m2."
@@ -571,45 +949,87 @@
                     "type": "number"
                   },
                   {
-                    "type": "object",
-                    "properties": {
-                      "members": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991,
-                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                          },
+                          "p10": {
+                            "type": "number"
+                          },
+                          "p25": {
+                            "type": "number"
+                          },
+                          "p50": {
+                            "type": "number"
+                          },
+                          "p75": {
+                            "type": "number"
+                          },
+                          "p90": {
+                            "type": "number"
+                          },
+                          "ceiledMembers": {
+                            "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       },
-                      "p10": {
-                        "type": "number"
-                      },
-                      "p25": {
-                        "type": "number"
-                      },
-                      "p50": {
-                        "type": "number"
-                      },
-                      "p75": {
-                        "type": "number"
-                      },
-                      "p90": {
-                        "type": "number"
-                      },
-                      "ceiledMembers": {
-                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "number",
+                            "const": 0,
+                            "description": "Zero members contributed to this position — full dropout, a published fact."
+                          },
+                          "p10": {
+                            "type": "null"
+                          },
+                          "p25": {
+                            "type": "null"
+                          },
+                          "p50": {
+                            "type": "null"
+                          },
+                          "p75": {
+                            "type": "null"
+                          },
+                          "p90": {
+                            "type": "null"
+                          },
+                          "ceiledMembers": {
+                            "description": "Zero of zero contributing members were ceiling-capped.",
+                            "type": "number",
+                            "const": 0
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       }
-                    },
-                    "required": [
-                      "members",
-                      "p10",
-                      "p25",
-                      "p50",
-                      "p75",
-                      "p90"
                     ],
-                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                   }
                 ]
               },
@@ -620,45 +1040,87 @@
                     "type": "number"
                   },
                   {
-                    "type": "object",
-                    "properties": {
-                      "members": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991,
-                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                          },
+                          "p10": {
+                            "type": "number"
+                          },
+                          "p25": {
+                            "type": "number"
+                          },
+                          "p50": {
+                            "type": "number"
+                          },
+                          "p75": {
+                            "type": "number"
+                          },
+                          "p90": {
+                            "type": "number"
+                          },
+                          "ceiledMembers": {
+                            "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       },
-                      "p10": {
-                        "type": "number"
-                      },
-                      "p25": {
-                        "type": "number"
-                      },
-                      "p50": {
-                        "type": "number"
-                      },
-                      "p75": {
-                        "type": "number"
-                      },
-                      "p90": {
-                        "type": "number"
-                      },
-                      "ceiledMembers": {
-                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "number",
+                            "const": 0,
+                            "description": "Zero members contributed to this position — full dropout, a published fact."
+                          },
+                          "p10": {
+                            "type": "null"
+                          },
+                          "p25": {
+                            "type": "null"
+                          },
+                          "p50": {
+                            "type": "null"
+                          },
+                          "p75": {
+                            "type": "null"
+                          },
+                          "p90": {
+                            "type": "null"
+                          },
+                          "ceiledMembers": {
+                            "description": "Zero of zero contributing members were ceiling-capped.",
+                            "type": "number",
+                            "const": 0
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       }
-                    },
-                    "required": [
-                      "members",
-                      "p10",
-                      "p25",
-                      "p50",
-                      "p75",
-                      "p90"
                     ],
-                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                   }
                 ]
               },
@@ -669,45 +1131,87 @@
                     "type": "number"
                   },
                   {
-                    "type": "object",
-                    "properties": {
-                      "members": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991,
-                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                          },
+                          "p10": {
+                            "type": "number"
+                          },
+                          "p25": {
+                            "type": "number"
+                          },
+                          "p50": {
+                            "type": "number"
+                          },
+                          "p75": {
+                            "type": "number"
+                          },
+                          "p90": {
+                            "type": "number"
+                          },
+                          "ceiledMembers": {
+                            "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       },
-                      "p10": {
-                        "type": "number"
-                      },
-                      "p25": {
-                        "type": "number"
-                      },
-                      "p50": {
-                        "type": "number"
-                      },
-                      "p75": {
-                        "type": "number"
-                      },
-                      "p90": {
-                        "type": "number"
-                      },
-                      "ceiledMembers": {
-                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "number",
+                            "const": 0,
+                            "description": "Zero members contributed to this position — full dropout, a published fact."
+                          },
+                          "p10": {
+                            "type": "null"
+                          },
+                          "p25": {
+                            "type": "null"
+                          },
+                          "p50": {
+                            "type": "null"
+                          },
+                          "p75": {
+                            "type": "null"
+                          },
+                          "p90": {
+                            "type": "null"
+                          },
+                          "ceiledMembers": {
+                            "description": "Zero of zero contributing members were ceiling-capped.",
+                            "type": "number",
+                            "const": 0
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       }
-                    },
-                    "required": [
-                      "members",
-                      "p10",
-                      "p25",
-                      "p50",
-                      "p75",
-                      "p90"
                     ],
-                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                   }
                 ]
               },
@@ -718,45 +1222,87 @@
                     "type": "number"
                   },
                   {
-                    "type": "object",
-                    "properties": {
-                      "members": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991,
-                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                          },
+                          "p10": {
+                            "type": "number"
+                          },
+                          "p25": {
+                            "type": "number"
+                          },
+                          "p50": {
+                            "type": "number"
+                          },
+                          "p75": {
+                            "type": "number"
+                          },
+                          "p90": {
+                            "type": "number"
+                          },
+                          "ceiledMembers": {
+                            "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       },
-                      "p10": {
-                        "type": "number"
-                      },
-                      "p25": {
-                        "type": "number"
-                      },
-                      "p50": {
-                        "type": "number"
-                      },
-                      "p75": {
-                        "type": "number"
-                      },
-                      "p90": {
-                        "type": "number"
-                      },
-                      "ceiledMembers": {
-                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "number",
+                            "const": 0,
+                            "description": "Zero members contributed to this position — full dropout, a published fact."
+                          },
+                          "p10": {
+                            "type": "null"
+                          },
+                          "p25": {
+                            "type": "null"
+                          },
+                          "p50": {
+                            "type": "null"
+                          },
+                          "p75": {
+                            "type": "null"
+                          },
+                          "p90": {
+                            "type": "null"
+                          },
+                          "ceiledMembers": {
+                            "description": "Zero of zero contributing members were ceiling-capped.",
+                            "type": "number",
+                            "const": 0
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       }
-                    },
-                    "required": [
-                      "members",
-                      "p10",
-                      "p25",
-                      "p50",
-                      "p75",
-                      "p90"
                     ],
-                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                   }
                 ]
               },
@@ -767,45 +1313,87 @@
                     "type": "number"
                   },
                   {
-                    "type": "object",
-                    "properties": {
-                      "members": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991,
-                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                          },
+                          "p10": {
+                            "type": "number"
+                          },
+                          "p25": {
+                            "type": "number"
+                          },
+                          "p50": {
+                            "type": "number"
+                          },
+                          "p75": {
+                            "type": "number"
+                          },
+                          "p90": {
+                            "type": "number"
+                          },
+                          "ceiledMembers": {
+                            "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       },
-                      "p10": {
-                        "type": "number"
-                      },
-                      "p25": {
-                        "type": "number"
-                      },
-                      "p50": {
-                        "type": "number"
-                      },
-                      "p75": {
-                        "type": "number"
-                      },
-                      "p90": {
-                        "type": "number"
-                      },
-                      "ceiledMembers": {
-                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "number",
+                            "const": 0,
+                            "description": "Zero members contributed to this position — full dropout, a published fact."
+                          },
+                          "p10": {
+                            "type": "null"
+                          },
+                          "p25": {
+                            "type": "null"
+                          },
+                          "p50": {
+                            "type": "null"
+                          },
+                          "p75": {
+                            "type": "null"
+                          },
+                          "p90": {
+                            "type": "null"
+                          },
+                          "ceiledMembers": {
+                            "description": "Zero of zero contributing members were ceiling-capped.",
+                            "type": "number",
+                            "const": 0
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       }
-                    },
-                    "required": [
-                      "members",
-                      "p10",
-                      "p25",
-                      "p50",
-                      "p75",
-                      "p90"
                     ],
-                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                   }
                 ]
               },
@@ -816,45 +1404,87 @@
                     "type": "number"
                   },
                   {
-                    "type": "object",
-                    "properties": {
-                      "members": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991,
-                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                          },
+                          "p10": {
+                            "type": "number"
+                          },
+                          "p25": {
+                            "type": "number"
+                          },
+                          "p50": {
+                            "type": "number"
+                          },
+                          "p75": {
+                            "type": "number"
+                          },
+                          "p90": {
+                            "type": "number"
+                          },
+                          "ceiledMembers": {
+                            "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       },
-                      "p10": {
-                        "type": "number"
-                      },
-                      "p25": {
-                        "type": "number"
-                      },
-                      "p50": {
-                        "type": "number"
-                      },
-                      "p75": {
-                        "type": "number"
-                      },
-                      "p90": {
-                        "type": "number"
-                      },
-                      "ceiledMembers": {
-                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "number",
+                            "const": 0,
+                            "description": "Zero members contributed to this position — full dropout, a published fact."
+                          },
+                          "p10": {
+                            "type": "null"
+                          },
+                          "p25": {
+                            "type": "null"
+                          },
+                          "p50": {
+                            "type": "null"
+                          },
+                          "p75": {
+                            "type": "null"
+                          },
+                          "p90": {
+                            "type": "null"
+                          },
+                          "ceiledMembers": {
+                            "description": "Zero of zero contributing members were ceiling-capped.",
+                            "type": "number",
+                            "const": 0
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       }
-                    },
-                    "required": [
-                      "members",
-                      "p10",
-                      "p25",
-                      "p50",
-                      "p75",
-                      "p90"
                     ],
-                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                   }
                 ]
               },
@@ -865,45 +1495,87 @@
                     "type": "number"
                   },
                   {
-                    "type": "object",
-                    "properties": {
-                      "members": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991,
-                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                          },
+                          "p10": {
+                            "type": "number"
+                          },
+                          "p25": {
+                            "type": "number"
+                          },
+                          "p50": {
+                            "type": "number"
+                          },
+                          "p75": {
+                            "type": "number"
+                          },
+                          "p90": {
+                            "type": "number"
+                          },
+                          "ceiledMembers": {
+                            "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       },
-                      "p10": {
-                        "type": "number"
-                      },
-                      "p25": {
-                        "type": "number"
-                      },
-                      "p50": {
-                        "type": "number"
-                      },
-                      "p75": {
-                        "type": "number"
-                      },
-                      "p90": {
-                        "type": "number"
-                      },
-                      "ceiledMembers": {
-                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "number",
+                            "const": 0,
+                            "description": "Zero members contributed to this position — full dropout, a published fact."
+                          },
+                          "p10": {
+                            "type": "null"
+                          },
+                          "p25": {
+                            "type": "null"
+                          },
+                          "p50": {
+                            "type": "null"
+                          },
+                          "p75": {
+                            "type": "null"
+                          },
+                          "p90": {
+                            "type": "null"
+                          },
+                          "ceiledMembers": {
+                            "description": "Zero of zero contributing members were ceiling-capped.",
+                            "type": "number",
+                            "const": 0
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
                       }
-                    },
-                    "required": [
-                      "members",
-                      "p10",
-                      "p25",
-                      "p50",
-                      "p75",
-                      "p90"
                     ],
-                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                   }
                 ]
               }
@@ -931,45 +1603,87 @@
                       "type": "number"
                     },
                     {
-                      "type": "object",
-                      "properties": {
-                        "members": {
-                          "type": "integer",
-                          "exclusiveMinimum": 0,
-                          "maximum": 9007199254740991,
-                          "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "members": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991,
+                              "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                            },
+                            "p10": {
+                              "type": "number"
+                            },
+                            "p25": {
+                              "type": "number"
+                            },
+                            "p50": {
+                              "type": "number"
+                            },
+                            "p75": {
+                              "type": "number"
+                            },
+                            "p90": {
+                              "type": "number"
+                            },
+                            "ceiledMembers": {
+                              "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "members",
+                            "p10",
+                            "p25",
+                            "p50",
+                            "p75",
+                            "p90"
+                          ]
                         },
-                        "p10": {
-                          "type": "number"
-                        },
-                        "p25": {
-                          "type": "number"
-                        },
-                        "p50": {
-                          "type": "number"
-                        },
-                        "p75": {
-                          "type": "number"
-                        },
-                        "p90": {
-                          "type": "number"
-                        },
-                        "ceiledMembers": {
-                          "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 9007199254740991
+                        {
+                          "type": "object",
+                          "properties": {
+                            "members": {
+                              "type": "number",
+                              "const": 0,
+                              "description": "Zero members contributed to this position — full dropout, a published fact."
+                            },
+                            "p10": {
+                              "type": "null"
+                            },
+                            "p25": {
+                              "type": "null"
+                            },
+                            "p50": {
+                              "type": "null"
+                            },
+                            "p75": {
+                              "type": "null"
+                            },
+                            "p90": {
+                              "type": "null"
+                            },
+                            "ceiledMembers": {
+                              "description": "Zero of zero contributing members were ceiling-capped.",
+                              "type": "number",
+                              "const": 0
+                            }
+                          },
+                          "required": [
+                            "members",
+                            "p10",
+                            "p25",
+                            "p50",
+                            "p75",
+                            "p90"
+                          ]
                         }
-                      },
-                      "required": [
-                        "members",
-                        "p10",
-                        "p25",
-                        "p50",
-                        "p75",
-                        "p90"
                       ],
-                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                     }
                   ],
                   "description": "Isobaric level pressure, hPa — the vertical coordinate, in the conventional hectopascals levels are named by (925, 850, …); surface.pressurePa, a measured quantity, is SI pascals instead."
@@ -980,45 +1694,87 @@
                       "type": "number"
                     },
                     {
-                      "type": "object",
-                      "properties": {
-                        "members": {
-                          "type": "integer",
-                          "exclusiveMinimum": 0,
-                          "maximum": 9007199254740991,
-                          "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "members": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991,
+                              "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                            },
+                            "p10": {
+                              "type": "number"
+                            },
+                            "p25": {
+                              "type": "number"
+                            },
+                            "p50": {
+                              "type": "number"
+                            },
+                            "p75": {
+                              "type": "number"
+                            },
+                            "p90": {
+                              "type": "number"
+                            },
+                            "ceiledMembers": {
+                              "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "members",
+                            "p10",
+                            "p25",
+                            "p50",
+                            "p75",
+                            "p90"
+                          ]
                         },
-                        "p10": {
-                          "type": "number"
-                        },
-                        "p25": {
-                          "type": "number"
-                        },
-                        "p50": {
-                          "type": "number"
-                        },
-                        "p75": {
-                          "type": "number"
-                        },
-                        "p90": {
-                          "type": "number"
-                        },
-                        "ceiledMembers": {
-                          "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 9007199254740991
+                        {
+                          "type": "object",
+                          "properties": {
+                            "members": {
+                              "type": "number",
+                              "const": 0,
+                              "description": "Zero members contributed to this position — full dropout, a published fact."
+                            },
+                            "p10": {
+                              "type": "null"
+                            },
+                            "p25": {
+                              "type": "null"
+                            },
+                            "p50": {
+                              "type": "null"
+                            },
+                            "p75": {
+                              "type": "null"
+                            },
+                            "p90": {
+                              "type": "null"
+                            },
+                            "ceiledMembers": {
+                              "description": "Zero of zero contributing members were ceiling-capped.",
+                              "type": "number",
+                              "const": 0
+                            }
+                          },
+                          "required": [
+                            "members",
+                            "p10",
+                            "p25",
+                            "p50",
+                            "p75",
+                            "p90"
+                          ]
                         }
-                      },
-                      "required": [
-                        "members",
-                        "p10",
-                        "p25",
-                        "p50",
-                        "p75",
-                        "p90"
                       ],
-                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                     }
                   ],
                   "description": "Geopotential height of the level, metres MSL."
@@ -1029,45 +1785,87 @@
                       "type": "number"
                     },
                     {
-                      "type": "object",
-                      "properties": {
-                        "members": {
-                          "type": "integer",
-                          "exclusiveMinimum": 0,
-                          "maximum": 9007199254740991,
-                          "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "members": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991,
+                              "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                            },
+                            "p10": {
+                              "type": "number"
+                            },
+                            "p25": {
+                              "type": "number"
+                            },
+                            "p50": {
+                              "type": "number"
+                            },
+                            "p75": {
+                              "type": "number"
+                            },
+                            "p90": {
+                              "type": "number"
+                            },
+                            "ceiledMembers": {
+                              "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "members",
+                            "p10",
+                            "p25",
+                            "p50",
+                            "p75",
+                            "p90"
+                          ]
                         },
-                        "p10": {
-                          "type": "number"
-                        },
-                        "p25": {
-                          "type": "number"
-                        },
-                        "p50": {
-                          "type": "number"
-                        },
-                        "p75": {
-                          "type": "number"
-                        },
-                        "p90": {
-                          "type": "number"
-                        },
-                        "ceiledMembers": {
-                          "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 9007199254740991
+                        {
+                          "type": "object",
+                          "properties": {
+                            "members": {
+                              "type": "number",
+                              "const": 0,
+                              "description": "Zero members contributed to this position — full dropout, a published fact."
+                            },
+                            "p10": {
+                              "type": "null"
+                            },
+                            "p25": {
+                              "type": "null"
+                            },
+                            "p50": {
+                              "type": "null"
+                            },
+                            "p75": {
+                              "type": "null"
+                            },
+                            "p90": {
+                              "type": "null"
+                            },
+                            "ceiledMembers": {
+                              "description": "Zero of zero contributing members were ceiling-capped.",
+                              "type": "number",
+                              "const": 0
+                            }
+                          },
+                          "required": [
+                            "members",
+                            "p10",
+                            "p25",
+                            "p50",
+                            "p75",
+                            "p90"
+                          ]
                         }
-                      },
-                      "required": [
-                        "members",
-                        "p10",
-                        "p25",
-                        "p50",
-                        "p75",
-                        "p90"
                       ],
-                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                     }
                   ],
                   "description": "Level temperature, degC."
@@ -1078,45 +1876,87 @@
                       "type": "number"
                     },
                     {
-                      "type": "object",
-                      "properties": {
-                        "members": {
-                          "type": "integer",
-                          "exclusiveMinimum": 0,
-                          "maximum": 9007199254740991,
-                          "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "members": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991,
+                              "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                            },
+                            "p10": {
+                              "type": "number"
+                            },
+                            "p25": {
+                              "type": "number"
+                            },
+                            "p50": {
+                              "type": "number"
+                            },
+                            "p75": {
+                              "type": "number"
+                            },
+                            "p90": {
+                              "type": "number"
+                            },
+                            "ceiledMembers": {
+                              "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "members",
+                            "p10",
+                            "p25",
+                            "p50",
+                            "p75",
+                            "p90"
+                          ]
                         },
-                        "p10": {
-                          "type": "number"
-                        },
-                        "p25": {
-                          "type": "number"
-                        },
-                        "p50": {
-                          "type": "number"
-                        },
-                        "p75": {
-                          "type": "number"
-                        },
-                        "p90": {
-                          "type": "number"
-                        },
-                        "ceiledMembers": {
-                          "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 9007199254740991
+                        {
+                          "type": "object",
+                          "properties": {
+                            "members": {
+                              "type": "number",
+                              "const": 0,
+                              "description": "Zero members contributed to this position — full dropout, a published fact."
+                            },
+                            "p10": {
+                              "type": "null"
+                            },
+                            "p25": {
+                              "type": "null"
+                            },
+                            "p50": {
+                              "type": "null"
+                            },
+                            "p75": {
+                              "type": "null"
+                            },
+                            "p90": {
+                              "type": "null"
+                            },
+                            "ceiledMembers": {
+                              "description": "Zero of zero contributing members were ceiling-capped.",
+                              "type": "number",
+                              "const": 0
+                            }
+                          },
+                          "required": [
+                            "members",
+                            "p10",
+                            "p25",
+                            "p50",
+                            "p75",
+                            "p90"
+                          ]
                         }
-                      },
-                      "required": [
-                        "members",
-                        "p10",
-                        "p25",
-                        "p50",
-                        "p75",
-                        "p90"
                       ],
-                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                     }
                   ],
                   "description": "Level dew point, degC."
@@ -1127,45 +1967,87 @@
                       "type": "number"
                     },
                     {
-                      "type": "object",
-                      "properties": {
-                        "members": {
-                          "type": "integer",
-                          "exclusiveMinimum": 0,
-                          "maximum": 9007199254740991,
-                          "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "members": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991,
+                              "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                            },
+                            "p10": {
+                              "type": "number"
+                            },
+                            "p25": {
+                              "type": "number"
+                            },
+                            "p50": {
+                              "type": "number"
+                            },
+                            "p75": {
+                              "type": "number"
+                            },
+                            "p90": {
+                              "type": "number"
+                            },
+                            "ceiledMembers": {
+                              "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "members",
+                            "p10",
+                            "p25",
+                            "p50",
+                            "p75",
+                            "p90"
+                          ]
                         },
-                        "p10": {
-                          "type": "number"
-                        },
-                        "p25": {
-                          "type": "number"
-                        },
-                        "p50": {
-                          "type": "number"
-                        },
-                        "p75": {
-                          "type": "number"
-                        },
-                        "p90": {
-                          "type": "number"
-                        },
-                        "ceiledMembers": {
-                          "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 9007199254740991
+                        {
+                          "type": "object",
+                          "properties": {
+                            "members": {
+                              "type": "number",
+                              "const": 0,
+                              "description": "Zero members contributed to this position — full dropout, a published fact."
+                            },
+                            "p10": {
+                              "type": "null"
+                            },
+                            "p25": {
+                              "type": "null"
+                            },
+                            "p50": {
+                              "type": "null"
+                            },
+                            "p75": {
+                              "type": "null"
+                            },
+                            "p90": {
+                              "type": "null"
+                            },
+                            "ceiledMembers": {
+                              "description": "Zero of zero contributing members were ceiling-capped.",
+                              "type": "number",
+                              "const": 0
+                            }
+                          },
+                          "required": [
+                            "members",
+                            "p10",
+                            "p25",
+                            "p50",
+                            "p75",
+                            "p90"
+                          ]
                         }
-                      },
-                      "required": [
-                        "members",
-                        "p10",
-                        "p25",
-                        "p50",
-                        "p75",
-                        "p90"
                       ],
-                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                     }
                   ],
                   "description": "Level wind speed, m/s."
@@ -1176,45 +2058,87 @@
                       "type": "number"
                     },
                     {
-                      "type": "object",
-                      "properties": {
-                        "members": {
-                          "type": "integer",
-                          "exclusiveMinimum": 0,
-                          "maximum": 9007199254740991,
-                          "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "members": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991,
+                              "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                            },
+                            "p10": {
+                              "type": "number"
+                            },
+                            "p25": {
+                              "type": "number"
+                            },
+                            "p50": {
+                              "type": "number"
+                            },
+                            "p75": {
+                              "type": "number"
+                            },
+                            "p90": {
+                              "type": "number"
+                            },
+                            "ceiledMembers": {
+                              "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "members",
+                            "p10",
+                            "p25",
+                            "p50",
+                            "p75",
+                            "p90"
+                          ]
                         },
-                        "p10": {
-                          "type": "number"
-                        },
-                        "p25": {
-                          "type": "number"
-                        },
-                        "p50": {
-                          "type": "number"
-                        },
-                        "p75": {
-                          "type": "number"
-                        },
-                        "p90": {
-                          "type": "number"
-                        },
-                        "ceiledMembers": {
-                          "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 9007199254740991
+                        {
+                          "type": "object",
+                          "properties": {
+                            "members": {
+                              "type": "number",
+                              "const": 0,
+                              "description": "Zero members contributed to this position — full dropout, a published fact."
+                            },
+                            "p10": {
+                              "type": "null"
+                            },
+                            "p25": {
+                              "type": "null"
+                            },
+                            "p50": {
+                              "type": "null"
+                            },
+                            "p75": {
+                              "type": "null"
+                            },
+                            "p90": {
+                              "type": "null"
+                            },
+                            "ceiledMembers": {
+                              "description": "Zero of zero contributing members were ceiling-capped.",
+                              "type": "number",
+                              "const": 0
+                            }
+                          },
+                          "required": [
+                            "members",
+                            "p10",
+                            "p25",
+                            "p50",
+                            "p75",
+                            "p90"
+                          ]
                         }
-                      },
-                      "required": [
-                        "members",
-                        "p10",
-                        "p25",
-                        "p50",
-                        "p75",
-                        "p90"
                       ],
-                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                     }
                   ],
                   "description": "Level wind direction, meteorological convention (from), 0-359 deg."
@@ -1226,45 +2150,87 @@
                       "type": "number"
                     },
                     {
-                      "type": "object",
-                      "properties": {
-                        "members": {
-                          "type": "integer",
-                          "exclusiveMinimum": 0,
-                          "maximum": 9007199254740991,
-                          "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "members": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991,
+                              "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                            },
+                            "p10": {
+                              "type": "number"
+                            },
+                            "p25": {
+                              "type": "number"
+                            },
+                            "p50": {
+                              "type": "number"
+                            },
+                            "p75": {
+                              "type": "number"
+                            },
+                            "p90": {
+                              "type": "number"
+                            },
+                            "ceiledMembers": {
+                              "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "members",
+                            "p10",
+                            "p25",
+                            "p50",
+                            "p75",
+                            "p90"
+                          ]
                         },
-                        "p10": {
-                          "type": "number"
-                        },
-                        "p25": {
-                          "type": "number"
-                        },
-                        "p50": {
-                          "type": "number"
-                        },
-                        "p75": {
-                          "type": "number"
-                        },
-                        "p90": {
-                          "type": "number"
-                        },
-                        "ceiledMembers": {
-                          "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 9007199254740991
+                        {
+                          "type": "object",
+                          "properties": {
+                            "members": {
+                              "type": "number",
+                              "const": 0,
+                              "description": "Zero members contributed to this position — full dropout, a published fact."
+                            },
+                            "p10": {
+                              "type": "null"
+                            },
+                            "p25": {
+                              "type": "null"
+                            },
+                            "p50": {
+                              "type": "null"
+                            },
+                            "p75": {
+                              "type": "null"
+                            },
+                            "p90": {
+                              "type": "null"
+                            },
+                            "ceiledMembers": {
+                              "description": "Zero of zero contributing members were ceiling-capped.",
+                              "type": "number",
+                              "const": 0
+                            }
+                          },
+                          "required": [
+                            "members",
+                            "p10",
+                            "p25",
+                            "p50",
+                            "p75",
+                            "p90"
+                          ]
                         }
-                      },
-                      "required": [
-                        "members",
-                        "p10",
-                        "p25",
-                        "p50",
-                        "p75",
-                        "p90"
                       ],
-                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                     }
                   ]
                 },
@@ -1275,45 +2241,87 @@
                       "type": "number"
                     },
                     {
-                      "type": "object",
-                      "properties": {
-                        "members": {
-                          "type": "integer",
-                          "exclusiveMinimum": 0,
-                          "maximum": 9007199254740991,
-                          "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "members": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0,
+                              "maximum": 9007199254740991,
+                              "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                            },
+                            "p10": {
+                              "type": "number"
+                            },
+                            "p25": {
+                              "type": "number"
+                            },
+                            "p50": {
+                              "type": "number"
+                            },
+                            "p75": {
+                              "type": "number"
+                            },
+                            "p90": {
+                              "type": "number"
+                            },
+                            "ceiledMembers": {
+                              "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 9007199254740991
+                            }
+                          },
+                          "required": [
+                            "members",
+                            "p10",
+                            "p25",
+                            "p50",
+                            "p75",
+                            "p90"
+                          ]
                         },
-                        "p10": {
-                          "type": "number"
-                        },
-                        "p25": {
-                          "type": "number"
-                        },
-                        "p50": {
-                          "type": "number"
-                        },
-                        "p75": {
-                          "type": "number"
-                        },
-                        "p90": {
-                          "type": "number"
-                        },
-                        "ceiledMembers": {
-                          "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                          "type": "integer",
-                          "minimum": 0,
-                          "maximum": 9007199254740991
+                        {
+                          "type": "object",
+                          "properties": {
+                            "members": {
+                              "type": "number",
+                              "const": 0,
+                              "description": "Zero members contributed to this position — full dropout, a published fact."
+                            },
+                            "p10": {
+                              "type": "null"
+                            },
+                            "p25": {
+                              "type": "null"
+                            },
+                            "p50": {
+                              "type": "null"
+                            },
+                            "p75": {
+                              "type": "null"
+                            },
+                            "p90": {
+                              "type": "null"
+                            },
+                            "ceiledMembers": {
+                              "description": "Zero of zero contributing members were ceiling-capped.",
+                              "type": "number",
+                              "const": 0
+                            }
+                          },
+                          "required": [
+                            "members",
+                            "p10",
+                            "p25",
+                            "p50",
+                            "p75",
+                            "p90"
+                          ]
                         }
-                      },
-                      "required": [
-                        "members",
-                        "p10",
-                        "p25",
-                        "p50",
-                        "p75",
-                        "p90"
                       ],
-                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                     }
                   ]
                 }
@@ -1340,45 +2348,87 @@
                         "type": "number"
                       },
                       {
-                        "type": "object",
-                        "properties": {
-                          "members": {
-                            "type": "integer",
-                            "exclusiveMinimum": 0,
-                            "maximum": 9007199254740991,
-                            "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "members": {
+                                "type": "integer",
+                                "exclusiveMinimum": 0,
+                                "maximum": 9007199254740991,
+                                "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                              },
+                              "p10": {
+                                "type": "number"
+                              },
+                              "p25": {
+                                "type": "number"
+                              },
+                              "p50": {
+                                "type": "number"
+                              },
+                              "p75": {
+                                "type": "number"
+                              },
+                              "p90": {
+                                "type": "number"
+                              },
+                              "ceiledMembers": {
+                                "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                              }
+                            },
+                            "required": [
+                              "members",
+                              "p10",
+                              "p25",
+                              "p50",
+                              "p75",
+                              "p90"
+                            ]
                           },
-                          "p10": {
-                            "type": "number"
-                          },
-                          "p25": {
-                            "type": "number"
-                          },
-                          "p50": {
-                            "type": "number"
-                          },
-                          "p75": {
-                            "type": "number"
-                          },
-                          "p90": {
-                            "type": "number"
-                          },
-                          "ceiledMembers": {
-                            "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                            "type": "integer",
-                            "minimum": 0,
-                            "maximum": 9007199254740991
+                          {
+                            "type": "object",
+                            "properties": {
+                              "members": {
+                                "type": "number",
+                                "const": 0,
+                                "description": "Zero members contributed to this position — full dropout, a published fact."
+                              },
+                              "p10": {
+                                "type": "null"
+                              },
+                              "p25": {
+                                "type": "null"
+                              },
+                              "p50": {
+                                "type": "null"
+                              },
+                              "p75": {
+                                "type": "null"
+                              },
+                              "p90": {
+                                "type": "null"
+                              },
+                              "ceiledMembers": {
+                                "description": "Zero of zero contributing members were ceiling-capped.",
+                                "type": "number",
+                                "const": 0
+                              }
+                            },
+                            "required": [
+                              "members",
+                              "p10",
+                              "p25",
+                              "p50",
+                              "p75",
+                              "p90"
+                            ]
                           }
-                        },
-                        "required": [
-                          "members",
-                          "p10",
-                          "p25",
-                          "p50",
-                          "p75",
-                          "p90"
                         ],
-                        "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                        "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                       }
                     ],
                     "description": "Scalar data position: a plain number (deterministic models) or an ensemble percentile object."
@@ -1395,105 +2445,7 @@
                     "type": "number"
                   },
                   {
-                    "type": "object",
-                    "properties": {
-                      "members": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991,
-                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
-                      },
-                      "p10": {
-                        "type": "number"
-                      },
-                      "p25": {
-                        "type": "number"
-                      },
-                      "p50": {
-                        "type": "number"
-                      },
-                      "p75": {
-                        "type": "number"
-                      },
-                      "p90": {
-                        "type": "number"
-                      },
-                      "ceiledMembers": {
-                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
-                      }
-                    },
-                    "required": [
-                      "members",
-                      "p10",
-                      "p25",
-                      "p50",
-                      "p75",
-                      "p90"
-                    ],
-                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
-                  }
-                ],
-                "description": "Deardorff's convective velocity scale w*, m/s: cube root of (g/theta) x virtual kinematic heat flux x boundary-layer depth, from the published sensible and latent heat fluxes (latent enters via the virtual-temperature correction) and the parcel-derived depth. Zero when the virtual heat flux or depth is non-positive (night, rain) — \"no thermals\", never \"unknown\". Derivation: research/windgram-derivations.md."
-              },
-              "cloudBaseM": {
-                "anyOf": [
-                  {
-                    "type": "number"
-                  },
-                  {
-                    "type": "object",
-                    "properties": {
-                      "members": {
-                        "type": "integer",
-                        "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991,
-                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
-                      },
-                      "p10": {
-                        "type": "number"
-                      },
-                      "p25": {
-                        "type": "number"
-                      },
-                      "p50": {
-                        "type": "number"
-                      },
-                      "p75": {
-                        "type": "number"
-                      },
-                      "p90": {
-                        "type": "number"
-                      },
-                      "ceiledMembers": {
-                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-                        "type": "integer",
-                        "minimum": 0,
-                        "maximum": 9007199254740991
-                      }
-                    },
-                    "required": [
-                      "members",
-                      "p10",
-                      "p25",
-                      "p50",
-                      "p75",
-                      "p90"
-                    ],
-                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
-                  }
-                ],
-                "description": "Effective cloud base, metres MSL, always present. The LOWER of the surface parcel's condensation level (Bolton 1980, eq. 15) and the first level where the published column itself saturates (dew-point depression at the 0.5 degC hatch threshold, interpolated), clamped to model terrain (a saturated surface puts it at the ground). CAN sit below boundaryLayerTopM — cloud forming inside the convective layer, not an inconsistency. Derivation: research/windgram-derivations.md."
-              },
-              "usableLiftTopM": {
-                "anyOf": [
-                  {
                     "anyOf": [
-                      {
-                        "type": "number"
-                      },
                       {
                         "type": "object",
                         "properties": {
@@ -1532,8 +2484,232 @@
                           "p50",
                           "p75",
                           "p90"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "number",
+                            "const": 0,
+                            "description": "Zero members contributed to this position — full dropout, a published fact."
+                          },
+                          "p10": {
+                            "type": "null"
+                          },
+                          "p25": {
+                            "type": "null"
+                          },
+                          "p50": {
+                            "type": "null"
+                          },
+                          "p75": {
+                            "type": "null"
+                          },
+                          "p90": {
+                            "type": "null"
+                          },
+                          "ceiledMembers": {
+                            "description": "Zero of zero contributing members were ceiling-capped.",
+                            "type": "number",
+                            "const": 0
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
+                      }
+                    ],
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
+                  }
+                ],
+                "description": "Deardorff's convective velocity scale w*, m/s: cube root of (g/theta) x virtual kinematic heat flux x boundary-layer depth, from the published sensible and latent heat fluxes (latent enters via the virtual-temperature correction) and the parcel-derived depth. Zero when the virtual heat flux or depth is non-positive (night, rain) — \"no thermals\", never \"unknown\". Derivation: research/windgram-derivations.md."
+              },
+              "cloudBaseM": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                          },
+                          "p10": {
+                            "type": "number"
+                          },
+                          "p25": {
+                            "type": "number"
+                          },
+                          "p50": {
+                            "type": "number"
+                          },
+                          "p75": {
+                            "type": "number"
+                          },
+                          "p90": {
+                            "type": "number"
+                          },
+                          "ceiledMembers": {
+                            "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "number",
+                            "const": 0,
+                            "description": "Zero members contributed to this position — full dropout, a published fact."
+                          },
+                          "p10": {
+                            "type": "null"
+                          },
+                          "p25": {
+                            "type": "null"
+                          },
+                          "p50": {
+                            "type": "null"
+                          },
+                          "p75": {
+                            "type": "null"
+                          },
+                          "p90": {
+                            "type": "null"
+                          },
+                          "ceiledMembers": {
+                            "description": "Zero of zero contributing members were ceiling-capped.",
+                            "type": "number",
+                            "const": 0
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
+                      }
+                    ],
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
+                  }
+                ],
+                "description": "Effective cloud base, metres MSL, always present. The LOWER of the surface parcel's condensation level (Bolton 1980, eq. 15) and the first level where the published column itself saturates (dew-point depression at the 0.5 degC hatch threshold, interpolated), clamped to model terrain (a saturated surface puts it at the ground). CAN sit below boundaryLayerTopM — cloud forming inside the convective layer, not an inconsistency. Derivation: research/windgram-derivations.md."
+              },
+              "usableLiftTopM": {
+                "anyOf": [
+                  {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "anyOf": [
+                          {
+                            "type": "object",
+                            "properties": {
+                              "members": {
+                                "type": "integer",
+                                "exclusiveMinimum": 0,
+                                "maximum": 9007199254740991,
+                                "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                              },
+                              "p10": {
+                                "type": "number"
+                              },
+                              "p25": {
+                                "type": "number"
+                              },
+                              "p50": {
+                                "type": "number"
+                              },
+                              "p75": {
+                                "type": "number"
+                              },
+                              "p90": {
+                                "type": "number"
+                              },
+                              "ceiledMembers": {
+                                "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 9007199254740991
+                              }
+                            },
+                            "required": [
+                              "members",
+                              "p10",
+                              "p25",
+                              "p50",
+                              "p75",
+                              "p90"
+                            ]
+                          },
+                          {
+                            "type": "object",
+                            "properties": {
+                              "members": {
+                                "type": "number",
+                                "const": 0,
+                                "description": "Zero members contributed to this position — full dropout, a published fact."
+                              },
+                              "p10": {
+                                "type": "null"
+                              },
+                              "p25": {
+                                "type": "null"
+                              },
+                              "p50": {
+                                "type": "null"
+                              },
+                              "p75": {
+                                "type": "null"
+                              },
+                              "p90": {
+                                "type": "null"
+                              },
+                              "ceiledMembers": {
+                                "description": "Zero of zero contributing members were ceiling-capped.",
+                                "type": "number",
+                                "const": 0
+                              }
+                            },
+                            "required": [
+                              "members",
+                              "p10",
+                              "p25",
+                              "p50",
+                              "p75",
+                              "p90"
+                            ]
+                          }
                         ],
-                        "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
+                        "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
                       }
                     ],
                     "description": "Scalar data position: a plain number (deterministic models) or an ensemble percentile object."

@@ -180,7 +180,14 @@ spikes; version 2 adds `quietDay` on production consumer evidence:
 - `quietDay` — the negative stated with evidence: a local day with no
   flyable window carries the numbers that failed (the day's best W\* and
   lift depth against the embedded floors, plus which floors failed), so a
-  consumer's headline can say *why* instead of only "no window".
+  consumer's headline can say *why* instead of only "no window". Its
+  `coverage` block carries the arithmetic `truncated` verdict — a quiet
+  call built from a sliver of a day (a short-horizon run ending before
+  the thermals start) is a data boundary, not a forecast, and must not
+  vote in cross-model comparisons. `flyableWindow` mirrors the same
+  honesty on the positive side with `clippedAtStart`/`clippedAtEnd`: a
+  window abutting the document's own hour range reads as ≥/≤, not as
+  opening or decay.
 - `capTiming` — CAPE build vs CIN erosion vs the window's close, gated to
   hourly deterministic documents with CIN (ensemble-median CIN is bimodal;
   3-hourly cap timing is interpolation).
@@ -446,16 +453,24 @@ if (wind !== undefined) {
 }
 ```
 
-`p50(scalar)` collapses either shape to the median (null passes through), so
-deterministic code paths work on ensemble profiles unchanged. The scene
-graph handles the rest itself: ensemble series render their p50 line with
-p25–p75 band geometry wherever percentiles exist, and a model without levels
-gracefully drops barbs, fields, and isotherms.
+`p50(scalar)` collapses either shape to the median (null passes through),
+so deterministic code paths work on ensemble profiles unchanged — noting
+that since 0.7.0 its return is honestly `number | null` for any Scalar,
+because of dropout (below). The scene graph handles the rest itself:
+ensemble series render their p50 line with p25–p75 band geometry wherever
+percentiles exist, a model without levels gracefully drops barbs, fields,
+and isotherms, and a dropout position renders as a gap.
 
 Ensemble documents from the 0.3.0 wave also declare their member count once,
 in `run.members`; each `EnsembleValue`'s own `members` is the per-position
 count of contributing members, which can be lower where members were
-censored.
+censored — all the way to **full dropout**: `members: 0` with every
+percentile `null` means the run asked every member and none produced a
+value at this position. That is a published fact, distinct from both "not
+published" (the field is absent) and a forecast of none (the position is
+plain `null`); `isEnsembleDropout(value)` names it, `p50()` of it is
+`null`, and `analyze`'s `ensembleMembership` finding is where it surfaces
+as a statement.
 
 ## Deterministic documents: escaping `p50` with one check
 
@@ -634,6 +649,29 @@ stability, windowing, smoothing — and the pipeline never publishes those.
 The document `schemaVersion` stays 1 across these releases: profile
 additions are additive-optional, and consumers discover the rest from the
 catalogue.
+
+**0.7.0** — full ensemble dropout is a valid published fact; horizon
+truncation is named on both sides of the window vocabulary.
+
+- Contract: `EnsembleValue` admits exactly one new shape — `members: 0`
+  with every percentile `null` (nothing in between) — the form the live
+  GEPS/REPS documents already publish at hours where no member produced a
+  value. Both ECCC ensembles had become unreadable by the package's own
+  guards (`loadProfile` returned `miss: "invalid"`); the schema was
+  stricter than the honest data. `isEnsembleDropout` names the shape;
+  `schema/*.json` regenerated.
+- **Breaking (types)**: `p50()` returns `number | null` for any Scalar —
+  a dropout has no median. The scene renders dropout positions as gaps
+  and drops a level or hour whose core positions lost every member;
+  `analyze` carries dropout through membership counts and skips it in
+  band evidence.
+- `analyze` vocabulary v3: `quietDay.coverage` (hours, first/last cited
+  instants, the `truncated` verdict) and
+  `flyableWindow.clippedAtStart/clippedAtEnd` — the findings spike over
+  nine live documents showed a short-horizon run voting "quiet" on
+  pre-thermic hours alone, and window end-times spreading 7 h purely from
+  horizon clipping (1 h once clipped edges stop voting). A model lacking
+  a day's data does not get to call the day.
 
 **0.6.0** — the reference look, re-founded on the field-is-background
 principle; one look, no themes.

@@ -35,31 +35,54 @@ const utcInstantSchema = z.iso
    where deterministic models publish a plain number. `ceiledMembers` appears
    only where the pipeline records censoring (boundary-layer top and usable
    lift capped by the column ceiling). */
+const populatedEnsembleSchema = z.object({
+  members: z
+    .number()
+    .int()
+    .positive()
+    .describe(
+      "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero).",
+    ),
+  p10: z.number(),
+  p25: z.number(),
+  p50: z.number(),
+  p75: z.number(),
+  p90: z.number(),
+  ceiledMembers: z
+    .number()
+    .int()
+    .nonnegative()
+    .optional()
+    .describe(
+      "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+    ),
+});
+
+/* Full dropout: the run asked every member and none produced a value —
+   members: 0 with every percentile null, nothing in between. A published
+   fact, distinct from both "not published" (the field is absent) and a
+   forecast of none (the position is plain null): GEPS publishes CAPE at
+   every hour, and at some hours zero members contribute. Percentiles of
+   zero members cannot exist, so they are null, never fabricated. */
+const ensembleDropoutSchema = z.object({
+  members: z
+    .literal(0)
+    .describe("Zero members contributed to this position — full dropout, a published fact."),
+  p10: z.null(),
+  p25: z.null(),
+  p50: z.null(),
+  p75: z.null(),
+  p90: z.null(),
+  ceiledMembers: z
+    .literal(0)
+    .optional()
+    .describe("Zero of zero contributing members were ceiling-capped."),
+});
+
 export const ensembleValueSchema = z
-  .object({
-    members: z
-      .number()
-      .int()
-      .positive()
-      .describe(
-        "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero).",
-      ),
-    p10: z.number(),
-    p25: z.number(),
-    p50: z.number(),
-    p75: z.number(),
-    p90: z.number(),
-    ceiledMembers: z
-      .number()
-      .int()
-      .nonnegative()
-      .optional()
-      .describe(
-        "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
-      ),
-  })
+  .union([populatedEnsembleSchema, ensembleDropoutSchema])
   .describe(
-    "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number.",
+    "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position.",
   );
 export type EnsembleValue = z.infer<typeof ensembleValueSchema>;
 
@@ -75,6 +98,15 @@ export type Scalar = number | EnsembleValue;
 
 export function isEnsembleValue(value: Scalar): value is EnsembleValue {
   return typeof value === "object" && value !== null;
+}
+
+/**
+ * True for a full-dropout ensemble position — members: 0, every percentile
+ * null. `p50()` of a dropout is null; `analyze`'s ensembleMembership
+ * finding is where the fact surfaces as a statement.
+ */
+export function isEnsembleDropout(value: Scalar): boolean {
+  return isEnsembleValue(value) && value.members === 0;
 }
 
 /* ----------------------------------------------------------------- profile */

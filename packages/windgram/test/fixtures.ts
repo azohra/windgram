@@ -66,7 +66,9 @@ export function deterministicProfile(overrides: Partial<WindgramProfile> = {}): 
   };
 }
 
-export function ensembleValue(overrides: Partial<EnsembleValue> = {}): EnsembleValue {
+type PopulatedEnsemble = Extract<EnsembleValue, { p50: number }>;
+
+export function ensembleValue(overrides: Partial<PopulatedEnsemble> = {}): EnsembleValue {
   return { members: 21, p10: 0, p25: 0.3, p50: 1.3, p75: 3.7, p90: 9.4, ...overrides };
 }
 

@@ -2,13 +2,19 @@
 import exampleProfile from "./forecast-example.json";
 import { windgramProfileSchema } from "windgram/contract";
 import { p50 } from "windgram/derive";
+
+/* This component reads the fixed deterministic example document: every
+   Scalar is a plain number, so its median is never null (full dropout is
+   an ensemble-only shape). */
+const med = (value: Parameters<typeof p50>[0]): number => med(value)!;
+
 import { modelBySlug } from "../../lib/catalogue";
 
 // The same fixed sample profile as the article's windgram, validated
 // against the package contract at build time.
 const sample = windgramProfileSchema.parse(exampleProfile);
 const hours = sample.hours;
-const pressures = hours.map((hour) => p50(hour.surface.pressurePa) / 1000);
+const pressures = hours.map((hour) => med(hour.surface.pressurePa) / 1000);
 const maximum = Math.max(...pressures);
 const minimum = Math.min(...pressures);
 const minimumIndex = pressures.indexOf(minimum);
