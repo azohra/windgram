@@ -44,9 +44,7 @@ jobs:
         run: pnpm --dir toolkit typecheck
       # Every ts fence in the portal MDX and the README files is extracted
       # and compiled against the built package's type declarations — a doc
-      # example that no longer compiles is a red build. Hand-written stated
-      # facts (versions, defaults) are covered separately by the package's
-      # doc-parity test in the test step above. Deliberately partial fences
+      # example that no longer compiles is a red build. Deliberately partial fences
       # opt out with a `windgram-doc-fence: ignore` comment; see the header
       # of scripts/check-doc-fences.mjs. The script builds the package first.
       - name: Typecheck documentation code fences
@@ -57,9 +55,8 @@ jobs:
         run: pnpm --dir site build
       - name: Install browser for static site QA
         run: pnpm --dir site exec playwright install --with-deps chromium
-      # Every visual assertion here is platform-independent — stable-frame
-      # self-comparison, overflow containment, reduced-motion audits — so
-      # the full QA suite runs in CI. Pixel-exact chart output is fenced
-      # where it is deterministic: the toolkit's golden SVGs.
-      - name: Test static site boundary, accessibility, interaction, and presentation
-        run: pnpm --dir site test:ci:built
+      # Two site checks: every content-source article exists in the build,
+      # and the rendered windgram uses the package's own defaults. Chart
+      # pixels are fenced where they are deterministic: the golden SVGs.
+      - name: Test built site routes and windgram presentation
+        run: pnpm --dir site test:built

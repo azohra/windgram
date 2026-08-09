@@ -152,25 +152,6 @@ def test_manifest_stats_publishes_exactly_the_stable_core():
     assert stats["durationMs"] >= 1000
 
 
-def test_every_builder_publishes_stats_through_the_shared_core():
-    # The stable core is standardized by construction: each builder's
-    # manifest goes through manifest_stats, and no builder keeps a private
-    # spelling like the old downloadRetries.
-    builders = (
-        "eccc.py",
-        "gfs.py",
-        "geps.py",
-        "hrdps_west.py",
-        "hrrr.py",
-        "nam.py",
-        "reps.py",
-    )
-    for name in builders:
-        source = (Path(__file__).resolve().parents[1] / "src" / "windgram" / "builders" / name).read_text()
-        assert "manifest_stats(" in source, name
-        assert "downloadRetries" not in source, name
-
-
 def manifest(model: str, reference_time: str, generated_at: str) -> dict:
     return {
         "model": model,

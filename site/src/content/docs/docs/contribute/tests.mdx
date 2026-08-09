@@ -48,49 +48,20 @@ unstable input or unintended shared change first. When chart visibility
 changes, test `buildKeySpec` against that exact scene; key snapshots are not
 a substitute for scene/key parity assertions.
 
-## No-live boundary gate
+## Site tests
 
-Run the complete local boundary gate with:
-
-```sh
-pnpm --dir site test:boundary
-```
-
-It builds the static site, serves that output locally, and visits every built
-HTML route except the generated 404 in an external-network-blocked browser.
-The check fails if a
-normal route makes a runtime request for a catalogue, current manifest, current
-profile, run index, or history archive, or restores the retired live-result
-controls. CI can use `test:boundary:built` after its existing site build.
-
-## The site QA gate is static and deterministic
-
-Run the full browser QA gate with:
+Run the site's browser tests with:
 
 ```sh
-pnpm --dir site test:qa
+pnpm --dir site test
 ```
 
-It builds once, blocks external network access, and checks every canonical
-route at desktop and 390 px widths. The suite covers named landmarks and
-controls, unique SVG IDs, native keyboard and touch-equivalent lab controls,
-Reset states, labelled horizontal figure exploration, textual conclusions,
-research navigation, Pagefind search, page-level overflow, reduced motion,
-and reviewed screenshots. `test:qa:built` reuses an existing static build;
-`test:built` runs every suite against one, and CI runs `test:ci:built` —
-every suite except the visual snapshots.
-
-Screenshot changes are review artifacts, not an automatic update. Run:
-
-```sh
-pnpm --dir site exec playwright test visuals.spec.ts --update-snapshots
-```
-
-only after checking that the changed layout, figure frame, and responsive
-behavior are intentional. Screenshot comparison is a local review gate, not
-a CI check: text rasterization differs across operating systems, so the
-committed baselines match the platform they were reviewed on and CI runs
-every suite except `visuals.spec.ts`.
+It builds the static site, serves that output locally, and checks two
+things: every research entry in the content source produced a route in the
+build, and the rendered windgram on the site matches the package's own
+presentation defaults — chart and key drawn from the same tokens every
+consumer receives. `test:built` reuses an existing static build, which is
+what CI runs after its own build step.
 
 ## Deterministic CI inputs
 

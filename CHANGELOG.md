@@ -6,6 +6,22 @@ entry names the versions it actually changes.
 
 ## [Unreleased]
 
+### Removed
+
+- The deep browser QA suites (per-route accessibility audits, interaction
+  contracts, stable-frame and overflow checks) and the no-live-data gate:
+  presentation-layer ceremony disproportionate to a documentation site, and
+  a design guidance that had been mechanized into a permanent contract. The
+  site keeps two browser tests — content-source routes exist in the build,
+  and the rendered windgram matches the package's presentation defaults.
+- The end-to-end club-project rehearsal test, the builder source-text grep
+  assertions, and the doc-parity prose pins (including the CITATION.cff
+  version fence): checks whose maintenance tax outweighed their stakes.
+  The club example now lives in the portal's publish guide as
+  compile-checked code fences instead of a checked-in project — the
+  doc-fences gate proves it against the built package on every push, and
+  its inputs are the real published dataset.
+
 ## [0.10.0] - 2026-08-09
 
 ### Added
