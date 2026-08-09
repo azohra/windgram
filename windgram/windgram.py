@@ -21,6 +21,11 @@ WINDGRAM_PRESSURE_LEVELS = (925, 900, 875, 850, 800, 750, 700, 650, 600)
 _DRY_ADIABATIC_LAPSE_C_PER_M = 0.0098
 _SINK_RATE_MS = 1.0
 
+# A level counts as saturated when its dew-point depression is at or below
+# this — the same 0.5 °C the renderer uses for its dense-cloud hatch class,
+# so the published cloud base never sits above a layer the chart hatches.
+_SATURATED_DEPRESSION_C = 0.5
+
 
 def derive_windgram_profile(source: dict, model: str) -> dict:
     """model is the slug — the model's data/ directory name."""
@@ -53,9 +58,8 @@ def _derive_hour(source: dict, model_elevation_m: float) -> dict:
         key=lambda level: level["heightM"],
     )
 
-    cloud_base_m = _clamp_altitude(
-        model_elevation_m + max(0.0, source["dewPointDepressionC"]) * 121,
-        model_elevation_m,
+    cloud_base_m = _cloud_base_m(
+        source["temperatureC"], source["dewPointDepressionC"], model_elevation_m, levels
     )
     boundary_layer_depth_m = _boundary_layer_depth(
         source["temperatureC"], model_elevation_m, levels
@@ -142,6 +146,77 @@ def _derive_level(level: dict) -> dict:
     if "cloudFractionPercent" in level:
         derived["cloudFractionPercent"] = _clamp(level["cloudFractionPercent"], 0.0, 100.0)
     return derived
+
+
+def _cloud_base_m(
+    surface_temperature_c: float,
+    dew_point_depression_c: float,
+    model_elevation_m: float,
+    levels: list[dict],
+) -> float:
+    """Effective cloud base: the surface parcel's condensation level, pulled
+    down to any level where the model's own moisture column already
+    saturates below it. The parcel LCL answers "where would lifted surface
+    air condense"; the column scan answers "where does the model already put
+    cloud" — the lower of the two is where a climb meets cloud."""
+    cloud_base_m = model_elevation_m + _parcel_lcl_agl_m(
+        surface_temperature_c, surface_temperature_c - dew_point_depression_c
+    )
+    first_saturated_m = _first_saturated_altitude_m(
+        dew_point_depression_c, model_elevation_m, levels
+    )
+    if first_saturated_m is not None:
+        cloud_base_m = min(cloud_base_m, first_saturated_m)
+    return _clamp_altitude(cloud_base_m, model_elevation_m)
+
+
+def _parcel_lcl_agl_m(temperature_c: float, dew_point_c: float) -> float:
+    """Height above the surface at which a lifted parcel condenses.
+
+    Bolton (1980, Mon. Wea. Rev. 108, 1046-1053, eq. 15) gives the LCL
+    temperature explicitly from temperature and dew point, accurate to
+    0.1 K over the meteorological range:
+
+        T_LCL = 1 / (1/(T_d - 56) + ln(T/T_d)/800) + 56      [K]
+
+    Romps (2017, J. Atmos. Sci. 74, 3891-3900) has the exact closed form,
+    but it needs the Lambert W function — an extra dependency or an
+    iterative evaluation. Checked against Romps over -20..+35 degC dew
+    points, this stays within about 1% (tens of metres), most of that the
+    shared dry-lapse constant rather than Bolton's fit. The condensation
+    height is the dry-adiabatic ascent that cools the parcel from T to
+    T_LCL. A parcel at or past saturation condenses at the surface: zero.
+    """
+    if dew_point_c >= temperature_c:
+        return 0.0
+    temperature_k = temperature_c + 273.15
+    dew_point_k = dew_point_c + 273.15
+    lcl_temperature_k = (
+        1.0 / (1.0 / (dew_point_k - 56.0) + math.log(temperature_k / dew_point_k) / 800.0)
+        + 56.0
+    )
+    return max(0.0, (temperature_k - lcl_temperature_k) / _DRY_ADIABATIC_LAPSE_C_PER_M)
+
+
+def _first_saturated_altitude_m(
+    surface_dew_point_depression_c: float, model_elevation_m: float, levels: list[dict]
+) -> float | None:
+    """Lowest altitude (MSL) where the published column itself saturates —
+    dew-point depression down at the hatch threshold — interpolated between
+    the bracketing samples; None when the whole column stays drier."""
+    profile = [(model_elevation_m, surface_dew_point_depression_c)] + [
+        (level["heightM"], level["dewPointDepressionC"]) for level in levels
+    ]
+    profile = [(altitude, depression) for altitude, depression in profile if math.isfinite(depression)]
+    if not profile:
+        return None
+    if profile[0][1] <= _SATURATED_DEPRESSION_C:
+        return profile[0][0]
+    for (below_m, below_c), (above_m, above_c) in zip(profile, profile[1:]):
+        if above_c <= _SATURATED_DEPRESSION_C:
+            fraction = (below_c - _SATURATED_DEPRESSION_C) / (below_c - above_c)
+            return below_m + fraction * (above_m - below_m)
+    return None
 
 
 def _boundary_layer_depth(

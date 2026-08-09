@@ -88,7 +88,7 @@
    "derived": {
     "boundaryLayerTopM": 1265.7000732421875,
     "thermalVelocityMs": 0.0,
-    "cloudBaseM": 3114.1605185699464,
+    "cloudBaseM": 3150.9591400062855,
     "usableLiftTopM": null
    }
   },
@@ -166,7 +166,7 @@
    "derived": {
     "boundaryLayerTopM": 1266.4000244140625,
     "thermalVelocityMs": 0.0,
-    "cloudBaseM": 3105.4460666656496,
+    "cloudBaseM": 3145.584927813123,
     "usableLiftTopM": null
    }
   },
@@ -244,7 +244,7 @@
    "derived": {
     "boundaryLayerTopM": 1518.7062845807443,
     "thermalVelocityMs": 1.0645187747404603,
-    "cloudBaseM": 3182.8859189605714,
+    "cloudBaseM": 3231.9741932423867,
     "usableLiftTopM": 1489.2563191294873
    }
   },
@@ -322,7 +322,7 @@
    "derived": {
     "boundaryLayerTopM": 1781.8927382155887,
     "thermalVelocityMs": 1.373887218870368,
-    "cloudBaseM": 3376.730961685181,
+    "cloudBaseM": 3427.7586112401805,
     "usableLiftTopM": 1760.3356745040483
    }
   },
@@ -400,7 +400,7 @@
    "derived": {
     "boundaryLayerTopM": 2305.692840610256,
     "thermalVelocityMs": 1.8927523467558978,
-    "cloudBaseM": 3523.258830337524,
+    "cloudBaseM": 3576.987285041547,
     "usableLiftTopM": 2396.3285431104086
    }
   },
@@ -478,8 +478,8 @@
    "derived": {
     "boundaryLayerTopM": 3016.3666912414765,
     "thermalVelocityMs": 2.4294093483873618,
-    "cloudBaseM": 3733.7994211578366,
-    "usableLiftTopM": 3733.7994211578366
+    "cloudBaseM": 3789.718721208677,
+    "usableLiftTopM": 3254.3385309759196
    }
   },
   {
@@ -556,8 +556,8 @@
    "derived": {
     "boundaryLayerTopM": 3359.00836059945,
     "thermalVelocityMs": 2.6038697950079746,
-    "cloudBaseM": 3758.9683664703366,
-    "usableLiftTopM": 3758.9683664703366
+    "cloudBaseM": 3817.1209154445005,
+    "usableLiftTopM": 3659.929398285467
    }
   },
   {
@@ -634,8 +634,8 @@
    "derived": {
     "boundaryLayerTopM": 3686.938825172548,
     "thermalVelocityMs": 2.7667277566170383,
-    "cloudBaseM": 4118.218873062135,
-    "usableLiftTopM": 4118.218873062135
+    "cloudBaseM": 4173.535326660576,
+    "usableLiftTopM": 4173.535326660576
    }
   },
   {
@@ -712,7 +712,7 @@
    "derived": {
     "boundaryLayerTopM": 3674.653279753365,
     "thermalVelocityMs": 2.4582740727259855,
-    "cloudBaseM": 4486.29785987854,
+    "cloudBaseM": 4532.746713467791,
     "usableLiftTopM": 3995.8388913140984
    }
   },
@@ -790,7 +790,7 @@
    "derived": {
     "boundaryLayerTopM": 3396.45848284747,
     "thermalVelocityMs": 1.8687247229843829,
-    "cloudBaseM": 4679.656362075806,
+    "cloudBaseM": 4718.290466213106,
     "usableLiftTopM": 3588.1133557741314
    }
   },
@@ -868,7 +868,7 @@
    "derived": {
     "boundaryLayerTopM": 3277.7337084189553,
     "thermalVelocityMs": 1.7435616048694786,
-    "cloudBaseM": 4657.758050308228,
+    "cloudBaseM": 4696.297700950483,
     "usableLiftTopM": 3428.8466377651616
    }
   },
@@ -946,7 +946,7 @@
    "derived": {
     "boundaryLayerTopM": 3193.1820913416977,
     "thermalVelocityMs": 1.4728419032055768,
-    "cloudBaseM": 4630.653725357056,
+    "cloudBaseM": 4668.697676755857,
     "usableLiftTopM": 3269.546482876506
    }
   },
@@ -1024,7 +1024,7 @@
    "derived": {
     "boundaryLayerTopM": 1247.0,
     "thermalVelocityMs": 0.0,
-    "cloudBaseM": 4342.430898208619,
+    "cloudBaseM": 4384.527002587245,
     "usableLiftTopM": null
    }
   },
@@ -1102,7 +1102,7 @@
    "derived": {
     "boundaryLayerTopM": 1246.2000732421875,
     "thermalVelocityMs": 0.0,
-    "cloudBaseM": 4168.068007583618,
+    "cloudBaseM": 4205.840737059755,
     "usableLiftTopM": null
    }
   },
@@ -1180,7 +1180,7 @@
    "derived": {
     "boundaryLayerTopM": 1246.300048828125,
     "thermalVelocityMs": 0.0,
-    "cloudBaseM": 4031.9438938140866,
+    "cloudBaseM": 4066.8573867874147,
     "usableLiftTopM": null
    }
   }

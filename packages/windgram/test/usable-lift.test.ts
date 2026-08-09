@@ -6,12 +6,13 @@ import { p50, usableLiftTopM } from "../src/derive/index.js";
 import { buildScene } from "../src/scene/index.js";
 import { ensembleSceneProfile } from "./scene-fixtures.js";
 
-/* pipeline-parity.json is genuine pipeline output: the real HRDPS column
-   behind the research articles' forecast example, run back through
-   windgram/windgram.py's derive_windgram_profile (current code, unrounded)
-   with the surface fluxes reconstructed by inverting the profile's own
-   published W*. Fifteen hours: stable nights (null), a growing morning
-   boundary layer, and three afternoon hours capped by cloud base. */
+/* pipeline-parity.json is genuine pipeline output: a real HRDPS column,
+   run back through windgram/windgram.py's derive_windgram_profile (current
+   code, unrounded) from its own published surface and column fields — the
+   fluxes are published directly, so the document round-trips. Fifteen
+   hours: stable nights (null), a growing morning boundary layer, and one
+   afternoon hour capped by cloud base (the exact-LCL cloud base sits above
+   the sink crossing in the other candidates). */
 const fixture = parseWindgramProfile(
   JSON.parse(readFileSync(join(__dirname, "pipeline-parity.json"), "utf-8")),
 );
@@ -50,7 +51,9 @@ describe("parameterized usable-lift top", () => {
         p50(hour.derived.usableLiftTopM) !== null &&
         p50(hour.derived.usableLiftTopM) === p50(hour.derived.cloudBaseM),
     );
-    expect(capped.length).toBeGreaterThanOrEqual(3);
+    // 2026-08-08T21:00Z: the strongest core still out-climbs the sink rate
+    // at the highest retained level below cloud base, so the cap binds.
+    expect(capped.length).toBeGreaterThanOrEqual(1);
   });
 
   it("moves monotonically with the sink rate — a floatier glider climbs higher", () => {

@@ -1,3 +1,5 @@
+import pytest
+
 from windgram.windgram import derive_windgram_profile
 
 
@@ -87,7 +89,15 @@ def test_nests_a_source_hour_into_si_surface_levels_and_derived_blocks():
         "sensibleHeatFluxWm2": 320,
         "latentHeatFluxWm2": 160,
     }
-    assert hour["derived"]["cloudBaseM"] == 1926
+    # Bolton (1980) eq. 15 by hand: T = 24 C = 297.15 K, Td = 18 C = 291.15 K.
+    #   1/(291.15 - 56)          = 1/235.15    = 4.25260e-3
+    #   ln(297.15/291.15)/800    = 0.0203988/800 = 2.54985e-5
+    #   T_LCL = 1/(4.25260e-3 + 2.54985e-5) + 56 = 233.749 + 56 = 289.749 K
+    #   climb = (297.15 - 289.749)/0.0098 = 755.3 m  ->  1200 + 755.3
+    # The column's own first saturated height (depression reaches 0.5 C
+    # between the 3 C level at 2100 m and the 0.4 C level at 2700 m) is
+    # 2676.9 m, above the parcel LCL, so the parcel wins.
+    assert hour["derived"]["cloudBaseM"] == pytest.approx(1955.26, abs=0.01)
     assert hour["derived"]["boundaryLayerTopM"] > 1200
     assert hour["derived"]["thermalVelocityMs"] > 0
 
@@ -145,7 +155,50 @@ def test_derived_heights_publish_unsmoothed_hour_by_hour():
 
     hours = derive_windgram_profile(source, model="hrdps-continental")["hours"]
 
-    assert [hour["derived"]["cloudBaseM"] for hour in hours] == [1321, 2410, 1321]
+    assert [hour["derived"]["cloudBaseM"] for hour in hours] == pytest.approx(
+        [1326.81, 2451.42, 1326.81], abs=0.01
+    )
+
+
+def test_cloud_base_drops_to_a_column_layer_saturated_below_the_parcel_lcl():
+    source = source_profile()
+    # Surface depression 10 C puts the parcel LCL at 1200 + 1251.4 = 2451.4 m
+    # (Bolton, as above), but the column saturates lower: depression falls
+    # from 4 C at 1500 m through the 0.5 C threshold to 0.2 C at 2100 m.
+    # Crossing by hand: (4 - 0.5)/(4 - 0.2) = 0.92105 of the 600 m layer,
+    # so 1500 + 552.6 = 2052.6 m — the model's own cloud, below the LCL.
+    source["hours"][0]["dewPointDepressionC"] = 10
+    depressions = [4, 0.2, 6]
+    for level, depression in zip(source["hours"][0]["levels"], depressions):
+        level["dewPointDepressionC"] = depression
+
+    derived = derive_windgram_profile(source, model="hrdps-continental")["hours"][0]["derived"]
+
+    assert derived["cloudBaseM"] == pytest.approx(2052.63, abs=0.01)
+
+
+def test_dry_column_publishes_the_parcel_lcl_even_above_the_sounding_top():
+    source = source_profile()
+    # Depression 20 C: Bolton puts the LCL 2467.3 m above terrain — higher
+    # than every retained level — and no level saturates, so the parcel
+    # estimate stands on its own.
+    source["hours"][0]["dewPointDepressionC"] = 20
+    depressions = [12, 15, 14]
+    for level, depression in zip(source["hours"][0]["levels"], depressions):
+        level["dewPointDepressionC"] = depression
+
+    derived = derive_windgram_profile(source, model="hrdps-continental")["hours"][0]["derived"]
+
+    assert derived["cloudBaseM"] == pytest.approx(3667.27, abs=0.01)
+
+
+def test_supersaturated_surface_puts_cloud_base_at_model_terrain():
+    source = source_profile()
+    source["hours"][0]["dewPointDepressionC"] = -1  # data noise: Td above T
+
+    derived = derive_windgram_profile(source, model="hrdps-continental")["hours"][0]["derived"]
+
+    assert derived["cloudBaseM"] == 1200
 
 
 def test_publishes_every_source_hour_chronologically():

@@ -105,7 +105,8 @@ still has no modelled thermal engine; lapse rate describes susceptibility, while
 
 Cloud percentage is the model’s total column coverage. It does not say where the cloud sits. The dotted
 cloud-base line is a lifted-condensation-level estimate for a parcel starting at model terrain. It asks
-where that surface parcel would first saturate.
+where that surface parcel would first saturate — and drops to the model's own cloud when the sampled
+column already saturates below that.
 
 The body shading asks a different question. On most models the renderer grades levels by dew-point
 depression — densest below 0.5 °C, the classic hatch threshold — an inference of cloud from
@@ -145,8 +146,9 @@ below launch.
   than the environment at this elevation. It describes thermodynamic depth.
 - **Usable-lift top — solid blue.** canadarasp’s strongest-core profile falls to a 1 m/s sink threshold
   here, unless cloud base stops it first. It describes a modelled climb limit.
-- **Cloud base — dotted slate.** A surface parcel reaches saturation here. When this line pins the solid
-  line, moisture limits usable height.
+- **Cloud base — dotted slate.** A surface parcel reaches saturation here, or the sampled column
+  already has — the line takes the lower height. When this line pins the solid line, moisture limits
+  usable height.
 - **Model boundary-layer top — tighter dash.** The model’s own boundary-layer depth, placed on the
   altitude axis and drawn beside the parcel-derived dashed line, on models that publish it. The two
   answer the same question with different physics; separation between them is information, not error.
@@ -157,8 +159,9 @@ evening the model’s boundary layer decays slowly while the parcel line collaps
 heat: different physics, honestly separated.
 
 Thin isotherms show the elevation of fixed temperatures. The emphasized 0 °C contour is the freezing
-level. Body shading and cloud base remain separate because existing model cloud and a lifted surface
-parcel are separate pieces of evidence.
+level. Body shading and cloud base remain separate: the shading shows every near-saturated layer
+through the column, while the cloud-base line commits to a single height — the lowest a climb would
+meet cloud, lifted parcel or model layer.
 
 The boundary-layer and usable-lift lines can cross because they do not estimate the same quantity.
 [Why usable lift can sit above the boundary layer](usable-lift-and-boundary-layer.md) explains the

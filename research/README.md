@@ -1,6 +1,6 @@
 # Research articles
 
-Eleven entries explain how Windgram derives, reads, compares, and publishes soaring forecasts.
+Twelve entries explain how Windgram derives, reads, compares, and publishes soaring forecasts.
 Provider paths and field inventories belong in the
 [forecast model feed reference](../reference/forecast-model-feeds.md).
 
@@ -26,3 +26,5 @@ Provider paths and field inventories belong in the
   defect no eye had caught, then anneal to the boundary where contrast and order part ways.
 - **[Adopting a model two months before its retirement](adopting-a-retiring-model.md)** — four
   candidates, one retirement notice, the machine-readable sunset, and slugs as identity.
+- **[Retiring 121 metres per degree](retiring-121-metres-per-degree.md)** — the first
+  post-baseline science change: an exact cloud base, and the sink crossings the old cap concealed.

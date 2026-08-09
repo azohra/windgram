@@ -124,6 +124,15 @@ const DOC_FILES: DocDefinition[] = [
     accent: "green",
   },
   {
+    slug: "retiring-121-metres-per-degree",
+    file: "retiring-121-metres-per-degree.md",
+    kind: "entry",
+    number: "12",
+    section: "Derivation evolution",
+    summary: "Bolton's LCL replaces an inherited constant, and de-capped hours surface",
+    accent: "blue",
+  },
+  {
     slug: "forecast-model-feeds",
     file: "forecast-model-feeds.md",
     kind: "reference",

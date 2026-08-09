@@ -28,6 +28,7 @@ import StabilityGuide from "../../components/research/StabilityGuide.astro";
 import MoistureSignals from "../../components/research/MoistureSignals.astro";
 import MoisturePrecipCase from "../../components/research/MoisturePrecipCase.astro";
 import StabilityRampStrips from "../../components/research/StabilityRampStrips.astro";
+import CloudBaseDeltas from "../../components/research/CloudBaseDeltas.astro";
 import RampLightnessSteps from "../../components/research/RampLightnessSteps.astro";
 import RampAdjacentDeltaE from "../../components/research/RampAdjacentDeltaE.astro";
 
@@ -63,6 +64,7 @@ type Part =
   | { type: "moisture-signals" }
   | { type: "moisture-precip" }
   | { type: "ramp-strips" }
+  | { type: "cloud-base-deltas" }
   | { type: "ramp-lightness" }
   | { type: "ramp-delta-e" };
 
@@ -243,6 +245,18 @@ function buildParts(doc: DocPage): Part[] {
     ];
   }
 
+  if (doc.slug === "retiring-121-metres-per-degree") {
+    // The figure closes the measured-consequences section: the prose walks
+    // the two tables, then the picture shows the de-capped hours falling
+    // out of the small uniform cloud-base shifts.
+    const [throughMeasured, afterMeasured] = splitBeforeHeading(doc.html, "what-stays-fixed");
+    return [
+      { type: "html", value: throughMeasured },
+      { type: "cloud-base-deltas" },
+      { type: "html", value: afterMeasured },
+    ];
+  }
+
   if (doc.slug === "choosing-forecast-models") {
     const [intro, body] = splitBeforeHeading(
       doc.html,
@@ -310,6 +324,8 @@ const parts = buildParts(doc);
           <MoisturePrecipCase />
         ) : part.type === "ramp-strips" ? (
           <StabilityRampStrips />
+        ) : part.type === "cloud-base-deltas" ? (
+          <CloudBaseDeltas />
         ) : part.type === "ramp-lightness" ? (
           <RampLightnessSteps />
         ) : part.type === "ramp-delta-e" ? (

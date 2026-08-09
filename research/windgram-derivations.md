@@ -41,15 +41,25 @@ from the published dew point — falls below 0.5 °C; the pipeline publishes the
 
 ## 3. Estimate cloud base
 
-The surface lifted condensation level uses the classic approximation of 121 m of climb per degree of
-dew point depression:
+The surface parcel's condensation level uses Bolton (1980, eq. 15), which gives the LCL temperature
+explicitly from surface temperature and dew point — no iteration, no lookup:
 
 ```
-cloudBaseM = modelElevationM + max(0, dewPointDepressionC) × 121
+T_LCL = 1 / (1/(T_d − 56) + ln(T/T_d)/800) + 56    # kelvin
+parcelLclM = modelElevationM + (T − T_LCL) / 0.0098    # dry-adiabatic climb
 ```
 
-The result estimates a surface parcel; it does not forecast cloud by itself. Existing saturated layers come from
-the pressure-level moisture field and are shown separately as hatching.
+Bolton's fit is accurate to 0.1 K across the meteorological range; against Romps (2017)'s exact
+closed form the height stays within about 1%, most of that the shared dry-lapse constant. It retires
+the inherited 121 m per degree linear estimate, which sat 35–58 m below the parcel across the
+repository's real columns — a fair estimate, now an unnecessary one.
+
+The parcel is not the only evidence. When the published column itself saturates below the parcel
+LCL — dew point depression down at the same 0.5 °C the renderer hatches as dense cloud, the crossing
+interpolated between samples — the model has already put cloud beneath the parcel estimate, and
+`cloudBaseM` publishes that lower height instead. A drier column publishes the parcel LCL alone; a
+saturated or supersaturated surface puts cloud base at model terrain. The value never sits below
+terrain.
 
 ## 4. Lift the surface parcel
 
@@ -112,13 +122,16 @@ published coordinates let a renderer derive local time for any site.
 
 | Constant | Meaning | Status |
 | --- | --- | --- |
-| 121 m/°C | surface LCL approximation | inherited |
+| 56 K, 800 K | Bolton's LCL-temperature fit | Bolton (1980) |
 | 0.0098 °C/m | dry adiabatic lapse | physical approximation |
 | 4.0 | strongest-core profile coefficient | canadarasp choice |
 | 1 m/s | glider sink threshold | canadarasp choice |
-| 0.5 °C | saturated-level hatching threshold (renderer) | display choice |
+| 0.5 °C | saturation threshold (cloud-base floor and renderer hatch) | display choice, now load-bearing |
 
 Changing a constant creates a different metric. Name it separately and test it against the archive.
+
+The 121 m/°C LCL approximation inherited from the original charts is retired; Bolton's fit replaced
+it once the published column could confirm the parcel against the model's own moisture.
 
 Executable authority: [`windgram/windgram.py`](../windgram/windgram.py), with exact assertions in
 [`tests/`](../tests).
