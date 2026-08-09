@@ -1,10 +1,10 @@
 {
   "firstForecastHour": 1,
   "forecastHours": 48,
-  "generatedAt": "2026-08-09T00:14:45.909Z",
+  "generatedAt": "2026-08-09T04:43:00.425Z",
   "lastForecastHour": 48,
   "model": "hrdps-continental",
-  "referenceTime": "2026-08-08T18:00:00Z",
+  "referenceTime": "2026-08-09T00:00:00Z",
   "schemaVersion": 1,
   "sites": [
     {
@@ -25,9 +25,9 @@
     }
   ],
   "stats": {
-    "downloadBytes": 8532103872,
-    "downloads": 4129,
-    "durationMs": 476930,
-    "retries": 0
+    "downloadBytes": 8571666742,
+    "downloads": 4132,
+    "durationMs": 513023,
+    "retries": 3
   }
 }
