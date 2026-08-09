@@ -3,10 +3,14 @@ title: Build a scene graph
 description: Produce serializable geometry and hit-testing from one validated profile.
 ---
 
+import SceneAnatomyFigure from '../../../../components/docs/SceneAnatomyFigure.astro';
+
 `buildScene(profile, options)` converts a validated document into pure data:
 scales, ticks, strips, sampled fields, line and band paths, wind barbs, labels,
 markers, and interaction readings. It touches no DOM and contains no functions,
 so it can cross a worker boundary or be serialized for inspection.
+
+<SceneAnatomyFigure />
 
 ```ts title="build-scene.ts"
 import type { WindgramProfile } from "windgram/contract";
@@ -55,8 +59,9 @@ profile; the package does not infer a zone from a site name or coordinate.
 ## Configure presentation
 
 `SceneOptions` controls overlays, 1-2-1 display smoothing, CAPE class
-thresholds, a parameterized sink rate, chart geometry, hour labels, barbs,
-line markers, and strip labels. Every drawn data layer except the axes and
+thresholds (`capeClasses`, defaulting to the exported
+`DEFAULT_CAPE_CLASSES`), a parameterized sink rate, chart geometry, hour
+labels, barbs, line markers, and strip labels. Every drawn data layer except the axes and
 frame has an overlay toggle. The `surfaceTemperature` overlay defaults on and
 adds one rounded `<n>°` readout per hour below the hour labels. Unavailable
 fields add no marks; the scene never pads them with zero.
@@ -73,6 +78,11 @@ sample runs.
 unpainted. Each returned band path contains its outer and inner threshold
 outlines, so consumers fill `FieldLayer.paths` with `fill-rule="evenodd"`.
 `renderSvg` applies that rule.
+
+The lower-level geometry helpers behind the scene — `windBarbParts`,
+`curvedPath`, `interpolateVertical`, and friends — are exported for renderers
+that compose their own layers; their contracts live in the shipped type
+declarations.
 
 The optional `buoyancyShear` strip draws zero-shear, nonzero-buoyancy hours as
 `wg-bs-unopposed`. A blank cell remains reserved for a ratio that cannot be

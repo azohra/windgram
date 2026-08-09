@@ -217,37 +217,6 @@ export function loadDocs(): DocPage[] {
   });
 }
 
-/** The rendered integration guide, without the registry metadata articles carry. */
-export interface IntegrationDoc {
-  title: string;
-  dek: string;
-  readingMinutes: number;
-  html: string;
-  toc: TocEntry[];
-}
-
-/**
- * packages/windgram/README.md, rendered from the repo at build time — the
- * same single-source pattern as the articles, so npm, GitHub, and the site all
- * read the identical integration guide. Relative links resolve against the
- * package directory on GitHub.
- */
-export function integrationDoc(): IntegrationDoc {
-  const raw = fs.readFileSync(path.resolve(process.cwd(), "../packages/windgram/README.md"), "utf-8");
-  tocCollector = [];
-  slugSeen = new Map();
-  currentRepoBase = "packages/windgram/";
-  const html = tagIntro(marked.parse(raw, { async: false }) as string);
-  currentRepoBase = "";
-  return {
-    title: firstHeading(raw, "windgram"),
-    dek: firstParagraph(raw),
-    readingMinutes: Math.max(2, Math.ceil(countWords(raw) / 220)),
-    html,
-    toc: tocCollector,
-  };
-}
-
 function researchAccent(
   kind: CollectionEntry<"research">["data"]["kind"],
 ): DocDefinition["accent"] {

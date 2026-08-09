@@ -36,11 +36,9 @@ belong to the renderer or the downstream application.
 
 ## Authority across the document boundary
 
-The Python pipeline owns published values that need provider inputs or cross-run authority:
-boundary-layer top, thermal velocity, cloud base, and the default usable-lift top. The `windgram`
-npm package owns pure functions of a published document, contract validation, the headless scene
-graph, hit-testing, and the reference SVG serializer. Its parameterized `usableLiftTopM` projects
-the published inputs for another sink rate without replacing the stored 1.0 m/s value.
+Every published quantity has exactly one authority — the pipeline or the package, never both.
+[Authority by quantity](/docs/overview/#authority-by-quantity) in the documentation overview is
+that split's home; the figure below shows where each value lives.
 
 <QuantityHomes />
 

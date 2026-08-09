@@ -31,8 +31,9 @@ should be re-ingested. It is not a schema release.
 
 The manifest and a selected profile must describe the same model and
 `referenceTime`. Independently cached static files can briefly disagree during
-deployment, so TypeScript consumers use `loadProfile()` from
-`windgram/transport` rather than composing two unguarded fetches.
+deployment, so TypeScript consumers use
+[`loadProfile()` from `windgram/transport`](/docs/typescript/transport/)
+rather than composing two unguarded fetches.
 
 ## Validate the document
 

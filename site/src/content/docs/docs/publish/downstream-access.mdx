@@ -24,18 +24,11 @@ publisher's policy.
 
 Static storage can expose a new manifest before the matching profile cache
 entry expires, or the reverse. TypeScript consumers should use
-`loadProfile()` from `windgram/transport`, which fetches the pair, compares
-model and `referenceTime`, and retries once. It returns:
-
-- a consistent `{ manifest, profile, stale: false }` pair;
-- the freshest complete pair seen with `stale: true` when publication still
-  appears torn; or
-- `{ miss: "absent", url }` for a 404; or
-- `{ miss: "invalid", url }` when a fetched document fails its contract guard.
-
-Discriminate a `DocumentMiss` with `"miss" in result`. Non-404 HTTP failures
-throw `TransportHttpError`. Consumers own caching,
-credentials, fallback selection, and stale-state presentation.
+`loadProfile()` from `windgram/transport`, which returns a run-consistent
+pair, a pair honestly flagged `stale`, or a discriminated miss — the
+[transport guide](/docs/typescript/transport/) defines that contract.
+Consumers own caching, credentials, fallback selection, and stale-state
+presentation.
 
 At every access level, keep provider attribution with derived material and
 state the publisher's operational limitations.

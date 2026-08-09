@@ -3,8 +3,14 @@ title: Pipeline architecture
 description: Follow provider bytes through sampling, derivation, rounding, current publication, and append-only history.
 ---
 
+import PipelineDiagram from '../../../../components/research/PipelineDiagram.astro';
+
 The Python publication pipeline exposes the `windgram` CLI and the versioned
 documents it writes as its supported interface.
+
+<PipelineDiagram />
+
+Inside the builder stage, provider bytes move through module-owned steps:
 
 ```text
 data/models.json + sites.json
@@ -35,14 +41,10 @@ provider transport ──→ gridpoint sampling ──→ source-shaped hours
 
 ## Authority boundary
 
-The pipeline owns values needing provider or unpublished model inputs:
-boundary-layer top, thermal velocity, cloud base, and the published default
-usable-lift top. The npm package owns calculations needing only a profile
-document and the reference renderer. Its parameterized `usableLiftTopM`
-projects those published inputs for another sink rate; the stored 1.0 m/s
-value remains the pipeline authority.
-
-The [windgram derivations](/docs/python/derivation-science/) define the
+Which quantities the pipeline owns and which belong to the npm package —
+including the one parameterized exception — is defined once in the
+[project overview](/docs/overview/#authority-by-quantity). The
+[windgram derivations](/docs/python/derivation-science/) define the
 pipeline equations, constants, fallbacks, and renderer-only transformations.
 
 ## Generated scenarios

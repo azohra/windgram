@@ -3,22 +3,23 @@ title: Pure derivations
 description: Use published state for pure quantities, local-day projection, and valid-time alignment.
 ---
 
+import DeriveSinkRateFigure from '../../../../components/docs/DeriveSinkRateFigure.astro';
+
 `windgram/derive` owns calculations that are pure functions of published
-documents. It does not duplicate pipeline derivations that require raw model
-inputs.
+documents: moisture conversions, vector wind, lapse and stability, thermal
+index, shear, the B/S ratio, local-day grouping, projection, valid-time
+alignment, units, smoothing, and parameterized usable lift. It does not
+duplicate pipeline derivations that require raw model inputs; that split —
+and its one exception — is defined in the
+[project overview](/docs/overview/#authority-by-quantity).
 
-## Authority boundary
+That exception lives here: `usableLiftTopM(inputs, sinkRateMs)` projects the
+published inputs for another sink rate without replacing the stored default,
+and at `1.0` m/s it matches the pipeline fixture exactly. The scene does not
+apply that p50 recomputation to ensembles because it would not equal a
+per-member derivation aggregated to percentiles.
 
-| Owner | Quantities |
-| --- | --- |
-| Python pipeline | Published boundary-layer top, thermal velocity, cloud base, and default usable-lift top |
-| TypeScript derive export | Moisture conversions, vector wind, lapse and stability, thermal index, shear, B/S ratio, local-day grouping, projection, valid-time alignment, units, smoothing, and parameterized usable lift |
-
-The package's `usableLiftTopM(inputs, sinkRateMs)` projects the published
-inputs for another sink rate without replacing the stored default.
-At `1.0` m/s it matches the pipeline fixture exactly. The scene does not apply
-that p50 recomputation to ensembles because it would not equal a per-member
-derivation aggregated to percentiles.
+<DeriveSinkRateFigure />
 
 ## Deterministic and ensemble inputs
 
@@ -65,9 +66,10 @@ separates the surface circulation from the winds aloft. The
 
 ## Window in the site's timezone
 
-Profiles publish all forecast hours in UTC. Profiles from the v0.4 publication
-wave echo the catalogued IANA timezone at `site.timeZone`; an older compatible
-profile may omit it, so callers still need an explicit fallback.
+Profiles publish all forecast hours in UTC; the optional
+[`site.timeZone` echo](/docs/reference/profile-document/#run-site-and-semantics)
+may be absent on an older document, so callers still need an explicit
+fallback.
 
 ```ts title="local-days.ts"
 import type { WindgramProfile } from "windgram/contract";

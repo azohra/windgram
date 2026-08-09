@@ -3,12 +3,17 @@ title: Analyze a profile
 description: Turn one validated profile into typed findings whose thresholds and source evidence travel with each statement.
 ---
 
+import { ANALYZE_VOCABULARY_VERSION, DEFAULT_ANALYZE_THRESHOLDS } from 'windgram/analyze';
+import AnalyzeFindingsFigure from '../../../../components/docs/AnalyzeFindingsFigure.astro';
+
 `windgram/analyze` compresses one profile into a small, versioned vocabulary
 of findings. Each finding is a typed statement about magnitudes, timing,
 published absences, or arithmetic relationships in that document. Findings
 that depend on thresholds carry the thresholds that produced them; findings
 that cite hours carry the underlying values and UTC `validAt` instants in an
 `evidence` block.
+
+<AnalyzeFindingsFigure />
 
 Use `windgram/derive` when you need quantities. Use `windgram/analyze` when you
 need a statement that remains inspectable after the full profile is no longer
@@ -43,7 +48,16 @@ export function analyzeProfileJson(text: string): WindgramAnalysis {
 `thresholds` is optional. Overrides are merged by finding kind over
 `DEFAULT_ANALYZE_THRESHOLDS`. They are conventions chosen by the caller, not
 new physics, and the effective values are copied into every finding they
-shape.
+shape. The defaults, imported from the package at build time:
+
+| Kind | Default thresholds |
+| --- | --- |
+| `flyableWindow` | W* ≥ {DEFAULT_ANALYZE_THRESHOLDS.flyableWindow.wstarMinMs} m/s and depth ≥ {DEFAULT_ANALYZE_THRESHOLDS.flyableWindow.depthMinM} m above launch |
+| `liftCeiling` | cloud-cap margin {DEFAULT_ANALYZE_THRESHOLDS.liftCeiling.cloudCapMarginM} m |
+| `capTiming` | instability from {DEFAULT_ANALYZE_THRESHOLDS.capTiming.instabilityMinCapeJkg} J/kg; broken cap at ≤ {DEFAULT_ANALYZE_THRESHOLDS.capTiming.brokenCapMaxAbsCinJkg} J/kg CIN with ≥ {DEFAULT_ANALYZE_THRESHOLDS.capTiming.brokenCapMinCapeJkg} J/kg CAPE; precipitation from {DEFAULT_ANALYZE_THRESHOLDS.capTiming.precipMinMmHr} mm/h |
+| `terrainMismatch` | reported from {DEFAULT_ANALYZE_THRESHOLDS.terrainMismatch.minAbsDeltaM} m absolute delta |
+| `windSummary` | climb band padded {DEFAULT_ANALYZE_THRESHOLDS.windSummary.bandMarginM} m; persistence within {DEFAULT_ANALYZE_THRESHOLDS.windSummary.persistenceFractionOfMax} of the peak |
+| `ensembleMembership` | band widening from ratio {DEFAULT_ANALYZE_THRESHOLDS.ensembleMembership.wideningRatio} |
 
 ## Keep the evidence with the statement
 
@@ -78,11 +92,12 @@ export function windowRows(analysis: WindgramAnalysis) {
 Do not reduce a finding to a prose label before storing its thresholds and
 evidence. Those fields are what make the compressed statement auditable.
 
-## Version 3 finding vocabulary
+## The finding vocabulary
 
-`ANALYZE_VOCABULARY_VERSION` is `3`. Adding, renaming, or removing
-a `kind` is an analysis-contract event even when the profile
-`schemaVersion` remains `1`.
+`ANALYZE_VOCABULARY_VERSION` is <code>{ANALYZE_VOCABULARY_VERSION}</code>
+(imported here from the package, so this page cannot lag it). Adding,
+renaming, or removing a `kind` is an analysis-contract event even when the
+profile `schemaVersion` remains `1`.
 
 | Finding kind | What it states | Evidence and limits |
 | --- | --- | --- |
@@ -115,3 +130,12 @@ local day across two keys.
 
 `resolveAnalyzeThresholds(overrides)` returns the complete threshold set used
 by `analyzeProfile` and `compareProfiles`.
+
+## Choose a payload
+
+Findings serialize three ways: the full array (every finding with evidence),
+a filtered subset (only the kinds a surface presents), or a single finding's
+evidence object. Measure the serialized result against the consuming
+surface's actual input budget — a chat context, a webhook body, a UI panel —
+rather than assuming the full array fits; evidence dominates the byte count,
+and filtering by kind before serializing is usually the right first cut.

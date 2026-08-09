@@ -4,14 +4,17 @@ description: The independent dataset, npm package, and Python pipeline versions,
 ---
 
 import { Aside } from '@astrojs/starlight/components';
+import { SCHEMA_VERSION } from 'windgram/contract';
+import { WINDGRAM_PACKAGE_VERSION } from '../../../../components/docs/package-info';
 
 Windgram has three public version axes. They describe different boundaries and
-do not advance in lockstep.
+do not advance in lockstep. The two package values in this table are imported
+from their authorities when the site builds, so they cannot go stale here.
 
 | Axis | Current value | Authority | What it versions |
 | --- | ---: | --- | --- |
-| Published JSON schema | `1` | `SCHEMA_VERSION` and the zod contract in `packages/windgram/src/contract/index.ts` | Profiles, manifests, and the model, site, and run-index document families |
-| npm package | `0.9.0` | `packages/windgram/package.json` | Contract guards, derivations, single-profile analysis, cross-model comparison, transport, scene graph, SVG renderer, tokens, and scene-derived key |
+| Published JSON schema | <code>{SCHEMA_VERSION}</code> | `SCHEMA_VERSION` and the zod contract in `packages/windgram/src/contract/index.ts` | Profiles, manifests, and the model, site, and run-index document families |
+| npm package | <code>{WINDGRAM_PACKAGE_VERSION}</code> | `packages/windgram/package.json` | Contract guards, derivations, single-profile analysis, cross-model comparison, transport, scene graph, SVG renderer, tokens, and scene-derived key |
 | Python pipeline | `2.0.0` | `pyproject.toml` | The repository's provider ingestion, derivation, and publication implementation |
 
 The scenario-definition contract also carries `schemaVersion: 1`. That
@@ -19,17 +22,18 @@ internal authoring format belongs to `scenarios/scenario.schema.json` and is
 independent of the published dataset schema.
 
 <Aside type="caution" title="Do not compare the numbers">
-  Python `2.0.0` does not mean profile schema 2, and npm `0.9.0` does not mean
-  profile schema 0.9. A consumer checks the document's `schemaVersion` with the
-  parser from the package version it has chosen.
+  Python `2.0.0` does not mean profile schema 2, and an npm `0.x` release does
+  not mean profile schema `0.x`. A consumer checks the document's
+  `schemaVersion` with the parser from the package version it has chosen.
 </Aside>
 
 ## Published document compatibility
 
 Every current profile, manifest, model catalogue, site catalogue, and run index
 uses `schemaVersion: 1`. The generated JSON Schemas under
-`packages/windgram/schema/` describe the inputs accepted by npm 0.9.0; the zod
-schemas and their parse guards are the behavioural authority.
+`packages/windgram/schema/` describe the inputs accepted by the released
+package (npm <code>{WINDGRAM_PACKAGE_VERSION}</code>); the zod schemas and
+their parse guards are the behavioural authority.
 
 From the 0.3 contract onward, compatibility follows these rules:
 
@@ -58,8 +62,8 @@ Version 1 has two historical compatibility boundaries:
   precipitation semantics; and
 - npm 0.4.0 still accepts pre-0.4 profiles because profile `site.timeZone` is
   optional, but rejects site catalogues whose entries lack the now-required
-  IANA `timeZone`. Builders echo that catalogue value into new profiles so a
-  stored document can interpret local time without a catalogue join.
+  IANA `timeZone`. The [profile reference](/docs/reference/profile-document/#run-site-and-semantics)
+  defines the timezone echo's semantics.
 
 The published catalogues changed in the matching `v0.3.0` and `v0.4.0`
 repository states. Therefore `schemaVersion: 1` identifies the document
@@ -70,8 +74,11 @@ Use the raw-text guards at every storage or network boundary:
 ```ts title="validate-profile.ts"
 import { parseWindgramProfileJson } from "windgram/contract";
 
-const profile = parseWindgramProfileJson(text);
-if (!profile) throw new Error("unsupported or invalid windgram profile");
+export function requireProfile(text: string) {
+  const profile = parseWindgramProfileJson(text);
+  if (!profile) throw new Error("unsupported or invalid windgram profile");
+  return profile;
+}
 ```
 
 Do not patch a rejected document in presentation code. Upgrade the publisher,
@@ -85,7 +92,7 @@ below 1.0:
 - patch releases in one minor line are intended to be backwards-compatible
   corrections;
 - a minor release may change a public TypeScript or JavaScript API and must
-  describe that change in the changelog and integration guide; and
+  describe that change in the changelog and the TypeScript docs; and
 - a deprecation names the replacement and the release boundary at which the
   old export may disappear.
 
@@ -99,8 +106,9 @@ external documents, and test deterministic and ensemble examples. Switch on
 the scalar value shape and declared capabilities, never a hard-coded model
 name.
 
-npm 0.9.0 keeps published profiles at `schemaVersion: 1` and includes these
-post-0.6 boundaries:
+The current release (npm <code>{WINDGRAM_PACKAGE_VERSION}</code>) keeps
+published profiles at `schemaVersion: 1` and includes these post-0.6
+boundaries:
 
 - 0.7 accepts full ensemble dropout (`members: 0` with null percentiles),
   makes `p50()` return `number | null`, and advances the analyze vocabulary to
@@ -111,7 +119,8 @@ post-0.6 boundaries:
 - 0.9 changes `sampledFieldPaths` to accept ordered banding and emit
   interpolated iso-band paths filled with the even-odd rule.
 
-Treat `v0.9.0` as an API and SVG snapshot boundary while validating each
+Treat the release tag (currently <code>v{WINDGRAM_PACKAGE_VERSION}</code>) as
+an API and SVG snapshot boundary while validating each
 document's independent `schemaVersion`. The
 [scene guide](/docs/typescript/scene/) defines the current presentation
 options and scene fields; the [SVG guide](/docs/typescript/svg/) defines

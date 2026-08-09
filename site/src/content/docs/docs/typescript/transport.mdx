@@ -1,0 +1,92 @@
+---
+title: Load published documents
+description: Fetch a manifest/profile pair as one consistent publication, with misses discriminated and staleness reported.
+---
+
+import TornReadFigure from '../../../../components/docs/TornReadFigure.astro';
+
+`windgram/transport` fetches published documents correctly. Its problem is
+the torn read: a model's manifest and its site profiles are separately cached
+static files, so around a publish, a pair fetched together can describe two
+different runs. `loadProfile()` performs the consistency check a consumer
+would otherwise have to hand-write.
+
+<TornReadFigure />
+
+## Load a manifest/profile pair
+
+```ts title="load-profile.ts"
+import { loadProfile, type LoadedProfile } from "windgram/transport";
+
+export async function loadTestHill(): Promise<LoadedProfile | null> {
+  const result = await loadProfile({
+    fetch,
+    baseUrl: "https://raw.githubusercontent.com/azohra/windgram/main/data",
+    modelSlug: "hrrr-conus",
+    siteSlug: "test-hill",
+  });
+
+  if ("miss" in result) {
+    // "absent" is routine: the model or site is not published here.
+    if (result.miss === "invalid") console.error(`contract break at ${result.url}`);
+    return null;
+  }
+  return result; // result.stale reports a pair still torn after the retry
+}
+```
+
+`loadProfile` fetches both documents, validates each with its contract guard,
+and compares them with `runsConsistent`. On disagreement it waits (1500 ms by
+default, configurable and injectable through `retry`) and refetches the pair
+once. It resolves to one of three shapes:
+
+- `{ manifest, profile, stale: false }` — a consistent pair; render it.
+- `{ manifest, profile, stale: true }` — the freshest complete pair seen,
+  still torn after the retry. A publish is in flight; render with a “still
+  syncing” note or fall back to a pair you cached earlier. Never mix the two
+  documents as if they were one forecast.
+- a `DocumentMiss` — nothing to render, with the reason discriminated.
+
+## `absent` is routine; `invalid` is loud
+
+A `DocumentMiss` separates two situations that would otherwise present
+identically as “no chart”:
+
+| `miss` | Meaning | Treat it as |
+| --- | --- | --- |
+| `"absent"` | HTTP 404 — the model or site is not published at this root | Routine; a site outside a model's domain reads this way |
+| `"invalid"` | The document exists but failed its contract guard | Never routine — a contract break or prototype data; log the `url` loudly |
+
+Discriminate with `"miss" in result`. Any non-404 HTTP failure throws
+`TransportHttpError` (carrying `status` and `url`) instead of masking itself
+as absence. When both documents miss, the manifest's miss wins: a model not
+publishing at all is the root cause of its site documents missing too.
+
+## Check freshness with `loadRuns`
+
+`loadRuns({ fetch, baseUrl })` fetches `data/runs.json`, the cross-model run
+index — each published model's current `(referenceTime, generatedAt)`, keyed
+by slug. It is a single document, so there is no pair to tear; it exists so
+run discovery gets the same miss semantics as `loadProfile`. Compare its
+timestamps with the catalogue's `runIntervalHours` under your own freshness
+policy.
+
+The pure pair check is exported too: `runsConsistent(manifest, profile)` is
+true exactly when both documents name the same model and run — useful when
+documents arrive through your own storage rather than these loaders.
+
+## The caller owns fetch and storage
+
+`fetch` is a parameter, not an import. Pass the runtime's own WHATWG-shaped
+fetch — browser, Node, workers, undici, or a test stub — which keeps this
+module runtime-agnostic and the rest of the package I/O-free.
+
+The transport performs no caching and no storage writes, because no storage
+API is portable across runtimes. Cache keys, quotas, invalidation, and
+stale-pair policy belong to the consumer: the transport reports `stale`; what
+happens next is yours. `TransportResponse`, `TransportFetch`, `RetryOptions`,
+`LoadProfileOptions`, `LoadedProfile`, and `LoadRunsOptions` type those seams.
+
+Where these files come from and how they are deployed is the publisher's
+side of the story: [Publish static output](/docs/publish/static-output/) and
+[Downstream access](/docs/publish/downstream-access/).

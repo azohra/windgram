@@ -1,0 +1,235 @@
+---
+import { analyzeProfile } from "windgram/analyze";
+import { xForHour, yForAltitude } from "windgram/scene";
+import Figure from "../figure/Figure.astro";
+import { renderSyntheticWindgram } from "../../lib/example-windgram";
+import { scenarioById } from "../../lib/scenarios";
+
+/* analyzeProfile's findings, drawn back onto the windgram they came from.
+   Both the chart and the findings are computed at build time from the same
+   committed profile through the released package, so a threshold or
+   vocabulary change re-draws this figure instead of letting it lie. */
+const scenario = scenarioById("convective-cycle");
+const idPrefix = "ts-analyze-findings";
+const { scene, svg } = renderSyntheticWindgram(scenario, {}, idPrefix);
+const analysis = analyzeProfile(scenario.profile);
+
+const window = analysis.findings.find((finding) => finding.kind === "flyableWindow");
+if (!window) {
+  throw new Error(
+    "[analyze-findings] convective-cycle no longer yields a flyableWindow finding — re-choose this figure's scenario",
+  );
+}
+const peakAboveLaunchM = window.peakLiftTopAboveLaunchM;
+if (peakAboveLaunchM === null) {
+  throw new Error(
+    "[analyze-findings] the flyableWindow finding lost its launch-relative peak — re-choose this figure's scenario",
+  );
+}
+const localTime = (local: string) => local.slice(11, 16);
+const startIndex = scene.hourValidAts.indexOf(window.start.validAt);
+const endIndex = scene.hourValidAts.indexOf(window.end.validAt);
+if (startIndex < 0 || endIndex < 0) {
+  throw new Error("[analyze-findings] the finding cites hours the scene did not render");
+}
+const half = scene.scales.columnWidth / 2;
+const bandLeft = xForHour(scene, startIndex) - half;
+const bandRight = xForHour(scene, endIndex) + half;
+const launchM = scenario.profile.site.altitudeM;
+const peak =
+  launchM === null ? null : {
+    x: xForHour(scene, scene.hourValidAts.indexOf(window.peakLiftTopAt.validAt)),
+    y: yForAltitude(scene, launchM + peakAboveLaunchM),
+  };
+
+const capTiming = analysis.findings.find((finding) => finding.kind === "capTiming");
+const windSummary = analysis.findings.find((finding) => finding.kind === "windSummary");
+const dataCaveats = analysis.findings.find((finding) => finding.kind === "dataCaveats");
+const round = (value: number) => Math.round(value).toLocaleString("en-CA");
+---
+
+<Figure
+  id="ts-analyze-findings"
+  title="Findings, drawn on the document they cite"
+  lesson="Each finding carries the thresholds that produced it and the instants it cites, so it can be drawn back onto its source hours."
+  description={`A teaching windgram with the flyableWindow finding computed by analyzeProfile overlaid as a highlighted band from ${localTime(window.start.local)} to ${localTime(window.end.local)}, and the day's other findings listed with their evidence values.`}
+  caption={`The band and every number below are computed at build time by analyzeProfile on this committed profile with the default thresholds (W* ≥ ${window.thresholds.wstarMinMs} m/s, depth ≥ ${window.thresholds.depthMinM} m above launch). Nothing in this figure is hand-written.`}
+  units="time UTC · heights m MSL · W* m/s"
+  {scenario}
+>
+  <div
+    class="analyze-scroll"
+    role="region"
+    tabindex="0"
+    aria-label="Scrollable windgram with the flyable-window finding overlaid"
+  >
+    <div class="analyze-canvas" style={`width: ${scene.width}px`}>
+      <div class="analyze-mount" set:html={svg} />
+      <svg
+        class="analyze-overlay"
+        viewBox={`0 0 ${scene.width} ${scene.height}`}
+        width={scene.width}
+        height={scene.height}
+        aria-hidden="true"
+      >
+        <rect
+          x={bandLeft}
+          y={scene.scales.plotTop}
+          width={bandRight - bandLeft}
+          height={scene.scales.plotHeight}
+          class="analyze-band"
+        />
+        <line x1={bandLeft} y1={scene.scales.plotTop} x2={bandLeft} y2={scene.scales.plotTop + scene.scales.plotHeight} class="analyze-band-edge" />
+        <line x1={bandRight} y1={scene.scales.plotTop} x2={bandRight} y2={scene.scales.plotTop + scene.scales.plotHeight} class="analyze-band-edge" />
+        <rect x={bandLeft} y={scene.scales.plotTop} width={bandRight - bandLeft} height="20" class="analyze-band-chip" />
+        <text x={(bandLeft + bandRight) / 2} y={scene.scales.plotTop + 14} class="analyze-band-label">
+          flyableWindow {localTime(window.start.local)}–{localTime(window.end.local)}
+        </text>
+        {peak && (
+          <g>
+            <circle cx={peak.x} cy={peak.y} r="5" class="analyze-peak" />
+            <text x={peak.x} y={peak.y - 10} class="analyze-peak-label">
+              peak {round(peakAboveLaunchM)} m above launch
+            </text>
+          </g>
+        )}
+      </svg>
+    </div>
+  </div>
+
+  <dl slot="legend" class="analyze-ledger">
+    <div>
+      <dt><code>flyableWindow</code></dt>
+      <dd>
+        {localTime(window.start.local)}–{localTime(window.end.local)} local, peak
+        {" "}{round(peakAboveLaunchM)} m above launch at
+        {" "}{localTime(window.peakLiftTopAt.local)}; cites
+        {" "}{window.evidence.hours.length} source hours
+      </dd>
+    </div>
+    {capTiming && capTiming.peakCapeAt && (
+      <div>
+        <dt><code>capTiming</code></dt>
+        <dd>
+          verdict <code>{capTiming.verdict}</code>; peak CAPE
+          {" "}{round(capTiming.peakCapeJkg)} J/kg at {localTime(capTiming.peakCapeAt.local)}
+        </dd>
+      </div>
+    )}
+    {windSummary?.maxGust && (
+      <div>
+        <dt><code>windSummary</code></dt>
+        <dd>
+          max gust {windSummary.maxGust.gustMs} m/s at
+          {" "}{localTime(windSummary.maxGust.at.local)}
+          {windSummary.maxGust.semantics ? ` (declared ${windSummary.maxGust.semantics})` : ""}
+        </dd>
+      </div>
+    )}
+    {dataCaveats && (
+      <div>
+        <dt><code>dataCaveats</code></dt>
+        <dd>{dataCaveats.caveats.map((entry) => entry.caveat).join(" · ")}</dd>
+      </div>
+    )}
+  </dl>
+</Figure>
+
+<style>
+  .analyze-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    background: var(--surface);
+    scrollbar-color: var(--accent) var(--surface-raised);
+  }
+
+  .analyze-scroll:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  .analyze-canvas {
+    position: relative;
+  }
+
+  .analyze-mount :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .analyze-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: auto;
+    pointer-events: none;
+  }
+
+  .analyze-band {
+    fill: var(--accent);
+    opacity: 0.09;
+  }
+
+  .analyze-band-edge {
+    stroke: var(--accent-strong);
+    stroke-width: 1.6;
+    stroke-dasharray: 5 4;
+  }
+
+  .analyze-band-chip {
+    fill: var(--accent);
+    opacity: 0.92;
+  }
+
+  .analyze-band-label {
+    fill: var(--accent-ink);
+    font: 700 11px var(--mono);
+    text-anchor: middle;
+  }
+
+  .analyze-peak {
+    fill: none;
+    stroke: var(--accent-strong);
+    stroke-width: 2;
+  }
+
+  .analyze-peak-label {
+    fill: var(--accent-strong);
+    font: 700 11px var(--mono);
+    text-anchor: middle;
+    paint-order: stroke;
+    stroke: var(--surface);
+    stroke-width: 3px;
+  }
+
+  .analyze-ledger {
+    display: grid;
+    gap: 0.55rem 1.2rem;
+    margin: 0;
+    font: 0.76rem/1.5 var(--mono);
+  }
+
+  .analyze-ledger div {
+    display: grid;
+    grid-template-columns: minmax(9.5rem, auto) 1fr;
+    gap: 0 1rem;
+  }
+
+  .analyze-ledger dt {
+    color: var(--ink-soft);
+    font-weight: 700;
+  }
+
+  .analyze-ledger dd {
+    margin: 0;
+    color: var(--ink);
+  }
+
+  @media (max-width: 38rem) {
+    .analyze-ledger div {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

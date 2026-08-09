@@ -3,8 +3,12 @@ title: Render SVG and a scene-derived key
 description: Serialize a scene and its scene-derived key to deterministic SVG styled by package tokens.
 ---
 
+import TokenContrastFigure from '../../../../components/docs/TokenContrastFigure.astro';
+
 `renderSvg(scene, options)` emits a complete SVG document with stable ordering
-and two-decimal geometry.
+and two-decimal geometry, styled entirely by overridable `--wg-*` tokens:
+
+<TokenContrastFigure />
 
 ```ts title="render-svg.ts"
 import type { SceneGraph } from "windgram/scene";

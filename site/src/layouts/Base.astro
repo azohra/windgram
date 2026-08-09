@@ -45,6 +45,19 @@ const stabilityStyle = `:root { ${stabilityTokens} ${packageTokens} }`;
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    {/* Same link-preview card the docs pages emit via the Starlight head
+        (see astro.config.mjs) — non-docs pages render through this layout. */}
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content="https://windgram.azohra.com/social-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Windgram — forecast profiles for soaring: the project wordmark beside a package-rendered windgram chart."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://windgram.azohra.com/social-card.png" />
     <style set:html={stabilityStyle}></style>
   </head>
   <body>

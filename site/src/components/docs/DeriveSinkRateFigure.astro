@@ -1,0 +1,202 @@
+---
+import { p50, usableLiftTopM } from "windgram/derive";
+import { xForHour, yForAltitude } from "windgram/scene";
+import Figure from "../figure/Figure.astro";
+import { onlyOverlays, renderSyntheticWindgram } from "../../lib/example-windgram";
+import { scenarioById } from "../../lib/scenarios";
+
+/* The parameterized usable-lift projection, drawn over the chart that shows
+   the published series. The solid line in the render is the pipeline's stored
+   1.0 m/s value; the dashed overlay is usableLiftTopM(inputs, SINK_RATE_MS)
+   recomputed hour by hour at build time from the same published inputs. */
+const SINK_RATE_MS = 2.0;
+const scenario = scenarioById("convective-cycle");
+const profile = scenario.profile;
+const idPrefix = "ts-derive-sink";
+const overlays = onlyOverlays(
+  "boundaryLayerTop",
+  "cloudBase",
+  "usableLiftTop",
+  "launch",
+  "thermalStrength",
+);
+const { scene, svg } = renderSyntheticWindgram(scenario, { overlays }, idPrefix);
+
+interface ProjectedPoint {
+  x: number;
+  y: number;
+  altitudeM: number;
+  publishedM: number | null;
+  reproducedDeltaM: number | null;
+  local: string;
+}
+
+const points: ProjectedPoint[] = [];
+for (const hour of profile.hours) {
+  const sceneIndex = scene.hourValidAts.indexOf(hour.validAt);
+  if (sceneIndex < 0) continue;
+  const boundaryLayerTopM = p50(hour.derived.boundaryLayerTopM);
+  const thermalVelocityMs = p50(hour.derived.thermalVelocityMs);
+  const cloudBaseM = p50(hour.derived.cloudBaseM);
+  if (thermalVelocityMs === null || cloudBaseM === null) continue;
+  const levels = hour.levels.flatMap((level) => {
+    const heightM = p50(level.heightM);
+    return heightM === null ? [] : [{ heightM }];
+  });
+  const inputs = {
+    modelElevationM: profile.site.modelElevationM,
+    boundaryLayerTopM,
+    thermalVelocityMs,
+    cloudBaseM,
+    levels,
+  };
+  const projected = usableLiftTopM(inputs, SINK_RATE_MS);
+  if (projected === null) continue;
+  const publishedM = p50(hour.derived.usableLiftTopM);
+  const reproduced = usableLiftTopM(inputs, 1.0);
+  points.push({
+    x: xForHour(scene, sceneIndex),
+    y: yForAltitude(scene, projected),
+    altitudeM: projected,
+    publishedM,
+    reproducedDeltaM:
+      publishedM === null || reproduced === null ? null : Math.abs(reproduced - publishedM),
+    local: hour.validAt.slice(11, 16),
+  });
+}
+if (points.length === 0) {
+  throw new Error(
+    "[derive-sink] convective-cycle no longer yields a projected usable-lift series — re-choose this figure's scenario",
+  );
+}
+const linePath = points
+  .map((point, index) => `${index === 0 ? "M" : "L"}${point.x} ${point.y}`)
+  .join(" ");
+const peak = points.reduce((best, point) => (point.altitudeM > best.altitudeM ? point : best));
+const maxParityDelta = Math.max(
+  ...points.map((point) => point.reproducedDeltaM ?? 0),
+);
+const round = (value: number) => Math.round(value).toLocaleString("en-CA");
+---
+
+<Figure
+  id="ts-derive-sink"
+  title="One document, a second sink rate — no republication"
+  lesson="usableLiftTopM(inputs, sinkRateMs) projects the published inputs for another glider without replacing the stored default."
+  description={`A teaching windgram whose solid usable-lift line is the pipeline's stored 1.0 m/s series, overlaid with a dashed line recomputed at ${SINK_RATE_MS} m/s sink by the package's usableLiftTopM. At the peak hour the projection reaches ${round(peak.altitudeM)} m against the published ${peak.publishedM === null ? "null" : round(peak.publishedM)} m.`}
+  caption={`The dashed series is computed at build time from the document's own published inputs (model elevation, boundary-layer top, W*, cloud base, level heights). Recomputed at the default 1.0 m/s, the same function reproduces the stored series within ${maxParityDelta.toFixed(1)} m of the contract-rounded published values.`}
+  units="heights m MSL · sink rate m/s · time UTC"
+  {scenario}
+>
+  <div
+    class="sink-scroll"
+    role="region"
+    tabindex="0"
+    aria-label="Scrollable windgram with a projected sink-rate line overlaid"
+  >
+    <div class="sink-canvas" style={`width: ${scene.width}px`}>
+      <div class="sink-mount" set:html={svg} />
+      <svg
+        class="sink-overlay"
+        viewBox={`0 0 ${scene.width} ${scene.height}`}
+        width={scene.width}
+        height={scene.height}
+        aria-hidden="true"
+      >
+        <path d={linePath} class="sink-line" />
+        {points.map((point) => (
+          <circle cx={point.x} cy={point.y} r="3.2" class="sink-point" />
+        ))}
+        <text x={peak.x} y={peak.y - 10} class="sink-label">
+          usableLiftTopM(inputs, {SINK_RATE_MS}) → {round(peak.altitudeM)} m
+        </text>
+      </svg>
+    </div>
+  </div>
+
+  <p slot="legend" class="sink-legend">
+    <span class="sink-legend__published"></span> published series (1.0 m/s,
+    pipeline authority) ·
+    <span class="sink-legend__projected"></span> projected at
+    {" "}{SINK_RATE_MS} m/s sink — a heavier wing climbs to
+    {" "}{round(peak.altitudeM)} m instead of
+    {" "}{peak.publishedM === null ? "null" : round(peak.publishedM)} m at
+    {" "}{peak.local}
+  </p>
+</Figure>
+
+<style>
+  .sink-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    background: var(--surface);
+    scrollbar-color: var(--accent) var(--surface-raised);
+  }
+
+  .sink-scroll:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  .sink-canvas {
+    position: relative;
+  }
+
+  .sink-mount :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .sink-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: auto;
+    pointer-events: none;
+  }
+
+  .sink-line {
+    fill: none;
+    stroke: var(--accent-strong);
+    stroke-width: 2.2;
+    stroke-dasharray: 7 5;
+  }
+
+  .sink-point {
+    fill: var(--surface);
+    stroke: var(--accent-strong);
+    stroke-width: 1.8;
+  }
+
+  .sink-label {
+    fill: var(--accent-strong);
+    font: 700 11px var(--mono);
+    text-anchor: middle;
+    paint-order: stroke;
+    stroke: var(--surface);
+    stroke-width: 3px;
+  }
+
+  .sink-legend {
+    margin: 0;
+    color: var(--ink);
+    font: 0.76rem/1.6 var(--mono);
+  }
+
+  .sink-legend__published,
+  .sink-legend__projected {
+    display: inline-block;
+    width: 1.6rem;
+    height: 0;
+    margin-inline-end: 0.35rem;
+    vertical-align: middle;
+    border-block-start: 3px solid var(--wg-usable, #2179ad);
+  }
+
+  .sink-legend__projected {
+    border-block-start-style: dashed;
+    border-block-start-color: var(--accent-strong);
+  }
+</style>

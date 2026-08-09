@@ -47,8 +47,11 @@ catalogues, and unusable output paths fail with an actionable error.
 <Aside type="caution" title="A full build is a data job">
   Builders fetch real provider files. Whole-domain ECCC deterministic runs can
   move several GiB; ensembles can move substantially more. NOAA builders use
-  indexed byte ranges but still fetch many records. Do not remove a smoke cap
-  casually or schedule a model more often than it publishes.
+  indexed byte ranges but still fetch many records. Per-model transfer costs
+  are recorded in the
+  [forecast feed reference](/docs/reference/forecast-model-feeds/). Do not
+  remove a smoke cap casually or schedule a model more often than it
+  publishes.
 </Aside>
 
 Each builder detects the latest complete provider run and exits without

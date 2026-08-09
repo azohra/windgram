@@ -1,0 +1,148 @@
+---
+import Figure from "../figure/Figure.astro";
+
+/* The torn read and the skew dance, drawn as the sequence loadProfile
+   actually performs. Pure diagram: two independently cached documents, the
+   pair comparison, one retry, and the three result shapes. The labels name
+   the real exports (loadProfile, runsConsistent, DocumentMiss) so the figure
+   and the page share one vocabulary. */
+---
+
+<Figure
+  id="torn-read"
+  title="Two cache entries, two runs, one page"
+  lesson="Independently cached manifest and profile files can describe different runs; loadProfile detects the torn pair and retries it once."
+  description="A sequence diagram of the transport's reference-time skew dance. A publish refreshes the manifest cache entry before the profile cache entry, so a consumer fetching both receives a manifest from the 06Z run and a profile from the 00Z run. loadProfile compares the pair's reference times with runsConsistent, waits 1.5 seconds, refetches, and returns either a consistent pair, the freshest complete pair marked stale, or a discriminated DocumentMiss."
+  caption="The retry delay defaults to 1500 ms and is injectable. The transport keeps no cache and writes no storage — the stale flag is a report, and the policy it triggers belongs to the caller."
+  units="one publish cycle; no numeric scale"
+>
+  <div
+    class="torn-scroll"
+    role="region"
+    tabindex="0"
+    aria-label="Scrollable diagram of the torn read and its retry"
+  >
+    <svg viewBox="0 0 980 500" role="img" aria-labelledby="torn-read-svg-title">
+      <title id="torn-read-svg-title">The reference-time skew dance</title>
+
+      <!-- ============ panel 1 · the torn cache ============ -->
+      <rect x="24" y="8" width="24" height="24" class="tr-chip" />
+      <text x="36" y="25" class="tr-chip-letter">1</text>
+      <text x="58" y="26" class="tr-panel-title">ONE PUBLISH, TWO CACHE ENTRIES</text>
+      <text x="956" y="25" class="tr-panel-right tr-mono">static storage · independent expiry</text>
+      <line x1="24" y1="42" x2="956" y2="42" class="tr-panel-rule" />
+
+      <rect x="40" y="60" width="430" height="92" class="tr-doc tr-doc--fresh" />
+      <text x="56" y="82" class="tr-doc-name tr-mono">data/&lt;model&gt;/manifest.json</text>
+      <text x="56" y="104" class="tr-doc-run tr-mono">referenceTime <tspan class="tr-run-fresh">06Z</tspan></text>
+      <text x="56" y="130" class="tr-doc-note tr-mono">cache entry expired first — the new run is visible</text>
+
+      <rect x="510" y="60" width="446" height="92" class="tr-doc" />
+      <text x="526" y="82" class="tr-doc-name tr-mono">data/&lt;model&gt;/sites/&lt;site&gt;.json</text>
+      <text x="526" y="104" class="tr-doc-run tr-mono">run.referenceTime <tspan class="tr-run-stale">00Z</tspan></text>
+      <text x="526" y="130" class="tr-doc-note tr-mono">cache entry still valid — the old run is still served</text>
+
+      <text x="490" y="178" class="tr-verdict">06Z ≠ 00Z — a torn pair. Rendering it as one forecast lies about both runs.</text>
+
+      <!-- ============ panel 2 · the skew dance ============ -->
+      <rect x="24" y="204" width="24" height="24" class="tr-chip" />
+      <text x="36" y="221" class="tr-chip-letter">2</text>
+      <text x="58" y="222" class="tr-panel-title">THE SKEW DANCE</text>
+      <text x="956" y="221" class="tr-panel-right tr-mono">loadProfile — fetch, compare, retry once</text>
+      <line x1="24" y1="238" x2="956" y2="238" class="tr-panel-rule" />
+
+      <rect x="40" y="258" width="200" height="58" class="tr-step" />
+      <text x="140" y="282" class="tr-step-title">FETCH THE PAIR</text>
+      <text x="140" y="300" class="tr-step-note">manifest + profile, in parallel</text>
+
+      <path d="M240 287 H302" class="tr-flow" marker-end="url(#tr-head)" />
+
+      <rect x="304" y="258" width="230" height="58" class="tr-step" />
+      <text x="419" y="282" class="tr-step-title tr-mono-title">runsConsistent(m, p)?</text>
+      <text x="419" y="300" class="tr-step-note">same model and referenceTime</text>
+
+      <path d="M534 287 H596" class="tr-flow" marker-end="url(#tr-head)" />
+      <text x="565" y="278" class="tr-flow-label tr-mono">false</text>
+
+      <rect x="598" y="258" width="160" height="58" class="tr-step" />
+      <text x="678" y="282" class="tr-step-title">WAIT ≈1.5 s</text>
+      <text x="678" y="300" class="tr-step-note">publishes converge quickly</text>
+
+      <path d="M758 287 H820" class="tr-flow" marker-end="url(#tr-head)" />
+
+      <rect x="822" y="258" width="134" height="58" class="tr-step" />
+      <text x="889" y="282" class="tr-step-title">REFETCH</text>
+      <text x="889" y="300" class="tr-step-note">the pair, once</text>
+
+      <text x="419" y="340" class="tr-flow-label tr-mono" text-anchor="middle">true → return the pair with stale: false; after the refetch, stale records whether the pair still disagrees</text>
+
+      <!-- ============ panel 3 · what comes back ============ -->
+      <rect x="24" y="368" width="24" height="24" class="tr-chip" />
+      <text x="36" y="385" class="tr-chip-letter">3</text>
+      <text x="58" y="386" class="tr-panel-title">EVERY WAY IT RESOLVES</text>
+      <text x="956" y="385" class="tr-panel-right tr-mono">discriminate a miss with "miss" in result</text>
+      <line x1="24" y1="402" x2="956" y2="402" class="tr-panel-rule" />
+
+      <rect x="40" y="418" width="286" height="66" class="tr-result tr-result--good" />
+      <text x="56" y="440" class="tr-result-title tr-mono">&#123; manifest, profile, stale: false &#125;</text>
+      <text x="56" y="458" class="tr-result-note">a consistent pair — render it</text>
+
+      <rect x="346" y="418" width="286" height="66" class="tr-result" />
+      <text x="362" y="440" class="tr-result-title tr-mono">&#123; manifest, profile, stale: true &#125;</text>
+      <text x="362" y="458" class="tr-result-note">freshest complete pair, still torn —</text>
+      <text x="362" y="472" class="tr-result-note">note it or fall back; never mix the two</text>
+
+      <rect x="652" y="418" width="304" height="66" class="tr-result" />
+      <text x="668" y="440" class="tr-result-title tr-mono">&#123; miss: "absent" | "invalid", url &#125;</text>
+      <text x="668" y="458" class="tr-result-note">absent: routine 404 · invalid: contract break —</text>
+      <text x="668" y="472" class="tr-result-note">log it loudly; other HTTP errors throw</text>
+
+      <defs>
+        <marker id="tr-head" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0 0 L10 5 L0 10 Z" class="tr-arrow" />
+        </marker>
+      </defs>
+    </svg>
+  </div>
+</Figure>
+
+<style>
+  .torn-scroll {
+    overflow-x: auto;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    scrollbar-color: var(--accent) var(--surface-raised);
+  }
+  .torn-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  svg { display: block; width: 100%; min-width: 880px; height: auto; }
+  svg text { font-family: var(--sans); }
+  svg text.tr-mono, svg tspan.tr-mono { font-family: var(--mono); }
+  .tr-chip { fill: var(--accent); }
+  .tr-chip-letter { fill: var(--accent-ink); font-size: 13px; font-weight: 800; text-anchor: middle; }
+  .tr-panel-title { fill: var(--ink); font-family: var(--display); font-size: 18px; font-weight: 800; letter-spacing: .02em; }
+  .tr-panel-right { fill: var(--ink-mute); font-size: 11px; text-anchor: end; }
+  .tr-panel-rule { stroke: var(--rule-strong); stroke-width: 1.2; }
+  .tr-doc { fill: var(--wg-strip-bg, var(--surface-raised)); stroke: var(--rule-strong); stroke-width: 1.2; }
+  .tr-doc--fresh { stroke: var(--accent); stroke-width: 1.6; }
+  .tr-doc-name { fill: var(--ink); font-size: 12px; font-weight: 700; }
+  .tr-doc-run { fill: var(--ink-soft); font-size: 12px; }
+  .tr-run-fresh { fill: var(--accent-strong); font-weight: 800; }
+  .tr-run-stale { fill: var(--ink); font-weight: 800; }
+  .tr-doc-note { fill: var(--ink-mute); font-size: 10.5px; }
+  .tr-verdict { fill: var(--accent-strong); font-size: 13px; font-weight: 700; text-anchor: middle; }
+  .tr-step { fill: var(--surface); stroke: var(--rule-strong); stroke-width: 1.2; }
+  .tr-step-title { fill: var(--ink); font-family: var(--display); font-size: 13.5px; font-weight: 800; letter-spacing: .03em; text-anchor: middle; }
+  .tr-mono-title { font-family: var(--mono); font-size: 12.5px; }
+  .tr-step-note { fill: var(--ink-mute); font-size: 10.5px; text-anchor: middle; }
+  .tr-flow { stroke: var(--ink-soft); stroke-width: 1.5; fill: none; }
+  .tr-flow--true { stroke: var(--accent); }
+  .tr-flow-label { fill: var(--ink-mute); font-size: 10px; }
+  .tr-arrow { fill: var(--ink-soft); }
+  .tr-result { fill: var(--surface); stroke: var(--rule-strong); stroke-width: 1.2; }
+  .tr-result--good { stroke: var(--accent); stroke-width: 1.6; }
+  .tr-result-title { fill: var(--ink); font-size: 11.5px; font-weight: 700; }
+  .tr-result-note { fill: var(--ink-mute); font-size: 10.5px; }
+  @media (max-width: 720px) {
+    .torn-scroll { margin-inline: -8px; }
+  }
+</style>

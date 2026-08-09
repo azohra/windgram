@@ -3,6 +3,8 @@ title: Defaults and tokens
 description: Configure the package's reference scene and renderer through direct options and tokens.
 ---
 
+import TokenReferenceFigure from '../../../../components/docs/TokenReferenceFigure.astro';
+
 Windgram ships one reference look. Configure scene behaviour through
 `SceneOptions` and visual values through the renderer's `--wg-*` CSS tokens.
 
@@ -35,6 +37,10 @@ every layer. Omit `overlays` when the reference defaults are sufficient.
 Token keys omit the CSS prefix: `surface` maps to `--wg-surface`, and
 `stable` maps to `--wg-stab-stable`. Read the maps for legends and swatches;
 override CSS custom properties on an ancestor for a downstream presentation.
+This page does exactly that — every default below is imported from the
+package when the site builds:
+
+<TokenReferenceFigure />
 
 ```ts title="stability-swatches.ts"
 import { STABILITY_TOKEN_DEFAULTS } from "windgram/svg";

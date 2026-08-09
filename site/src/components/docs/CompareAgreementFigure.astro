@@ -1,0 +1,198 @@
+---
+import { compareProfiles } from "windgram/compare";
+import { windgramProfileSchema, type WindgramProfile } from "windgram/contract";
+import Figure from "../figure/Figure.astro";
+import { onlyOverlays, renderSyntheticWindgram } from "../../lib/example-windgram";
+import { scenarioById } from "../../lib/scenarios";
+
+/* Two committed timing-comparison profiles rendered side by side, with the
+   windowAgreement finding compareProfiles computes from them printed
+   beneath. The two documents share one model slug in the teaching corpus, so
+   each is re-parsed here under a distinct slug — the only change — because a
+   comparison keys its per-model analyses by slug. */
+const earlier = scenarioById("model-timing-disagreement", "earlier");
+const later = scenarioById("model-timing-disagreement", "later");
+
+function relabel(profile: WindgramProfile, model: string): WindgramProfile {
+  return windgramProfileSchema.parse({ ...profile, model });
+}
+const members = [
+  relabel(earlier.profile, "timing-earlier"),
+  relabel(later.profile, "timing-later"),
+];
+const comparison = compareProfiles(members, { timeZone: earlier.timeZone });
+const agreement = comparison.findings.find((finding) => finding.kind === "windowAgreement");
+if (!agreement) {
+  throw new Error(
+    "[compare-agreement] the timing pair no longer yields a windowAgreement finding — re-choose this figure's scenario",
+  );
+}
+const heightSpread = comparison.findings.find((finding) => finding.kind === "heightSpread");
+const localTime = (local: string) => local.slice(11, 16);
+
+const overlays = onlyOverlays(
+  "thermalStrength",
+  "boundaryLayerTop",
+  "usableLiftTop",
+  "launch",
+  "selectedHour",
+);
+const panels = [
+  { scenario: earlier, slug: "timing-earlier", idPrefix: "ts-compare-earlier" },
+  { scenario: later, slug: "timing-later", idPrefix: "ts-compare-later" },
+].map((panel) => ({
+  ...panel,
+  svg: renderSyntheticWindgram(
+    panel.scenario,
+    { overlays, columnWidthPx: 56, plotHeightPx: 280 },
+    panel.idPrefix,
+  ).svg,
+  vote: agreement.windows.find((vote) => vote.model === panel.slug) ?? null,
+}));
+---
+
+<Figure
+  id="ts-compare-agreement"
+  title="Two models, one verdict, evidence attached"
+  lesson={earlier.lesson}
+  description={`Two controlled profiles with the same daytime development at different hours, rendered side by side, with the windowAgreement finding compareProfiles computed from them: ${agreement.voters} voters, unanimous ${String(agreement.unanimous)}.`}
+  caption="Charts and verdict are computed at build time from the committed comparison pair (re-slugged so each document keeps its own analysis). An edge clipped by a document's horizon reads as “open since at least” and stays out of the timing spread — which is why this pair's start spread is reported as null rather than a number no model stated."
+  units="time UTC · heights m MSL · W* m/s"
+  scenario={earlier}
+>
+  <div class="compare-panels">
+    {panels.map((panel) => (
+      <section class="compare-panel" aria-label={`${panel.scenario.label} rendering`}>
+        <p class="compare-panel__title">
+          <code>{panel.slug}</code>
+          <span>{panel.scenario.label}</span>
+        </p>
+        <div
+          class="compare-panel__scroll"
+          role="region"
+          tabindex="0"
+          aria-label={`Scrollable windgram for ${panel.scenario.label}`}
+        >
+          <div class="compare-panel__mount" set:html={panel.svg} />
+        </div>
+        {panel.vote && (
+          <p class="compare-panel__vote">
+            window {localTime(panel.vote.start.local)}–{localTime(panel.vote.end.local)}
+            {" "}· peak at {localTime(panel.vote.peakLiftTopAt.local)}
+            {panel.vote.clippedAtStart ? " · start clipped" : ""}
+            {panel.vote.clippedAtEnd ? " · end clipped" : ""}
+          </p>
+        )}
+      </section>
+    ))}
+  </div>
+
+  <dl slot="legend" class="compare-verdict">
+    <div>
+      <dt><code>windowAgreement</code></dt>
+      <dd>
+        {agreement.windows.length} of {agreement.voters} voters report a window
+        {agreement.unanimous ? " — unanimous" : ""}; start spread
+        {" "}<code>{JSON.stringify(agreement.timing.startSpreadHours)}</code> (clipped edges abstain)
+      </dd>
+    </div>
+    {heightSpread && (
+      <div>
+        <dt><code>heightSpread</code></dt>
+        <dd>
+          {heightSpread.spreadM} m between peaks the models place
+          {" "}{heightSpread.peaks.map((entry) => `at ${localTime(entry.at.local)}`).join(" and ")}
+          {" "}— the same height, two hours apart, stated without a consensus
+        </dd>
+      </div>
+    )}
+  </dl>
+</Figure>
+
+<style>
+  .compare-panels {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+    gap: 0.9rem;
+    padding: 0.9rem var(--wg-figure-inline-space, 1rem);
+    background: var(--surface);
+  }
+
+  .compare-panel {
+    min-width: 0;
+    border: 1px solid var(--rule);
+  }
+
+  .compare-panel__title {
+    display: flex;
+    gap: 0.7rem;
+    align-items: baseline;
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    font: 0.74rem/1.4 var(--mono);
+    border-block-end: 1px solid var(--rule);
+  }
+
+  .compare-panel__title code {
+    color: var(--accent-strong);
+    font-weight: 700;
+  }
+
+  .compare-panel__title span {
+    color: var(--ink-soft);
+  }
+
+  .compare-panel__scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-color: var(--accent) var(--surface-raised);
+  }
+
+  .compare-panel__scroll:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  .compare-panel__mount :global(svg) {
+    display: block;
+    height: auto;
+  }
+
+  .compare-panel__vote {
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    color: var(--ink);
+    font: 0.74rem/1.4 var(--mono);
+    border-block-start: 1px solid var(--rule);
+  }
+
+  .compare-verdict {
+    display: grid;
+    gap: 0.55rem 1.2rem;
+    margin: 0;
+    font: 0.76rem/1.5 var(--mono);
+  }
+
+  .compare-verdict div {
+    display: grid;
+    grid-template-columns: minmax(9.5rem, auto) 1fr;
+    gap: 0 1rem;
+  }
+
+  .compare-verdict dt {
+    color: var(--ink-soft);
+    font-weight: 700;
+  }
+
+  .compare-verdict dd {
+    margin: 0;
+    color: var(--ink);
+  }
+
+  @media (max-width: 38rem) {
+    .compare-verdict div {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -1,0 +1,112 @@
+---
+import Figure from "../figure/Figure.astro";
+import { onlyOverlays, renderSyntheticWindgram } from "../../lib/example-windgram";
+import { scenarioById } from "../../lib/scenarios";
+
+/* One scene, two token sets. Both panels serialize the identical scene with
+   the identical stylesheet; the right panel only sets --wg-* custom
+   properties on an ancestor, exactly the override path the page documents.
+   No second serializer, no forked stylesheet. */
+const scenario = scenarioById("convective-cycle");
+const overlays = onlyOverlays(
+  "temperature",
+  "clouds",
+  "boundaryLayerTop",
+  "cloudBase",
+  "usableLiftTop",
+  "launch",
+  "thermalStrength",
+  "pressure",
+);
+const options = { overlays, columnWidthPx: 52, plotHeightPx: 280 };
+const { svg: defaultSvg } = renderSyntheticWindgram(scenario, options, "ts-tokens-default");
+const { svg: overriddenSvg } = renderSyntheticWindgram(scenario, options, "ts-tokens-club");
+---
+
+<Figure
+  id="ts-token-contrast"
+  title="Same scene, same bytes — two token sets"
+  lesson="Palette is not scene data: a downstream look is CSS custom properties on an ancestor, never a forked serializer."
+  description="The same teaching windgram rendered twice from one scene. The left panel uses the package's default tokens; the right panel sits inside an element that overrides surface, ink, temperature, and halo tokens to a dark club palette. The SVG markup of both panels is identical."
+  caption="Both panels embed the same DEFAULT_STYLESHEET; only the right panel's ancestor sets --wg-surface, --wg-ink, --wg-ink-soft, --wg-ink-mute, --wg-rule, --wg-temp, --wg-halo, and --wg-halo-barb. Remove the wrapper class and the panels are byte-identical."
+  units="altitude m and ft · time UTC"
+  {scenario}
+>
+  <div class="token-panels">
+    <section class="token-panel" aria-label="Default package tokens">
+      <p class="token-panel__title">package defaults</p>
+      <div
+        class="token-panel__scroll"
+        role="region"
+        tabindex="0"
+        aria-label="Scrollable windgram with default tokens"
+      >
+        <div class="token-panel__mount" set:html={defaultSvg} />
+      </div>
+    </section>
+    <section class="token-panel" aria-label="Downstream token overrides">
+      <p class="token-panel__title">ancestor overrides <code>--wg-*</code></p>
+      <div
+        class="token-panel__scroll"
+        role="region"
+        tabindex="0"
+        aria-label="Scrollable windgram with overridden tokens"
+      >
+        <div class="token-panel__mount token-panel__mount--club" set:html={overriddenSvg} />
+      </div>
+    </section>
+  </div>
+</Figure>
+
+<style>
+  .token-panels {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+    gap: 0.9rem;
+    padding: 0.9rem var(--wg-figure-inline-space, 1rem);
+    background: var(--surface);
+  }
+
+  .token-panel {
+    min-width: 0;
+    border: 1px solid var(--rule);
+  }
+
+  .token-panel__title {
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    color: var(--ink-soft);
+    font: 600 0.74rem/1.4 var(--mono);
+    border-block-end: 1px solid var(--rule);
+  }
+
+  .token-panel__scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-color: var(--accent) var(--surface-raised);
+  }
+
+  .token-panel__scroll:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  .token-panel__mount :global(svg) {
+    display: block;
+    height: auto;
+  }
+
+  /* The documented override path: custom properties on an ancestor. */
+  .token-panel__mount--club {
+    --wg-surface: #14181c;
+    --wg-strip-bg: #1b2126;
+    --wg-ink: #e8e4da;
+    --wg-ink-soft: #c9c3b4;
+    --wg-ink-mute: #a29a89;
+    --wg-rule: #5a6672;
+    --wg-temp: #d97706;
+    --wg-halo: #14181c;
+    --wg-halo-barb: #0d1114;
+  }
+</style>

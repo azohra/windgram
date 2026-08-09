@@ -7,6 +7,16 @@ const contentInputDirectories = ["../research", "../reference", "../scenarios"].
   fileURLToPath(new URL(directory, import.meta.url)),
 );
 
+const siteUrl = "https://windgram.azohra.com";
+
+// Link-preview card for every docs page. The PNG in site/public/ is
+// rasterized by scripts/generate-doc-figures.mjs from its drift-checked
+// SVG source (docs/assets/social-card.svg); Starlight already emits
+// og:title/og:description and twitter:card, so only the image is added.
+const socialCard = new URL("/social-card.png", siteUrl).href;
+const socialCardAlt =
+  "Windgram — forecast profiles for soaring: the project wordmark beside a package-rendered windgram chart.";
+
 const watchRepositoryContent = {
   name: "watch-repository-content",
   buildStart() {
@@ -24,13 +34,20 @@ const watchRepositoryContent = {
 };
 
 export default defineConfig({
-  site: "https://windgram.azohra.com",
+  site: siteUrl,
   integrations: [
     starlight({
       title: "Windgram",
       description:
         "Documentation for generating, validating, publishing, and rendering open windgram data.",
       favicon: "/favicon.svg",
+      head: [
+        { tag: "meta", attrs: { property: "og:image", content: socialCard } },
+        { tag: "meta", attrs: { property: "og:image:width", content: "1200" } },
+        { tag: "meta", attrs: { property: "og:image:height", content: "630" } },
+        { tag: "meta", attrs: { property: "og:image:alt", content: socialCardAlt } },
+        { tag: "meta", attrs: { name: "twitter:image", content: socialCard } },
+      ],
       customCss: [
         "@fontsource/big-shoulders/700.css",
         "@fontsource/big-shoulders/800.css",
@@ -80,6 +97,7 @@ export default defineConfig({
           items: [
             { slug: "docs/typescript/render-first-windgram", label: "Render a first windgram" },
             { slug: "docs/typescript/contract", label: "Contract" },
+            { slug: "docs/typescript/transport", label: "Transport" },
             { slug: "docs/typescript/derive", label: "Pure derivations" },
             { slug: "docs/typescript/analyze", label: "Analyze a profile" },
             { slug: "docs/typescript/compare", label: "Compare profiles" },

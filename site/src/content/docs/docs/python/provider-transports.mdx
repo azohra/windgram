@@ -3,9 +3,13 @@ title: Provider transports
 description: Understand whole-file ECCC sampling, indexed NOAA byte ranges, and the shared publication boundary.
 ---
 
+import TwoTransports from '../../../../components/research/TwoTransports.astro';
+
 The repository uses two broad transport strategies. They share
 download accounting, site sampling guards, builder invariants, and the profile
 contract while preserving each provider's storage semantics.
+
+<TwoTransports />
 
 | Strategy | Current home | Data movement | Important boundary |
 | --- | --- | --- | --- |

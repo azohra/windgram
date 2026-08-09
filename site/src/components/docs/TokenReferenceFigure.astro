@@ -1,0 +1,158 @@
+---
+import { DEFAULT_CAPE_CLASSES, DEFAULT_OVERLAYS } from "windgram/scene";
+import { STABILITY_TOKEN_DEFAULTS, TOKEN_DEFAULTS } from "windgram/svg";
+import Figure from "../figure/Figure.astro";
+
+/* The package's default surfaces, printed from the exports themselves. Every
+   swatch, size, and threshold below is imported at build time, so this table
+   cannot disagree with the renderer it documents. */
+const isColor = (value: string) => value.startsWith("#") || value === "transparent";
+const tokens = Object.entries(TOKEN_DEFAULTS) as Array<[string, string]>;
+const stability = Object.entries(STABILITY_TOKEN_DEFAULTS) as Array<[string, string]>;
+const overlaysOn = Object.entries(DEFAULT_OVERLAYS)
+  .filter(([, enabled]) => enabled)
+  .map(([name]) => name);
+const overlaysOff = Object.entries(DEFAULT_OVERLAYS)
+  .filter(([, enabled]) => !enabled)
+  .map(([name]) => name);
+---
+
+<Figure
+  id="ts-token-reference"
+  title="Every default, read from the package"
+  lesson="Token keys omit the CSS prefix: surface maps to --wg-surface, stable to --wg-stab-stable."
+  description={`The package's exported defaults rendered as swatches and values: the ${stability.length}-class stability ramp, all ${tokens.length} renderer tokens, the CAPE class thresholds, and which of the ${overlaysOn.length + overlaysOff.length} overlays default on.`}
+  caption="Rendered at build time from TOKEN_DEFAULTS, STABILITY_TOKEN_DEFAULTS, DEFAULT_CAPE_CLASSES, and DEFAULT_OVERLAYS. A release that changes any default changes this figure with it."
+  units="colors hex · type sizes px · CAPE J/kg"
+>
+  <div class="tokenref">
+    <section aria-label="Stability ramp defaults">
+      <h4>Stability ramp — <code>STABILITY_TOKEN_DEFAULTS</code></h4>
+      <ul class="tokenref__ramp">
+        {stability.map(([name, color]) => (
+          <li>
+            <span class="tokenref__swatch" style={`background: ${color}`}></span>
+            <code>{name}</code>
+            <span class="tokenref__value">{color}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    <section aria-label="CAPE class and overlay defaults">
+      <h4>Scene defaults — <code>DEFAULT_CAPE_CLASSES</code> · <code>DEFAULT_OVERLAYS</code></h4>
+      <p class="tokenref__line">
+        CAPE strip classes: watch from <strong>{DEFAULT_CAPE_CLASSES.watchJkg}</strong>,
+        risk from <strong>{DEFAULT_CAPE_CLASSES.riskJkg}</strong>,
+        severe from <strong>{DEFAULT_CAPE_CLASSES.severeJkg}</strong> J/kg;
+        a cell dims when CIN ≤ <strong>{DEFAULT_CAPE_CLASSES.cappedCinJkg}</strong> J/kg.
+      </p>
+      <p class="tokenref__line">
+        Overlays defaulting <strong>on</strong> ({overlaysOn.length}):
+        {" "}{overlaysOn.join(", ")}.
+      </p>
+      <p class="tokenref__line">
+        Defaulting <strong>off</strong> ({overlaysOff.length}):
+        {" "}{overlaysOff.join(", ")}.
+      </p>
+    </section>
+
+    <section aria-label="Renderer token defaults">
+      <h4>Renderer tokens — <code>TOKEN_DEFAULTS</code> ({tokens.length})</h4>
+      <ul class="tokenref__grid">
+        {tokens.map(([name, value]) => (
+          <li>
+            {isColor(value)
+              ? <span class="tokenref__swatch" style={`background: ${value}`}></span>
+              : <span class="tokenref__swatch tokenref__swatch--text">Aa</span>}
+            <code>{name}</code>
+            <span class="tokenref__value">{value}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  </div>
+</Figure>
+
+<style>
+  .tokenref {
+    display: grid;
+    gap: 1.1rem;
+    padding: 0.9rem var(--wg-figure-inline-space, 1rem) 1.1rem;
+    background: var(--surface);
+  }
+
+  .tokenref h4 {
+    margin: 0 0 0.5rem;
+    color: var(--ink);
+    font: 700 0.82rem/1.3 var(--sans);
+  }
+
+  .tokenref h4 code {
+    color: var(--accent-strong);
+  }
+
+  .tokenref__ramp,
+  .tokenref__grid {
+    display: grid;
+    gap: 0.35rem 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .tokenref__ramp {
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  }
+
+  .tokenref__grid {
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  }
+
+  .tokenref__ramp li,
+  .tokenref__grid li {
+    display: grid;
+    grid-template-columns: 1.35rem minmax(0, 1fr) auto;
+    gap: 0.5rem;
+    align-items: center;
+    min-width: 0;
+    font: 0.72rem/1.4 var(--mono);
+  }
+
+  .tokenref__ramp li code,
+  .tokenref__grid li code {
+    overflow: hidden;
+    color: var(--ink);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .tokenref__swatch {
+    display: grid;
+    place-items: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    border: 1px solid var(--rule);
+    border-radius: 2px;
+  }
+
+  .tokenref__swatch--text {
+    color: var(--ink-mute);
+    background: var(--surface-raised);
+    font: 700 0.62rem/1 var(--mono);
+  }
+
+  .tokenref__value {
+    color: var(--ink-mute);
+  }
+
+  .tokenref__line {
+    margin: 0 0 0.3rem;
+    color: var(--ink-soft);
+    font: 0.76rem/1.55 var(--mono);
+  }
+
+  .tokenref__line strong {
+    color: var(--ink);
+  }
+</style>

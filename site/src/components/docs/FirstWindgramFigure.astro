@@ -1,0 +1,33 @@
+---
+import Figure from "../figure/Figure.astro";
+import SyntheticWindgram from "../windgram/SyntheticWindgram.astro";
+import WindgramKey from "../windgram/WindgramKey.astro";
+import { renderSyntheticWindgram } from "../../lib/example-windgram";
+import { scenarioById } from "../../lib/scenarios";
+
+/* The tutorial's own output: the same parse → buildScene → renderSvg →
+   buildKeySpec → renderKeySvg path the page's code walks, executed at build
+   time on a committed teaching profile. */
+const scenario = scenarioById("convective-cycle");
+const idPrefix = "ts-first-windgram";
+const { scene } = renderSyntheticWindgram(scenario, {}, idPrefix);
+---
+
+<Figure
+  id="ts-first-windgram"
+  title="The chart and key this page's code produces"
+  lesson={scenario.lesson}
+  description={scenario.accessibilityDescription}
+  caption="Rendered at build time by the released package — validate, build a scene, serialize the chart, then derive the key from that final scene. Swap the committed teaching profile for your published one and the code below is the whole program."
+  units="altitude m and ft · wind km/h · temperature °C · pressure kPa · precipitation mm/h · w* m/s"
+  {scenario}
+>
+  <SyntheticWindgram {scenario} {idPrefix} />
+
+  <WindgramKey
+    slot="legend"
+    {scene}
+    chartIdPrefix={idPrefix}
+    scrollLabel="Scrollable key for the first-windgram tutorial chart"
+  />
+</Figure>

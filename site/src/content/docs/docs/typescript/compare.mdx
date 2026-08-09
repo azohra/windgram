@@ -3,9 +3,14 @@ title: Compare model profiles
 description: Report cross-model window agreement and height spread while preserving each document's evidence and comparability facts.
 ---
 
+import { COMPARE_VOCABULARY_VERSION } from 'windgram/compare';
+import CompareAgreementFigure from '../../../../components/docs/CompareAgreementFigure.astro';
+
 `windgram/compare` compares validated profiles for one site. It analyzes every
 document with one timezone and threshold set, then compares the resulting
 findings.
+
+<CompareAgreementFigure />
 
 ## Build a comparison
 
@@ -80,6 +85,8 @@ stay out of the corresponding timing spread.
 `heightSpread` lists each model's launch-relative peak and the difference
 between the highest and lowest. It does not create a mean or consensus height.
 
-`COMPARE_VOCABULARY_VERSION` versions these finding kinds independently of
+`COMPARE_VOCABULARY_VERSION` — currently
+<code>{COMPARE_VOCABULARY_VERSION}</code>, imported here from the package —
+versions these finding kinds independently of
 the published profile `schemaVersion`. Downstream publishers choose weighting,
 display language, and operational thresholds.

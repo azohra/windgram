@@ -6,7 +6,39 @@ entry names the versions it actually changes.
 
 ## [Unreleased]
 
+### Added
+
+- A transport documentation page — the one home for the torn-read problem,
+  `loadProfile`'s miss/stale contract, `loadRuns`, and `runsConsistent` —
+  and an opening figure on every TypeScript documentation page, rendered at
+  build time from committed scenarios by the real package.
+- Generated documentation figures: a registry script that outlines brand
+  typography to paths, producing the README hero, an npm package hero, a
+  six-scenario gallery, and a link-preview social card, all drift-checked
+  in CI. Pages site-wide now emit `og:image`/`twitter:image`.
+- Documentation rot machinery: parity tests asserting documented versions
+  and defaults against package exports and source, and CI typechecking of
+  every TypeScript code fence in the documentation against the built
+  package.
+- The contract's building-block exports documented on the contract page.
+
+### Changed
+
+- The documentation portal is the authority for package API detail. The
+  package README is a front door — badges, hero, one sixty-second example,
+  an entry-points table linking each subpath's guide — and the root README
+  gains badges, the scenario gallery, and a lineage section crediting
+  canadarasp and soaringmeteo.
+- Multi-home facts (the transport contract, timezone-echo semantics, the
+  authority boundary) collapsed to one home each; portal tables render
+  live values from package imports wherever the value is exported.
+- Conventions rewritten: one stakes sentence, seven mechanisms.
+
 ### Fixed
+
+- Stale npm version statements in the versioning page (now rendered from
+  imports); a false `windgram/schema` export-specifier claim; one
+  non-compiling documentation example.
 
 - The data publisher resolves same-model rebase conflicts by the manifests'
   referenceTime — the newer publication wins, a duplicate of an

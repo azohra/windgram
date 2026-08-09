@@ -1,0 +1,235 @@
+---
+import { xForHour } from "windgram/scene";
+import Figure from "../figure/Figure.astro";
+import { renderSyntheticWindgram } from "../../lib/example-windgram";
+import { scenarioById } from "../../lib/scenarios";
+
+/* Scene-graph anatomy: a real render with its own scene's regions outlined
+   and named by the SceneGraph properties that produced them. Every box is
+   positioned from the scene's own scales and strip geometry, so a layout
+   change moves the labels with it. */
+const scenario = scenarioById("convective-cycle");
+const idPrefix = "ts-scene-anatomy";
+const { scene, svg } = renderSyntheticWindgram(scenario, {}, idPrefix);
+
+const s = scene.scales;
+const plotBottom = s.plotTop + s.plotHeight;
+const stripTops = scene.strips.map((strip) => strip.top);
+const firstStripTop = stripTops.length > 0 ? Math.min(...stripTops) : scene.height;
+const stripsBottom = scene.strips.reduce(
+  (bottom, strip) => Math.max(bottom, strip.top + strip.height),
+  firstStripTop,
+);
+const stripKeys = scene.strips.map((strip) => strip.key).join(" · ");
+const selectedX = xForHour(scene, scene.selectedHourIndex);
+
+interface Region {
+  n: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  name: string;
+  source: string;
+  detail: string;
+}
+
+const regions: Region[] = [
+  {
+    n: 1,
+    x: s.plotLeft,
+    y: s.plotTop,
+    w: s.plotWidth,
+    h: s.plotHeight,
+    name: "Time–height plot",
+    source: "scene.fields · scene.series · scene.barbs · scene.markers · scene.gusts",
+    detail: "interpolated iso-band fields, derived-height lines, wind barbs, marker trains",
+  },
+  {
+    n: 2,
+    x: 3,
+    y: s.plotTop,
+    w: s.plotLeft - 6,
+    h: s.plotHeight,
+    name: "Altitude axes",
+    source: "scene.axes.altitude · scene.axes.pressureAltitude",
+    detail: "each tick carries y, labelMetres, and labelFeet; pressure ticks carry median level heights",
+  },
+  {
+    n: 3,
+    x: s.plotLeft,
+    y: plotBottom + 2,
+    w: s.plotWidth,
+    h: Math.max(14, firstStripTop - plotBottom - 6),
+    name: "Hour labels and surface row",
+    source: "scene.axes.hours · scene.surfaceTemperatures",
+    detail: "local hour ticks (hourLabel option) and the per-hour rounded temperature readout",
+  },
+  {
+    n: 4,
+    x: s.plotLeft,
+    y: firstStripTop,
+    w: s.plotWidth,
+    h: stripsBottom - firstStripTop,
+    name: "Metric strips",
+    source: `scene.strips[] — ${stripKeys}`,
+    detail: "one MetricStrip per row with top, height, min/max, and line/area/band paths",
+  },
+];
+---
+
+<Figure
+  id="ts-scene-anatomy"
+  title="One scene graph, mapped onto its own pixels"
+  lesson="buildScene returns pure data; every region of the rendered chart is a named collection on that data."
+  description="A rendered teaching windgram with outlined regions naming the SceneGraph collections that draw them: the time–height plot (fields, series, barbs, markers), the altitude axes, the hour-label and surface-temperature row, the metric strips, the launch line, and the selected-hour column."
+  caption="Region boxes are positioned from this scene's own scales and strip geometry at build time — scene.scales places the plot, each MetricStrip carries its top and height, and the launch line and selected hour are scene fields, not renderer guesses."
+  units="scene px · altitude m and ft · time UTC"
+  {scenario}
+>
+  <div
+    class="anatomy-scroll"
+    role="region"
+    tabindex="0"
+    aria-label="Scrollable windgram with scene-graph regions outlined"
+  >
+    <div class="anatomy-canvas" style={`width: ${scene.width}px`}>
+      <div class="anatomy-mount" set:html={svg} />
+      <svg
+        class="anatomy-overlay"
+        viewBox={`0 0 ${scene.width} ${scene.height}`}
+        width={scene.width}
+        height={scene.height}
+        aria-hidden="true"
+      >
+        {regions.map((region) => (
+          <g>
+            <rect x={region.x} y={region.y} width={region.w} height={region.h} class="anatomy-box" />
+            <circle cx={region.x + 13} cy={region.y + 13} r="9" class="anatomy-chip" />
+            <text x={region.x + 13} y={region.y + 16.5} class="anatomy-chip-number">{region.n}</text>
+          </g>
+        ))}
+        {scene.launch && (
+          <g>
+            <circle cx={s.plotLeft + s.plotWidth - 14} cy={scene.launch.y} r="9" class="anatomy-chip" />
+            <text x={s.plotLeft + s.plotWidth - 14} y={scene.launch.y + 3.5} class="anatomy-chip-number">5</text>
+          </g>
+        )}
+        <g>
+          <circle cx={selectedX} cy={s.plotTop + s.plotHeight - 14} r="9" class="anatomy-chip" />
+          <text x={selectedX} y={s.plotTop + s.plotHeight - 10.5} class="anatomy-chip-number">6</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <ol slot="legend" class="anatomy-legend">
+    {regions.map((region) => (
+      <li>
+        <span class="anatomy-legend__n">{region.n}</span>
+        <span>
+          <strong>{region.name}</strong> — <code>{region.source}</code>:
+          {" "}{region.detail}
+        </span>
+      </li>
+    ))}
+    {scene.launch && (
+      <li>
+        <span class="anatomy-legend__n">5</span>
+        <span>
+          <strong>Launch line</strong> — <code>scene.launch</code>: y,
+          altitude, and label for the surveyed launch ({scene.launch.label})
+        </span>
+      </li>
+    )}
+    <li>
+      <span class="anatomy-legend__n">6</span>
+      <span>
+        <strong>Selected hour</strong> — <code>scene.selectedHourIndex</code>:
+        the day's peak-W* column, highlighted by the <code>selectedHour</code> overlay
+      </span>
+    </li>
+  </ol>
+</Figure>
+
+<style>
+  .anatomy-scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    background: var(--surface);
+    scrollbar-color: var(--accent) var(--surface-raised);
+  }
+
+  .anatomy-scroll:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  .anatomy-canvas {
+    position: relative;
+  }
+
+  .anatomy-mount :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .anatomy-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: auto;
+    pointer-events: none;
+  }
+
+  .anatomy-box {
+    fill: none;
+    stroke: var(--accent-strong);
+    stroke-width: 1.6;
+    stroke-dasharray: 6 4;
+  }
+
+  .anatomy-chip {
+    fill: var(--accent);
+    stroke: var(--surface);
+    stroke-width: 1.5;
+  }
+
+  .anatomy-chip-number {
+    fill: var(--accent-ink);
+    font: 800 11px var(--mono);
+    text-anchor: middle;
+  }
+
+  .anatomy-legend {
+    display: grid;
+    gap: 0.45rem;
+    margin: 0;
+    padding: 0;
+    font: 0.76rem/1.5 var(--mono);
+    list-style: none;
+  }
+
+  .anatomy-legend li {
+    display: grid;
+    grid-template-columns: 1.5rem 1fr;
+    gap: 0.6rem;
+  }
+
+  .anatomy-legend__n {
+    display: grid;
+    place-items: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    color: var(--accent-ink);
+    background: var(--accent);
+    border-radius: 50%;
+    font-weight: 800;
+  }
+
+  .anatomy-legend strong {
+    color: var(--ink);
+  }
+</style>

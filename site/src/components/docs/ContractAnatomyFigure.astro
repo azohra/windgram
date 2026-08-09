@@ -1,0 +1,149 @@
+---
+import { p50 } from "windgram/derive";
+import Figure from "../figure/Figure.astro";
+import { scenarioById } from "../../lib/scenarios";
+
+/* The profile document's anatomy, excerpted from a real committed teaching
+   profile at build time. Every JSON fragment below is stringified from the
+   parsed document itself — the values are the scenario's published values,
+   not typed-in examples. */
+const scenario = scenarioById("convective-cycle");
+const profile = scenario.profile;
+
+let hourIndex = 0;
+let bestWstar = -Infinity;
+profile.hours.forEach((hour, index) => {
+  const wstar = p50(hour.derived.thermalVelocityMs);
+  if (wstar !== null && wstar > bestWstar) {
+    bestWstar = wstar;
+    hourIndex = index;
+  }
+});
+const hour = profile.hours[hourIndex];
+const show = (value: unknown) => JSON.stringify(value, null, 2);
+
+const segments = [
+  {
+    path: "schemaVersion · model",
+    role: "Check schemaVersion before anything else; model is an open catalogue slug, not a package enum.",
+    json: show({ schemaVersion: profile.schemaVersion, model: profile.model }),
+  },
+  {
+    path: "run",
+    role: "Publication identity: (referenceTime, generatedAt). Ensemble documents add total membership at run.members.",
+    json: show(profile.run),
+  },
+  {
+    path: "site",
+    role: "Identity, coordinates, surveyed launch altitude, grid terrain, and the optional v0.4 timezone echo.",
+    json: show(profile.site),
+  },
+  ...(profile.semantics
+    ? [{
+        path: "semantics",
+        role: "Optional gust and precipitation meaning, stored with the document; absence creates no default.",
+        json: show(profile.semantics),
+      }]
+    : []),
+  {
+    path: `hours[${hourIndex}].surface`,
+    role: `One of ${profile.hours.length} chronological UTC hours — the peak-W* hour here. Optional capability fields are absent, never zero.`,
+    json: show({ validAt: hour.validAt, surface: hour.surface }),
+  },
+  {
+    path: `hours[${hourIndex}].levels[0]`,
+    role: `First of ${hour.levels.length} ascending pressure levels: height, temperature, moisture, and wind per isobaric coordinate.`,
+    json: show(hour.levels[0]),
+  },
+  {
+    path: `hours[${hourIndex}].derived`,
+    role: "The pipeline-owned block: boundary-layer top, thermal velocity, cloud base, and the stored 1.0 m/s usable-lift top.",
+    json: show(hour.derived),
+  },
+];
+---
+
+<Figure
+  id="ts-contract-anatomy"
+  title="A profile document, block by block"
+  lesson="One document carries its own contract version, publication identity, site context, semantics, and every forecast hour."
+  description={`Excerpts of a real teaching profile: the schemaVersion and model identity, the run block, the site block with its timezone echo, the semantics tag, and the peak-W* hour's surface, first level, and derived blocks, quoted verbatim from the committed document.`}
+  caption={`Every fragment is stringified from the parsed committed profile at build time — these are the document's actual published values. The excerpted hour is hours[${hourIndex}] of ${profile.hours.length}; each hour repeats the surface/levels/derived shape.`}
+  units="heights m MSL · temperatures °C · wind m/s · pressure Pa"
+  {scenario}
+>
+  <div class="contract-anatomy">
+    {segments.map((segment) => (
+      <section class="contract-anatomy__segment">
+        <div class="contract-anatomy__meta">
+          <p class="contract-anatomy__path"><code>{segment.path}</code></p>
+          <p class="contract-anatomy__role">{segment.role}</p>
+        </div>
+        <pre class="contract-anatomy__code"><code>{segment.json}</code></pre>
+      </section>
+    ))}
+  </div>
+</Figure>
+
+<style>
+  .contract-anatomy {
+    display: grid;
+    gap: 0.8rem;
+    padding: 0.9rem var(--wg-figure-inline-space, 1rem) 1.1rem;
+    background: var(--surface);
+  }
+
+  .contract-anatomy__segment {
+    display: grid;
+    grid-template-columns: minmax(15rem, 22rem) 1fr;
+    gap: 0.75rem 1.1rem;
+    align-items: start;
+    padding-block-start: 0.7rem;
+    border-block-start: 1px solid var(--rule);
+  }
+
+  .contract-anatomy__segment:first-child {
+    padding-block-start: 0;
+    border-block-start: 0;
+  }
+
+  .contract-anatomy__meta {
+    min-width: 0;
+  }
+
+  .contract-anatomy__path {
+    margin: 0 0 0.3rem;
+    font: 700 0.78rem/1.35 var(--mono);
+  }
+
+  .contract-anatomy__path code {
+    color: var(--accent-strong);
+  }
+
+  .contract-anatomy__role {
+    margin: 0;
+    color: var(--ink-soft);
+    font: 0.76rem/1.5 var(--sans);
+  }
+
+  .contract-anatomy__code {
+    min-width: 0;
+    max-height: 17rem;
+    margin: 0;
+    padding: 0.6rem 0.8rem;
+    overflow: auto;
+    background: var(--surface-raised);
+    border: 1px solid var(--rule);
+    font: 0.68rem/1.5 var(--mono);
+  }
+
+  .contract-anatomy__code code {
+    color: var(--ink);
+  }
+
+  @media (max-width: 44rem) {
+    .contract-anatomy__segment {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
