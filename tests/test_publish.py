@@ -1,4 +1,14 @@
-from windgram.publish import compact_json, round_document
+import json
+import time
+from pathlib import Path
+
+from windgram.publish import (
+    compact_json,
+    manifest_stats,
+    round_document,
+    runs_index,
+    write_runs_index,
+)
 
 
 def test_rounds_each_quantity_to_its_schema_precision():
@@ -124,3 +134,92 @@ def test_rounded_values_serialize_without_float_noise():
     document = {"derived": {"boundaryLayerTopM": 3223.1258376951764}}
 
     assert compact_json(round_document(document)) == '{"derived":{"boundaryLayerTopM":3223.1}}'
+
+
+class FakeDownloadStats:
+    requests = 421
+    response_bytes = 9_000_000
+    retries = 3
+
+
+def test_manifest_stats_publishes_exactly_the_stable_core():
+    stats = manifest_stats(FakeDownloadStats(), time.monotonic() - 1.0)
+
+    assert list(stats) == ["downloadBytes", "downloads", "durationMs", "retries"]
+    assert stats["downloadBytes"] == 9_000_000
+    assert stats["downloads"] == 421
+    assert stats["retries"] == 3
+    assert stats["durationMs"] >= 1000
+
+
+def test_every_builder_publishes_stats_through_the_shared_core():
+    # The stable core is standardized by construction: each builder's
+    # manifest goes through manifest_stats, and no builder keeps a private
+    # spelling like the old downloadRetries.
+    builders = (
+        "build.py",
+        "build_1km.py",
+        "build_gfs.py",
+        "build_hrrr.py",
+        "build_nam.py",
+        "build_reps.py",
+        "build_geps.py",
+    )
+    for name in builders:
+        source = (Path("windgram") / name).read_text()
+        assert "manifest_stats(" in source, name
+        assert "downloadRetries" not in source, name
+
+
+def manifest(model: str, reference_time: str, generated_at: str) -> dict:
+    return {
+        "model": model,
+        "referenceTime": reference_time,
+        "generatedAt": generated_at,
+        "schemaVersion": 1,
+        "stats": {"downloads": 1},
+    }
+
+
+def test_runs_index_maps_each_on_disk_manifest_to_its_publication_identity(tmp_path):
+    for model, reference_time, generated_at in (
+        ("gfs", "2026-08-08T06:00:00Z", "2026-08-08T12:10:00Z"),
+        ("hrdps-continental", "2026-08-08T12:00:00Z", "2026-08-08T16:40:00Z"),
+    ):
+        directory = tmp_path / model
+        directory.mkdir()
+        (directory / "manifest.json").write_text(
+            json.dumps(manifest(model, reference_time, generated_at))
+        )
+    (tmp_path / "models.json").write_text("{}")  # not a manifest: ignored
+
+    index = runs_index(tmp_path)
+
+    assert index == {
+        "schemaVersion": 1,
+        "runs": {
+            "gfs": {
+                "referenceTime": "2026-08-08T06:00:00Z",
+                "generatedAt": "2026-08-08T12:10:00Z",
+            },
+            "hrdps-continental": {
+                "referenceTime": "2026-08-08T12:00:00Z",
+                "generatedAt": "2026-08-08T16:40:00Z",
+            },
+        },
+    }
+
+
+def test_write_runs_index_regenerates_the_index_wholesale(tmp_path):
+    directory = tmp_path / "reps"
+    directory.mkdir()
+    (directory / "manifest.json").write_text(
+        json.dumps(manifest("reps", "2026-08-08T00:00:00Z", "2026-08-08T03:05:00Z"))
+    )
+    (tmp_path / "runs.json").write_text('{"schemaVersion":1,"runs":{"stale":{}}}')
+
+    write_runs_index(tmp_path)
+
+    index = json.loads((tmp_path / "runs.json").read_text())
+    assert list(index["runs"]) == ["reps"]
+    assert index["runs"]["reps"]["referenceTime"] == "2026-08-08T00:00:00Z"

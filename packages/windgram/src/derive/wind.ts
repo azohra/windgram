@@ -15,6 +15,16 @@ export function normalizeDegrees(degrees: number): number {
   return ((degrees % 360) + 360) % 360;
 }
 
+/**
+ * m/s → km/h — the unit conversion behind every km/h readout (wind barbs,
+ * gust labels). Lives in derive/ since 0.3.0: it is a pure function of
+ * published values, not scene geometry. (`windgram/scene` re-exports it,
+ * deprecated, until 0.4 so existing imports keep working.)
+ */
+export function msToKmh(speedMs: number): number {
+  return speedMs * 3.6;
+}
+
 /** Components from speed and meteorological direction (from-direction). */
 export function windToComponents(speedMs: number, directionDeg: number): WindComponents {
   const radians = directionDeg * DEGREES_TO_RADIANS;

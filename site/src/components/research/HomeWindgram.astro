@@ -1,11 +1,10 @@
 ---
 import exampleProfile from "./forecast-example.json";
 import { windgramProfileSchema } from "windgram/contract";
-import { lapseRateCPer1000Ft, p50, stabilityClass, surfaceLapseCPer1000Ft } from "windgram/derive";
+import { lapseRateCPer1000Ft, msToKmh, p50, stabilityClass, surfaceLapseCPer1000Ft } from "windgram/derive";
 import {
   curvedPath,
   interpolateVertical,
-  msToKmh,
   pointPath,
   sampledFieldPaths,
   windBarbParts,

@@ -28,6 +28,7 @@ from windgram.build import (
     english_pressure_variable,
     gdps_cape_hours,
     gdps_levels,
+    model_semantics,
     old_style_pressure_variable,
 )
 from windgram.datamart import DownloadStats, NotFoundError
@@ -204,6 +205,13 @@ def test_models_json_matches_the_builder_configurations():
         assert capabilities["pblHeight"] == (model.pbl_variable is not None)
         assert capabilities["cloudLayers"] is False  # ECCC has total cloud only
         assert capabilities["cloudProfile"] is False
+        # The catalogue's precipitation token mirrors the transport the
+        # builder actually uses — window quantities, never PRATE, here.
+        assert capabilities["precipitation"] == "windowMeanRate"
+        assert model_semantics(model) == {
+            "gust": "hourMax",
+            "precipitation": "windowMeanRate",
+        }
 
 
 def test_models_json_science_capabilities_match_the_research_matrix():
@@ -231,6 +239,50 @@ def test_models_json_science_capabilities_match_the_research_matrix():
     assert science(entries["gfs"]) == ("instant", True, True, True, True, True)
     # REPS carries none of the four families per-member — the empty column.
     assert science(entries["reps"]) == (False, False, False, False, False, False)
+
+
+def test_every_profile_semantics_declaration_mirrors_the_catalogue():
+    # The same honesty pattern as gust: what a builder stamps into its
+    # documents' "semantics" block must be exactly what data/models.json
+    # declares — a gust token where the model publishes gusts, none where
+    # it does not, and the precipitation token always.
+    from windgram import build_1km, build_geps, build_gfs, build_hrrr, build_nam, build_reps
+
+    declared = {
+        "hrdps-continental": model_semantics(HRDPS),
+        "rdps": model_semantics(RDPS),
+        "gdps": model_semantics(GDPS),
+        "hrdps-west": build_1km.SEMANTICS,
+        "hrrr-conus": build_hrrr.SEMANTICS,
+        "gfs": build_gfs.SEMANTICS,
+        "nam": build_nam.SEMANTICS,
+        "nam-conus-nest": build_nam.SEMANTICS,
+        "reps": build_reps.SEMANTICS,
+        "geps": build_geps.SEMANTICS,
+    }
+    catalogue = json.loads(Path("data/models.json").read_text())
+    entries = {entry["slug"]: entry for entry in catalogue["models"]}
+
+    assert set(declared) == set(entries), "every catalogued model has a builder"
+    for slug, semantics in declared.items():
+        capabilities = entries[slug]["capabilities"]
+        assert semantics.get("gust", False) == capabilities["gust"], slug
+        assert semantics["precipitation"] == capabilities["precipitation"], slug
+        # PRATE feeds are the only instantaneous rates; everything else is
+        # a window mean (fixed windows, buckets, or differenced run totals).
+        expected_rate = "instantRate" if slug in ("hrdps-west", "hrrr-conus") else "windowMeanRate"
+        assert semantics["precipitation"] == expected_rate, slug
+
+
+def test_every_catalogue_entry_declares_cadence_and_precipitation():
+    catalogue = json.loads(Path("data/models.json").read_text())
+    for entry in catalogue["models"]:
+        assert isinstance(entry["runIntervalHours"], int), entry["slug"]
+        assert entry["runIntervalHours"] > 0, entry["slug"]
+        assert entry["capabilities"]["precipitation"] in (
+            "instantRate",
+            "windowMeanRate",
+        ), entry["slug"]
 
 
 def test_precip_rates_difference_run_totals_and_divide_by_the_window():
@@ -384,7 +436,9 @@ def test_derived_levels_carry_omega_only_where_the_source_has_it():
         ],
     }
 
-    profile = derive_windgram_profile(source, model="rdps")
+    profile = derive_windgram_profile(
+        source, model="rdps", semantics=model_semantics(RDPS)
+    )
     levels = profile["hours"][0]["levels"]
     assert levels[0]["verticalVelocityPaS"] == -0.42
     assert "verticalVelocityPaS" not in levels[1]
@@ -497,6 +551,8 @@ def test_build_profiles_end_to_end_against_a_fake_datamart(monkeypatch):
     (profile,) = result["profiles"]
     assert profile["model"] == "test-10km"
     assert profile["site"]["modelElevationM"] == 1000.0
+    # The published document self-interprets its varying fields.
+    assert profile["semantics"] == {"gust": "hourMax", "precipitation": "windowMeanRate"}
 
     # GRIB simple packing quantizes through float32, hence the tolerances.
     first, second = profile["hours"]

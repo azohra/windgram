@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Windgram cross-model run index, data/runs.json",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "runs": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+        "description": "Lowercase hyphenated slug — the identity of models and sites everywhere."
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "referenceTime": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "The model's currently published run, UTC."
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "When that run's documents were generated, UTC."
+          }
+        },
+        "required": [
+          "referenceTime",
+          "generatedAt"
+        ]
+      },
+      "description": "Model slug -> the manifest's (referenceTime, generatedAt) pair."
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "runs"
+  ],
+  "description": "data/runs.json — the machine-written cross-model run index, keyed by model slug: per published model, its manifest's (referenceTime, generatedAt) pair, regenerated wholesale at every publish. One fetch answers \"how fresh is everything\"; judge lateness against each model's declared runIntervalHours."
+}

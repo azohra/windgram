@@ -36,17 +36,21 @@ const dayLabel = new Intl.DateTimeFormat("en-US", {
 }).format(new Date(scene.hourValidAts[0]));
 
 // Peak-hour readout, same wording rules as the compare page's app: gust
-// phrasing follows the model's declared semantics (hour-max is an honest
-// "gusting to"; an instantaneous diagnostic is not).
+// phrasing follows the declared semantics (hour-max is an honest "gusting
+// to"; an instantaneous diagnostic is not) — the document's own semantics
+// tag first, the catalogue capability as the fallback for documents
+// predating the tag.
 const selectedValidAt = scene.hourValidAts[scene.selectedHourIndex];
 const selectedHour = EXAMPLE_PROFILE.hours.find((hour) => hour.validAt === selectedValidAt)!;
 const usableLift = p50(selectedHour.derived.usableLiftTopM);
 const gustMs = selectedHour.surface.windGustMs == null ? null : p50(selectedHour.surface.windGustMs);
-const gustCapability = modelBySlug(EXAMPLE_PROFILE.model)?.capabilities.gust;
+const gustSemantics =
+  EXAMPLE_PROFILE.semantics?.gust ??
+  (modelBySlug(EXAMPLE_PROFILE.model)?.capabilities.gust || undefined);
 const gustText =
-  gustMs == null || !gustCapability
+  gustMs == null || !gustSemantics
     ? null
-    : `${gustCapability === "hourMax" ? "gusting to" : "gusts"} ${Math.round(gustMs * 3.6)} km/h`;
+    : `${gustSemantics === "hourMax" ? "gusting to" : "gusts"} ${Math.round(gustMs * 3.6)} km/h`;
 
 /* The switchboard: every package overlay, grouped by what it draws. The
    coverage check below makes a new package overlay fail this build until

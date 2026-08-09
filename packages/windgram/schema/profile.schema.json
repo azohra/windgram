@@ -9,7 +9,8 @@
     },
     "model": {
       "type": "string",
-      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "description": "Lowercase hyphenated slug — the identity of models and sites everywhere."
     },
     "run": {
       "type": "object",
@@ -17,12 +18,20 @@
         "referenceTime": {
           "type": "string",
           "format": "date-time",
-          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+          "description": "Model run reference time (initialization), UTC."
         },
         "generatedAt": {
           "type": "string",
           "format": "date-time",
-          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+          "description": "When the pipeline generated this document, UTC."
+        },
+        "members": {
+          "description": "Ensemble member count for the run, declared once. OMITTED on deterministic documents — the absence is the deterministic declaration. Per-position EnsembleValue.members can be lower where members were censored.",
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
         }
       },
       "required": [
@@ -35,7 +44,8 @@
       "properties": {
         "id": {
           "type": "string",
-          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "description": "Lowercase hyphenated slug — the identity of models and sites everywhere."
         },
         "name": {
           "type": "string",
@@ -55,10 +65,12 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "The launch's surveyed elevation, metres MSL — the same quantity sites.json publishes as elevationM, stored per-profile. Null when unknown."
         },
         "modelElevationM": {
-          "type": "number"
+          "type": "number",
+          "description": "The model's terrain elevation at the site's grid point, metres MSL."
         }
       },
       "required": [
@@ -70,6 +82,28 @@
         "modelElevationM"
       ]
     },
+    "semantics": {
+      "type": "object",
+      "properties": {
+        "gust": {
+          "description": "Gust semantics for surface.windGustMs: \"hourMax\" = maximum model-timestep gust over the hour ending at validAt (ECCC); \"instant\" = instantaneous diagnostic at validAt (NOAA). Mirrors models.json capabilities.gust.",
+          "type": "string",
+          "enum": [
+            "hourMax",
+            "instant"
+          ]
+        },
+        "precipitation": {
+          "description": "Precipitation-rate semantics for surface.precipitationMmHr: \"instantRate\" = instantaneous rate diagnostic at validAt; \"windowMeanRate\" = accumulation over the step window ending at validAt divided by the window length. Mirrors models.json capabilities.precipitation.",
+          "type": "string",
+          "enum": [
+            "instantRate",
+            "windowMeanRate"
+          ]
+        }
+      },
+      "description": "Per-document echo of the provider semantics models.json declares for this model, so a stored profile stays interpretable without the catalogue. Absence of the block or a field means the document predates the tag, never that a default applies."
+    },
     "hours": {
       "type": "array",
       "items": {
@@ -78,7 +112,8 @@
           "validAt": {
             "type": "string",
             "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "Forecast valid time, UTC instant."
           },
           "surface": {
             "type": "object",
@@ -94,7 +129,8 @@
                       "members": {
                         "type": "integer",
                         "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
+                        "maximum": 9007199254740991,
+                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                       },
                       "p10": {
                         "type": "number"
@@ -112,6 +148,7 @@
                         "type": "number"
                       },
                       "ceiledMembers": {
+                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 9007199254740991
@@ -124,9 +161,11 @@
                       "p50",
                       "p75",
                       "p90"
-                    ]
+                    ],
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                   }
-                ]
+                ],
+                "description": "Mean-sea-level pressure, Pa. A measured quantity, so SI pascals; level pressure (levels[].pressureHpa) is the vertical coordinate and keeps conventional hectopascals — the unit split is deliberate."
               },
               "temperatureC": {
                 "anyOf": [
@@ -139,7 +178,8 @@
                       "members": {
                         "type": "integer",
                         "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
+                        "maximum": 9007199254740991,
+                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                       },
                       "p10": {
                         "type": "number"
@@ -157,6 +197,7 @@
                         "type": "number"
                       },
                       "ceiledMembers": {
+                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 9007199254740991
@@ -169,9 +210,11 @@
                       "p50",
                       "p75",
                       "p90"
-                    ]
+                    ],
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                   }
-                ]
+                ],
+                "description": "2 m air temperature, degC."
               },
               "dewPointC": {
                 "anyOf": [
@@ -184,7 +227,8 @@
                       "members": {
                         "type": "integer",
                         "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
+                        "maximum": 9007199254740991,
+                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                       },
                       "p10": {
                         "type": "number"
@@ -202,6 +246,7 @@
                         "type": "number"
                       },
                       "ceiledMembers": {
+                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 9007199254740991
@@ -214,9 +259,11 @@
                       "p50",
                       "p75",
                       "p90"
-                    ]
+                    ],
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                   }
-                ]
+                ],
+                "description": "2 m dew point, degC."
               },
               "windSpeedMs": {
                 "anyOf": [
@@ -229,7 +276,8 @@
                       "members": {
                         "type": "integer",
                         "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
+                        "maximum": 9007199254740991,
+                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                       },
                       "p10": {
                         "type": "number"
@@ -247,6 +295,7 @@
                         "type": "number"
                       },
                       "ceiledMembers": {
+                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 9007199254740991
@@ -259,9 +308,11 @@
                       "p50",
                       "p75",
                       "p90"
-                    ]
+                    ],
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                   }
-                ]
+                ],
+                "description": "10 m wind speed, m/s."
               },
               "windDirectionDeg": {
                 "anyOf": [
@@ -274,7 +325,8 @@
                       "members": {
                         "type": "integer",
                         "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
+                        "maximum": 9007199254740991,
+                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                       },
                       "p10": {
                         "type": "number"
@@ -292,6 +344,7 @@
                         "type": "number"
                       },
                       "ceiledMembers": {
+                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 9007199254740991
@@ -304,9 +357,11 @@
                       "p50",
                       "p75",
                       "p90"
-                    ]
+                    ],
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                   }
-                ]
+                ],
+                "description": "10 m wind direction, meteorological convention (direction the wind comes FROM), 0-359 deg."
               },
               "cloudCoverPercent": {
                 "anyOf": [
@@ -319,7 +374,8 @@
                       "members": {
                         "type": "integer",
                         "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
+                        "maximum": 9007199254740991,
+                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                       },
                       "p10": {
                         "type": "number"
@@ -337,6 +393,7 @@
                         "type": "number"
                       },
                       "ceiledMembers": {
+                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 9007199254740991
@@ -349,9 +406,11 @@
                       "p50",
                       "p75",
                       "p90"
-                    ]
+                    ],
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                   }
-                ]
+                ],
+                "description": "Total cloud cover, % 0-100."
               },
               "precipitationMmHr": {
                 "anyOf": [
@@ -364,7 +423,8 @@
                       "members": {
                         "type": "integer",
                         "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
+                        "maximum": 9007199254740991,
+                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                       },
                       "p10": {
                         "type": "number"
@@ -382,6 +442,7 @@
                         "type": "number"
                       },
                       "ceiledMembers": {
+                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 9007199254740991
@@ -394,9 +455,11 @@
                       "p50",
                       "p75",
                       "p90"
-                    ]
+                    ],
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                   }
-                ]
+                ],
+                "description": "Precipitation rate, mm/h. SEMANTICS DIFFER BY PROVIDER — declared per model in models.json capabilities.precipitation and echoed in the document's top-level semantics.precipitation: \"instantRate\" = instantaneous rate diagnostic at validAt; \"windowMeanRate\" = accumulation over the step window ending at validAt divided by the window length."
               },
               "sensibleHeatFluxWm2": {
                 "anyOf": [
@@ -409,7 +472,8 @@
                       "members": {
                         "type": "integer",
                         "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
+                        "maximum": 9007199254740991,
+                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                       },
                       "p10": {
                         "type": "number"
@@ -427,6 +491,7 @@
                         "type": "number"
                       },
                       "ceiledMembers": {
+                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 9007199254740991
@@ -439,9 +504,11 @@
                       "p50",
                       "p75",
                       "p90"
-                    ]
+                    ],
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                   }
-                ]
+                ],
+                "description": "Surface sensible heat flux, W/m2."
               },
               "latentHeatFluxWm2": {
                 "anyOf": [
@@ -454,7 +521,8 @@
                       "members": {
                         "type": "integer",
                         "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
+                        "maximum": 9007199254740991,
+                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                       },
                       "p10": {
                         "type": "number"
@@ -472,6 +540,7 @@
                         "type": "number"
                       },
                       "ceiledMembers": {
+                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 9007199254740991
@@ -484,11 +553,14 @@
                       "p50",
                       "p75",
                       "p90"
-                    ]
+                    ],
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                   }
-                ]
+                ],
+                "description": "Surface latent heat flux, W/m2."
               },
               "windGustMs": {
+                "description": "10 m wind gust, m/s. SEMANTICS DIFFER BY PROVIDER — declared per model in models.json capabilities.gust and echoed in the document's top-level semantics.gust: \"hourMax\" = maximum model-timestep gust over the hour ending at validAt (ECCC, the pilot's \"gusting to\"); \"instant\" = instantaneous diagnostic gust at validAt (NOAA). Hour-max runs ~20-30 % higher systematically. Absent where the model publishes no gust.",
                 "anyOf": [
                   {
                     "type": "number"
@@ -499,7 +571,8 @@
                       "members": {
                         "type": "integer",
                         "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
+                        "maximum": 9007199254740991,
+                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                       },
                       "p10": {
                         "type": "number"
@@ -517,6 +590,7 @@
                         "type": "number"
                       },
                       "ceiledMembers": {
+                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 9007199254740991
@@ -529,11 +603,13 @@
                       "p50",
                       "p75",
                       "p90"
-                    ]
+                    ],
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                   }
                 ]
               },
               "capeJkg": {
+                "description": "Surface-based CAPE, J/kg (>= 0), instantaneous — the parcel a surface-heated thermal actually flies. Provider \"not computed\" sentinels are masked upstream; absent means \"not published\", never zero.",
                 "anyOf": [
                   {
                     "type": "number"
@@ -544,7 +620,8 @@
                       "members": {
                         "type": "integer",
                         "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
+                        "maximum": 9007199254740991,
+                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                       },
                       "p10": {
                         "type": "number"
@@ -562,6 +639,7 @@
                         "type": "number"
                       },
                       "ceiledMembers": {
+                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 9007199254740991
@@ -574,11 +652,13 @@
                       "p50",
                       "p75",
                       "p90"
-                    ]
+                    ],
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                   }
                 ]
               },
               "cinJkg": {
+                "description": "Surface-based CIN, J/kg (<= 0), instantaneous. Decoupled from CAPE in the capabilities (the HRDPS family publishes CAPE with no CIN); absence must not be read as \"no cap\".",
                 "anyOf": [
                   {
                     "type": "number"
@@ -589,7 +669,8 @@
                       "members": {
                         "type": "integer",
                         "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
+                        "maximum": 9007199254740991,
+                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                       },
                       "p10": {
                         "type": "number"
@@ -607,6 +688,7 @@
                         "type": "number"
                       },
                       "ceiledMembers": {
+                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 9007199254740991
@@ -619,11 +701,13 @@
                       "p50",
                       "p75",
                       "p90"
-                    ]
+                    ],
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                   }
                 ]
               },
               "pblHeightM": {
+                "description": "Model planetary-boundary-layer depth, metres ABOVE GROUND (AGL), not MSL — add site.modelElevationM before comparing with derived.boundaryLayerTopM (MSL).",
                 "anyOf": [
                   {
                     "type": "number"
@@ -634,7 +718,8 @@
                       "members": {
                         "type": "integer",
                         "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
+                        "maximum": 9007199254740991,
+                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                       },
                       "p10": {
                         "type": "number"
@@ -652,6 +737,7 @@
                         "type": "number"
                       },
                       "ceiledMembers": {
+                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 9007199254740991
@@ -664,11 +750,13 @@
                       "p50",
                       "p75",
                       "p90"
-                    ]
+                    ],
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                   }
                 ]
               },
               "lowCloudPercent": {
+                "description": "Instantaneous low cloud-layer fraction, % 0-100 (NOAA models only). NCEP's terrain-following sigma band (1.0-0.642 of surface pressure), not a fixed altitude.",
                 "anyOf": [
                   {
                     "type": "number"
@@ -679,7 +767,8 @@
                       "members": {
                         "type": "integer",
                         "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
+                        "maximum": 9007199254740991,
+                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                       },
                       "p10": {
                         "type": "number"
@@ -697,6 +786,7 @@
                         "type": "number"
                       },
                       "ceiledMembers": {
+                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 9007199254740991
@@ -709,11 +799,13 @@
                       "p50",
                       "p75",
                       "p90"
-                    ]
+                    ],
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                   }
                 ]
               },
               "midCloudPercent": {
+                "description": "Instantaneous middle cloud-layer fraction, % 0-100 (NOAA models only). NCEP sigma band 0.642-0.35 of surface pressure.",
                 "anyOf": [
                   {
                     "type": "number"
@@ -724,7 +816,8 @@
                       "members": {
                         "type": "integer",
                         "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
+                        "maximum": 9007199254740991,
+                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                       },
                       "p10": {
                         "type": "number"
@@ -742,6 +835,7 @@
                         "type": "number"
                       },
                       "ceiledMembers": {
+                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 9007199254740991
@@ -754,11 +848,13 @@
                       "p50",
                       "p75",
                       "p90"
-                    ]
+                    ],
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                   }
                 ]
               },
               "highCloudPercent": {
+                "description": "Instantaneous high cloud-layer fraction, % 0-100 (NOAA models only). NCEP sigma band 0.35-0.15 of surface pressure.",
                 "anyOf": [
                   {
                     "type": "number"
@@ -769,7 +865,8 @@
                       "members": {
                         "type": "integer",
                         "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
+                        "maximum": 9007199254740991,
+                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                       },
                       "p10": {
                         "type": "number"
@@ -787,6 +884,7 @@
                         "type": "number"
                       },
                       "ceiledMembers": {
+                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 9007199254740991
@@ -799,7 +897,8 @@
                       "p50",
                       "p75",
                       "p90"
-                    ]
+                    ],
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                   }
                 ]
               }
@@ -832,7 +931,8 @@
                         "members": {
                           "type": "integer",
                           "exclusiveMinimum": 0,
-                          "maximum": 9007199254740991
+                          "maximum": 9007199254740991,
+                          "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                         },
                         "p10": {
                           "type": "number"
@@ -850,6 +950,7 @@
                           "type": "number"
                         },
                         "ceiledMembers": {
+                          "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                           "type": "integer",
                           "minimum": 0,
                           "maximum": 9007199254740991
@@ -862,9 +963,11 @@
                         "p50",
                         "p75",
                         "p90"
-                      ]
+                      ],
+                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                     }
-                  ]
+                  ],
+                  "description": "Isobaric level pressure, hPa — the vertical coordinate, in the conventional hectopascals levels are named by (925, 850, …); surface.pressurePa, a measured quantity, is SI pascals instead."
                 },
                 "heightM": {
                   "anyOf": [
@@ -877,7 +980,8 @@
                         "members": {
                           "type": "integer",
                           "exclusiveMinimum": 0,
-                          "maximum": 9007199254740991
+                          "maximum": 9007199254740991,
+                          "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                         },
                         "p10": {
                           "type": "number"
@@ -895,6 +999,7 @@
                           "type": "number"
                         },
                         "ceiledMembers": {
+                          "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                           "type": "integer",
                           "minimum": 0,
                           "maximum": 9007199254740991
@@ -907,9 +1012,11 @@
                         "p50",
                         "p75",
                         "p90"
-                      ]
+                      ],
+                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                     }
-                  ]
+                  ],
+                  "description": "Geopotential height of the level, metres MSL."
                 },
                 "temperatureC": {
                   "anyOf": [
@@ -922,7 +1029,8 @@
                         "members": {
                           "type": "integer",
                           "exclusiveMinimum": 0,
-                          "maximum": 9007199254740991
+                          "maximum": 9007199254740991,
+                          "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                         },
                         "p10": {
                           "type": "number"
@@ -940,6 +1048,7 @@
                           "type": "number"
                         },
                         "ceiledMembers": {
+                          "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                           "type": "integer",
                           "minimum": 0,
                           "maximum": 9007199254740991
@@ -952,9 +1061,11 @@
                         "p50",
                         "p75",
                         "p90"
-                      ]
+                      ],
+                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                     }
-                  ]
+                  ],
+                  "description": "Level temperature, degC."
                 },
                 "dewPointC": {
                   "anyOf": [
@@ -967,7 +1078,8 @@
                         "members": {
                           "type": "integer",
                           "exclusiveMinimum": 0,
-                          "maximum": 9007199254740991
+                          "maximum": 9007199254740991,
+                          "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                         },
                         "p10": {
                           "type": "number"
@@ -985,6 +1097,7 @@
                           "type": "number"
                         },
                         "ceiledMembers": {
+                          "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                           "type": "integer",
                           "minimum": 0,
                           "maximum": 9007199254740991
@@ -997,9 +1110,11 @@
                         "p50",
                         "p75",
                         "p90"
-                      ]
+                      ],
+                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                     }
-                  ]
+                  ],
+                  "description": "Level dew point, degC."
                 },
                 "windSpeedMs": {
                   "anyOf": [
@@ -1012,7 +1127,8 @@
                         "members": {
                           "type": "integer",
                           "exclusiveMinimum": 0,
-                          "maximum": 9007199254740991
+                          "maximum": 9007199254740991,
+                          "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                         },
                         "p10": {
                           "type": "number"
@@ -1030,6 +1146,7 @@
                           "type": "number"
                         },
                         "ceiledMembers": {
+                          "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                           "type": "integer",
                           "minimum": 0,
                           "maximum": 9007199254740991
@@ -1042,9 +1159,11 @@
                         "p50",
                         "p75",
                         "p90"
-                      ]
+                      ],
+                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                     }
-                  ]
+                  ],
+                  "description": "Level wind speed, m/s."
                 },
                 "windDirectionDeg": {
                   "anyOf": [
@@ -1057,7 +1176,8 @@
                         "members": {
                           "type": "integer",
                           "exclusiveMinimum": 0,
-                          "maximum": 9007199254740991
+                          "maximum": 9007199254740991,
+                          "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                         },
                         "p10": {
                           "type": "number"
@@ -1075,6 +1195,7 @@
                           "type": "number"
                         },
                         "ceiledMembers": {
+                          "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                           "type": "integer",
                           "minimum": 0,
                           "maximum": 9007199254740991
@@ -1087,11 +1208,14 @@
                         "p50",
                         "p75",
                         "p90"
-                      ]
+                      ],
+                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                     }
-                  ]
+                  ],
+                  "description": "Level wind direction, meteorological convention (from), 0-359 deg."
                 },
                 "verticalVelocityPaS": {
+                  "description": "Vertical velocity as pressure tendency (omega), Pa/s; negative is lift. Present only on models and levels declared by models.json capabilities.verticalVelocity / verticalVelocityLevels.",
                   "anyOf": [
                     {
                       "type": "number"
@@ -1102,7 +1226,8 @@
                         "members": {
                           "type": "integer",
                           "exclusiveMinimum": 0,
-                          "maximum": 9007199254740991
+                          "maximum": 9007199254740991,
+                          "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                         },
                         "p10": {
                           "type": "number"
@@ -1120,6 +1245,7 @@
                           "type": "number"
                         },
                         "ceiledMembers": {
+                          "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                           "type": "integer",
                           "minimum": 0,
                           "maximum": 9007199254740991
@@ -1132,11 +1258,13 @@
                         "p50",
                         "p75",
                         "p90"
-                      ]
+                      ],
+                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                     }
                   ]
                 },
                 "cloudFractionPercent": {
+                  "description": "Per-isobaric-level total cloud fraction, % 0-100. Present only where models.json capabilities.cloudProfile is true (GFS today); level-complete within a capable model, only model-sparse.",
                   "anyOf": [
                     {
                       "type": "number"
@@ -1147,7 +1275,8 @@
                         "members": {
                           "type": "integer",
                           "exclusiveMinimum": 0,
-                          "maximum": 9007199254740991
+                          "maximum": 9007199254740991,
+                          "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                         },
                         "p10": {
                           "type": "number"
@@ -1165,6 +1294,7 @@
                           "type": "number"
                         },
                         "ceiledMembers": {
+                          "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                           "type": "integer",
                           "minimum": 0,
                           "maximum": 9007199254740991
@@ -1177,7 +1307,8 @@
                         "p50",
                         "p75",
                         "p90"
-                      ]
+                      ],
+                      "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                     }
                   ]
                 }
@@ -1190,7 +1321,8 @@
                 "windSpeedMs",
                 "windDirectionDeg"
               ]
-            }
+            },
+            "description": "Isobaric levels, ascending height; only levels with heightM > modelElevationM + 20. Empty for models whose capabilities.levels is false."
           },
           "derived": {
             "type": "object",
@@ -1208,7 +1340,8 @@
                           "members": {
                             "type": "integer",
                             "exclusiveMinimum": 0,
-                            "maximum": 9007199254740991
+                            "maximum": 9007199254740991,
+                            "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                           },
                           "p10": {
                             "type": "number"
@@ -1226,6 +1359,7 @@
                             "type": "number"
                           },
                           "ceiledMembers": {
+                            "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                             "type": "integer",
                             "minimum": 0,
                             "maximum": 9007199254740991
@@ -1238,14 +1372,17 @@
                           "p50",
                           "p75",
                           "p90"
-                        ]
+                        ],
+                        "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                       }
-                    ]
+                    ],
+                    "description": "Scalar data position: a plain number (deterministic models) or an ensemble percentile object."
                   },
                   {
                     "type": "null"
                   }
-                ]
+                ],
+                "description": "Parcel-derived boundary-layer top, metres MSL — where a dry-adiabatically lifted surface parcel stops being warmer than the model environment, interpolated between bracketing levels. Null when the parcel is never buoyant (no positive-buoyancy depth: night, rain, hard inversions) — a real forecast, not a gap. A parcel outclimbing the whole column yields the column ceiling, not physics; ensemble documents record that censoring in ceiledMembers."
               },
               "thermalVelocityMs": {
                 "anyOf": [
@@ -1258,7 +1395,8 @@
                       "members": {
                         "type": "integer",
                         "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
+                        "maximum": 9007199254740991,
+                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                       },
                       "p10": {
                         "type": "number"
@@ -1276,6 +1414,7 @@
                         "type": "number"
                       },
                       "ceiledMembers": {
+                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 9007199254740991
@@ -1288,9 +1427,11 @@
                       "p50",
                       "p75",
                       "p90"
-                    ]
+                    ],
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                   }
-                ]
+                ],
+                "description": "Deardorff's convective velocity scale w*, m/s: cube root of (g/theta) x virtual kinematic heat flux x boundary-layer depth, from the published sensible and latent heat fluxes (latent enters via the virtual-temperature correction) and the parcel-derived depth. Zero when the virtual heat flux or depth is non-positive (night, rain) — \"no thermals\", never \"unknown\". Derivation: research/windgram-derivations.md."
               },
               "cloudBaseM": {
                 "anyOf": [
@@ -1303,7 +1444,8 @@
                       "members": {
                         "type": "integer",
                         "exclusiveMinimum": 0,
-                        "maximum": 9007199254740991
+                        "maximum": 9007199254740991,
+                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                       },
                       "p10": {
                         "type": "number"
@@ -1321,6 +1463,7 @@
                         "type": "number"
                       },
                       "ceiledMembers": {
+                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                         "type": "integer",
                         "minimum": 0,
                         "maximum": 9007199254740991
@@ -1333,9 +1476,11 @@
                       "p50",
                       "p75",
                       "p90"
-                    ]
+                    ],
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                   }
-                ]
+                ],
+                "description": "Effective cloud base, metres MSL, always present. The LOWER of the surface parcel's condensation level (Bolton 1980, eq. 15) and the first level where the published column itself saturates (dew-point depression at the 0.5 degC hatch threshold, interpolated), clamped to model terrain (a saturated surface puts it at the ground). CAN sit below boundaryLayerTopM — cloud forming inside the convective layer, not an inconsistency. Derivation: research/windgram-derivations.md."
               },
               "usableLiftTopM": {
                 "anyOf": [
@@ -1350,7 +1495,8 @@
                           "members": {
                             "type": "integer",
                             "exclusiveMinimum": 0,
-                            "maximum": 9007199254740991
+                            "maximum": 9007199254740991,
+                            "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
                           },
                           "p10": {
                             "type": "number"
@@ -1368,6 +1514,7 @@
                             "type": "number"
                           },
                           "ceiledMembers": {
+                            "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
                             "type": "integer",
                             "minimum": 0,
                             "maximum": 9007199254740991
@@ -1380,14 +1527,17 @@
                           "p50",
                           "p75",
                           "p90"
-                        ]
+                        ],
+                        "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number."
                       }
-                    ]
+                    ],
+                    "description": "Scalar data position: a plain number (deterministic models) or an ensemble percentile object."
                   },
                   {
                     "type": "null"
                   }
-                ]
+                ],
+                "description": "Usable-lift top (hcrit), metres MSL: where the STRONGEST thermal core — w* x 4 x z^(1/3) x (1 - 0.8 z), z = height / boundary-layer depth — falls back to the pilot's sink rate. EMBEDS the fixed 1.0 m/s sink convention (part of the published value). Capped by cloudBaseM; null when even the profile-maximum core cannot beat the sink (2.02 x w* < 1 m/s). Other sink rates: the parameterized usableLiftTopM in windgram/derive."
               }
             },
             "required": [
@@ -1404,7 +1554,8 @@
           "levels",
           "derived"
         ]
-      }
+      },
+      "description": "ALL forecast hours, chronological — day windowing is a renderer choice."
     }
   },
   "required": [
@@ -1413,5 +1564,6 @@
     "run",
     "site",
     "hours"
-  ]
+  ],
+  "description": "Windgram profile document, published at data/<model-slug>/sites/<site-slug>.json; history lines are the same document, one per line."
 }

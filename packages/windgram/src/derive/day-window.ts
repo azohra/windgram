@@ -50,6 +50,34 @@ export function localDateKey(validAt: string, timeZone: string): string {
 }
 
 /**
+ * Groups hours by local calendar day in the given timezone — the shape a
+ * day-tab UI wants, and the `dateKey` half of `buildScene`'s
+ * `{ timeZone, dateKey }` windowing option. Groups appear in first-
+ * encounter order, so chronological input (profile hours always are)
+ * yields chronological days; each group's hours keep their input order.
+ * Grouping is the whole job — apply `windgramDisplayHours` first if the
+ * pilots'-day filter is wanted too.
+ */
+export function groupByLocalDay<T extends { validAt: string }>(
+  hours: readonly T[],
+  timeZone: string,
+): Array<{ dateKey: string; hours: T[] }> {
+  const groups: Array<{ dateKey: string; hours: T[] }> = [];
+  const byKey = new Map<string, T[]>();
+  for (const hour of hours) {
+    const dateKey = localDateKey(hour.validAt, timeZone);
+    let bucket = byKey.get(dateKey);
+    if (!bucket) {
+      bucket = [];
+      byKey.set(dateKey, bucket);
+      groups.push({ dateKey, hours: bucket });
+    }
+    bucket.push(hour);
+  }
+  return groups;
+}
+
+/**
  * Keeps the hours inside the pilots' day — local hour within
  * [dayStartHour, dayEndHour], dropping days with fewer than minHoursPerDay
  * in-window hours — unless that would empty the set, in which case the

@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Windgram site catalogue, sites.json",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "sites": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "description": "Lowercase hyphenated slug — the identity of models and sites everywhere."
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "latitude": {
+            "type": "number"
+          },
+          "longitude": {
+            "type": "number"
+          },
+          "elevationM": {
+            "type": "number",
+            "description": "The launch's surveyed elevation, metres MSL — the catalogue is its home. Profile site.altitudeM stores the same quantity per-profile and may be null there (a profile built before the survey keeps its null; the catalogue is current)."
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "latitude",
+          "longitude",
+          "elevationM"
+        ]
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "sites"
+  ],
+  "description": "sites.json — the hand-maintained site catalogue: every launch the builders publish profiles for. {schemaVersion, sites} since the 0.3.0 wave (previously a bare array)."
+}

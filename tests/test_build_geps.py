@@ -410,6 +410,7 @@ def test_a_small_document_serializes_deterministically():
         "run": {
             "referenceTime": "2026-08-07T12:00:00Z",
             "generatedAt": "2026-08-07T22:00:00Z",
+            "members": 21,
         },
         "site": {
             "id": "dundee",
@@ -419,14 +420,17 @@ def test_a_small_document_serializes_deterministically():
             "altitudeM": 1485,
             "modelElevationM": 1200.0,
         },
+        "semantics": {"precipitation": "windowMeanRate"},
         "hours": _aggregate_hours(profiles),
     }
 
     assert compact_json(round_document(document)) == (
         '{"schemaVersion":1,"model":"geps",'
-        '"run":{"referenceTime":"2026-08-07T12:00:00Z","generatedAt":"2026-08-07T22:00:00Z"},'
+        '"run":{"referenceTime":"2026-08-07T12:00:00Z","generatedAt":"2026-08-07T22:00:00Z",'
+        '"members":21},'
         '"site":{"id":"dundee","name":"Dundee","latitude":49.291977,"longitude":-117.183569,'
         '"altitudeM":1485,"modelElevationM":1200},'
+        '"semantics":{"precipitation":"windowMeanRate"},'
         '"hours":[{"validAt":"2026-08-07T21:00:00Z",'
         '"surface":{'
         '"pressurePa":{"members":2,"p10":101100,"p25":101250,"p50":101500,"p75":101750,"p90":101900},'
@@ -551,6 +555,11 @@ def test_a_forecast_step_flows_from_datamart_files_to_the_ensemble_document(monk
 
     (document,) = result["documents"]
     assert document["site"]["modelElevationM"] == pytest.approx(100.0)
+    # Ensemble envelope: the member count in run, the transport semantics
+    # (no gust key — GEPS publishes none) between site and hours.
+    assert document["run"]["members"] == 21
+    assert document["semantics"] == {"precipitation": "windowMeanRate"}
+    assert list(document) == ["schemaVersion", "model", "run", "site", "semantics", "hours"]
     (hour,) = document["hours"]
 
     surface = hour["surface"]

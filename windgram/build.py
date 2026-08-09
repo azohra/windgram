@@ -42,8 +42,9 @@ from pathlib import Path
 
 from .datamart import DownloadStats, NotFoundError, datamart_base, exists, fetch_bytes
 from .grib import GribField
-from .publish import append_history, round_document, write_json
+from .publish import append_history, manifest_stats, round_document, write_json
 from .sentinel import mask_sentinel
+from .sites import load_sites
 from .windgram import SCHEMA_VERSION, derive_windgram_profile
 
 # Per-host Datamart connection budget. MSC's usage policy (verified
@@ -185,6 +186,21 @@ class DatamartModel:
         return Path("data") / self.slug
 
 
+def model_semantics(model: DatamartModel) -> dict[str, str]:
+    """The document's transport-semantics declaration (contract "semantics").
+
+    Every gust published here is ECCC's hour-max "gusting to" (gust_task
+    re-asserts that invariant each build), and both precipitation transports
+    — the 1 h fixed-window accumulation and the differenced run total —
+    publish the mean rate over the trailing window, never an instantaneous
+    rate.
+    """
+    semantics = {"precipitation": "windowMeanRate"}
+    if model.gust_max_variable:
+        semantics = {"gust": "hourMax", **semantics}
+    return semantics
+
+
 HRDPS = DatamartModel(
     slug="hrdps-continental",
     path="model_hrdps/continental/2.5km",
@@ -292,10 +308,7 @@ def _file_url(
 
 
 def main(model: DatamartModel = HRDPS) -> None:
-    sites = json.loads(Path("sites.json").read_text())
-    if not sites:
-        raise RuntimeError("sites.json is empty")
-
+    sites = load_sites()
     run_id = _latest_complete_run(model)
     if run_id is None:
         print(f"No complete {model.slug} run is available.")
@@ -326,12 +339,7 @@ def main(model: DatamartModel = HRDPS) -> None:
         "referenceTime": reference_time,
         "schemaVersion": SCHEMA_VERSION,
         "sites": [{"name": site["name"], "slug": site["slug"]} for site in sites],
-        "stats": {
-            "downloadBytes": stats.response_bytes,
-            "downloads": stats.requests,
-            "durationMs": round((time.monotonic() - started_at) * 1000),
-            "retries": stats.retries,
-        },
+        "stats": manifest_stats(stats, started_at),
     }
     write_json(model.out_dir / "manifest.json", manifest, compact=False)
     print(
@@ -624,6 +632,7 @@ def _build_profiles(
                     "siteName": site["name"],
                 },
                 model=model.slug,
+                semantics=model_semantics(model),
             )
         )
     return {

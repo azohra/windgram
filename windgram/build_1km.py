@@ -19,8 +19,9 @@ from pathlib import Path
 
 from .datamart import DownloadStats, NotFoundError, exists, fetch_bytes
 from .grib import GribField
-from .publish import append_history, round_document, write_json
+from .publish import append_history, manifest_stats, round_document, write_json
 from .sentinel import mask_sentinel
+from .sites import load_sites
 from .windgram import SCHEMA_VERSION, derive_windgram_profile
 
 SLUG = "hrdps-west"
@@ -74,12 +75,14 @@ CAPE_SENTINEL = -1.0
 PBL_VARIABLE = "HPBL_SFC_0"
 _GUST_MAX_SLACK_MS = 0.1  # packing noise between two independently packed files
 
+# The document's transport-semantics declaration (contract "semantics"):
+# GUST_MAX is ECCC's hour-max "gusting to"; precipitation is PRATE — an
+# instantaneous rate at the valid time (×3600 → mm/h), not a window mean.
+SEMANTICS = {"gust": "hourMax", "precipitation": "instantRate"}
+
 
 def main() -> None:
-    sites = json.loads(Path("sites.json").read_text())
-    if not sites:
-        raise RuntimeError("sites.json is empty")
-
+    sites = load_sites()
     run = _latest_complete_run()
     if run is None:
         print("No complete HRDPS 1 km run is available.")
@@ -110,12 +113,7 @@ def main() -> None:
         "referenceTime": reference_time,
         "schemaVersion": SCHEMA_VERSION,
         "sites": [{"name": site["name"], "slug": site["slug"]} for site in sites],
-        "stats": {
-            "downloadBytes": stats.response_bytes,
-            "downloads": stats.requests,
-            "durationMs": round((time.monotonic() - started_at) * 1000),
-            "retries": stats.retries,
-        },
+        "stats": manifest_stats(stats, started_at),
     }
     write_json(OUT_DIR / "manifest.json", manifest, compact=False)
     print(
@@ -298,6 +296,7 @@ def _build_profiles(run: dict, reference_time: str, sites: list[dict], stats: Do
                     "siteName": site["name"],
                 },
                 model=SLUG,
+                semantics=SEMANTICS,
             )
         )
     return {

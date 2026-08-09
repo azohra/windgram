@@ -173,10 +173,24 @@ export interface SceneOptions {
   /** IANA timezone for hour-tick labels (day windowing itself is derive/'s job). */
   timeZone: string;
   /**
-   * Hours to render — typically one day pre-windowed with
-   * derive/windgramDisplayHours. Defaults to every hour in the profile.
+   * Hours to render, by index into `profile.hours` — typically one day
+   * pre-windowed with derive/windgramDisplayHours. Defaults to every hour
+   * in the profile. Takes precedence over `hours` when both are given (it
+   * is the most explicit form).
    */
   hourIndices?: readonly number[];
+  /**
+   * Hours to render, without index bookkeeping. Either the hour objects
+   * themselves — e.g. one group from derive/groupByLocalDay or the output
+   * of windgramDisplayHours, matched back to the profile by `validAt`
+   * (hours not in the profile are ignored) — or `{ timeZone, dateKey }`,
+   * which renders the profile hours falling on that local calendar day
+   * (derive/localDateKey's zero-padded YYYY-MM-DD). Both forms map to
+   * `hourIndices` internally, so everything downstream is identical.
+   * Precedence: `hourIndices` wins over `hours`; absent both, every hour
+   * renders.
+   */
+  hours?: ReadonlyArray<{ validAt: string }> | { timeZone: string; dateKey: string };
   overlays?: Partial<Record<OverlayName, boolean>>;
   /**
    * 1-2-1 smoothing (derive/smooth121) on the cloud-base and usable-lift

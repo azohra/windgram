@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { localDateKey, localHourOfDay, windgramDisplayHours } from "../src/derive/day-window.js";
+import {
+  groupByLocalDay,
+  localDateKey,
+  localHourOfDay,
+  windgramDisplayHours,
+} from "../src/derive/day-window.js";
 
 function hoursBetween(startIso: string, count: number): Array<{ validAt: string }> {
   const startMs = Date.parse(startIso);
@@ -75,5 +80,35 @@ describe("windgramDisplayHours", () => {
 
   it("returns an empty set for empty input", () => {
     expect(windgramDisplayHours([], { timeZone: "America/Vancouver" })).toEqual([]);
+  });
+});
+
+describe("groupByLocalDay", () => {
+  it("splits chronological hours into chronological local days", () => {
+    // 36 hours from 2026-08-09T00:00Z: PDT days Aug 8 (7 h), Aug 9 (24 h),
+    // Aug 10 (5 h) — the UTC/local offset is what makes the split honest.
+    const hours = hoursBetween("2026-08-09T00:00:00Z", 36);
+    const days = groupByLocalDay(hours, "America/Vancouver");
+    expect(days.map((day) => day.dateKey)).toEqual(["2026-08-08", "2026-08-09", "2026-08-10"]);
+    expect(days.map((day) => day.hours.length)).toEqual([7, 24, 5]);
+    // Every source hour lands in exactly one group, in order.
+    expect(days.flatMap((day) => day.hours)).toEqual(hours);
+  });
+
+  it("groups by the requested timezone, not a hardcoded one", () => {
+    const hours = hoursBetween("2026-08-09T00:00:00Z", 36);
+    const sydney = groupByLocalDay(hours, "Australia/Sydney");
+    expect(sydney.map((day) => day.dateKey)).toEqual(["2026-08-09", "2026-08-10"]);
+    expect(sydney.map((day) => day.hours.length)).toEqual([14, 22]);
+  });
+
+  it("preserves the source hour objects (grouping, not copying)", () => {
+    const hours = hoursBetween("2026-08-09T14:00:00Z", 3);
+    const [day] = groupByLocalDay(hours, "America/Vancouver");
+    expect(day.hours[0]).toBe(hours[0]);
+  });
+
+  it("returns no groups for empty input", () => {
+    expect(groupByLocalDay([], "America/Vancouver")).toEqual([]);
   });
 });

@@ -8,11 +8,12 @@ import { p50 } from "../derive/ensemble.js";
 import { lapseRateCPer1000Ft, surfaceLapseCPer1000Ft } from "../derive/lapse.js";
 import { dewPointDepressionC, relativeHumidityPercent } from "../derive/moisture.js";
 import { buoyancyShearRatio, surfaceToBoundaryLayerShearMs, vectorShearMs } from "../derive/shear.js";
+import { localDateKey } from "../derive/day-window.js";
 import { smooth121 } from "../derive/smoothing.js";
 import { stabilityClass } from "../derive/stability.js";
 import { thermalIndexC } from "../derive/thermal-index.js";
 import { usableLiftTopM } from "../derive/usable-lift.js";
-import { windToComponents } from "../derive/wind.js";
+import { msToKmh, windToComponents } from "../derive/wind.js";
 import { windBarbParts, windBarbPaths } from "./barbs.js";
 import { sampledFieldPaths, type FieldNode } from "./field.js";
 import { bandPath, pointPath, type PlotPoint } from "./path.js";
@@ -54,10 +55,6 @@ const HOUR_LABEL_DY = 18;
 const BOTTOM_PADDING = 14;
 const WIND_BARB_SCALE = 0.85;
 export const M_TO_FT = 3.28084;
-
-export function msToKmh(speedMs: number): number {
-  return speedMs * 3.6;
-}
 
 /* Glyph paths for the sport-specific markers (wing at usable-lift top, cloud
    at cloud base), ported verbatim from the site renderer. */
@@ -300,10 +297,44 @@ function verticalCrossing(
 
 /* ---------------------------------------------------------------- builder */
 
+/* Windowing options map to indices here, once, so everything downstream of
+   buildScene sees exactly what hourIndices consumers see. Precedence
+   (documented on SceneOptions): hourIndices is the most explicit form and
+   wins; then hours (either shape); absent both, every hour renders. */
+function resolveHourIndices(
+  profile: WindgramProfile,
+  options: SceneOptions,
+): readonly number[] | undefined {
+  if (options.hourIndices) return options.hourIndices;
+  const hours = options.hours;
+  if (hours === undefined) return undefined;
+  if (isHourArray(hours)) {
+    // Matched by validAt (unique per profile), so pre-windowed hour objects
+    // — a groupByLocalDay group, windgramDisplayHours output — select
+    // without index bookkeeping. Hours not in the profile are ignored.
+    const indexByValidAt = new Map(profile.hours.map((hour, index) => [hour.validAt, index]));
+    return hours
+      .map((hour) => indexByValidAt.get(hour.validAt))
+      .filter((index): index is number => index !== undefined);
+  }
+  return profile.hours
+    .map((hour, index) => index)
+    .filter(
+      (index) => localDateKey(profile.hours[index].validAt, hours.timeZone) === hours.dateKey,
+    );
+}
+
+function isHourArray(
+  hours: ReadonlyArray<{ validAt: string }> | { timeZone: string; dateKey: string },
+): hours is ReadonlyArray<{ validAt: string }> {
+  return Array.isArray(hours);
+}
+
 export function buildScene(profile: WindgramProfile, options: SceneOptions): SceneGraph {
   const allHours = profile.hours.map(resolveHour);
-  const hours = options.hourIndices
-    ? options.hourIndices.map((index) => allHours[index]).filter((hour) => hour !== undefined)
+  const hourIndices = resolveHourIndices(profile, options);
+  const hours = hourIndices
+    ? hourIndices.map((index) => allHours[index]).filter((hour) => hour !== undefined)
     : allHours;
   const overlays: Record<OverlayName, boolean> = { ...DEFAULT_OVERLAYS, ...options.overlays };
   const smooth = options.smooth !== false;

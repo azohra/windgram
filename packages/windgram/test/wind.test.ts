@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { componentsToWind, normalizeDegrees, windToComponents } from "../src/derive/wind.js";
+import { componentsToWind, msToKmh, normalizeDegrees, windToComponents } from "../src/derive/wind.js";
 
 describe("windToComponents", () => {
   it("sends a north wind (from 0) blowing south", () => {
@@ -40,5 +40,17 @@ describe("normalizeDegrees", () => {
     expect(normalizeDegrees(-90)).toBe(270);
     expect(normalizeDegrees(720)).toBe(0);
     expect(normalizeDegrees(359.5)).toBe(359.5);
+  });
+});
+
+describe("msToKmh", () => {
+  it("converts m/s to km/h (moved here from scene in 0.3.0)", () => {
+    expect(msToKmh(10)).toBeCloseTo(36, 12);
+    expect(msToKmh(0)).toBe(0);
+  });
+
+  it("stays re-exported from windgram/scene until 0.4", async () => {
+    const scene = await import("../src/scene/index.js");
+    expect(scene.msToKmh).toBe(msToKmh);
   });
 });

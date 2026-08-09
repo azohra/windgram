@@ -11,6 +11,7 @@ from windgram.build_nam import (
     OPTIONAL_SURFACE_FIELDS,
     PRESSURE_LEVELS,
     PRODUCTS,
+    SEMANTICS,
     _completion_urls,
     _earth_wind,
     _grid_rotation_deg,
@@ -62,6 +63,7 @@ def test_completeness_gates_on_the_final_hour_of_every_needed_file():
 # -------------------------------------------------------------- precipitation
 
 
+@pytest.mark.parametrize("run_hour", ["00", "06", "12", "18"])
 @pytest.mark.parametrize(
     ("forecast_hour", "fetches", "window_hours"),
     [
@@ -75,10 +77,13 @@ def test_completeness_gates_on_the_final_hour_of_every_needed_file():
         (60, [(60, "57-60 hour acc fcst"), (59, "57-59 hour acc fcst")], 1),
     ],
 )
-def test_nest_precipitation_differences_three_hour_buckets(forecast_hour, fetches, window_hours):
-    assert _precip_fetches(NEST, forecast_hour) == (fetches, window_hours)
+def test_nest_precipitation_differences_three_hour_buckets_on_every_cycle(
+    forecast_hour, fetches, window_hours, run_hour
+):
+    assert _precip_fetches(NEST, run_hour, forecast_hour) == (fetches, window_hours)
 
 
+@pytest.mark.parametrize("run_hour", ["00", "12"])
 @pytest.mark.parametrize(
     ("forecast_hour", "fetches", "window_hours"),
     [
@@ -96,21 +101,45 @@ def test_nest_precipitation_differences_three_hour_buckets(forecast_hour, fetche
         (84, [(84, "81-84 hour acc fcst")], 3),
     ],
 )
-def test_parent_precipitation_differences_twelve_hour_buckets(
-    forecast_hour, fetches, window_hours
+def test_parent_precipitation_differences_twelve_hour_buckets_on_synoptic_cycles(
+    forecast_hour, fetches, window_hours, run_hour
 ):
-    assert _precip_fetches(PARENT, forecast_hour) == (fetches, window_hours)
+    assert _precip_fetches(PARENT, run_hour, forecast_hour) == (fetches, window_hours)
+
+
+@pytest.mark.parametrize("run_hour", ["06", "18"])
+@pytest.mark.parametrize(
+    ("forecast_hour", "fetches", "window_hours"),
+    [
+        # On 06/18Z the parent's buckets reset every 3 h like the nest —
+        # verified live 2026-08-08, where the 12 h assumption asked f04 for
+        # "0-4 hour acc fcst" and the file carried only "3-4".
+        (1, [(1, "0-1 hour acc fcst")], 1),
+        (4, [(4, "3-4 hour acc fcst")], 1),
+        (13, [(13, "12-13 hour acc fcst")], 1),
+        (24, [(24, "21-24 hour acc fcst"), (23, "21-23 hour acc fcst")], 1),
+        (36, [(36, "33-36 hour acc fcst"), (35, "33-35 hour acc fcst")], 1),
+        # The 3-hourly tail is cycle-independent.
+        (39, [(39, "36-39 hour acc fcst")], 3),
+        (84, [(84, "81-84 hour acc fcst")], 3),
+    ],
+)
+def test_parent_precipitation_differences_three_hour_buckets_off_cycle(
+    forecast_hour, fetches, window_hours, run_hour
+):
+    assert _precip_fetches(PARENT, run_hour, forecast_hour) == (fetches, window_hours)
 
 
 def test_boundary_hours_carry_two_apcp_records_and_selection_is_by_window():
-    # At f24 the parent file holds "12-24" (running bucket) beside "21-24"
-    # (3 h sub-bucket). The builder must land on the exact window it asks
-    # for — first-match-by-variable would be wrong half the time.
+    # At f24 of a 00/12Z run the parent file holds "12-24" (running bucket)
+    # beside "21-24" (3 h sub-bucket). The builder must land on the exact
+    # window it asks for — first-match-by-variable would be wrong half the
+    # time.
     records = parent_records()
     running = find_record(records, "APCP", "surface", "12-24 hour acc fcst")
     sub_bucket = find_record(records, "APCP", "surface", "21-24 hour acc fcst")
     assert running.offset != sub_bucket.offset
-    (fetch, _companion), _ = _precip_fetches(PARENT, 24)
+    (fetch, _companion), _ = _precip_fetches(PARENT, "12", 24)
     assert fetch == (24, "12-24 hour acc fcst")
 
 
@@ -301,6 +330,10 @@ def test_models_json_matches_the_nam_builder_configuration(slug):
 
     capabilities = entry["capabilities"]
     assert capabilities["gust"] == "instant"  # NOAA has no hour-max gust
+    # Bucketed APCP differenced per step ÷ window → a window-mean rate, and
+    # the documents' own semantics block says the same for both products.
+    assert capabilities["precipitation"] == "windowMeanRate"
+    assert SEMANTICS == {"gust": "instant", "precipitation": "windowMeanRate"}
     assert capabilities["cape"] is True and capabilities["cin"] is True
     assert capabilities["pblHeight"] is True
     assert capabilities["cloudLayers"] is True  # via awip12 for the parent

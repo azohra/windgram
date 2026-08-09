@@ -22,13 +22,16 @@ per-product constant. NCEP packs each UGRD/VGRD pair as two submessages of
 one GRIB message (idx lines N.1/N.2 at a shared offset): one ranged fetch
 yields both components.
 
-Precipitation is bucketed: nest buckets reset every 3 h, parent buckets
-every 12 h, so the hourly step is the difference of consecutive bucket
-records (the record itself in the hour right after a reset), and the
-parent's 3-hourly tail publishes a direct (h−3)–h record, divided by 3 for
-mm/h. At bucket boundaries two APCP records coexist in a parent file
-("12-24" beside "21-24" at f24), so records are selected by their exact idx
-window token, never by variable name alone.
+Precipitation is bucketed, and the parent's bucket length depends on the
+cycle: nest buckets reset every 3 h on every cycle, parent buckets every
+12 h on the 00/12Z cycles but every 3 h on 06/18Z (verified live
+2026-08-08 across all four cycles and prior days). The hourly step is the
+difference of consecutive bucket records (the record itself in the hour
+right after a reset), and the parent's 3-hourly tail publishes a direct
+(h−3)–h record, divided by 3 for mm/h. At 00/12Z bucket boundaries two
+APCP records coexist in a parent file ("12-24" beside "21-24" at f24), so
+records are selected by their exact idx window token, never by variable
+name alone.
 
 Nest fields carry a sparse bitmap (~100 of 1.9M points); sampling publishes
 a masked gridpoint as absence, never a value (noaa.sample_sites). Set
@@ -60,7 +63,8 @@ from .noaa import (
     sample_sites_uv,
     wind_from_uv,
 )
-from .publish import append_history, round_document, write_json
+from .publish import append_history, manifest_stats, round_document, write_json
+from .sites import load_sites
 from .windgram import SCHEMA_VERSION, derive_windgram_profile
 
 BASE_URL = "https://noaa-nam-pds.s3.amazonaws.com"
@@ -113,6 +117,12 @@ PRESSURE_LEVELS = (925, 900, 875, 850, 800, 750, 700, 650, 600)
 # without it, never incomplete.
 OMEGA_LEVELS = PRESSURE_LEVELS
 
+# The document's transport-semantics declaration (contract "semantics"),
+# shared by both products: GUST is NOAA's instantaneous diagnostic gust at
+# the valid time; precipitation is bucketed APCP, differenced per step and
+# divided by the window into the mean mm/h rate.
+SEMANTICS = {"gust": "instant", "precipitation": "windowMeanRate"}
+
 
 @dataclass(frozen=True)
 class NamProduct:
@@ -121,7 +131,8 @@ class NamProduct:
     file_token: str  # the product token in nam.tHHz.<token>NN.tm00.grib2
     forecast_hours: tuple[int, ...]
     hourly_through: int  # last hour of the hourly cadence; 3-hourly beyond
-    bucket_reset_hours: int  # APCP bucket length
+    bucket_reset_hours: int  # APCP bucket length on the 00/12Z cycles
+    off_cycle_bucket_reset_hours: int  # APCP bucket length on 06/18Z
     lambert_orientation_deg: float  # LoV
     lambert_cone: float  # sin(Latin1); one standard parallel on both grids
     max_nearest_km: float
@@ -136,6 +147,7 @@ PRODUCTS = {
         forecast_hours=tuple(range(1, 61)),
         hourly_through=60,
         bucket_reset_hours=3,
+        off_cycle_bucket_reset_hours=3,
         lambert_orientation_deg=262.5,
         lambert_cone=math.sin(math.radians(38.5)),
         # On the 3 km grid the nearest gridpoint is within ~2 km; anything
@@ -151,6 +163,7 @@ PRODUCTS = {
         forecast_hours=tuple(range(1, 37)) + tuple(range(39, 85, 3)),
         hourly_through=36,
         bucket_reset_hours=12,
+        off_cycle_bucket_reset_hours=3,
         lambert_orientation_deg=265.0,
         lambert_cone=math.sin(math.radians(25.0)),
         # On the 12.19 km grid the nearest gridpoint is within ~9 km.
@@ -167,10 +180,7 @@ def main() -> None:
 
 
 def build(product: NamProduct) -> None:
-    sites = json.loads(Path("sites.json").read_text())
-    if not sites:
-        raise RuntimeError("sites.json is empty")
-
+    sites = load_sites()
     out_dir = Path("data") / product.slug
     run = _latest_complete_run(product)
     if run is None:
@@ -202,12 +212,7 @@ def build(product: NamProduct) -> None:
         "referenceTime": reference_time,
         "schemaVersion": SCHEMA_VERSION,
         "sites": [{"name": site["name"], "slug": site["slug"]} for site in sites],
-        "stats": {
-            "downloadBytes": stats.response_bytes,
-            "downloads": stats.requests,
-            "durationMs": round((time.monotonic() - started_at) * 1000),
-            "retries": stats.retries,
-        },
+        "stats": manifest_stats(stats, started_at),
     }
     write_json(out_dir / "manifest.json", manifest, compact=False)
     print(
@@ -375,7 +380,7 @@ def _build_profiles(
     def precipitation_task(hour_index: int):
         def run_task() -> None:
             forecast_hour = forecast_slots[hour_index]["forecastHour"]
-            fetches, window_hours = _precip_fetches(product, forecast_hour)
+            fetches, window_hours = _precip_fetches(product, run["hour"], forecast_hour)
             samples = [
                 record_values(file_hour, "APCP", "surface", forecast)
                 for file_hour, forecast in fetches
@@ -513,6 +518,7 @@ def _build_profiles(
                     "siteName": site["name"],
                 },
                 model=product.slug,
+                semantics=SEMANTICS,
             )
         )
     return {
@@ -523,19 +529,26 @@ def _build_profiles(
     }
 
 
-def _precip_fetches(product: NamProduct, forecast_hour: int) -> tuple[list[tuple[int, str]], int]:
+def _precip_fetches(
+    product: NamProduct, run_hour: str, forecast_hour: int
+) -> tuple[list[tuple[int, str]], int]:
     """The (file hour, idx forecast token) fetches recovering the step's
     precipitation, and the window hours dividing mm to mm/h.
 
     One fetch: the record itself is the step (the hour right after a bucket
     reset, or the tail's direct 3 h record). Two fetches: the running bucket
-    at forecast_hour minus the same bucket one hour earlier. Selecting on
-    the exact window token matters — at bucket boundaries two APCP records
-    coexist in a parent file ("12-24" beside "21-24" at f24).
+    at forecast_hour minus the same bucket one hour earlier. The bucket
+    length depends on the cycle — the parent resets every 12 h on 00/12Z
+    runs but every 3 h on 06/18Z. Selecting on the exact window token
+    matters — at 00/12Z bucket boundaries two APCP records coexist in a
+    parent file ("12-24" beside "21-24" at f24).
     """
     if forecast_hour > product.hourly_through:
         return [(forecast_hour, f"{forecast_hour - 3}-{forecast_hour} hour acc fcst")], 3
-    reset = product.bucket_reset_hours
+    if run_hour in ("00", "12"):
+        reset = product.bucket_reset_hours
+    else:
+        reset = product.off_cycle_bucket_reset_hours
     start = (forecast_hour - 1) // reset * reset
     current = (forecast_hour, f"{start}-{forecast_hour} hour acc fcst")
     if forecast_hour - start == 1:

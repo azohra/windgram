@@ -76,6 +76,10 @@ def test_models_json_matches_the_hrrr_builder_configuration():
         entry for entry in catalogue["models"] if entry["slug"] == "hrrr-conus"
     )["capabilities"]
     assert capabilities["gust"] == "instant"  # HRRR's GUST is a diagnostic instant
+    # PRATE is an instantaneous rate at the valid time (×3600 → mm/h), and
+    # the documents' own semantics block says the same.
+    assert capabilities["precipitation"] == "instantRate"
+    assert build_hrrr.SEMANTICS == {"gust": "instant", "precipitation": "instantRate"}
     assert capabilities["cape"] is True and capabilities["cin"] is True
     assert capabilities["pblHeight"] is True
     assert capabilities["cloudLayers"] is True
@@ -183,6 +187,7 @@ def test_build_profiles_publishes_omega_and_tolerates_its_absence(monkeypatch):
     )
 
     (profile,) = result["profiles"]
+    assert profile["semantics"] == {"gust": "instant", "precipitation": "instantRate"}
     first, second = profile["hours"]
     # Every curated level carries the sampled omega verbatim: Pa/s in,
     # Pa/s out, no unit conversion anywhere in the flow.

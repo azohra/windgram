@@ -1,9 +1,9 @@
 import type { WindgramProfile } from "windgram/contract";
-import { windgramDisplayHours } from "windgram/derive";
+import { groupByLocalDay, windgramDisplayHours } from "windgram/derive";
 import { buildScene, DEFAULT_OVERLAYS, type OverlayName, type SceneGraph } from "windgram/scene";
 import { renderSvg } from "windgram/svg";
 import rawExample from "../components/research/forecast-example.json";
-import { DISPLAY_TZ, groupByLocalDay } from "./time";
+import { DISPLAY_TZ } from "./time";
 
 /* The field guide's fixed example — the Red Mountain HRRR afternoon every
    section of reading-a-windgram reads — rendered by the reference renderer
@@ -24,14 +24,11 @@ const PLOT_HEIGHT_PX = 450;
 
 /* The one displayed day: the pilots' flyable-hours window, longest local
    day — the same windowing the derive/ helpers give every consumer. */
-function dayHourIndices(profile: WindgramProfile): number[] {
+function dayHours(profile: WindgramProfile): WindgramProfile["hours"] {
   const windowed = windgramDisplayHours(profile.hours, { timeZone: DISPLAY_TZ });
-  const days = groupByLocalDay(windowed);
+  const days = groupByLocalDay(windowed, DISPLAY_TZ);
   const day = [...days].sort((left, right) => right.hours.length - left.hours.length)[0];
-  const indexByValidAt = new Map(profile.hours.map((hour, index) => [hour.validAt, index]));
-  return (day?.hours ?? [])
-    .map((hour) => indexByValidAt.get(hour.validAt))
-    .filter((index): index is number => index !== undefined);
+  return day?.hours ?? [];
 }
 
 export function renderExample(overlays: Partial<Record<OverlayName, boolean>>): {
@@ -40,7 +37,7 @@ export function renderExample(overlays: Partial<Record<OverlayName, boolean>>): 
 } {
   const scene = buildScene(EXAMPLE_PROFILE, {
     timeZone: DISPLAY_TZ,
-    hourIndices: dayHourIndices(EXAMPLE_PROFILE),
+    hours: dayHours(EXAMPLE_PROFILE),
     overlays,
     columnWidthPx: COLUMN_WIDTH_PX,
     plotHeightPx: PLOT_HEIGHT_PX,

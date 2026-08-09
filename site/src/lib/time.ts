@@ -4,12 +4,8 @@
 // its own timezone threaded through from sites.json rather than assumed here.
 export const DISPLAY_TZ = "America/Vancouver";
 
-const dayKeyFmt = new Intl.DateTimeFormat("en-CA", {
-  timeZone: DISPLAY_TZ,
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
+/* Day keys and day grouping are windgram/derive's job (localDateKey,
+   groupByLocalDay); this module keeps only the site's label formatting. */
 
 const dayLabelFmt = new Intl.DateTimeFormat("en-US", {
   timeZone: DISPLAY_TZ,
@@ -24,35 +20,12 @@ const hourLabelFmt = new Intl.DateTimeFormat("en-US", {
   hour12: false,
 });
 
-export function localDateKey(iso: string): string {
-  return dayKeyFmt.format(new Date(iso));
-}
-
 export function localDayLabel(iso: string): string {
   return dayLabelFmt.format(new Date(iso));
 }
 
 export function localHourLabel(iso: string): string {
   return hourLabelFmt.format(new Date(iso));
-}
-
-export function groupByLocalDay<T extends { validAt: string }>(
-  hours: T[],
-): { dateKey: string; label: string; hours: T[] }[] {
-  const groups = new Map<string, T[]>();
-  for (const h of hours) {
-    const key = localDateKey(h.validAt);
-    const arr = groups.get(key);
-    if (arr) arr.push(h);
-    else groups.set(key, [h]);
-  }
-  return Array.from(groups.entries())
-    .sort(([a], [b]) => (a < b ? -1 : 1))
-    .map(([dateKey, hs]) => ({
-      dateKey,
-      label: localDayLabel(hs[0].validAt),
-      hours: hs,
-    }));
 }
 
 /** Aviation-style run label, e.g. "12Z Aug 7" — matches how pilots already talk about runs. */

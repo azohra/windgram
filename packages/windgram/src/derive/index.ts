@@ -14,6 +14,7 @@ export { p50 } from "./ensemble.js";
 export { dewPointC, dewPointDepressionC, relativeHumidityPercent } from "./moisture.js";
 export {
   componentsToWind,
+  msToKmh,
   normalizeDegrees,
   windToComponents,
   type WindComponents,
@@ -43,6 +44,7 @@ export {
 } from "./shear.js";
 export { usableLiftTopM, type UsableLiftInputs } from "./usable-lift.js";
 export {
+  groupByLocalDay,
   localDateKey,
   localHourOfDay,
   windgramDisplayHours,

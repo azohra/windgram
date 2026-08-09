@@ -2,8 +2,9 @@
 
 TypeScript companion to the windgram dataset published from
 [github.com/azohra/windgram](https://github.com/azohra/windgram): the
-published contract, the derivations that are pure functions of it, and the
-gold-standard renderer (headless scene graph + reference SVG serializer).
+published contract, the derivations that are pure functions of it, the
+transport that fetches the documents consistently, and the gold-standard
+renderer (headless scene graph + reference SVG serializer).
 
 ```sh
 npm install windgram
@@ -18,23 +19,23 @@ workers, and browsers.
 The dataset is static JSON on GitHub's CDN — no key, no API. Discover models
 from the catalogue instead of hardcoding a list: the catalogue grows, slugs
 are the only model identity, and each entry declares what its model actually
-publishes.
+publishes. Then fetch the manifest + profile pair through
+`windgram/transport`, never by hand — the CDN's cache entries expire
+independently, so two naive fetches can silently span two different runs
+(the "torn read" the transport guard exists for; see
+[Transport](#transport-windgramtransport)).
 
 ```ts
-import {
-  parseModelCatalogueJson,
-  parseWindgramManifestJson,
-  parseWindgramProfileJson,
-} from "windgram/contract";
+import { parseModelCatalogueJson } from "windgram/contract";
+import { loadProfile } from "windgram/transport";
 
 const DATA = "https://raw.githubusercontent.com/azohra/windgram/main/data";
-async function text(url: string): Promise<string> {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`${url}: HTTP ${response.status}`);
-  return response.text();
-}
 
-const catalogue = parseModelCatalogueJson(await text(`${DATA}/models.json`));
+// The catalogue is a single document — no pair to tear — so a plain
+// guarded fetch is the right tool for it.
+const response = await fetch(`${DATA}/models.json`);
+if (!response.ok) throw new Error(`models.json: HTTP ${response.status}`);
+const catalogue = parseModelCatalogueJson(await response.text());
 if (!catalogue) throw new Error("models.json failed contract validation");
 
 // Pick by declared capability, never by name.
@@ -43,23 +44,66 @@ const model = catalogue.models.find(
 );
 if (!model) throw new Error("no deterministic model with CAPE is published");
 
-const manifest = parseWindgramManifestJson(await text(`${DATA}/${model.slug}/manifest.json`));
-if (!manifest) throw new Error("manifest failed contract validation");
-
-const site = manifest.sites[0];
-if (!site) throw new Error(`${model.label} published no sites`);
-
-const profile = parseWindgramProfileJson(await text(`${DATA}/${model.slug}/sites/${site.slug}.json`));
-if (!profile) throw new Error("profile failed contract validation");
+// The manifest + profile pair goes through the skew guard.
+const loaded = await loadProfile({
+  fetch,
+  baseUrl: DATA,
+  modelSlug: model.slug,
+  siteSlug: "dundee",
+});
+if (!loaded) throw new Error(`${model.label} does not publish dundee`);
+const { manifest, profile, stale } = loaded;
+if (stale) console.warn("run still syncing across the CDN — pair may span two runs");
 
 console.log(`${model.label} at ${profile.site.name}, run ${profile.run.referenceTime}`);
 ```
 
-The `parse…Json` guards return the typed document or `null`. A `null` from a
-URL that served 200 means publisher and consumer disagree about the contract;
-fail loudly rather than patching around it. (`parseWindgramProfile` and
-friends do the same for values you have already `JSON.parse`d — history
-lines, for instance, are one profile document per line.)
+Everything arrives contract-validated: the `parse…Json` guards (and the
+transport, which uses them) return the typed document or `null`. A `null`
+from a URL that served 200 means publisher and consumer disagree about the
+contract; fail loudly rather than patching around it.
+(`parseWindgramProfile` and friends do the same for values you have already
+`JSON.parse`d — history lines, for instance, are one profile document per
+line.)
+
+## Transport (`windgram/transport`)
+
+The pipeline publishes a model's manifest and its site profiles as separate
+files, and raw.githubusercontent's cache holds each for ~5 minutes
+independently — so around a publish, a manifest and a profile fetched
+together can describe **two different runs**. `loadProfile` owns the
+reference-time skew dance: fetch the pair, compare `run.referenceTime`
+against the manifest's, and on disagreement retry the pair once after a
+short delay (default 1500 ms). It resolves to:
+
+- `{ manifest, profile, stale: false }` — a consistent pair;
+- `{ manifest, profile, stale: true }` — still torn after the retry: a
+  publish is mid-sync. Show a "still syncing" note or fall back to a pair
+  you kept from earlier; never render the two documents as one forecast;
+- `null` — the model or site is not published here (404), **or** a body
+  failed the contract guards: a model still publishing pre-release
+  prototype data reads as unavailable rather than rendering garbage.
+
+Non-404 HTTP failures throw `TransportHttpError` instead of masking
+themselves as absence. The pure pair check is exported too:
+`runsConsistent(manifest, profile)` is true exactly when both documents
+name the same model and run.
+
+`fetch` is a parameter, not an import: pass the runtime's own (browser,
+Node, workers — anything WHATWG-shaped), which keeps the module
+runtime-agnostic and the rest of the package I/O-free. Deliberately **no
+caching, no storage side effects**: no storage API is portable across those
+runtimes, and cache doctrine — keys, quotas, invalidation, whether a stale
+pair beats none — is consumer policy, not transport fact. The transport
+reports `stale` honestly; keeping a last-known-good pair around (as the
+reference site does with `sessionStorage`) is a layer you add on top.
+
+`loadRuns({ fetch, baseUrl })` fetches `data/runs.json`, the cross-model
+run index: per published model, its current run's `referenceTime` and
+`generatedAt`, keyed by slug. One fetch answers "how fresh is everything"
+— judge lateness against each model's declared `runIntervalHours` (a run
+older than about twice the interval is genuinely late, not just a slow
+CDN).
 
 ## Depth one: data only (`contract` + `derive`)
 
@@ -98,7 +142,11 @@ Optional fields (`windGustMs`, `capeJkg`, `cinJkg`, `pblHeightM`, the cloud
 layers and profile) exist only where a model publishes them, and the
 catalogue's `capabilities` say which — including semantics, not just
 presence: `capabilities.gust` distinguishes an hour-max "gusting to" from an
-instantaneous sample. Render the declaration; never fill a gap with zero.
+instantaneous sample, and `capabilities.precipitation` an instantaneous
+rate from a window mean. Documents from the 0.3.0 wave echo those
+declarations in their own optional top-level `semantics` tag, so a stored
+profile stays interpretable without the catalogue beside it. Render the
+declaration; never fill a gap with zero.
 
 ## Depth two: custom rendering with shared numbers (`scene`)
 
@@ -116,7 +164,7 @@ const timeZone = "America/Vancouver";
 const day = windgramDisplayHours(profile.hours, { timeZone });
 const scene = buildScene(profile, {
   timeZone,
-  hourIndices: day.map((hour) => profile.hours.indexOf(hour)),
+  hours: day, // pre-windowed hour objects select directly, no index bookkeeping
   overlays: { thermalIndex: true }, // analysis overlays are opt-in
 });
 
@@ -127,6 +175,14 @@ for (const series of scene.series) console.log(series.key, series.path, series.b
 const reading = cursorReading(scene, scene.scales.plotLeft + 5, scene.scales.plotTop + 5);
 if (reading) console.log(reading.temperatureC, reading.stabilityClassName);
 ```
+
+Three windowing forms, mapping to the same thing internally: `hourIndices`
+(indices into `profile.hours`, the most explicit form — it wins when both
+are passed), `hours` as hour objects (matched by `validAt`, so
+`windgramDisplayHours` output or one group from `derive`'s
+`groupByLocalDay(hours, timeZone)` drops straight in), or `hours` as
+`{ timeZone, dateKey }`, which renders one local calendar day. Absent all
+three, every hour renders.
 
 `DEFAULT_OVERLAYS` reproduces the reference windgram. The science-field
 overlays (`cape`, `gusts`, `pblHeight`, `cloudLayers`) default on and
@@ -267,32 +323,86 @@ graph handles the rest itself: ensemble series render their p50 line with
 p25–p75 band geometry wherever percentiles exist, and a model without levels
 gracefully drops barbs, fields, and isotherms.
 
+Ensemble documents from the 0.3.0 wave also declare their member count once,
+in `run.members`; each `EnsembleValue`'s own `members` is the per-position
+count of contributing members, which can be lower where members were
+censored.
+
+## Deterministic documents: escaping `p50` with one check
+
+Code that only ever handles deterministic models shouldn't pay the `Scalar`
+tax on every read. `isDeterministicProfile` narrows a parsed profile to
+`DeterministicWindgramProfile` — the same document type with every `Scalar`
+position narrowed to `number` — so after one check, `p50()` disappears:
+
+```ts
+import { isDeterministicProfile } from "windgram/contract";
+
+if (isDeterministicProfile(profile)) {
+  for (const hour of profile.hours) {
+    const wStar = hour.derived.thermalVelocityMs; // number — no p50()
+    const liftTopM = hour.derived.usableLiftTopM; // number | null
+    console.log(hour.validAt, wStar.toFixed(1), liftTopM ?? "—");
+  }
+}
+```
+
+The guard is declaration-first: 0.3.0 ensemble documents declare
+`run.members`, so its presence answers in O(1). When it is absent the
+document may simply predate the declaration (`schemaVersion` stayed 1), so
+the guard falls back to scanning the Scalar positions — a pre-declaration
+ensemble document exits at the first percentile object it meets, while a
+genuinely deterministic one pays a full pass (a few thousand property reads
+on a real 48 h profile) to prove the negative. Run it once per document,
+not per hour.
+
 ## Non-JS consumers
 
 JSON Schema artifacts generated from the same zod schemas ship in the npm
 package and repository under [`schema/`](schema/) —
-`profile.schema.json`, `manifest.schema.json`, `models.schema.json` — so any
-language with a JSON Schema validator gets the identical contract.
-Regenerate with `pnpm schemas`.
+`profile.schema.json`, `manifest.schema.json`, `models.schema.json`,
+`sites.schema.json`, `runs.schema.json` — so any language with a JSON
+Schema validator gets the identical contract, including every field's
+semantics: the schemas carry the same descriptions the TypeScript JSDoc
+does (gust and precipitation semantics, the derived quantities'
+definitions and null conditions, the AGL-vs-MSL and Pa-vs-hPa
+conventions). Regenerate with `pnpm schemas`; a test fails if the shipped
+artifacts drift behind the zod contract.
 
 ## Exports
 
 ### `windgram/contract`
 
-Zod schemas, inferred types, and safeParse guards for the three published
+Zod schemas, inferred types, and safeParse guards for the five published
 document kinds:
 
 - `windgramProfileSchema` / `WindgramProfile` — the per-site profile at
   `data/<model-slug>/sites/<site-slug>.json` (history lines are the same
-  document, one per line);
+  document, one per line); its optional `semantics` tag echoes the model's
+  gust and precipitation semantics per document;
 - `windgramManifestSchema` / `WindgramManifest` — `data/<model-slug>/manifest.json`;
+  `stats` is typed as the stable core (`downloads`, `downloadBytes`,
+  `retries`, `durationMs`) plus an open numeric extension — the core keys
+  are contract, everything else is transport-specific and unstable;
 - `modelCatalogueSchema` / `ModelCatalogue` — `data/models.json`, the
-  discovery catalogue.
+  discovery catalogue (`runIntervalHours` and
+  `capabilities.precipitation` required since 0.3.0);
+- `sitesCatalogueSchema` / `SitesCatalogue` — `sites.json`, the site
+  catalogue; each entry's `elevationM` is the launch's surveyed elevation,
+  the same quantity a profile stores per-document as `site.altitudeM`
+  (nullable there — a profile built before the survey keeps its null; the
+  catalogue is current);
+- `runsIndexSchema` / `RunsIndex` — `data/runs.json`, the cross-model run
+  index keyed by model slug.
 
 Guards come in pairs: `parseWindgramProfile(value)` for already-parsed
 values and `parseWindgramProfileJson(text)` for raw stored strings (both
-return the typed document or `null`); likewise for the manifest and the
-catalogue.
+return the typed document or `null`); likewise `parseWindgramManifest…`,
+`parseModelCatalogue…`, `parseSitesCatalogue…`, and `parseRunsIndex…`.
+
+Deterministic narrowing: `DeterministicWindgramProfile` and
+`isDeterministicProfile` (see
+[Deterministic documents](#deterministic-documents-escaping-p50-with-one-check)).
 
 ### `windgram/derive`
 
@@ -321,10 +431,22 @@ with `p50(scalar)`.
   sink rates answer "what about my glider?" without republishing anything
   (the scene option `sinkRateMs` wires this into the renderer);
 - day windowing: `windgramDisplayHours` with timezone and day bounds as
-  parameters (nothing hardcodes a timezone), plus `localHourOfDay` and
-  `localDateKey` for building day tabs;
+  parameters (nothing hardcodes a timezone), `groupByLocalDay(hours,
+  timeZone)` → `[{ dateKey, hours }]` for day tabs (each group feeds
+  `buildScene`'s `hours` option directly), plus `localHourOfDay` and
+  `localDateKey`;
+- units: `msToKmh` (moved here from `windgram/scene` in 0.3.0 — it is a
+  pure unit conversion, not scene geometry);
 - smoothing: `smooth121`, the pipeline's retired 1-2-1 kernel as a renderer
   option (only across contiguous one-hour steps).
+
+### `windgram/transport`
+
+Fetching published documents correctly, with the runtime's fetch injected:
+`loadProfile` (the manifest + profile pair through the reference-time skew
+guard), `loadRuns` (the `data/runs.json` index), the pure pair check
+`runsConsistent`, and `TransportHttpError`. No caching, no storage — see
+[Transport](#transport-windgramtransport).
 
 ### `windgram/scene`
 
@@ -333,7 +455,9 @@ The headless renderer core: `buildScene(profile, options)` and the
 hit-testing (`cursorReading`,
 `xForHour`, `yForAltitude`, …), and the low-level geometry helpers the site's
 own figures reuse (`windBarbPaths`, `sampledFieldPaths`, `curvedPath`,
-`pointPath`, `interpolateVertical`, `msToKmh`).
+`pointPath`, `interpolateVertical`). `msToKmh` remains re-exported here
+through 0.3.x, deprecated — it moved to `windgram/derive` and the re-export
+departs in 0.4.
 
 ### `windgram/svg`
 
@@ -359,6 +483,37 @@ W\*, boundary-layer top, cloud base, usable-lift top arrive in the documents
 and this package **never recomputes them**. This package owns anything that
 is a pure function of the published JSON — RH, TI, shear, B/S, lapse,
 stability, windowing, smoothing — and the pipeline never publishes those.
+
+## Versions
+
+The document `schemaVersion` stays 1 across these releases: profile
+additions are additive-optional, and consumers discover the rest from the
+catalogue.
+
+**0.3.0** — the first-consumer feedback wave.
+
+- New `windgram/transport` subpath: `loadProfile` (the reference-time skew
+  guard as a library, fetch-injected, no storage), `loadRuns`,
+  `runsConsistent`, `TransportHttpError`.
+- Deterministic narrowing: `DeterministicWindgramProfile` +
+  `isDeterministicProfile` escape `p50()` with one check.
+- Contract: profiles gain the optional `semantics` tag (gust and
+  precipitation semantics echoed per document) and ensemble profiles
+  declare `run.members`; new `sitesCatalogueSchema` (sites.json is now
+  `{ schemaVersion, sites }`) and `runsIndexSchema` (`data/runs.json`)
+  with their parse guards; `manifest.stats` is typed as the stable core
+  (`downloads`, `downloadBytes`, `retries`, `durationMs`) plus an open
+  numeric extension. **Stricter**: `runIntervalHours` and
+  `capabilities.precipitation` are required — pre-0.3.0 catalogues no
+  longer validate (published data updated in the same change).
+- Ergonomics: `buildScene` accepts `hours` (hour objects or
+  `{ timeZone, dateKey }`) beside `hourIndices`; `derive` gains
+  `groupByLocalDay` and `msToKmh` (the latter moved from `scene`, where a
+  deprecated re-export remains until 0.4).
+- The JSON Schema artifacts now carry every field's semantics as
+  descriptions, and `sites.schema.json` / `runs.schema.json` join them.
+
+**0.2.0** — contract, derivations, scene graph, SVG serializer, presets.
 
 ## Developing
 

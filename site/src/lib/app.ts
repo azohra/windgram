@@ -1,11 +1,11 @@
-import type { WindgramProfile } from "windgram/contract";
-import { p50, windgramDisplayHours } from "windgram/derive";
+import type { SiteCatalogueEntry, WindgramProfile } from "windgram/contract";
+import { groupByLocalDay, p50, windgramDisplayHours } from "windgram/derive";
 import { buildScene, DEFAULT_OVERLAYS, type OverlayName } from "windgram/scene";
 import { renderSvg } from "windgram/svg";
-import { fetchSitesCatalog, fetchProfileWithSkewGuard, type SiteCatalogEntry } from "./api";
+import { fetchSitesCatalog, fetchProfile } from "./api";
 import { MODELS, modelBySlug, modelDisplayName } from "./catalogue";
 import { renderOverlaySVG, type OverlaySeries } from "./overlay";
-import { groupByLocalDay, localHourLabel, DISPLAY_TZ } from "./time";
+import { localDayLabel, localHourLabel, DISPLAY_TZ } from "./time";
 import { freshnessInfo } from "./captions";
 
 const LAST_SITE_KEY = "windgram:lastSite";
@@ -22,7 +22,7 @@ function cssVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
-let sites: SiteCatalogEntry[] = [];
+let sites: SiteCatalogueEntry[] = [];
 let currentSite = "";
 let currentModel = "hrdps-continental";
 let currentDateKey: string | null = null;
@@ -100,9 +100,13 @@ function renderDayTabs(days: { dateKey: string; label: string }[]) {
 }
 
 /* Profiles publish every forecast hour; the pilots' 07:00-21:00 day (with the
-   min-hours rule) is applied here with derive/'s windowing, not upstream. */
+   min-hours rule) is applied here with derive/'s windowing and day grouping —
+   only the tab label is the site's own formatting. */
 function displayDays(profile: WindgramProfile) {
-  return groupByLocalDay(windgramDisplayHours(profile.hours, { timeZone: DISPLAY_TZ }));
+  return groupByLocalDay(
+    windgramDisplayHours(profile.hours, { timeZone: DISPLAY_TZ }),
+    DISPLAY_TZ,
+  ).map((day) => ({ ...day, label: localDayLabel(day.hours[0].validAt) }));
 }
 
 function renderChartForCurrentDay() {
@@ -115,14 +119,9 @@ function renderChartForCurrentDay() {
     return;
   }
 
-  const indexByValidAt = new Map(currentProfile.hours.map((hour, index) => [hour.validAt, index]));
-  const hourIndices = day.hours
-    .map((hour) => indexByValidAt.get(hour.validAt))
-    .filter((index): index is number => index !== undefined);
-
   const scene = buildScene(currentProfile, {
     timeZone: DISPLAY_TZ,
-    hourIndices,
+    hours: day.hours,
     overlays: sceneOverlays,
   });
   chartMount.innerHTML = renderSvg(scene);
@@ -139,14 +138,18 @@ function renderChartForCurrentDay() {
   const wStar = p50(selectedHour.derived.thermalVelocityMs);
   const usableLift = p50(selectedHour.derived.usableLiftTopM);
   const usable = usableLift == null ? "none" : `${Math.round(usableLift).toLocaleString()} m`;
-  // Gust wording follows the model's declared semantics: ECCC's hour-max is
-  // an honest "gusting to"; NOAA's instantaneous diagnostic is not.
+  // Gust wording follows the declared semantics: ECCC's hour-max is an
+  // honest "gusting to"; NOAA's instantaneous diagnostic is not. The
+  // document's own semantics tag is authoritative (a stored profile stays
+  // interpretable without the catalogue); the catalogue capability is the
+  // fallback for documents predating the tag.
   const gustMs = selectedHour.surface.windGustMs == null ? null : p50(selectedHour.surface.windGustMs);
-  const gustCapability = modelBySlug(currentModel)?.capabilities.gust;
+  const gustSemantics =
+    currentProfile.semantics?.gust ?? (modelBySlug(currentModel)?.capabilities.gust || undefined);
   const gust =
-    gustMs == null || !gustCapability
+    gustMs == null || !gustSemantics
       ? ""
-      : gustCapability === "hourMax"
+      : gustSemantics === "hourMax"
         ? ` · gusting to ${Math.round(gustMs * 3.6)} km/h`
         : ` · gusts ${Math.round(gustMs * 3.6)} km/h`;
   hourReadoutEl.textContent = `${localHourLabel(selectedHour.validAt)}:00 · ${Math.round(
@@ -164,7 +167,7 @@ async function loadSite() {
   freshnessEl.textContent = "";
 
   try {
-    const result = await fetchProfileWithSkewGuard(model, currentSite);
+    const result = await fetchProfile(model, currentSite);
     if (!result) {
       statusEl.textContent = `${modelDisplayName(model)} has no readable forecast for this launch yet — it may be outside the model's domain, still publishing the previous data schema, or waiting on its first run.`;
       dayTabs.innerHTML = "";
@@ -204,7 +207,7 @@ async function loadOverlay() {
   const results = await Promise.all(
     MODELS.map(async (m) => {
       try {
-        const r = await fetchProfileWithSkewGuard(m, currentSite);
+        const r = await fetchProfile(m, currentSite);
         return r ? { model: m, profile: r.profile } : null;
       } catch {
         return null;

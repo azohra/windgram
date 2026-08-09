@@ -14,11 +14,13 @@
         "properties": {
           "slug": {
             "type": "string",
-            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "description": "Lowercase hyphenated slug — the identity of models and sites everywhere."
           },
           "label": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "description": "The only place prose model names live."
           },
           "provider": {
             "type": "string",
@@ -38,9 +40,11 @@
           },
           "runIntervalHours": {
             "type": "number",
-            "exclusiveMinimum": 0
+            "exclusiveMinimum": 0,
+            "description": "Hours between the runs this dataset publishes — the model's own schedule where every run is built, or the built subset where it is not (HRRR declares 6, its published synoptic subset). Freshness metadata: a run older than about twice this interval is genuinely late. Required since 0.3.0."
           },
           "sunset": {
+            "description": "Machine-readable retirement notice: no runs expected after date (UTC calendar date); successor names the replacing catalogue slug, or null for end-of-life with no replacement. Absent when no retirement is announced.",
             "type": "object",
             "properties": {
               "date": {
@@ -52,7 +56,8 @@
                 "anyOf": [
                   {
                     "type": "string",
-                    "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+                    "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                    "description": "Lowercase hyphenated slug — the identity of models and sites everywhere."
                   },
                   {
                     "type": "null"
@@ -79,13 +84,15 @@
             "type": "object",
             "properties": {
               "levels": {
-                "type": "boolean"
+                "type": "boolean",
+                "description": "False -> hours[].levels is always empty for this model."
               },
               "pressureLevels": {
                 "type": "array",
                 "items": {
                   "type": "number"
-                }
+                },
+                "description": "The isobaric levels (hPa) the model publishes today."
               },
               "verticalVelocity": {
                 "anyOf": [
@@ -100,16 +107,19 @@
                     "type": "boolean",
                     "const": false
                   }
-                ]
+                ],
+                "description": "Vertical-velocity provenance, not just presence: \"omega\" = the provider's own published omega (Pa/s); \"fromGeometricW\" = converted at build from geometric w via omega ~ -rho*g*w; false = not published. Declared so consumers can label converted values differently from native ones."
               },
               "verticalVelocityLevels": {
+                "description": "The subset of pressureLevels (hPa) that actually carries omega — present exactly when verticalVelocity is not false. A level absent from this list never carries omega, so renderers can label the sparse coverage instead of guessing at gaps.",
                 "type": "array",
                 "items": {
                   "type": "number"
                 }
               },
               "heatFluxes": {
-                "type": "boolean"
+                "type": "boolean",
+                "description": "Whether the model publishes surface sensible and latent heat fluxes."
               },
               "gust": {
                 "anyOf": [
@@ -124,22 +134,36 @@
                     "type": "boolean",
                     "const": false
                   }
-                ]
+                ],
+                "description": "Gust semantics, not just presence: \"hourMax\" = max model-timestep gust over the hour ending at validAt (ECCC); \"instant\" = diagnostic gust at validAt (NOAA); false = no gust published. The two differ ~20-30 % systematically, so renderers must label them differently."
+              },
+              "precipitation": {
+                "type": "string",
+                "enum": [
+                  "instantRate",
+                  "windowMeanRate"
+                ],
+                "description": "Precipitation-rate semantics: \"instantRate\" = instantaneous rate diagnostic at validAt; \"windowMeanRate\" = accumulation over the step window ending at validAt divided by its length. Required — every model publishes precipitation, so unlike gust there is no false. Echoed per document in the profile's semantics tag."
               },
               "cape": {
-                "type": "boolean"
+                "type": "boolean",
+                "description": "Whether the model publishes surface-based CAPE (surface.capeJkg)."
               },
               "cin": {
-                "type": "boolean"
+                "type": "boolean",
+                "description": "Whether the model publishes surface-based CIN — deliberately decoupled from cape: the HRDPS family has CAPE with no CIN."
               },
               "pblHeight": {
-                "type": "boolean"
+                "type": "boolean",
+                "description": "Whether the model publishes its own PBL depth (surface.pblHeightM, metres AGL)."
               },
               "cloudLayers": {
-                "type": "boolean"
+                "type": "boolean",
+                "description": "Whether the model publishes low/mid/high cloud-layer fractions (NOAA sigma bands)."
               },
               "cloudProfile": {
-                "type": "boolean"
+                "type": "boolean",
+                "description": "Whether the model publishes a per-level cloud fraction (levels[].cloudFractionPercent)."
               }
             },
             "required": [
@@ -148,6 +172,7 @@
               "verticalVelocity",
               "heatFluxes",
               "gust",
+              "precipitation",
               "cape",
               "cin",
               "pblHeight",
@@ -163,6 +188,7 @@
           "gridKm",
           "stepHours",
           "horizonHours",
+          "runIntervalHours",
           "kind",
           "experimental",
           "capabilities"
@@ -173,5 +199,6 @@
   "required": [
     "schemaVersion",
     "models"
-  ]
+  ],
+  "description": "data/models.json — the hand-maintained discovery catalogue. Frontends render what a model declares instead of hardcoding model lists."
 }

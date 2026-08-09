@@ -7,10 +7,16 @@ import {
   modelCatalogueSchema,
   parseModelCatalogue,
   parseModelCatalogueJson,
+  parseRunsIndex,
+  parseRunsIndexJson,
+  parseSitesCatalogue,
+  parseSitesCatalogueJson,
   parseWindgramManifest,
   parseWindgramManifestJson,
   parseWindgramProfile,
   parseWindgramProfileJson,
+  runsIndexSchema,
+  sitesCatalogueSchema,
   windgramManifestSchema,
   windgramProfileSchema,
 } from "../src/contract/index.js";
@@ -21,6 +27,8 @@ import {
   ensembleProfile,
   ensembleValue,
   manifest,
+  runsIndex,
+  sitesCatalogue,
 } from "./fixtures.js";
 
 describe("profile schema", () => {
@@ -144,6 +152,42 @@ describe("profile schema", () => {
     expect(parseWindgramProfile(deterministicProfile())).not.toBeNull();
   });
 
+  it("carries the optional semantics tag and rejects unknown tokens", () => {
+    const tagged = {
+      ...deterministicProfile(),
+      semantics: { gust: "hourMax", precipitation: "instantRate" },
+    };
+    const parsed = parseWindgramProfile(tagged);
+    expect(parsed).not.toBeNull();
+    expect(parsed!.semantics).toEqual({ gust: "hourMax", precipitation: "instantRate" });
+    // Partial tags are real documents: GEPS/REPS declare precipitation only
+    // (no per-member gust is published).
+    expect(
+      parseWindgramProfile({ ...deterministicProfile(), semantics: { precipitation: "windowMeanRate" } }),
+    ).not.toBeNull();
+    // Absence means "predates the tag", so it must stay valid…
+    expect(parseWindgramProfile(deterministicProfile())).not.toBeNull();
+    // …but a present tag must use the declared vocabulary.
+    expect(
+      parseWindgramProfile({ ...deterministicProfile(), semantics: { gust: "gustingTo" } }),
+    ).toBeNull();
+    expect(
+      parseWindgramProfile({ ...deterministicProfile(), semantics: { precipitation: "accumulation" } }),
+    ).toBeNull();
+  });
+
+  it("carries run.members on ensemble documents and tolerates its absence", () => {
+    const parsed = parseWindgramProfile(ensembleProfile());
+    expect(parsed).not.toBeNull();
+    expect(parsed!.run.members).toBe(21);
+    // Deterministic documents omit it — absence is the declaration.
+    expect(parseWindgramProfile(deterministicProfile())!.run.members).toBeUndefined();
+    // It is a member COUNT: a positive integer.
+    const bad = ensembleProfile();
+    (bad.run as { members: unknown }).members = 21.5;
+    expect(parseWindgramProfile(bad)).toBeNull();
+  });
+
   it("rejects other schema versions", () => {
     expect(parseWindgramProfile({ ...deterministicProfile(), schemaVersion: 2 })).toBeNull();
   });
@@ -188,6 +232,24 @@ describe("profile schema", () => {
 describe("manifest schema", () => {
   it("accepts a manifest with transport-specific stats", () => {
     expect(parseWindgramManifest(manifest())).not.toBeNull();
+  });
+
+  it("types stats as the stable core plus an open numeric extension", () => {
+    const parsed = parseWindgramManifest(manifest())!;
+    // The four core keys are contract and keep their names…
+    expect(parsed.stats.downloads).toBe(1406);
+    expect(parsed.stats.downloadBytes).toBe(5190709);
+    expect(parsed.stats.retries).toBe(0);
+    expect(parsed.stats.durationMs).toBe(129427);
+    // …and transport-specific extension keys ride along untyped-but-numeric.
+    expect(parsed.stats["geoMetCoverageProbes"]).toBe(12);
+    // A manifest missing a core key fails the guard,
+    const { downloads: _dropped, ...coreless } = manifest().stats;
+    expect(parseWindgramManifest({ ...manifest(), stats: coreless })).toBeNull();
+    // as does a non-numeric extension value.
+    expect(
+      parseWindgramManifest({ ...manifest(), stats: { ...manifest().stats, note: "fast" } }),
+    ).toBeNull();
   });
 
   it("accepts an ensemble manifest with memberCount", () => {
@@ -260,14 +322,25 @@ describe("models.json schema", () => {
     expect(parseModelCatalogue(entry)).not.toBeNull();
   });
 
-  it("carries the run cadence, optional for entries predating the field", () => {
+  it("requires the run cadence since 0.3.0 — every entry declares it", () => {
     const parsed = parseModelCatalogue(catalogue());
     expect(parsed!.models[0].runIntervalHours).toBe(6);
     const legacy = catalogue();
     delete (legacy.models[0] as { runIntervalHours?: number }).runIntervalHours;
-    const reparsed = parseModelCatalogue(legacy);
-    expect(reparsed).not.toBeNull();
-    expect(reparsed!.models[0].runIntervalHours).toBeUndefined();
+    expect(parseModelCatalogue(legacy)).toBeNull();
+  });
+
+  it("types precipitation as a required semantics declaration", () => {
+    const bad = catalogue();
+    const capabilities = bad.models[0].capabilities as { precipitation: unknown };
+    capabilities.precipitation = "windowMeanRate"; // NOAA-style window mean
+    expect(parseModelCatalogue(bad)).not.toBeNull();
+    capabilities.precipitation = "accumulation"; // not a known semantic
+    expect(parseModelCatalogue(bad)).toBeNull();
+    capabilities.precipitation = false; // every model publishes precip: no false
+    expect(parseModelCatalogue(bad)).toBeNull();
+    delete (bad.models[0].capabilities as { precipitation?: unknown }).precipitation;
+    expect(parseModelCatalogue(bad)).toBeNull(); // required, unlike the profile tag
   });
 
   it("represents CAPE without CIN — the HRDPS family's real shape", () => {
@@ -313,14 +386,154 @@ describe("models.json schema", () => {
     // Every model the site's freshness display covers declares its cadence.
     const hrdps = parsed!.models.find((model) => model.slug === "hrdps-continental")!;
     expect(hrdps.runIntervalHours).toBe(6);
+    // And every entry declares its precipitation semantics — required since
+    // 0.3.0, no boolean escape: HRRR's is the true instantaneous PRATE, the
+    // synoptic NOAA models publish window means.
+    const hrrr = parsed!.models.find((model) => model.slug === "hrrr-conus")!;
+    expect(hrrr.capabilities.precipitation).toBe("instantRate");
+    const gfs = parsed!.models.find((model) => model.slug === "gfs")!;
+    expect(gfs.capabilities.precipitation).toBe("windowMeanRate");
+  });
+});
+
+describe("sites.json schema", () => {
+  it("accepts the {schemaVersion, sites} catalogue", () => {
+    const parsed = parseSitesCatalogue(sitesCatalogue());
+    expect(parsed).not.toBeNull();
+    expect(parsed!.sites.map((site) => site.slug)).toEqual(["dundee", "red-mountain"]);
+    expect(parsed!.sites[0].elevationM).toBe(1485);
+  });
+
+  it("rejects the pre-0.3.0 bare-array shape — unversioned documents cannot promise theirs", () => {
+    expect(parseSitesCatalogue(sitesCatalogue().sites)).toBeNull();
+  });
+
+  it("requires the surveyed elevation — the catalogue is its home", () => {
+    const bad = sitesCatalogue();
+    delete (bad.sites[0] as { elevationM?: number }).elevationM;
+    expect(parseSitesCatalogue(bad)).toBeNull();
+  });
+
+  it("rejects prose slugs", () => {
+    const bad = sitesCatalogue();
+    (bad.sites[0] as { slug: string }).slug = "Red Mountain";
+    expect(parseSitesCatalogue(bad)).toBeNull();
+  });
+
+  it("parses from a stored string and accepts the repository's actual sites.json", () => {
+    expect(parseSitesCatalogueJson(JSON.stringify(sitesCatalogue()))).not.toBeNull();
+    expect(parseSitesCatalogueJson("[]")).toBeNull();
+    const raw = readFileSync(join(__dirname, "..", "..", "..", "sites.json"), "utf-8");
+    expect(parseSitesCatalogueJson(raw)).not.toBeNull();
+  });
+});
+
+describe("runs.json schema", () => {
+  it("accepts the slug-keyed run index", () => {
+    const parsed = parseRunsIndex(runsIndex());
+    expect(parsed).not.toBeNull();
+    expect(parsed!.runs["hrdps-continental"]!.referenceTime).toBe("2026-08-08T00:00:00Z");
+    expect(Object.keys(parsed!.runs)).toHaveLength(2);
+  });
+
+  it("rejects prose keys and truncated entries", () => {
+    const badKey = { schemaVersion: 1, runs: { "HRDPS continental": runsIndex().runs["reps"] } };
+    expect(parseRunsIndex(badKey)).toBeNull();
+    const truncated = {
+      schemaVersion: 1,
+      runs: { reps: { referenceTime: "2026-08-08T00:00:00Z" } }, // no generatedAt
+    };
+    expect(parseRunsIndex(truncated)).toBeNull();
+  });
+
+  it("accepts an empty index — a fresh tree with nothing published yet", () => {
+    expect(parseRunsIndex({ schemaVersion: 1, runs: {} })).not.toBeNull();
+  });
+
+  it("parses from a stored string", () => {
+    expect(parseRunsIndexJson(JSON.stringify(runsIndex()))).not.toBeNull();
+    expect(parseRunsIndexJson("not json")).toBeNull();
   });
 });
 
 describe("JSON Schema generation", () => {
+  const published = [
+    windgramProfileSchema,
+    windgramManifestSchema,
+    modelCatalogueSchema,
+    sitesCatalogueSchema,
+    runsIndexSchema,
+  ];
+
   it("converts every published schema without throwing", () => {
-    for (const schema of [windgramProfileSchema, windgramManifestSchema, modelCatalogueSchema]) {
+    for (const schema of published) {
       const jsonSchema = z.toJSONSchema(schema, { target: "draft-2020-12" });
       expect(jsonSchema).toHaveProperty("type", "object");
+    }
+  });
+
+  it("carries the field semantics as descriptions — the non-JS parity promise", () => {
+    type JsonSchema = { description?: string; properties?: Record<string, JsonSchema> } & Record<
+      string,
+      unknown
+    >;
+    const profile = z.toJSONSchema(windgramProfileSchema, {
+      target: "draft-2020-12",
+      io: "input",
+    }) as JsonSchema;
+    const hour = (profile.properties!["hours"] as { items: JsonSchema }).items;
+    const derived = hour.properties!["derived"]!;
+    expect(derived.properties!["cloudBaseM"]!.description).toContain("Bolton");
+    expect(derived.properties!["cloudBaseM"]!.description).toContain("boundaryLayerTopM");
+    expect(derived.properties!["thermalVelocityMs"]!.description).toContain("Deardorff");
+    expect(derived.properties!["boundaryLayerTopM"]!.description).toContain("Null when");
+    expect(derived.properties!["usableLiftTopM"]!.description).toContain("1.0 m/s");
+    const surface = hour.properties!["surface"]!;
+    expect(surface.properties!["windGustMs"]!.description).toContain("semantics.gust");
+    expect(surface.properties!["precipitationMmHr"]!.description).toContain(
+      "semantics.precipitation",
+    );
+    expect(surface.properties!["pressurePa"]!.description).toContain("SI pascals");
+
+    const models = z.toJSONSchema(modelCatalogueSchema, {
+      target: "draft-2020-12",
+      io: "input",
+    }) as JsonSchema;
+    const capabilities = (models.properties!["models"] as { items: JsonSchema }).items.properties![
+      "capabilities"
+    ]!;
+    expect(capabilities.properties!["precipitation"]!.description).toContain("windowMeanRate");
+    expect(capabilities.properties!["gust"]!.description).toContain("hourMax");
+
+    const sites = z.toJSONSchema(sitesCatalogueSchema, {
+      target: "draft-2020-12",
+      io: "input",
+    }) as JsonSchema;
+    const entry = (sites.properties!["sites"] as { items: JsonSchema }).items;
+    expect(entry.properties!["elevationM"]!.description).toContain("altitudeM");
+  });
+
+  it("matches the shipped schema/*.json artifacts — regenerate with pnpm schemas", () => {
+    // The emitter's exact output (internal/emit-json-schema.ts): a title
+    // wrapped around the io:"input" conversion. Deep-equality here means the
+    // shipped artifacts cannot drift behind the zod contract.
+    const artifacts = [
+      { fileName: "profile.schema.json", title: "Windgram profile document", schema: windgramProfileSchema },
+      { fileName: "manifest.schema.json", title: "Windgram model manifest", schema: windgramManifestSchema },
+      { fileName: "models.schema.json", title: "Windgram model catalogue, data/models.json", schema: modelCatalogueSchema },
+      { fileName: "sites.schema.json", title: "Windgram site catalogue, sites.json", schema: sitesCatalogueSchema },
+      { fileName: "runs.schema.json", title: "Windgram cross-model run index, data/runs.json", schema: runsIndexSchema },
+    ] as const;
+    for (const artifact of artifacts) {
+      const expected = {
+        $schema: "https://json-schema.org/draft/2020-12/schema",
+        title: artifact.title,
+        ...z.toJSONSchema(artifact.schema, { target: "draft-2020-12", io: "input" }),
+      };
+      const onDisk = JSON.parse(
+        readFileSync(join(__dirname, "..", "schema", artifact.fileName), "utf-8"),
+      );
+      expect(onDisk, artifact.fileName).toEqual(JSON.parse(JSON.stringify(expected)));
     }
   });
 });

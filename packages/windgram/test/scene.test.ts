@@ -57,6 +57,52 @@ describe("scales and layout", () => {
       "2026-08-09T18:00:00Z",
     ]);
   });
+
+  it("renders the same subset via hour objects — no index bookkeeping", () => {
+    const profile = deterministicSceneProfile();
+    const byIndices = buildScene(profile, { ...TZ, hourIndices: [2, 3, 4] });
+    const byHours = buildScene(profile, { ...TZ, hours: profile.hours.slice(2, 5) });
+    expect(byHours).toEqual(byIndices);
+    // Matching is by validAt, so pre-windowed copies select too, and hours
+    // the profile does not contain are ignored rather than crashing.
+    const byCopies = buildScene(profile, {
+      ...TZ,
+      hours: [
+        { validAt: "2026-08-09T16:00:00Z" },
+        { validAt: "2026-08-09T17:00:00Z" },
+        { validAt: "2026-08-09T18:00:00Z" },
+        { validAt: "2031-01-01T00:00:00Z" }, // not in the profile
+      ],
+    });
+    expect(byCopies).toEqual(byIndices);
+  });
+
+  it("renders one local day via { timeZone, dateKey }", () => {
+    const profile = deterministicSceneProfile(); // 8 hours, all Aug 9 PDT
+    const day = buildScene(profile, {
+      ...TZ,
+      hours: { timeZone: "America/Vancouver", dateKey: "2026-08-09" },
+    });
+    expect(day).toEqual(buildScene(profile, TZ));
+    // The same instants belong to a different local day elsewhere: all
+    // eight hours (14:00Z-21:00Z) are already Aug 10 in Sydney (UTC+10),
+    // so the Aug 9 Sydney day selects none of them and Aug 10 all.
+    const sydney = buildScene(profile, {
+      ...TZ,
+      hours: { timeZone: "Australia/Sydney", dateKey: "2026-08-10" },
+    });
+    expect(sydney.hourValidAts).toEqual(profile.hours.map((hour) => hour.validAt));
+  });
+
+  it("gives hourIndices precedence over hours when both are passed", () => {
+    const profile = deterministicSceneProfile();
+    const both = buildScene(profile, {
+      ...TZ,
+      hourIndices: [0, 1],
+      hours: profile.hours.slice(4),
+    });
+    expect(both.hourValidAts).toEqual(profile.hours.slice(0, 2).map((hour) => hour.validAt));
+  });
 });
 
 describe("axes", () => {

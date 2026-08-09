@@ -8,6 +8,8 @@ import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import {
   modelCatalogueSchema,
+  runsIndexSchema,
+  sitesCatalogueSchema,
   windgramManifestSchema,
   windgramProfileSchema,
 } from "../contract/index.js";
@@ -31,6 +33,16 @@ const artifacts = [
     fileName: "models.schema.json",
     title: "Windgram model catalogue, data/models.json",
     schema: modelCatalogueSchema,
+  },
+  {
+    fileName: "sites.schema.json",
+    title: "Windgram site catalogue, sites.json",
+    schema: sitesCatalogueSchema,
+  },
+  {
+    fileName: "runs.schema.json",
+    title: "Windgram cross-model run index, data/runs.json",
+    schema: runsIndexSchema,
   },
 ] as const;
 

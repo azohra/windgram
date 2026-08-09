@@ -86,9 +86,9 @@ REPS and GEPS are the ensembles: 21 members each, derived independently and publ
 
 ## Data contract
 
-`manifest.json` identifies the published model run and its available sites. Each site profile carries `schemaVersion: 1`, run and site metadata (launch coordinates, altitude, model elevation), and every forecast hour in chronological order — day windowing is a renderer concern. Each hour nests three blocks:
+`manifest.json` identifies the published model run and its available sites. A publication is identified by (`referenceTime`, `generatedAt`): a new `generatedAt` at the same `referenceTime` means the run was re-published with corrected data, and consumers should re-ingest it; `data/runs.json` indexes every model's current pair in one fetch. Each site profile carries `schemaVersion: 1`, run and site metadata (launch coordinates, altitude, model elevation), a `semantics` block declaring how to read the fields whose meaning varies by provider (`gust`: `"hourMax"` or `"instant"`, present when the model publishes gusts; `precipitation`: `"instantRate"` or `"windowMeanRate"`, always), and every forecast hour in chronological order — day windowing is a renderer concern. Ensemble documents add `run.members`, the member count. Each hour nests three blocks:
 
-- `surface` — SI throughout: pressure in Pa, temperature and dew point in °C, wind in m/s, cloud cover in %, precipitation in mm/h, sensible and latent heat flux in W/m². Where a model publishes them (the catalogue's capabilities say which), optional fields add the 10 m gust in m/s (`capabilities.gust` declares whether it is an hour-max or an instantaneous value), surface-based CAPE and CIN in J/kg, model boundary-layer height in metres **above ground**, and low/mid/high cloud-layer fractions in %;
+- `surface` — SI throughout: pressure in Pa, temperature and dew point in °C, wind in m/s, cloud cover in %, precipitation in mm/h, sensible and latent heat flux in W/m². Where a model publishes them (the catalogue's capabilities say which), optional fields add the 10 m gust in m/s (`semantics.gust` says which flavour), surface-based CAPE and CIN in J/kg, model boundary-layer height in metres **above ground**, and low/mid/high cloud-layer fractions in %;
 - `levels` — per pressure level: height, temperature, dew point, wind, and, where the model carries them, vertical velocity in Pa/s and cloud fraction in %;
 - `derived` — unsmoothed boundary-layer top, thermal velocity, cloud base, and usable-lift top. `usableLiftTopM` embeds a fixed pilot sink rate of **1.0 m/s** — that convention is part of the published value, not a renderer choice. Every input the derivation needs is itself published, so consumers flying a different polar re-answer it from the same document with `windgram/derive`'s parameterized `usableLiftTopM(inputs, sinkRateMs)`.
 
@@ -96,14 +96,14 @@ Optional fields are additive: absence means the model does not publish the quant
 
 Any numeric position may instead hold an ensemble percentile object `{members, p10, p25, p50, p75, p90}` (plus `ceiledMembers` on the clamped heights). Deterministic models publish numbers; REPS publishes percentile objects in the same positions — switch on shape, never on model name.
 
-Past forecasts are append-only gzip archives, one profile document per line:
+Past forecasts are append-only gzip archives, one profile document per line, one file per month of the run's `referenceTime`:
 
 ```text
-data/<model>/history/<slug>/<year>.jsonl.gz
+data/<model>/history/<slug>/<YYYY-MM>.jsonl.gz
 ```
 
 ```sh
-zcat data/hrdps-continental/history/dundee/2026.jsonl.gz | jq -r .run.referenceTime
+zcat data/hrdps-continental/history/dundee/2026-08.jsonl.gz | jq -r .run.referenceTime
 ```
 
 The [forecast model feed reference](reference/forecast-model-feeds.md) records provider paths, schedules, field semantics, and verification dates.

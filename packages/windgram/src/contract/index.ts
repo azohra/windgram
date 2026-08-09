@@ -1,12 +1,18 @@
 import { z } from "zod";
 
 /* The published contract: zod schemas for the profile document, the per-model
-   manifest, and the models.json catalogue, with types inferred and safeParse
-   guards for the trust boundary where stored JSON is read back.
+   manifest, the models.json catalogue, the sites.json catalogue, and the
+   runs.json aggregate, with types inferred and safeParse guards for the trust
+   boundary where stored JSON is read back.
 
    Model identity is the slug string (the data/ directory name). There is
    deliberately no enum of model names anywhere: models.json is the catalogue,
-   and consumers discover models from it instead of hardcoding a list. */
+   and consumers discover models from it instead of hardcoding a list.
+
+   Every field's prose lives twice on purpose, adjacent and identical in
+   meaning: the JSDoc block serves TypeScript consumers, and the .describe()
+   call carries the same semantics into the generated JSON Schema artifacts
+   (schema/*.json) so non-JS consumers read the identical contract. */
 
 export const SCHEMA_VERSION = 1;
 
@@ -14,11 +20,14 @@ export const SCHEMA_VERSION = 1;
 // of every data/ directory and site id today ("hrdps-continental", "red-mountain").
 const slugSchema = z
   .string()
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "expected a lowercase hyphenated slug");
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "expected a lowercase hyphenated slug")
+  .describe("Lowercase hyphenated slug — the identity of models and sites everywhere.");
 
 // UTC instants; "Z" required, fractional seconds tolerated (manifests carry
 // milliseconds, profile documents whole seconds).
-const utcInstantSchema = z.iso.datetime();
+const utcInstantSchema = z.iso
+  .datetime()
+  .describe("UTC instant, ISO 8601 with a Z suffix; fractional seconds tolerated.");
 
 /* ---------------------------------------------------------------- ensemble */
 
@@ -26,21 +35,42 @@ const utcInstantSchema = z.iso.datetime();
    where deterministic models publish a plain number. `ceiledMembers` appears
    only where the pipeline records censoring (boundary-layer top and usable
    lift capped by the column ceiling). */
-export const ensembleValueSchema = z.object({
-  members: z.number().int().positive(),
-  p10: z.number(),
-  p25: z.number(),
-  p50: z.number(),
-  p75: z.number(),
-  p90: z.number(),
-  ceiledMembers: z.number().int().nonnegative().optional(),
-});
+export const ensembleValueSchema = z
+  .object({
+    members: z
+      .number()
+      .int()
+      .positive()
+      .describe(
+        "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero).",
+      ),
+    p10: z.number(),
+    p25: z.number(),
+    p50: z.number(),
+    p75: z.number(),
+    p90: z.number(),
+    ceiledMembers: z
+      .number()
+      .int()
+      .nonnegative()
+      .optional()
+      .describe(
+        "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+      ),
+  })
+  .describe(
+    "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number.",
+  );
 export type EnsembleValue = z.infer<typeof ensembleValueSchema>;
 
 /* Every numeric data position in `surface`, `levels`, and `derived` is a
    Scalar; consumers switch on shape, never on model name. Site and run
    metadata (coordinates, elevations, timestamps) stay plain. */
-export const scalarSchema = z.union([z.number(), ensembleValueSchema]);
+export const scalarSchema = z
+  .union([z.number(), ensembleValueSchema])
+  .describe(
+    "Scalar data position: a plain number (deterministic models) or an ensemble percentile object.",
+  );
 export type Scalar = number | EnsembleValue;
 
 export function isEnsembleValue(value: Scalar): value is EnsembleValue {
@@ -50,28 +80,58 @@ export function isEnsembleValue(value: Scalar): value is EnsembleValue {
 /* ----------------------------------------------------------------- profile */
 
 export const windgramSurfaceSchema = z.object({
-  pressurePa: scalarSchema, // MSL pressure
-  temperatureC: scalarSchema, // 2 m
-  dewPointC: scalarSchema, // 2 m
-  windSpeedMs: scalarSchema, // 10 m
-  windDirectionDeg: scalarSchema, // met convention (from), 0-359
-  cloudCoverPercent: scalarSchema, // total
-  precipitationMmHr: scalarSchema,
-  sensibleHeatFluxWm2: scalarSchema,
-  latentHeatFluxWm2: scalarSchema,
+  /**
+   * Mean-sea-level pressure, Pa. Surface pressure is a measured quantity and
+   * is published in SI pascals; level pressure (`levels[].pressureHpa`) is
+   * the vertical coordinate and keeps the conventional hectopascals levels
+   * are named by (925, 850, …). The unit split is deliberate, not an
+   * inconsistency: coordinates read in their conventional unit, measurements
+   * in SI.
+   */
+  pressurePa: scalarSchema.describe(
+    "Mean-sea-level pressure, Pa. A measured quantity, so SI pascals; level pressure (levels[].pressureHpa) is the vertical coordinate and keeps conventional hectopascals — the unit split is deliberate.",
+  ),
+  temperatureC: scalarSchema.describe("2 m air temperature, degC."),
+  dewPointC: scalarSchema.describe("2 m dew point, degC."),
+  windSpeedMs: scalarSchema.describe("10 m wind speed, m/s."),
+  windDirectionDeg: scalarSchema.describe(
+    "10 m wind direction, meteorological convention (direction the wind comes FROM), 0-359 deg.",
+  ),
+  cloudCoverPercent: scalarSchema.describe("Total cloud cover, % 0-100."),
+  /**
+   * Precipitation rate, mm/h. The SEMANTICS DIFFER BY PROVIDER and are
+   * declared per model in models.json `capabilities.precipitation`, echoed
+   * on the document itself in the top-level `semantics.precipitation` tag:
+   * "instantRate" is the model's instantaneous rate diagnostic at validAt;
+   * "windowMeanRate" is the accumulation over the publishing step window
+   * ending at validAt divided by the window length. A shower shorter than
+   * the window reads lower-but-wider under window-mean than under an
+   * instantaneous diagnostic, so cross-model comparisons must consult the
+   * declaration.
+   */
+  precipitationMmHr: scalarSchema.describe(
+    'Precipitation rate, mm/h. SEMANTICS DIFFER BY PROVIDER — declared per model in models.json capabilities.precipitation and echoed in the document\'s top-level semantics.precipitation: "instantRate" = instantaneous rate diagnostic at validAt; "windowMeanRate" = accumulation over the step window ending at validAt divided by the window length.',
+  ),
+  sensibleHeatFluxWm2: scalarSchema.describe("Surface sensible heat flux, W/m2."),
+  latentHeatFluxWm2: scalarSchema.describe("Surface latent heat flux, W/m2."),
   /* The science-wave fields below are additive and optional: a model
      publishes each one only where its transport carries it (models.json
      capabilities say which). Absence means "not published", never zero. */
   /**
    * 10 m wind gust, m/s. The SEMANTICS DIFFER BY PROVIDER and are declared
-   * per model in models.json `capabilities.gust`: ECCC models publish the
-   * maximum model-timestep gust over the hour ending at validAt ("hourMax",
-   * the pilot's "gusting to"); NOAA models publish only the instantaneous
+   * per model in models.json `capabilities.gust`, echoed on the document in
+   * the top-level `semantics.gust` tag: ECCC models publish the maximum
+   * model-timestep gust over the hour ending at validAt ("hourMax", the
+   * pilot's "gusting to"); NOAA models publish only the instantaneous
    * diagnostic gust at validAt ("instant"). Hour-max runs systematically
    * ~20-30 % higher than instant, so cross-model comparisons must consult
-   * the capability flag.
+   * the declaration.
    */
-  windGustMs: scalarSchema.optional(),
+  windGustMs: scalarSchema
+    .optional()
+    .describe(
+      '10 m wind gust, m/s. SEMANTICS DIFFER BY PROVIDER — declared per model in models.json capabilities.gust and echoed in the document\'s top-level semantics.gust: "hourMax" = maximum model-timestep gust over the hour ending at validAt (ECCC, the pilot\'s "gusting to"); "instant" = instantaneous diagnostic gust at validAt (NOAA). Hour-max runs ~20-30 % higher systematically. Absent where the model publishes no gust.',
+    ),
   /**
    * Surface-based CAPE, J/kg (>= 0), instantaneous — the parcel a
    * surface-heated thermal actually flies. The one CAPE variant every
@@ -79,67 +139,180 @@ export const windgramSurfaceSchema = z.object({
    * RDPS/GDPS, -1 on the HRDPS family) are masked in the pipeline and the
    * field is omitted for those hours.
    */
-  capeJkg: scalarSchema.optional(),
+  capeJkg: scalarSchema
+    .optional()
+    .describe(
+      'Surface-based CAPE, J/kg (>= 0), instantaneous — the parcel a surface-heated thermal actually flies. Provider "not computed" sentinels are masked upstream; absent means "not published", never zero.',
+    ),
   /**
    * Surface-based CIN, J/kg (<= 0), instantaneous. Exists only on
    * RDPS/GDPS/HRRR/GFS — the HRDPS family publishes CAPE with no CIN, so
    * capabilities decouple `cin` from `cape` and absence must not be read
    * as "no cap".
    */
-  cinJkg: scalarSchema.optional(),
+  cinJkg: scalarSchema
+    .optional()
+    .describe(
+      "Surface-based CIN, J/kg (<= 0), instantaneous. Decoupled from CAPE in the capabilities (the HRDPS family publishes CAPE with no CIN); absence must not be read as \"no cap\".",
+    ),
   /**
    * Model planetary-boundary-layer depth, metres ABOVE GROUND (AGL), not
    * MSL. To plot it on the altitude axis next to derived.boundaryLayerTopM
    * (which is MSL), add site.modelElevationM first.
    */
-  pblHeightM: scalarSchema.optional(),
+  pblHeightM: scalarSchema
+    .optional()
+    .describe(
+      "Model planetary-boundary-layer depth, metres ABOVE GROUND (AGL), not MSL — add site.modelElevationM before comparing with derived.boundaryLayerTopM (MSL).",
+    ),
   /**
    * Instantaneous low / middle / high cloud-layer fractions, % 0-100
    * (NOAA models only). The bands are NCEP's terrain-following sigma
    * layers (low sigma 1.0-0.642, middle 0.642-0.35, high 0.35-0.15 of
    * surface pressure), not fixed altitudes.
    */
-  lowCloudPercent: scalarSchema.optional(),
-  midCloudPercent: scalarSchema.optional(),
-  highCloudPercent: scalarSchema.optional(),
+  lowCloudPercent: scalarSchema
+    .optional()
+    .describe(
+      "Instantaneous low cloud-layer fraction, % 0-100 (NOAA models only). NCEP's terrain-following sigma band (1.0-0.642 of surface pressure), not a fixed altitude.",
+    ),
+  midCloudPercent: scalarSchema
+    .optional()
+    .describe(
+      "Instantaneous middle cloud-layer fraction, % 0-100 (NOAA models only). NCEP sigma band 0.642-0.35 of surface pressure.",
+    ),
+  highCloudPercent: scalarSchema
+    .optional()
+    .describe(
+      "Instantaneous high cloud-layer fraction, % 0-100 (NOAA models only). NCEP sigma band 0.35-0.15 of surface pressure.",
+    ),
 });
 export type WindgramSurface = z.infer<typeof windgramSurfaceSchema>;
 
 export const windgramLevelSchema = z.object({
-  pressureHpa: scalarSchema,
-  heightM: scalarSchema,
-  temperatureC: scalarSchema,
-  dewPointC: scalarSchema,
-  windSpeedMs: scalarSchema,
-  windDirectionDeg: scalarSchema,
+  /**
+   * Isobaric level pressure, hPa — the vertical coordinate, in the
+   * hectopascals levels are named by everywhere in meteorology (925, 850,
+   * …). Surface pressure (`surface.pressurePa`), a measured quantity, is
+   * SI pascals instead; the unit split is deliberate.
+   */
+  pressureHpa: scalarSchema.describe(
+    "Isobaric level pressure, hPa — the vertical coordinate, in the conventional hectopascals levels are named by (925, 850, …); surface.pressurePa, a measured quantity, is SI pascals instead.",
+  ),
+  heightM: scalarSchema.describe("Geopotential height of the level, metres MSL."),
+  temperatureC: scalarSchema.describe("Level temperature, degC."),
+  dewPointC: scalarSchema.describe("Level dew point, degC."),
+  windSpeedMs: scalarSchema.describe("Level wind speed, m/s."),
+  windDirectionDeg: scalarSchema.describe(
+    "Level wind direction, meteorological convention (from), 0-359 deg.",
+  ),
   // Omitted until a model's transport provides omega (the GRIB wave);
   // models.json capabilities.verticalVelocity says which models carry it.
-  verticalVelocityPaS: scalarSchema.optional(),
+  verticalVelocityPaS: scalarSchema
+    .optional()
+    .describe(
+      "Vertical velocity as pressure tendency (omega), Pa/s; negative is lift. Present only on models and levels declared by models.json capabilities.verticalVelocity / verticalVelocityLevels.",
+    ),
   /**
    * Per-isobaric-level total cloud fraction, % 0-100. GFS is the only
    * published model with a cloud profile (capabilities.cloudProfile);
    * unlike omega it is level-complete within GFS, only model-sparse.
    */
-  cloudFractionPercent: scalarSchema.optional(),
+  cloudFractionPercent: scalarSchema
+    .optional()
+    .describe(
+      "Per-isobaric-level total cloud fraction, % 0-100. Present only where models.json capabilities.cloudProfile is true (GFS today); level-complete within a capable model, only model-sparse.",
+    ),
 });
 export type WindgramLevel = z.infer<typeof windgramLevelSchema>;
 
 /* Pipeline-authoritative quantities, unsmoothed. The package never
-   recomputes these (the one-home rule). */
+   recomputes these (the one-home rule); windgram/derive re-exposes only the
+   usable-lift derivation, parameterized, for other sink rates. Full
+   derivations with constants and citations: research/windgram-derivations.md
+   ("How a windgram is computed"). */
 export const windgramDerivedSchema = z.object({
-  boundaryLayerTopM: scalarSchema.nullable(), // null when no BL
-  thermalVelocityMs: scalarSchema,
-  cloudBaseM: scalarSchema,
-  usableLiftTopM: scalarSchema.nullable(), // null when lift can't beat sink
+  /**
+   * Parcel-derived boundary-layer top, metres MSL: the height where a
+   * surface parcel lifted dry-adiabatically stops being warmer than the
+   * model environment, interpolated between the bracketing levels. Null
+   * when the surface parcel is never buoyant — no positive-buoyancy depth
+   * at all (night, rain, hard inversions) — which is a real forecast of
+   * "no convective mixing", not a gap. When the parcel outclimbs the entire
+   * published column the value is the column ceiling, not physics; ensemble
+   * documents record that censoring in the position's `ceiledMembers`.
+   * Derivation: research/windgram-derivations.md ("Lift the surface parcel").
+   */
+  boundaryLayerTopM: scalarSchema
+    .nullable()
+    .describe(
+      "Parcel-derived boundary-layer top, metres MSL — where a dry-adiabatically lifted surface parcel stops being warmer than the model environment, interpolated between bracketing levels. Null when the parcel is never buoyant (no positive-buoyancy depth: night, rain, hard inversions) — a real forecast, not a gap. A parcel outclimbing the whole column yields the column ceiling, not physics; ensemble documents record that censoring in ceiledMembers.",
+    ),
+  /**
+   * Deardorff's convective velocity scale w*, m/s — the strength scale of
+   * boundary-layer thermals. Computed as the cube root of
+   * (g/θ) × virtual kinematic heat flux × boundary-layer depth, where the
+   * virtual heat flux combines the published sensible and latent fluxes
+   * (the latent flux enters through the virtual-temperature correction —
+   * moist air is buoyant air). Zero whenever the virtual heat flux or the
+   * boundary-layer depth is non-positive — night, rain, heavily suppressed
+   * heating — so zero means "no thermals", never "unknown". Derivation and
+   * constants: research/windgram-derivations.md ("Turn surface heating
+   * into w*").
+   */
+  thermalVelocityMs: scalarSchema.describe(
+    'Deardorff\'s convective velocity scale w*, m/s: cube root of (g/theta) x virtual kinematic heat flux x boundary-layer depth, from the published sensible and latent heat fluxes (latent enters via the virtual-temperature correction) and the parcel-derived depth. Zero when the virtual heat flux or depth is non-positive (night, rain) — "no thermals", never "unknown". Derivation: research/windgram-derivations.md.',
+  ),
+  /**
+   * Effective cloud base, metres MSL — always present, never null. The
+   * LOWER of two estimates: the surface parcel's lifting condensation
+   * level from Bolton (1980, Mon. Wea. Rev. 108, eq. 15 — explicit LCL
+   * temperature from surface temperature and dew point, no iteration), and
+   * the first level where the published column itself already saturates
+   * (dew-point depression at the 0.5 °C cloud-hatch threshold,
+   * interpolated between samples). Clamped to model terrain: a saturated
+   * or supersaturated surface puts cloud base at the ground, and the value
+   * never sits below it. It CAN sit below boundaryLayerTopM — that is a
+   * forecast of cloud forming inside the convective layer (overdevelopment
+   * territory), not an inconsistency. Derivation:
+   * research/windgram-derivations.md ("Estimate cloud base").
+   */
+  cloudBaseM: scalarSchema.describe(
+    "Effective cloud base, metres MSL, always present. The LOWER of the surface parcel's condensation level (Bolton 1980, eq. 15) and the first level where the published column itself saturates (dew-point depression at the 0.5 degC hatch threshold, interpolated), clamped to model terrain (a saturated surface puts it at the ground). CAN sit below boundaryLayerTopM — cloud forming inside the convective layer, not an inconsistency. Derivation: research/windgram-derivations.md.",
+  ),
+  /**
+   * Usable-lift top ("hcrit"), metres MSL: the height where the STRONGEST
+   * thermal core still out-climbs the pilot's sink rate. The core profile
+   * is w* × 4 × z^(1/3) × (1 − 0.8 z) with z = height / boundary-layer
+   * depth — canadarasp's hcrit, the 4 being Lenschow & Stephens' mean-
+   * updraft coefficient (1.34) times ~3 for the core, which is why the
+   * line can sit above the boundary layer: cores overshoot the mixed-layer
+   * top before they die. The published value EMBEDS the fixed 1.0 m/s sink
+   * convention — that convention is part of the value. Capped by
+   * cloudBaseM everywhere; null when even the profile-maximum core cannot
+   * beat the sink rate (2.02 × w* < 1 m/s) — weak days publish null, not
+   * zero. For other sink rates ("what about my glider?"), the
+   * parameterized `usableLiftTopM` in windgram/derive recomputes this from
+   * published inputs alone.
+   */
+  usableLiftTopM: scalarSchema
+    .nullable()
+    .describe(
+      "Usable-lift top (hcrit), metres MSL: where the STRONGEST thermal core — w* x 4 x z^(1/3) x (1 - 0.8 z), z = height / boundary-layer depth — falls back to the pilot's sink rate. EMBEDS the fixed 1.0 m/s sink convention (part of the published value). Capped by cloudBaseM; null when even the profile-maximum core cannot beat the sink (2.02 x w* < 1 m/s). Other sink rates: the parameterized usableLiftTopM in windgram/derive.",
+    ),
 });
 export type WindgramDerived = z.infer<typeof windgramDerivedSchema>;
 
 export const windgramHourSchema = z.object({
-  validAt: utcInstantSchema,
+  validAt: utcInstantSchema.describe("Forecast valid time, UTC instant."),
   surface: windgramSurfaceSchema,
   // Ascending height; only levels with heightM > modelElevationM + 20.
   // Empty for models whose capabilities.levels is false (REPS today).
-  levels: z.array(windgramLevelSchema),
+  levels: z
+    .array(windgramLevelSchema)
+    .describe(
+      "Isobaric levels, ascending height; only levels with heightM > modelElevationM + 20. Empty for models whose capabilities.levels is false.",
+    ),
   derived: windgramDerivedSchema,
 });
 export type WindgramHour = z.infer<typeof windgramHourSchema>;
@@ -149,28 +322,172 @@ export const windgramSiteSchema = z.object({
   name: z.string().min(1),
   latitude: z.number(),
   longitude: z.number(),
-  altitudeM: z.number().nullable(), // null when unknown
-  modelElevationM: z.number(),
+  /**
+   * The launch's surveyed elevation, metres MSL — the same quantity the
+   * sites.json catalogue publishes as `elevationM`, stored per-profile.
+   * Null when unknown.
+   */
+  altitudeM: z
+    .number()
+    .nullable()
+    .describe(
+      "The launch's surveyed elevation, metres MSL — the same quantity sites.json publishes as elevationM, stored per-profile. Null when unknown.",
+    ),
+  modelElevationM: z
+    .number()
+    .describe("The model's terrain elevation at the site's grid point, metres MSL."),
 });
 export type WindgramSite = z.infer<typeof windgramSiteSchema>;
 
 export const windgramRunSchema = z.object({
-  referenceTime: utcInstantSchema,
-  generatedAt: utcInstantSchema,
+  referenceTime: utcInstantSchema.describe("Model run reference time (initialization), UTC."),
+  generatedAt: utcInstantSchema.describe("When the pipeline generated this document, UTC."),
+  /**
+   * Ensemble member count for the run, declared once here. OMITTED on
+   * deterministic documents — the absence IS the deterministic
+   * declaration, and `isDeterministicProfile` checks it first. Each
+   * EnsembleValue's own `members` is the per-position count of
+   * contributing members, which can be lower than this where members were
+   * censored.
+   */
+  members: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe(
+      "Ensemble member count for the run, declared once. OMITTED on deterministic documents — the absence is the deterministic declaration. Per-position EnsembleValue.members can be lower where members were censored.",
+    ),
 });
 export type WindgramRun = z.infer<typeof windgramRunSchema>;
+
+/**
+ * Per-document echo of the provider semantics models.json declares for the
+ * model — present from the 0.3.0 wave so a stored profile stays
+ * interpretable on its own, without the catalogue beside it. Optional at
+ * every layer: absence means the document (or the field's model) predates
+ * the tag, never that a default semantic applies.
+ */
+export const windgramSemanticsSchema = z
+  .object({
+    /**
+     * Gust semantics for `surface.windGustMs`: "hourMax" = maximum
+     * model-timestep gust over the hour ending at validAt (ECCC, the
+     * pilot's "gusting to"); "instant" = instantaneous diagnostic gust at
+     * validAt (NOAA). Mirrors models.json `capabilities.gust`.
+     */
+    gust: z
+      .enum(["hourMax", "instant"])
+      .optional()
+      .describe(
+        'Gust semantics for surface.windGustMs: "hourMax" = maximum model-timestep gust over the hour ending at validAt (ECCC); "instant" = instantaneous diagnostic at validAt (NOAA). Mirrors models.json capabilities.gust.',
+      ),
+    /**
+     * Precipitation-rate semantics for `surface.precipitationMmHr`:
+     * "instantRate" = the model's instantaneous rate diagnostic at
+     * validAt; "windowMeanRate" = accumulation over the step window ending
+     * at validAt divided by the window length. Mirrors models.json
+     * `capabilities.precipitation`.
+     */
+    precipitation: z
+      .enum(["instantRate", "windowMeanRate"])
+      .optional()
+      .describe(
+        'Precipitation-rate semantics for surface.precipitationMmHr: "instantRate" = instantaneous rate diagnostic at validAt; "windowMeanRate" = accumulation over the step window ending at validAt divided by the window length. Mirrors models.json capabilities.precipitation.',
+      ),
+  })
+  .describe(
+    "Per-document echo of the provider semantics models.json declares for this model, so a stored profile stays interpretable without the catalogue. Absence of the block or a field means the document predates the tag, never that a default applies.",
+  );
+export type WindgramSemantics = z.infer<typeof windgramSemanticsSchema>;
 
 /* The document published at data/<model-slug>/sites/<site-slug>.json; history
    lines are exactly this document, one per line. Hours are ALL forecast
    hours, chronological — day windowing is a renderer choice (derive/). */
-export const windgramProfileSchema = z.object({
-  schemaVersion: z.literal(SCHEMA_VERSION),
-  model: slugSchema,
-  run: windgramRunSchema,
-  site: windgramSiteSchema,
-  hours: z.array(windgramHourSchema),
-});
+export const windgramProfileSchema = z
+  .object({
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    model: slugSchema,
+    run: windgramRunSchema,
+    site: windgramSiteSchema,
+    semantics: windgramSemanticsSchema.optional(),
+    hours: z
+      .array(windgramHourSchema)
+      .describe("ALL forecast hours, chronological — day windowing is a renderer choice."),
+  })
+  .describe(
+    "Windgram profile document, published at data/<model-slug>/sites/<site-slug>.json; history lines are the same document, one per line.",
+  );
 export type WindgramProfile = z.infer<typeof windgramProfileSchema>;
+
+/* ------------------------------------------- deterministic narrowing */
+
+/* Recursively replaces every Scalar position with its number arm. Mapped
+   from the contract types rather than restated, so a schema change cannot
+   leave the narrowed types behind. EnsembleValue maps to never, which
+   collapses `number | EnsembleValue` to `number` (and `Scalar | null` to
+   `number | null`) wherever it appears. */
+type NarrowScalars<T> = T extends EnsembleValue
+  ? never
+  : T extends ReadonlyArray<infer Element>
+    ? Array<NarrowScalars<Element>>
+    : T extends object
+      ? { [Key in keyof T]: NarrowScalars<T[Key]> }
+      : T;
+
+/**
+ * A profile document whose every Scalar position is a plain number — what
+ * deterministic models publish. Narrow to it with `isDeterministicProfile`
+ * and every `p50()` unwrap disappears: `hours[].surface.temperatureC` is a
+ * `number`, `derived.usableLiftTopM` is `number | null`, and so on.
+ * `run.members` is typed absent: ensemble documents declare it, and its
+ * absence is the deterministic declaration.
+ */
+export type DeterministicWindgramProfile = Omit<NarrowScalars<WindgramProfile>, "run"> & {
+  run: Omit<WindgramRun, "members"> & { members?: undefined };
+};
+
+/**
+ * Narrows a parsed profile to `DeterministicWindgramProfile` — one check to
+ * escape `p50()` everywhere downstream.
+ *
+ * Declaration-first: documents from the 0.3.0 pipeline wave declare
+ * ensembles via `run.members`, so a present `members` answers in O(1).
+ * When `members` is absent the document may simply predate the declaration
+ * (schemaVersion stayed 1), so the guard falls back to a shape scan over
+ * every Scalar position. The fallback's cost: for a genuinely deterministic
+ * document it must visit every position to prove the negative —
+ * O(hours × (surface fields + derived fields + levels × level fields)),
+ * a few thousand property reads on a real 48 h profile — while a
+ * pre-declaration ensemble document exits at the first percentile object
+ * it meets (almost always the first position). Once no pre-0.3.0 documents
+ * remain in the wild, the scan never runs for ensembles and only ever
+ * confirms deterministics.
+ *
+ * Expects a document that passed the contract guards: zod strips unknown
+ * keys, so every object value in a data position is an EnsembleValue.
+ */
+export function isDeterministicProfile(
+  profile: WindgramProfile,
+): profile is DeterministicWindgramProfile {
+  if (profile.run.members !== undefined) return false;
+  for (const hour of profile.hours) {
+    if (recordHasEnsembleValue(hour.surface) || recordHasEnsembleValue(hour.derived)) {
+      return false;
+    }
+    for (const level of hour.levels) {
+      if (recordHasEnsembleValue(level)) return false;
+    }
+  }
+  return true;
+}
+
+function recordHasEnsembleValue(record: object): boolean {
+  for (const value of Object.values(record)) {
+    if (typeof value === "object" && value !== null) return true;
+  }
+  return false;
+}
 
 /* ---------------------------------------------------------------- manifest */
 
@@ -180,29 +497,59 @@ export const windgramManifestSiteSchema = z.object({
 });
 export type WindgramManifestSite = z.infer<typeof windgramManifestSiteSchema>;
 
+/**
+ * Build accounting with a stable core and an open, unstable rest. The four
+ * core keys are contract — every manifest carries them, whatever the
+ * transport: `downloads` (transport requests made), `downloadBytes` (bytes
+ * fetched), `retries` (requests retried), `durationMs` (wall-clock build
+ * time). Every OTHER key is transport-specific and UNSTABLE: builders add,
+ * rename, and drop them freely between releases, so read them for
+ * dashboards and curiosity, never for logic.
+ */
+export const windgramManifestStatsSchema = z
+  .object({
+    downloads: z.number().describe("Transport requests made during the build (stable core)."),
+    downloadBytes: z.number().describe("Bytes fetched during the build (stable core)."),
+    retries: z.number().describe("Requests retried during the build (stable core)."),
+    durationMs: z.number().describe("Wall-clock build duration, ms (stable core)."),
+  })
+  .catchall(z.number())
+  .describe(
+    "Build accounting: the four core keys (downloads, downloadBytes, retries, durationMs) are stable contract; every other key is transport-specific and UNSTABLE — builders add, rename, and drop them freely, so never build logic on them.",
+  );
+export type WindgramManifestStats = z.infer<typeof windgramManifestStatsSchema>;
+
 /* data/<model-slug>/manifest.json. `model` is the slug, like everywhere
-   else. `stats` is transport-specific build accounting (request counts,
-   bytes, retries) and stays open-ended. */
-export const windgramManifestSchema = z.object({
-  schemaVersion: z.literal(SCHEMA_VERSION),
-  model: slugSchema,
-  referenceTime: utcInstantSchema,
-  generatedAt: utcInstantSchema,
-  firstForecastHour: z.number().int().nonnegative(),
-  lastForecastHour: z.number().int().nonnegative(),
-  forecastHours: z.number().int().nonnegative(),
-  memberCount: z.number().int().positive().optional(), // ensemble models only
-  sites: z.array(windgramManifestSiteSchema),
-  stats: z.record(z.string(), z.number()),
-});
+   else. */
+export const windgramManifestSchema = z
+  .object({
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    model: slugSchema,
+    referenceTime: utcInstantSchema,
+    generatedAt: utcInstantSchema,
+    firstForecastHour: z.number().int().nonnegative(),
+    lastForecastHour: z.number().int().nonnegative(),
+    forecastHours: z.number().int().nonnegative(),
+    memberCount: z
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .describe("Ensemble member count; ensemble models only."),
+    sites: z.array(windgramManifestSiteSchema),
+    stats: windgramManifestStatsSchema,
+  })
+  .describe("Per-model build manifest, published at data/<model-slug>/manifest.json.");
 export type WindgramManifest = z.infer<typeof windgramManifestSchema>;
 
 /* ------------------------------------------------------------- models.json */
 
 export const modelCapabilitiesSchema = z.object({
-  levels: z.boolean(), // false -> hours[].levels always empty
+  levels: z.boolean().describe("False -> hours[].levels is always empty for this model."),
   // What the model publishes today; widens per model with the GRIB wave.
-  pressureLevels: z.array(z.number()),
+  pressureLevels: z
+    .array(z.number())
+    .describe("The isobaric levels (hPa) the model publishes today."),
   /**
    * Vertical-velocity provenance, not just presence: "omega" = the
    * provider's own published omega (Pa/s); "fromGeometricW" = omega
@@ -211,7 +558,11 @@ export const modelCapabilitiesSchema = z.object({
    * levels[].verticalVelocityPaS — the provenance is declared so consumers
    * can label converted values differently from native ones.
    */
-  verticalVelocity: z.union([z.enum(["omega", "fromGeometricW"]), z.literal(false)]),
+  verticalVelocity: z
+    .union([z.enum(["omega", "fromGeometricW"]), z.literal(false)])
+    .describe(
+      'Vertical-velocity provenance, not just presence: "omega" = the provider\'s own published omega (Pa/s); "fromGeometricW" = converted at build from geometric w via omega ~ -rho*g*w; false = not published. Declared so consumers can label converted values differently from native ones.',
+    ),
   /**
    * The subset of `pressureLevels` (hPa) that actually carries omega
    * (levels[].verticalVelocityPaS) — providers publish omega on far fewer
@@ -220,27 +571,62 @@ export const modelCapabilitiesSchema = z.object({
    * from this list never carries omega, so renderers can label the sparse
    * coverage instead of guessing at gaps.
    */
-  verticalVelocityLevels: z.array(z.number()).optional(),
-  heatFluxes: z.boolean(),
+  verticalVelocityLevels: z
+    .array(z.number())
+    .optional()
+    .describe(
+      "The subset of pressureLevels (hPa) that actually carries omega — present exactly when verticalVelocity is not false. A level absent from this list never carries omega, so renderers can label the sparse coverage instead of guessing at gaps.",
+    ),
+  heatFluxes: z
+    .boolean()
+    .describe("Whether the model publishes surface sensible and latent heat fluxes."),
   /**
    * Gust semantics, not just presence: "hourMax" = max model-timestep gust
    * over the hour ending at validAt (ECCC), "instant" = diagnostic gust at
    * validAt (NOAA), false = no gust published. The two semantics differ by
    * ~20-30 % systematically, so renderers must label them differently.
    */
-  gust: z.union([z.enum(["hourMax", "instant"]), z.literal(false)]),
-  cape: z.boolean(), // surface-based CAPE (surface.capeJkg)
+  gust: z
+    .union([z.enum(["hourMax", "instant"]), z.literal(false)])
+    .describe(
+      'Gust semantics, not just presence: "hourMax" = max model-timestep gust over the hour ending at validAt (ECCC); "instant" = diagnostic gust at validAt (NOAA); false = no gust published. The two differ ~20-30 % systematically, so renderers must label them differently.',
+    ),
+  /**
+   * Precipitation-rate semantics for `surface.precipitationMmHr`:
+   * "instantRate" = the provider's instantaneous rate diagnostic at
+   * validAt; "windowMeanRate" = accumulation over the publishing step
+   * window ending at validAt divided by the window length. Required — every
+   * model publishes precipitation, so unlike `gust` there is no false;
+   * the semantics still differ by provider and renderers must caption them
+   * differently. Echoed per document in the profile's `semantics` tag.
+   */
+  precipitation: z
+    .enum(["instantRate", "windowMeanRate"])
+    .describe(
+      'Precipitation-rate semantics: "instantRate" = instantaneous rate diagnostic at validAt; "windowMeanRate" = accumulation over the step window ending at validAt divided by its length. Required — every model publishes precipitation, so unlike gust there is no false. Echoed per document in the profile\'s semantics tag.',
+    ),
+  cape: z.boolean().describe("Whether the model publishes surface-based CAPE (surface.capeJkg)."),
   // Deliberately decoupled from `cape`: the HRDPS family has CAPE, no CIN.
-  cin: z.boolean(),
-  pblHeight: z.boolean(), // surface.pblHeightM (metres AGL)
-  cloudLayers: z.boolean(), // surface.low/mid/highCloudPercent
-  cloudProfile: z.boolean(), // levels[].cloudFractionPercent
+  cin: z
+    .boolean()
+    .describe(
+      "Whether the model publishes surface-based CIN — deliberately decoupled from cape: the HRDPS family has CAPE with no CIN.",
+    ),
+  pblHeight: z
+    .boolean()
+    .describe("Whether the model publishes its own PBL depth (surface.pblHeightM, metres AGL)."),
+  cloudLayers: z
+    .boolean()
+    .describe("Whether the model publishes low/mid/high cloud-layer fractions (NOAA sigma bands)."),
+  cloudProfile: z
+    .boolean()
+    .describe("Whether the model publishes a per-level cloud fraction (levels[].cloudFractionPercent)."),
 });
 export type ModelCapabilities = z.infer<typeof modelCapabilitiesSchema>;
 
 export const modelEntrySchema = z.object({
   slug: slugSchema, // == data/ directory name; the identity everywhere
-  label: z.string().min(1), // the only place prose model names live
+  label: z.string().min(1).describe("The only place prose model names live."),
   provider: z.string().min(1),
   gridKm: z.number().positive(),
   stepHours: z.number().positive(),
@@ -251,12 +637,15 @@ export const modelEntrySchema = z.object({
    * where it is not (HRRR runs hourly but only its 48 h synoptic runs are
    * published here, so it declares 6). Freshness display metadata: a run
    * older than about twice this interval is genuinely late, not just a
-   * slow CDN. Optional so catalogue entries predating the field still
-   * validate; consumers should treat absence as "cadence unknown" and fall
-   * back to the most forgiving published interval (12 h today) rather than
-   * flagging a new model stale.
+   * slow CDN. Required since 0.3.0 — every catalogue entry declares its
+   * cadence, so consumers no longer need an absence fallback.
    */
-  runIntervalHours: z.number().positive().optional(),
+  runIntervalHours: z
+    .number()
+    .positive()
+    .describe(
+      "Hours between the runs this dataset publishes — the model's own schedule where every run is built, or the built subset where it is not (HRRR declares 6, its published synoptic subset). Freshness metadata: a run older than about twice this interval is genuinely late. Required since 0.3.0.",
+    ),
   /**
    * Machine-readable retirement notice: no runs are expected after `date`
    * (UTC calendar date, YYYY-MM-DD). `successor` names the catalogue slug
@@ -268,7 +657,10 @@ export const modelEntrySchema = z.object({
       date: z.iso.date(),
       successor: slugSchema.nullable(),
     })
-    .optional(),
+    .optional()
+    .describe(
+      "Machine-readable retirement notice: no runs expected after date (UTC calendar date); successor names the replacing catalogue slug, or null for end-of-life with no replacement. Absent when no retirement is announced.",
+    ),
   kind: z.enum(["deterministic", "ensemble"]),
   experimental: z.boolean(),
   capabilities: modelCapabilitiesSchema,
@@ -277,11 +669,76 @@ export type ModelEntry = z.infer<typeof modelEntrySchema>;
 
 /* data/models.json — hand-maintained, the discovery catalogue. Frontends
    render what a model declares instead of hardcoding model lists. */
-export const modelCatalogueSchema = z.object({
-  schemaVersion: z.literal(SCHEMA_VERSION),
-  models: z.array(modelEntrySchema),
-});
+export const modelCatalogueSchema = z
+  .object({
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    models: z.array(modelEntrySchema),
+  })
+  .describe(
+    "data/models.json — the hand-maintained discovery catalogue. Frontends render what a model declares instead of hardcoding model lists.",
+  );
 export type ModelCatalogue = z.infer<typeof modelCatalogueSchema>;
+
+/* -------------------------------------------------------------- sites.json */
+
+export const siteCatalogueEntrySchema = z.object({
+  slug: slugSchema,
+  name: z.string().min(1),
+  latitude: z.number(),
+  longitude: z.number(),
+  /**
+   * The launch's surveyed elevation, metres MSL — the catalogue is its
+   * home. Profile documents store the same quantity per-profile as
+   * `site.altitudeM`, where it may be null (a profile built before the
+   * launch was surveyed keeps its null forever; the catalogue is current).
+   */
+  elevationM: z
+    .number()
+    .describe(
+      "The launch's surveyed elevation, metres MSL — the catalogue is its home. Profile site.altitudeM stores the same quantity per-profile and may be null there (a profile built before the survey keeps its null; the catalogue is current).",
+    ),
+});
+export type SiteCatalogueEntry = z.infer<typeof siteCatalogueEntrySchema>;
+
+/* sites.json at the repository root — hand-maintained, the site catalogue.
+   `{schemaVersion, sites}` since the 0.3.0 wave (previously a bare array,
+   which the guard rejects: an unversioned document cannot promise its
+   shape). */
+export const sitesCatalogueSchema = z
+  .object({
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    sites: z.array(siteCatalogueEntrySchema),
+  })
+  .describe(
+    "sites.json — the hand-maintained site catalogue: every launch the builders publish profiles for. {schemaVersion, sites} since the 0.3.0 wave (previously a bare array).",
+  );
+export type SitesCatalogue = z.infer<typeof sitesCatalogueSchema>;
+
+/* -------------------------------------------------------------- runs.json */
+
+export const runsIndexEntrySchema = z.object({
+  referenceTime: utcInstantSchema.describe("The model's currently published run, UTC."),
+  generatedAt: utcInstantSchema.describe("When that run's documents were generated, UTC."),
+});
+export type RunsIndexEntry = z.infer<typeof runsIndexEntrySchema>;
+
+/* data/runs.json — the machine-written cross-model run index, keyed by
+   model slug: per published model, its manifest's (referenceTime,
+   generatedAt) pair, regenerated wholesale from the on-disk manifests at
+   every publish. One fetch answers "how fresh is everything" without
+   touching a manifest per model; judge lateness against each model's
+   declared runIntervalHours. */
+export const runsIndexSchema = z
+  .object({
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    runs: z
+      .record(slugSchema, runsIndexEntrySchema)
+      .describe("Model slug -> the manifest's (referenceTime, generatedAt) pair."),
+  })
+  .describe(
+    "data/runs.json — the machine-written cross-model run index, keyed by model slug: per published model, its manifest's (referenceTime, generatedAt) pair, regenerated wholesale at every publish. One fetch answers \"how fresh is everything\"; judge lateness against each model's declared runIntervalHours.",
+  );
+export type RunsIndex = z.infer<typeof runsIndexSchema>;
 
 /* ------------------------------------------------------------ parse guards */
 
@@ -314,6 +771,24 @@ export function parseModelCatalogue(value: unknown): ModelCatalogue | null {
 
 export function parseModelCatalogueJson(text: string): ModelCatalogue | null {
   return parseModelCatalogue(tryParseJson(text));
+}
+
+export function parseSitesCatalogue(value: unknown): SitesCatalogue | null {
+  const result = sitesCatalogueSchema.safeParse(value);
+  return result.success ? result.data : null;
+}
+
+export function parseSitesCatalogueJson(text: string): SitesCatalogue | null {
+  return parseSitesCatalogue(tryParseJson(text));
+}
+
+export function parseRunsIndex(value: unknown): RunsIndex | null {
+  const result = runsIndexSchema.safeParse(value);
+  return result.success ? result.data : null;
+}
+
+export function parseRunsIndexJson(text: string): RunsIndex | null {
+  return parseRunsIndex(tryParseJson(text));
 }
 
 function tryParseJson(text: string): unknown {

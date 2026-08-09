@@ -1,6 +1,8 @@
 import type {
   EnsembleValue,
   ModelCatalogue,
+  RunsIndex,
+  SitesCatalogue,
   WindgramHour,
   WindgramManifest,
   WindgramProfile,
@@ -71,6 +73,11 @@ export function ensembleValue(overrides: Partial<EnsembleValue> = {}): EnsembleV
 export function ensembleProfile(): WindgramProfile {
   return deterministicProfile({
     model: "reps",
+    run: {
+      referenceTime: "2026-08-08T00:00:00Z",
+      generatedAt: "2026-08-08T04:47:14Z",
+      members: 21, // the 0.3.0 ensemble declaration
+    },
     hours: [
       deterministicHour({
         surface: {
@@ -110,10 +117,39 @@ export function manifest(): WindgramManifest {
       { name: "Red Mtn", slug: "red-mountain" },
     ],
     stats: {
+      // The stable core every manifest carries…
+      downloads: 1406,
+      downloadBytes: 5190709,
+      retries: 0,
       durationMs: 129427,
-      geoMetRequests: 1406,
-      geoMetResponseBytes: 5190709,
-      geoMetRetries: 0,
+      // …plus transport-specific extension keys, open-ended and unstable.
+      geoMetCoverageProbes: 12,
+    },
+  };
+}
+
+export function sitesCatalogue(): SitesCatalogue {
+  return {
+    schemaVersion: 1,
+    sites: [
+      { slug: "dundee", name: "Dundee", latitude: 49.291977, longitude: -117.183569, elevationM: 1485 },
+      { slug: "red-mountain", name: "Red Mtn", latitude: 49.091868, longitude: -117.820838, elevationM: 1591 },
+    ],
+  };
+}
+
+export function runsIndex(): RunsIndex {
+  return {
+    schemaVersion: 1,
+    runs: {
+      "hrdps-continental": {
+        referenceTime: "2026-08-08T00:00:00Z",
+        generatedAt: "2026-08-08T04:47:14Z",
+      },
+      reps: {
+        referenceTime: "2026-08-07T12:00:00Z",
+        generatedAt: "2026-08-07T17:03:41Z",
+      },
     },
   };
 }
@@ -138,6 +174,7 @@ export function catalogue(): ModelCatalogue {
           verticalVelocity: false,
           heatFluxes: true,
           gust: "hourMax",
+          precipitation: "instantRate",
           cape: true,
           cin: false, // the HRDPS family has CAPE without CIN
           pblHeight: true,
@@ -161,6 +198,7 @@ export function catalogue(): ModelCatalogue {
           verticalVelocity: false,
           heatFluxes: true,
           gust: false, // REPS carries none of the science-wave families
+          precipitation: "instantRate",
           cape: false,
           cin: false,
           pblHeight: false,

@@ -1,10 +1,11 @@
 """Shared output writing: the contract's rounding table, profile JSON,
-manifests, and gzipped run history."""
+manifests, the cross-model run index, and gzipped run history."""
 
 from __future__ import annotations
 
 import gzip
 import json
+import time
 from pathlib import Path
 
 # The spec's rounding table, field name → decimal places, applied at the
@@ -70,17 +71,49 @@ def _rounded_degrees(value: float | None):
 
 
 def append_history(profile: dict, history_dir: Path) -> None:
-    """Archives the profile under <history_dir>/<slug>/<year>.jsonl.gz.
+    """Archives the profile under <history_dir>/<slug>/<YYYY-MM>.jsonl.gz,
+    the month taken from the run's referenceTime.
 
     Each run is appended as an independent gzip member, so existing bytes are
     never rewritten and any gzip reader sees one JSON line per model run.
     """
-    year = profile["run"]["referenceTime"][:4]
+    month = profile["run"]["referenceTime"][:7]
     directory = history_dir / profile["site"]["id"]
     directory.mkdir(parents=True, exist_ok=True)
     line = compact_json(profile) + "\n"
-    with (directory / f"{year}.jsonl.gz").open("ab") as archive:
+    with (directory / f"{month}.jsonl.gz").open("ab") as archive:
         archive.write(gzip.compress(line.encode()))
+
+
+def manifest_stats(download_stats, started_at_monotonic: float) -> dict:
+    """The manifest's stats block: a stable four-key core shared by every
+    builder — downloads, downloadBytes, retries, durationMs. Anything a
+    builder publishes beyond these keys is unstable and may change."""
+    return {
+        "downloadBytes": download_stats.response_bytes,
+        "downloads": download_stats.requests,
+        "durationMs": round((time.monotonic() - started_at_monotonic) * 1000),
+        "retries": download_stats.retries,
+    }
+
+
+def runs_index(data_dir: Path = Path("data")) -> dict:
+    """The cross-model run index data/runs.json: per published model, the
+    manifest's (referenceTime, generatedAt) pair — regenerated wholesale
+    from the on-disk manifests, so the index is always a pure function of
+    the tree it is committed with (.github/scripts/commit-data.sh)."""
+    runs = {}
+    for manifest_path in sorted(data_dir.glob("*/manifest.json")):
+        manifest = json.loads(manifest_path.read_text())
+        runs[manifest["model"]] = {
+            "referenceTime": manifest["referenceTime"],
+            "generatedAt": manifest["generatedAt"],
+        }
+    return {"schemaVersion": 1, "runs": runs}
+
+
+def write_runs_index(data_dir: Path = Path("data")) -> None:
+    write_json(data_dir / "runs.json", runs_index(data_dir), compact=False)
 
 
 def compact_json(value: dict) -> str:

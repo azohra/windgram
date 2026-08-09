@@ -2,6 +2,10 @@ import pytest
 
 from windgram.windgram import derive_windgram_profile
 
+# Envelope filler for derivation tests; the per-builder truth of these
+# tokens is asserted against the catalogue in test_build.py.
+TEST_SEMANTICS = {"gust": "hourMax", "precipitation": "windowMeanRate"}
+
 
 def source_profile() -> dict:
     return {
@@ -57,7 +61,7 @@ def source_profile() -> dict:
 
 
 def test_publishes_the_contract_envelope_with_coordinates_verbatim():
-    profile = derive_windgram_profile(source_profile(), model="hrdps-continental")
+    profile = derive_windgram_profile(source_profile(), model="hrdps-continental", semantics=TEST_SEMANTICS)
 
     assert profile["schemaVersion"] == 1
     assert profile["model"] == "hrdps-continental"
@@ -75,8 +79,31 @@ def test_publishes_the_contract_envelope_with_coordinates_verbatim():
     }
 
 
+def test_semantics_publish_verbatim_between_site_and_hours():
+    # The builder's transport-semantics declaration lands as the document's
+    # own "semantics" block — profiles self-interpret gust and precipitation
+    # without a trip to the catalogue — in contract position: after site,
+    # before hours.
+    semantics = {"gust": "instant", "precipitation": "instantRate"}
+
+    profile = derive_windgram_profile(
+        source_profile(), model="hrrr-conus", semantics=semantics
+    )
+
+    assert profile["semantics"] == semantics
+    assert list(profile) == ["schemaVersion", "model", "run", "site", "semantics", "hours"]
+
+
+def test_semantics_omit_the_gust_key_for_gustless_models():
+    profile = derive_windgram_profile(
+        source_profile(), model="reps", semantics={"precipitation": "windowMeanRate"}
+    )
+
+    assert profile["semantics"] == {"precipitation": "windowMeanRate"}
+
+
 def test_nests_a_source_hour_into_si_surface_levels_and_derived_blocks():
-    hour = derive_windgram_profile(source_profile(), model="hrdps-continental")["hours"][0]
+    hour = derive_windgram_profile(source_profile(), model="hrdps-continental", semantics=TEST_SEMANTICS)["hours"][0]
 
     assert hour["surface"] == {
         "pressurePa": 101_200,
@@ -103,7 +130,7 @@ def test_nests_a_source_hour_into_si_surface_levels_and_derived_blocks():
 
 
 def test_levels_publish_dew_point_and_si_wind_without_display_fields():
-    hour = derive_windgram_profile(source_profile(), model="hrdps-continental")["hours"][0]
+    hour = derive_windgram_profile(source_profile(), model="hrdps-continental", semantics=TEST_SEMANTICS)["hours"][0]
 
     assert hour["levels"][0] == {
         "pressureHpa": 850,
@@ -120,7 +147,7 @@ def test_dew_point_is_temperature_minus_the_eccc_depression():
     source["hours"][0]["dewPointDepressionC"] = 6.25
     source["hours"][0]["levels"][1]["dewPointDepressionC"] = -0.5  # supersaturated
 
-    hour = derive_windgram_profile(source, model="hrdps-continental")["hours"][0]
+    hour = derive_windgram_profile(source, model="hrdps-continental", semantics=TEST_SEMANTICS)["hours"][0]
 
     assert hour["surface"]["dewPointC"] == 17.75
     assert hour["levels"][1]["dewPointC"] == 14.5
@@ -131,7 +158,7 @@ def test_does_not_claim_usable_lift_when_surface_heating_is_absent():
     source["hours"][0]["sensibleHeatFluxWm2"] = -20
     source["hours"][0]["latentHeatFluxWm2"] = 0
 
-    derived = derive_windgram_profile(source, model="hrdps-continental")["hours"][0]["derived"]
+    derived = derive_windgram_profile(source, model="hrdps-continental", semantics=TEST_SEMANTICS)["hours"][0]["derived"]
     assert derived["thermalVelocityMs"] == 0
     assert derived["usableLiftTopM"] is None
 
@@ -153,7 +180,7 @@ def test_derived_heights_publish_unsmoothed_hour_by_hour():
         for valid_at, depression in zip(times, depressions)
     ]
 
-    hours = derive_windgram_profile(source, model="hrdps-continental")["hours"]
+    hours = derive_windgram_profile(source, model="hrdps-continental", semantics=TEST_SEMANTICS)["hours"]
 
     assert [hour["derived"]["cloudBaseM"] for hour in hours] == pytest.approx(
         [1326.81, 2451.42, 1326.81], abs=0.01
@@ -172,7 +199,7 @@ def test_cloud_base_drops_to_a_column_layer_saturated_below_the_parcel_lcl():
     for level, depression in zip(source["hours"][0]["levels"], depressions):
         level["dewPointDepressionC"] = depression
 
-    derived = derive_windgram_profile(source, model="hrdps-continental")["hours"][0]["derived"]
+    derived = derive_windgram_profile(source, model="hrdps-continental", semantics=TEST_SEMANTICS)["hours"][0]["derived"]
 
     assert derived["cloudBaseM"] == pytest.approx(2052.63, abs=0.01)
 
@@ -187,7 +214,7 @@ def test_dry_column_publishes_the_parcel_lcl_even_above_the_sounding_top():
     for level, depression in zip(source["hours"][0]["levels"], depressions):
         level["dewPointDepressionC"] = depression
 
-    derived = derive_windgram_profile(source, model="hrdps-continental")["hours"][0]["derived"]
+    derived = derive_windgram_profile(source, model="hrdps-continental", semantics=TEST_SEMANTICS)["hours"][0]["derived"]
 
     assert derived["cloudBaseM"] == pytest.approx(3667.27, abs=0.01)
 
@@ -196,7 +223,7 @@ def test_supersaturated_surface_puts_cloud_base_at_model_terrain():
     source = source_profile()
     source["hours"][0]["dewPointDepressionC"] = -1  # data noise: Td above T
 
-    derived = derive_windgram_profile(source, model="hrdps-continental")["hours"][0]["derived"]
+    derived = derive_windgram_profile(source, model="hrdps-continental", semantics=TEST_SEMANTICS)["hours"][0]["derived"]
 
     assert derived["cloudBaseM"] == 1200
 
@@ -216,7 +243,7 @@ def test_publishes_every_source_hour_chronologically():
         for valid_at in times
     ]
 
-    hours = derive_windgram_profile(source, model="hrdps-continental")["hours"]
+    hours = derive_windgram_profile(source, model="hrdps-continental", semantics=TEST_SEMANTICS)["hours"]
 
     assert [hour["validAt"] for hour in hours] == times
 
@@ -235,7 +262,7 @@ def test_optional_science_fields_pass_through_in_contract_order():
         }
     )
 
-    surface = derive_windgram_profile(source, model="hrrr-conus")["hours"][0]["surface"]
+    surface = derive_windgram_profile(source, model="hrrr-conus", semantics=TEST_SEMANTICS)["hours"][0]["surface"]
 
     assert surface["windGustMs"] == 11.4
     assert surface["capeJkg"] == 850.0
@@ -257,7 +284,7 @@ def test_optional_science_fields_pass_through_in_contract_order():
 
 
 def test_absent_science_fields_stay_absent_not_null():
-    surface = derive_windgram_profile(source_profile(), model="hrdps-continental")["hours"][0][
+    surface = derive_windgram_profile(source_profile(), model="hrdps-continental", semantics=TEST_SEMANTICS)["hours"][0][
         "surface"
     ]
     for field in ("windGustMs", "capeJkg", "cinJkg", "pblHeightM", "lowCloudPercent"):
@@ -278,7 +305,7 @@ def test_science_fields_are_clamped_to_their_physical_signs():
         }
     )
 
-    surface = derive_windgram_profile(source, model="gfs")["hours"][0]["surface"]
+    surface = derive_windgram_profile(source, model="gfs", semantics=TEST_SEMANTICS)["hours"][0]["surface"]
 
     assert surface["windGustMs"] == 0.0
     assert surface["capeJkg"] == 0.0
@@ -291,7 +318,7 @@ def test_levels_carry_cloud_fraction_only_where_the_source_has_it():
     source = source_profile()
     source["hours"][0]["levels"][0]["cloudFractionPercent"] = 85.0
 
-    levels = derive_windgram_profile(source, model="gfs")["hours"][0]["levels"]
+    levels = derive_windgram_profile(source, model="gfs", semantics=TEST_SEMANTICS)["hours"][0]["levels"]
 
     assert levels[0]["cloudFractionPercent"] == 85.0
     assert all("cloudFractionPercent" not in level for level in levels[1:])
@@ -300,5 +327,5 @@ def test_levels_carry_cloud_fraction_only_where_the_source_has_it():
 def test_normalizes_wind_directions_including_negatives():
     source = source_profile()
     source["hours"][0]["windDirectionDeg"] = -370
-    hour = derive_windgram_profile(source, model="hrdps-continental")["hours"][0]
+    hour = derive_windgram_profile(source, model="hrdps-continental", semantics=TEST_SEMANTICS)["hours"][0]
     assert hour["surface"]["windDirectionDeg"] == 350

@@ -71,7 +71,7 @@ responses with jitter. Free public data remains viable when clients are visible 
 Each publication also appends one JSON line to:
 
 ```
-data/<model>/history/<slug>/<year>.jsonl.gz
+data/<model>/history/<slug>/<YYYY-MM>.jsonl.gz
 ```
 
 The line is compressed as its own gzip member and appended byte-for-byte. The gzip format permits

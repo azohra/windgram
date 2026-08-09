@@ -27,8 +27,16 @@ _SINK_RATE_MS = 1.0
 _SATURATED_DEPRESSION_C = 0.5
 
 
-def derive_windgram_profile(source: dict, model: str) -> dict:
-    """model is the slug — the model's data/ directory name."""
+def derive_windgram_profile(source: dict, model: str, semantics: dict[str, str]) -> dict:
+    """model is the slug — the model's data/ directory name.
+
+    semantics is the document's transport-semantics declaration for the
+    fields whose meaning varies by provider, making profiles
+    self-interpreting: "gust" ("hourMax" | "instant") is present exactly
+    when the model publishes windGustMs, "precipitation" ("instantRate" |
+    "windowMeanRate") always, since precipitationMmHr is universal. The
+    builder that verified the feed supplies it — never inferred here.
+    """
     return {
         "schemaVersion": SCHEMA_VERSION,
         "model": model,
@@ -44,6 +52,7 @@ def derive_windgram_profile(source: dict, model: str) -> dict:
             "altitudeM": source["siteAltitudeM"],
             "modelElevationM": source["modelElevationM"],
         },
+        "semantics": semantics,
         "hours": [_derive_hour(hour, source["modelElevationM"]) for hour in source["hours"]],
     }
 

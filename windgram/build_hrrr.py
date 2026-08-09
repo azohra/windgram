@@ -34,7 +34,8 @@ from .noaa import (
     sample_sites,
     wind_from_uv,
 )
-from .publish import append_history, round_document, write_json
+from .publish import append_history, manifest_stats, round_document, write_json
+from .sites import load_sites
 from .windgram import SCHEMA_VERSION, derive_windgram_profile
 
 SLUG = "hrrr-conus"
@@ -90,6 +91,12 @@ PRESSURE_LEVELS = (925, 900, 875, 850, 800, 750, 700, 650, 600)
 # it, never incomplete.
 OMEGA_LEVELS = PRESSURE_LEVELS
 
+# The document's transport-semantics declaration (contract "semantics"):
+# GUST is NOAA's instantaneous diagnostic gust at the valid time;
+# precipitation is PRATE — an instantaneous rate (×3600 → mm/h), not a
+# window mean.
+SEMANTICS = {"gust": "instant", "precipitation": "instantRate"}
+
 # HRRR's Lambert conformal projection: Latin1 = Latin2 = LaD = 38.5°,
 # LoV = 262.5°. With one standard parallel the cone constant is sin(LaD).
 _LAMBERT_CONE = math.sin(math.radians(38.5))
@@ -97,10 +104,7 @@ _LAMBERT_ORIENTATION_DEG = 262.5
 
 
 def main() -> None:
-    sites = json.loads(Path("sites.json").read_text())
-    if not sites:
-        raise RuntimeError("sites.json is empty")
-
+    sites = load_sites()
     run = _latest_complete_run()
     if run is None:
         print("No complete HRRR run is available.")
@@ -131,12 +135,7 @@ def main() -> None:
         "referenceTime": reference_time,
         "schemaVersion": SCHEMA_VERSION,
         "sites": [{"name": site["name"], "slug": site["slug"]} for site in sites],
-        "stats": {
-            "downloadBytes": stats.response_bytes,
-            "downloads": stats.requests,
-            "durationMs": round((time.monotonic() - started_at) * 1000),
-            "retries": stats.retries,
-        },
+        "stats": manifest_stats(stats, started_at),
     }
     write_json(OUT_DIR / "manifest.json", manifest, compact=False)
     print(
@@ -351,6 +350,7 @@ def _build_profiles(run: dict, reference_time: str, sites: list[dict], stats: Do
                     "siteName": site["name"],
                 },
                 model=SLUG,
+                semantics=SEMANTICS,
             )
         )
     return {

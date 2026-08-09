@@ -105,6 +105,10 @@ def test_models_json_matches_the_gfs_builder_configuration():
         entry for entry in catalogue["models"] if entry["slug"] == "gfs"
     )["capabilities"]
     assert capabilities["gust"] == "instant"  # NOAA has no hour-max gust
+    # APCP mm over the 3 h window ÷ 3 → a window-mean rate, and the
+    # documents' own semantics block says the same.
+    assert capabilities["precipitation"] == "windowMeanRate"
+    assert build_gfs.SEMANTICS == {"gust": "instant", "precipitation": "windowMeanRate"}
     assert capabilities["cape"] is True and capabilities["cin"] is True
     assert capabilities["pblHeight"] is True
     assert capabilities["cloudLayers"] is True
@@ -231,6 +235,7 @@ def test_build_profiles_publishes_omega_and_tolerates_its_absence(monkeypatch):
     )
 
     (profile,) = result["profiles"]
+    assert profile["semantics"] == {"gust": "instant", "precipitation": "windowMeanRate"}
     first, second = profile["hours"]
     # Every curated level carries the sampled omega verbatim: Pa/s in,
     # Pa/s out, no unit conversion anywhere in the flow.

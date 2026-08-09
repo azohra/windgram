@@ -61,12 +61,19 @@ from .datamart import DownloadStats, datamart_base, exists, fetch_bytes
 from .grib import GribField, split_messages
 from .moisture import dew_point_depression
 from .noaa import wind_from_uv
-from .publish import append_history, round_document, write_json
+from .publish import append_history, manifest_stats, round_document, write_json
 from .sentinel import mask_sentinel
+from .sites import load_sites
 from .windgram import SCHEMA_VERSION, derive_windgram_profile
 
 SLUG = "geps"
 OUT_DIR = Path("data") / SLUG
+
+# The document's transport-semantics declaration (contract "semantics"):
+# precipitation is a run-total accumulation differenced per scheduled step
+# into the mean mm/h rate over the window. No gust key — GEPS publishes no
+# per-member gust (capabilities gust: false).
+SEMANTICS = {"precipitation": "windowMeanRate"}
 
 MEMBER_COUNT = 21
 PERTURBATION_NUMBERS = tuple(range(MEMBER_COUNT))
@@ -185,10 +192,7 @@ def previous_scheduled_hour(forecast_hour: int) -> int:
 
 def main() -> None:
     arguments = _parse_arguments()
-    sites = json.loads(Path("sites.json").read_text())
-    if not sites:
-        raise RuntimeError("sites.json is empty")
-
+    sites = load_sites()
     if arguments.reference_time:
         reference_time = _canonical_instant(arguments.reference_time)
     else:
@@ -228,12 +232,7 @@ def main() -> None:
         "referenceTime": reference_time,
         "schemaVersion": SCHEMA_VERSION,
         "sites": [{"name": site["name"], "slug": site["slug"]} for site in sites],
-        "stats": {
-            "downloadBytes": download_stats.response_bytes,
-            "downloadRetries": download_stats.retries,
-            "downloads": download_stats.requests,
-            "durationMs": round((time.monotonic() - started_at) * 1000),
-        },
+        "stats": manifest_stats(download_stats, started_at),
     }
     write_json(OUT_DIR / "manifest.json", manifest, compact=False)
     print(
@@ -526,6 +525,7 @@ def _build_documents(
                 "run": {
                     "referenceTime": reference_time,
                     "generatedAt": generated_at,
+                    "members": MEMBER_COUNT,
                 },
                 "site": {
                     "id": site["slug"],
@@ -536,6 +536,7 @@ def _build_documents(
                     # The control member's terrain stands in for the ensemble.
                     "modelElevationM": terrain[0][site["slug"]],
                 },
+                "semantics": SEMANTICS,
                 "hours": _aggregate_hours(member_profiles),
             }
         )
@@ -597,6 +598,7 @@ def _derive_member_profile(
             "siteName": site["name"],
         },
         model=SLUG,
+        semantics=SEMANTICS,
     )
 
 

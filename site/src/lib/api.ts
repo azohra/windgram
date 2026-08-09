@@ -1,80 +1,44 @@
 import {
-  parseWindgramManifestJson,
-  parseWindgramProfileJson,
+  parseSitesCatalogueJson,
   type ModelEntry,
+  type SiteCatalogueEntry,
   type WindgramManifest,
   type WindgramProfile,
 } from "windgram/contract";
+import { loadProfile, type LoadedProfile, type TransportFetch } from "windgram/transport";
 
 // Overridable so a dev server (or another frontend) can point at a local
 // or mirrored data tree; the published GitHub tree is the default.
 export const DATA_BASE =
   import.meta.env.PUBLIC_DATA_BASE ?? "https://raw.githubusercontent.com/azohra/windgram/main";
 
-export interface SiteCatalogEntry {
-  slug: string;
-  name: string;
-  latitude: number;
-  longitude: number;
-  elevationM: number;
+// The data tree the transport reads (manifests, profiles, runs.json) lives
+// under data/; sites.json sits beside it at the repository root.
+const DATA_TREE = `${DATA_BASE}/data`;
+
+/* The transport takes the runtime's own fetch; the browser's, pinned to
+   no-store so the CDN's cache is the only cache in play. */
+const noStoreFetch: TransportFetch = (url) => fetch(url, { cache: "no-store" });
+
+/**
+ * The root sites.json catalogue — `{schemaVersion, sites}` since the 0.3.0
+ * wave, guarded by the package contract so an unreadable catalogue fails
+ * loudly instead of populating a picker with garbage.
+ */
+export async function fetchSitesCatalog(): Promise<SiteCatalogueEntry[]> {
+  const url = `${DATA_BASE}/sites.json`;
+  const res = await noStoreFetch(url);
+  if (!res.ok) throw new Error(`${res.status} fetching ${url}`);
+  const catalogue = parseSitesCatalogueJson(await res.text());
+  if (!catalogue) throw new Error(`sites.json failed the contract guard (${url})`);
+  return catalogue.sites;
 }
 
-async function fetchJSON<T>(url: string): Promise<T> {
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) {
-    throw new HttpError(res.status, url);
-  }
-  return (await res.json()) as T;
-}
+export type { LoadedProfile } from "windgram/transport";
 
-/* Published documents cross a trust boundary: the contract's parse guards
-   decide what a windgram is. A model still publishing pre-release prototype
-   data fails the guard and reads as null — exactly like a 404 — so it
-   simply shows as unavailable rather than rendering garbage. */
-async function fetchGuarded<T>(url: string, guard: (text: string) => T | null): Promise<T | null> {
-  const res = await fetch(url, { cache: "no-store" });
-  if (res.status === 404) return null;
-  if (!res.ok) throw new HttpError(res.status, url);
-  return guard(await res.text());
-}
-
-export class HttpError extends Error {
-  constructor(
-    public status: number,
-    public url: string,
-  ) {
-    super(`${status} fetching ${url}`);
-  }
-}
-
-export function manifestUrl(model: ModelEntry): string {
-  return `${DATA_BASE}/data/${model.slug}/manifest.json`;
-}
-
-export function siteProfileUrl(model: ModelEntry, slug: string): string {
-  return `${DATA_BASE}/data/${model.slug}/sites/${slug}.json`;
-}
-
-export async function fetchSitesCatalog(): Promise<SiteCatalogEntry[]> {
-  return fetchJSON<SiteCatalogEntry[]>(`${DATA_BASE}/sites.json`);
-}
-
-/** Null when the model has no readable manifest (404 or pre-release prototype data). */
-export async function fetchManifest(model: ModelEntry): Promise<WindgramManifest | null> {
-  return fetchGuarded(manifestUrl(model), parseWindgramManifestJson);
-}
-
-/** Null when the site isn't published for this model, or the data fails the guard. */
-export async function fetchSiteProfile(
-  model: ModelEntry,
-  slug: string,
-): Promise<WindgramProfile | null> {
-  return fetchGuarded(siteProfileUrl(model, slug), parseWindgramProfileJson);
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+/* The package transport owns the reference-time skew dance and deliberately
+   carries no storage; a last-known-good pair per model+site is this site's
+   cache doctrine, layered around it here. */
 
 interface CachedPair {
   manifest: WindgramManifest;
@@ -102,54 +66,29 @@ function cacheSet(key: string, value: CachedPair): void {
   }
 }
 
-export interface GuardedFetch {
-  manifest: WindgramManifest;
-  profile: WindgramProfile;
-  /**
-   * True when the manifest and site file came from two different runs and
-   * didn't converge after a retry — see research/static-forecast-pipeline.md's
-   * "reference-time skew guard". The caller should show a "still syncing"
-   * note rather than silently mixing two runs.
-   */
-  stale: boolean;
-}
-
 /**
- * Fetches a model's manifest and one site's profile together, enforcing the
- * reference-time skew guard the pipeline's docs specify: raw.githubusercontent's
- * ~5-minute cache means a manifest and a site file can briefly disagree about
- * which run is current. On disagreement, retry once, then fall back to the
- * last known-good pair for this model+site rather than render a mismatch.
- * Returns null when the model has no readable data for the site.
+ * Fetches a model's manifest and one site's profile as a consistent pair via
+ * the package transport (`loadProfile` runs the skew retry itself), falling
+ * back to this session's last known-good pair when the CDN is still torn
+ * after the retry. Null when the model or site is not published (404, or a
+ * body failing the contract guards).
  */
-export async function fetchProfileWithSkewGuard(
+export async function fetchProfile(
   model: ModelEntry,
   slug: string,
-): Promise<GuardedFetch | null> {
+): Promise<LoadedProfile | null> {
   const key = cacheKey(model.slug, slug);
-  const manifest = await fetchManifest(model);
-  if (!manifest) return null;
-  if (!manifest.sites.some((s) => s.slug === slug)) return null;
-
-  const profile = await fetchSiteProfile(model, slug);
-  if (!profile) return null;
-
-  if (profile.run.referenceTime === manifest.referenceTime) {
-    cacheSet(key, { manifest, profile });
-    return { manifest, profile, stale: false };
+  const loaded = await loadProfile({
+    fetch: noStoreFetch,
+    baseUrl: DATA_TREE,
+    modelSlug: model.slug,
+    siteSlug: slug,
+  });
+  if (!loaded) return null;
+  if (!loaded.stale) {
+    cacheSet(key, { manifest: loaded.manifest, profile: loaded.profile });
+    return loaded;
   }
-
-  await sleep(1500);
-  const [manifest2, profile2] = await Promise.all([
-    fetchManifest(model),
-    fetchSiteProfile(model, slug),
-  ]);
-  if (manifest2 && profile2 && manifest2.referenceTime === profile2.run.referenceTime) {
-    cacheSet(key, { manifest: manifest2, profile: profile2 });
-    return { manifest: manifest2, profile: profile2, stale: false };
-  }
-
   const cached = cacheGet(key);
-  if (cached) return { ...cached, stale: true };
-  return { manifest, profile, stale: true };
+  return cached ? { ...cached, stale: true } : loaded;
 }
