@@ -1,6 +1,6 @@
 {
   "name": "@azohra/windgram",
-  "version": "0.9.1",
+  "version": "0.10.0",
   "license": "MIT",
   "exports": {
     "./contract": "./src/contract/index.ts",
@@ -12,7 +12,16 @@
     "./svg": "./src/svg/index.ts"
   },
   "publish": {
-    "include": ["src", "schema", "README.md", "jsr.json"],
-    "exclude": ["dist", "test", "node_modules"]
+    "include": [
+      "src",
+      "schema",
+      "README.md",
+      "jsr.json"
+    ],
+    "exclude": [
+      "dist",
+      "test",
+      "node_modules"
+    ]
   }
 }

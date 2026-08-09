@@ -57,41 +57,28 @@ describe("doc parity: versions", () => {
     expect(cited).toBe(packageVersion);
   });
 
-  it("versioning.mdx states the Python pipeline version from pyproject.toml", () => {
-    // Authority: pyproject.toml [project] version — the portal agent left
-    // this hand-written because the site does not import Python metadata.
-    const projectSection = anchor(
-      read("pipeline", "pyproject.toml"),
-      /\[project\]([\s\S]*?)(?=\n\[|$)/,
-      "pyproject.toml [project] section",
-    )[1];
-    const pyVersion = anchor(
-      projectSection,
-      /^version = "([^"]+)"$/m,
-      "pyproject.toml [project] version",
-    )[1];
-
+  it("versioning.mdx renders the Python pipeline version from pyproject.toml", () => {
+    // Authority: pyproject.toml [project] version. The row renders live from
+    // package-info.ts's PIPELINE_VERSION import, so this pin asserts the
+    // mechanism instead of a hand-written value: the import reads pyproject,
+    // and the table row uses the import.
+    anchor(
+      read("site", "src", "components", "docs", "package-info.ts"),
+      /import pyproject from "\.\.\/\.\.\/\.\.\/\.\.\/pipeline\/pyproject\.toml\?raw"/,
+      "package-info.ts pyproject import",
+    );
     const versioning = read("site", "src", "content", "docs", "docs", "data", "versioning.mdx");
-    const tableRow = anchor(
+    anchor(
       versioning,
-      /\| Python pipeline \| `([^`]+)` \|/,
+      /\| Python pipeline \| <code>\{PIPELINE_VERSION\}<\/code> \|/,
       "versioning.mdx axis table (Python pipeline row)",
-    )[1];
-    expect(tableRow).toBe(pyVersion);
+    );
 
-    const prose = anchor(
+    anchor(
       versioning,
-      /records Python project version\s+`([^`]+)`/,
+      /records the Python project version\s*\n?\(<code>\{PIPELINE_VERSION\}<\/code>\)/,
       "versioning.mdx Python compatibility prose",
-    )[1];
-    expect(prose).toBe(pyVersion);
-
-    const aside = anchor(
-      versioning,
-      /Python `([^`]+)` does not mean profile schema/,
-      "versioning.mdx do-not-compare aside",
-    )[1];
-    expect(aside).toBe(pyVersion);
+    );
   });
 
   it("versioning.mdx's hand-written schemaVersion claims match SCHEMA_VERSION", () => {

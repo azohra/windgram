@@ -6,7 +6,15 @@ entry names the versions it actually changes.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-08-09
+
 ### Added
+
+- JSR publishing: one `toolkit-v` tag releases the package to npm and JSR
+  (`@azohra/windgram`) in lockstep, version-guarded on `package.json` and
+  `jsr.json`.
+- `SceneGraph` `scales.stripTop` publishes the strip-stack origin the scene
+  already owned, so serializers stop re-declaring it.
 
 - A transport documentation page — the one home for the torn-read problem,
   `loadProfile`'s miss/stale contract, `loadRuns`, and `runsConsistent` —
@@ -24,6 +32,10 @@ entry names the versions it actually changes.
 
 ### Changed
 
+- The repository is reorganized around its four layers — `pipeline/` (the
+  Python pipeline, released to PyPI on `pipeline-v*` tags), `toolkit/` (this
+  package, formerly `packages/windgram`), `site/`, and `data/` — with
+  internal package splits whose rendered output is byte-identical.
 - The documentation portal is the authority for package API detail. The
   package README is a front door — badges, hero, one sixty-second example,
   an entry-points table linking each subpath's guide — and the root README
@@ -33,6 +45,14 @@ entry names the versions it actually changes.
   authority boundary) collapsed to one home each; portal tables render
   live values from package imports wherever the value is exported.
 - Conventions rewritten: one stakes sentence, seven mechanisms.
+
+### Removed
+
+- Stored-PNG visual snapshots: browser rasterization is platform-bound, so
+  committed baselines only ever matched the machine that reviewed them. The
+  platform-independent assertions — stable-frame self-comparison, overflow
+  containment, reduced-motion audits — now run in CI, and pixel-exact chart
+  output stays fenced by the golden SVGs.
 
 ### Fixed
 
@@ -279,7 +299,9 @@ Repository tag `v0.3.0`; npm package `windgram` 0.3.0. Published document
 - NAM 12 km and CONUS-nest precipitation bucket lengths now follow each
   product's per-cycle accumulation resets, including 06Z and 18Z runs.
 
-[Unreleased]: https://github.com/azohra/windgram/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/azohra/windgram/compare/toolkit-v0.10.0...HEAD
+[0.10.0]: https://github.com/azohra/windgram/compare/v0.9.1...toolkit-v0.10.0
+[0.9.1]: https://github.com/azohra/windgram/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/azohra/windgram/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/azohra/windgram/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/azohra/windgram/compare/v0.6.0...v0.7.0
