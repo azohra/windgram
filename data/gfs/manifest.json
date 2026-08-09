@@ -1,10 +1,10 @@
 {
   "firstForecastHour": 3,
   "forecastHours": 128,
-  "generatedAt": "2026-08-09T00:11:51.943Z",
+  "generatedAt": "2026-08-09T05:36:04.515Z",
   "lastForecastHour": 384,
   "model": "gfs",
-  "referenceTime": "2026-08-08T18:00:00Z",
+  "referenceTime": "2026-08-09T00:00:00Z",
   "schemaVersion": 1,
   "sites": [
     {
@@ -25,9 +25,9 @@
     }
   ],
   "stats": {
-    "downloadBytes": 7871868422,
+    "downloadBytes": 7746570305,
     "downloads": 9537,
-    "durationMs": 187906,
+    "durationMs": 174725,
     "retries": 0
   }
 }
