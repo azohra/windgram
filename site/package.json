@@ -11,6 +11,7 @@
     "test:boundary:built": "playwright test no-live-data.spec.ts routes.spec.ts",
     "test:qa": "pnpm run build && pnpm run test:qa:built",
     "test:qa:built": "playwright test accessibility.spec.ts interactions.spec.ts visuals.spec.ts",
+    "test:ci:built": "playwright test no-live-data.spec.ts routes.spec.ts accessibility.spec.ts interactions.spec.ts v05-presentation.spec.ts",
     "test:built": "playwright test"
   },
   "dependencies": {

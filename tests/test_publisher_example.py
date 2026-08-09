@@ -14,14 +14,21 @@ PACKAGE = ROOT / "packages" / "windgram"
 
 def run(*arguments: str | Path, cwd: Path) -> subprocess.CompletedProcess[str]:
     environment = {**os.environ, "CI": "1", "COREPACK_ENABLE_DOWNLOAD_PROMPT": "0"}
-    return subprocess.run(
+    completed = subprocess.run(
         [str(argument) for argument in arguments],
         cwd=cwd,
         env=environment,
-        check=True,
         capture_output=True,
         text=True,
     )
+    # check=True would discard the captured output from the failure report;
+    # a CI failure must carry the subprocess's own words.
+    if completed.returncode != 0:
+        raise AssertionError(
+            f"{[str(argument) for argument in arguments]} exited "
+            f"{completed.returncode}\nstdout:\n{completed.stdout}\nstderr:\n{completed.stderr}"
+        )
+    return completed
 
 
 def files_beneath(root: Path) -> set[str]:
@@ -145,8 +152,12 @@ def test_complete_club_publisher_journey_is_static_offline_and_cwd_independent(
     # Build and pack the actual package at its manifest-declared version, then
     # install it from the local tarball with registry access forbidden. This
     # exercises shipped exports, not TypeScript source imports or a workspace
-    # symlink.
-    run("pnpm", "--dir", PACKAGE, "build", cwd=runner)
+    # symlink. The two checkout-side pnpm commands run from the checkout, as
+    # the journey documents: corepack resolves the pinned pnpm version from
+    # the working directory, and from anywhere else it runs whatever pnpm is
+    # current — which refuses a project pinned to another version. The club
+    # project carries no pin, so its commands stay cwd-independent.
+    run("pnpm", "--dir", PACKAGE, "build", cwd=ROOT)
     run(
         "pnpm",
         "--dir",
@@ -154,7 +165,7 @@ def test_complete_club_publisher_journey_is_static_offline_and_cwd_independent(
         "pack",
         "--pack-destination",
         club_project,
-        cwd=runner,
+        cwd=ROOT,
     )
     package_manifest = json.loads((PACKAGE / "package.json").read_text())
     package_tarball = (

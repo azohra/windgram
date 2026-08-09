@@ -41,5 +41,8 @@ jobs:
         run: pnpm --dir site build
       - name: Install browser for static site QA
         run: pnpm --dir site exec playwright install --with-deps chromium
-      - name: Test static site boundary, accessibility, interaction, and visuals
-        run: pnpm --dir site test:built
+      # Visual snapshots are a local review gate, not a CI comparison:
+      # text rasterization differs across operating systems, so committed
+      # baselines only match the platform they were reviewed on.
+      - name: Test static site boundary, accessibility, interaction, and presentation
+        run: pnpm --dir site test:ci:built

@@ -4,6 +4,21 @@ Notable repository and `windgram` package changes are recorded here. Dataset
 schema, npm package, and Python pipeline versions are independent; each release
 entry names the versions it actually changes.
 
+## [Unreleased]
+
+### Fixed
+
+- The data publisher resolves same-model rebase conflicts by the manifests'
+  referenceTime — the newer publication wins, a duplicate of an
+  already-published run is dropped — and builder jobs check out the branch
+  tip at job start instead of the SHA pinned at run creation.
+- CI runs every site suite except the visual snapshots, whose committed
+  baselines only match the platform they were reviewed on; screenshot
+  comparison stays a local review gate.
+- The club journey's checkout-side pnpm commands run from inside the
+  checkout, where corepack resolves the pinned pnpm version; test failures
+  now carry the failing subprocess's own output.
+
 ## [0.9.1] - 2026-08-09
 
 Repository tag `v0.9.1`; npm package `windgram` 0.9.1 (documentation-only

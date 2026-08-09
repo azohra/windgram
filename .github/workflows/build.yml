@@ -44,7 +44,13 @@ jobs:
     # decode-once sampling — the old 30-minute budget scaled by 5.3/3.3.
     timeout-minutes: 45
     steps:
+      # Check out the branch tip at job start, not the SHA pinned when the
+      # scheduled run was created: after a concurrency-queue wait that
+      # pinned tree can predate the previous job's data pushes, and the
+      # builder would rebuild and re-publish a run already on main.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
       # Each model commits as soon as it finishes: a fresh checkout after the
       # wipe rebuilds everything, and an end-of-job commit would lose all of
@@ -82,7 +88,10 @@ jobs:
     # for ~44 GiB plus NOAA).
     timeout-minutes: 90
     steps:
+      # Branch tip at job start, not the run-creation SHA (see the noaa job).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
       # Lightest first so data appears early; each model commits as soon as
       # it finishes (see the noaa job).
@@ -116,7 +125,10 @@ jobs:
     env:
       WINDGRAM_DATAMART_BASE: https://hpfx.collab.science.gc.ca
     steps:
+      # Branch tip at job start, not the run-creation SHA (see the noaa job).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
       - name: Build HRDPS 2.5 km (failure must not block the others)
         run: uv run --no-dev python -m windgram.build || echo "::warning::HRDPS build failed"

@@ -77,7 +77,8 @@ controls, unique SVG IDs, native keyboard and touch-equivalent lab controls,
 Reset states, labelled horizontal figure exploration, textual conclusions,
 research navigation, Pagefind search, page-level overflow, reduced motion,
 and reviewed screenshots. `test:qa:built` reuses an existing static build;
-`test:built` runs both this gate and the no-live-data boundary in CI.
+`test:built` runs every suite against one, and CI runs `test:ci:built` —
+every suite except the visual snapshots.
 
 Screenshot changes are review artifacts, not an automatic update. Run:
 
@@ -86,8 +87,10 @@ pnpm --dir site exec playwright test visuals.spec.ts --update-snapshots
 ```
 
 only after checking that the changed layout, figure frame, and responsive
-behavior are intentional. The snapshot path is platform-neutral and the
-configured Chromium version is the rendering baseline.
+behavior are intentional. Screenshot comparison is a local review gate, not
+a CI check: text rasterization differs across operating systems, so the
+committed baselines match the platform they were reviewed on and CI runs
+every suite except `visuals.spec.ts`.
 
 ## Deterministic CI inputs
 

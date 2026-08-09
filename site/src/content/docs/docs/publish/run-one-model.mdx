@@ -88,9 +88,9 @@ uv run --offline --project "$WINDGRAM_SOURCE" python \
   --source "$CLUB_PROJECT/fixtures/synthetic-source.json" \
   --output "$CLUB_PROJECT/public/data"
 
-pnpm --dir "$WINDGRAM_SOURCE/packages/windgram" build
-pnpm --dir "$WINDGRAM_SOURCE/packages/windgram" pack \
-  --pack-destination "$CLUB_PROJECT"
+(cd "$WINDGRAM_SOURCE" && pnpm --dir packages/windgram build)
+(cd "$WINDGRAM_SOURCE" && pnpm --dir packages/windgram pack \
+  --pack-destination "$CLUB_PROJECT")
 pnpm --dir "$CLUB_PROJECT" add --offline --save-exact \
   "$CLUB_PROJECT"/windgram-*.tgz
 
@@ -104,6 +104,11 @@ mkdir "$CLUB_PROJECT/deploy"
 cp -R "$CLUB_PROJECT/public/." "$CLUB_PROJECT/deploy/"
 ```
 
+The two checkout-side commands run from inside the checkout because
+corepack resolves the pinned pnpm version from the working directory —
+from anywhere else it runs whatever pnpm is current, which refuses a
+project pinned to another version. Your club project carries no pin, so
+its commands run from wherever you are.
 The local tarball installs the package bytes built by the preceding command;
 `--offline` forbids registry access. A released consumer installs the same API
 with `pnpm add windgram`. `render.mjs` validates the site catalogue,
