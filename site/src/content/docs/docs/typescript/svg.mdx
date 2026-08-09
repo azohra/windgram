@@ -1,0 +1,90 @@
+---
+title: Render SVG and a scene-derived key
+description: Serialize a scene and its scene-derived key to deterministic SVG styled by package tokens.
+---
+
+`renderSvg(scene, options)` emits a complete SVG document with stable ordering
+and two-decimal geometry.
+
+```ts title="render-svg.ts"
+import type { SceneGraph } from "windgram/scene";
+import { renderSvg } from "windgram/svg";
+
+export function renderClubSvg(scene: SceneGraph): string {
+  return renderSvg(scene, { idPrefix: "club-main" });
+}
+```
+
+Give each chart on an HTML page a unique `idPrefix`. The prefix namespaces
+definitions such as cloud hatch patterns.
+
+## Derive the key from the final scene
+
+`buildKeySpec(scene)` reports only encodings that the scene actually drew. It
+carries each keyed series' real class, dash, and stroke width; includes the
+condensation hatch only when dense cloud is visible; includes the stability
+ramp only when that field is visible; and adds the p25–p75 note only when a
+drawn series has an ensemble band. `renderKeySvg` serializes that spec with the
+same package stylesheet:
+
+```ts title="render-key.ts"
+import type { SceneGraph } from "windgram/scene";
+import { buildKeySpec } from "windgram/scene";
+import { renderKeySvg } from "windgram/svg";
+
+export function renderClubKey(scene: SceneGraph): string {
+  return renderKeySvg(buildKeySpec(scene), { idPrefix: "club-main-key" });
+}
+```
+
+Build the key from the final scene after every option or overlay change. An
+all-layer key falsely labels a progressive or hidden-layer chart. Give each
+key its own `idPrefix` to separate its hatch definition from every chart and
+key on the page.
+
+## Stylesheet choices
+
+The default output embeds `DEFAULT_STYLESHEET`. Every colour fallback comes
+from one of the exported maps:
+
+- `TOKEN_DEFAULTS` for the renderer's general token surface; and
+- `STABILITY_TOKEN_DEFAULTS` for the eight-class stability ramp.
+
+Override tokens on an ancestor instead of forking the serializer:
+
+```css title="club-overrides.css"
+.club-windgram {
+  --wg-surface: #14181c;
+  --wg-ink: #e8e4da;
+  --wg-cape-watch: #b98a2d;
+  --wg-temp: #d97706;
+  --wg-text-hour-tick: 12px;
+  --wg-halo-series: #14181c;
+}
+```
+
+Pass `stylesheet: null` when the consumer will supply all class styling.
+`DEFAULT_STYLESHEET` remains available as a reference, but copying individual
+hex values into application code creates a second authority.
+
+`TOKEN_DEFAULTS` defines a type-scale token for every serializer text role,
+including strip scales, hour ticks, the surface-temperature row, and key
+labels. The per-element `--wg-halo-series`, `--wg-halo-barb`,
+`--wg-halo-marker`, and `--wg-halo-text` slots fall back to shared
+`--wg-halo`; set one slot to `transparent` to remove that halo. Scalar strips
+print their maximum and minimum at the right edge. The cloud-layer strip keeps
+its H/M/L row tags.
+
+The serializer fills sampled field bands with the SVG even-odd rule. Custom
+renderers of `SceneGraph.fields` must apply the same `fill-rule="evenodd"` to
+preserve holes between interpolated contour thresholds.
+
+## Deterministic SVG output
+
+The same scene and options produce identical bytes, supporting static builds,
+caching, reviewable golden diffs, and reproducible teaching figures. Ensemble
+profile values remain percentile bands in the scene.
+
+If an intentional renderer change alters a golden, follow the review sequence
+in [Data and package versioning](/docs/data/versioning/). A new snapshot is not
+evidence that labels, units, IDs, or accessibility stayed correct.

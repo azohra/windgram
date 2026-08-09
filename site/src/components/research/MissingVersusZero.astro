@@ -1,0 +1,165 @@
+---
+import Figure from "../figure/Figure.astro";
+import { scenarioById } from "../../lib/scenarios";
+
+const scenario = scenarioById("missing-versus-zero");
+const precipitation = scenario.profile.hours.map((hour) => hour.surface.precipitationMmHr);
+const hourFormatter = new Intl.DateTimeFormat("en-CA", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+  timeZone: scenario.timeZone,
+});
+const hourLabels = scenario.profile.hours.map((hour) => hourFormatter.format(new Date(hour.validAt)));
+const allPrecipitationZero = precipitation.every((value) => value === 0);
+const allGustsAbsent = scenario.profile.hours.every((hour) => !("windGustMs" in hour.surface));
+
+if (!allPrecipitationZero || !allGustsAbsent || scenario.capabilities.gust !== false) {
+  throw new Error("missing-versus-zero scenario no longer demonstrates explicit zero and declared absence");
+}
+---
+
+<Figure
+  id="missing-versus-zero"
+  title="Zero is a value; absence is a capability statement"
+  lesson="A decoder must preserve the difference between a supported field that reports zero and a field the source does not publish."
+  description={`${scenario.accessibilityDescription} All ${precipitation.length} hours explicitly publish precipitationMmHr as zero. No hour carries windGustMs, and the scenario capability declares gust false.`}
+  caption="The two states come directly from the validated scenario document. A missing windGustMs field is never replaced with 0 m/s."
+  units="precipitation mm/h · gust m/s when published"
+  {scenario}
+>
+  <div class="state-comparison">
+    <section class="state-card state-card--present" aria-labelledby="zero-present-title">
+      <p class="state-card__eyebrow">Field present</p>
+      <h4 id="zero-present-title"><code>precipitationMmHr: 0</code></h4>
+      <div class="hour-cells" aria-label={`${precipitation.length} hours, each explicitly zero`}>
+        {precipitation.map((value, index) => (
+          <span><small>{hourLabels[index]}</small><strong>{value.toFixed(1)}</strong></span>
+        ))}
+      </div>
+      <p><strong>Interpretation:</strong> the source supports this quantity and reports none.</p>
+    </section>
+
+    <div class="state-divider" aria-hidden="true"><span>≠</span></div>
+
+    <section class="state-card state-card--absent" aria-labelledby="zero-absent-title">
+      <p class="state-card__eyebrow">Field absent</p>
+      <h4 id="zero-absent-title"><code>windGustMs</code> is not in the document</h4>
+      <div class="absent-field" aria-hidden="true">
+        <span>{`{`}</span>
+        <span class="absent-field__gap">no invented key</span>
+        <span>{`}`}</span>
+      </div>
+      <p><strong>Interpretation:</strong> the source does not publish gust, so its value is unknown.</p>
+    </section>
+  </div>
+</Figure>
+
+<style>
+  .state-comparison {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 3rem minmax(0, 1fr);
+    gap: 0.75rem;
+    align-items: stretch;
+    padding: clamp(0.85rem, 2vw, 1.25rem);
+  }
+
+  .state-card {
+    min-width: 0;
+    padding: clamp(0.9rem, 2vw, 1.3rem);
+    background: var(--surface);
+    border: 1px solid var(--rule-strong);
+  }
+
+  .state-card--present { border-block-start: 4px solid var(--chart-usable); }
+  .state-card--absent { border-block-start: 4px solid var(--ink-mute); }
+
+  .state-card__eyebrow {
+    margin: 0 0 0.35rem;
+    color: var(--accent-strong);
+    font: 700 0.66rem/1.4 var(--mono);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .state-card h4 {
+    margin: 0 0 1rem;
+    color: var(--ink);
+    font-size: clamp(1rem, 2vw, 1.25rem);
+  }
+
+  .state-card code { font-size: 0.88em; }
+
+  .state-card > p:last-child {
+    margin: 1rem 0 0;
+    color: var(--ink-soft);
+    font-size: 0.86rem;
+    line-height: 1.5;
+  }
+
+  .hour-cells {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem;
+  }
+
+  .hour-cells span {
+    display: grid;
+    gap: 0.15rem;
+    padding: 0.55rem;
+    text-align: center;
+    background: var(--surface-accent);
+    border: 1px solid var(--rule);
+    font-family: var(--mono);
+  }
+
+  .hour-cells small { color: var(--ink-mute); font-size: 0.62rem; }
+  .hour-cells strong { color: var(--chart-usable); font-size: 1rem; }
+
+  .absent-field {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 0.6rem;
+    align-items: center;
+    min-height: 5.2rem;
+    padding-inline: 0.75rem;
+    color: var(--ink-mute);
+    background: var(--surface-sunken);
+    border: 1px dashed var(--rule-strong);
+    font: 700 1.15rem/1 var(--mono);
+  }
+
+  .absent-field__gap {
+    padding-block: 0.65rem;
+    color: var(--ink-mute);
+    border-block: 1px dashed var(--rule);
+    font-size: 0.72rem;
+    text-align: center;
+  }
+
+  .state-divider {
+    display: grid;
+    place-items: center;
+  }
+
+  .state-divider span {
+    display: grid;
+    place-items: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    color: var(--accent-ink);
+    background: var(--accent);
+    border-radius: 50%;
+    font: 800 1rem/1 var(--mono);
+  }
+
+  @media (max-width: 44rem) {
+    .state-comparison { grid-template-columns: 1fr; }
+    .state-divider span { transform: rotate(90deg); }
+  }
+
+  @media print {
+    .state-comparison { grid-template-columns: minmax(0, 1fr) 2rem minmax(0, 1fr); }
+    .state-card { break-inside: avoid; }
+  }
+</style>

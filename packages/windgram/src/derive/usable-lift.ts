@@ -2,7 +2,7 @@
    pilot's sink rate exposed as a parameter.
 
    The pipeline publishes usableLiftTopM computed at a fixed 1.0 m/s sink
-   rate (windgram/windgram.py, the one-home rule's authority). Every input
+   rate (windgram/windgram.py is the published-value authority). Every input
    that derivation needs is itself published — model elevation, the
    boundary-layer top, thermal velocity W* (already derived from the fluxes
    upstream), cloud base, and the level heights — so re-running it with a

@@ -1,0 +1,275 @@
+@import "./theme.css";
+
+/* Starlight receives the same field-paper and renderer tokens as the custom
+   Astro surfaces. Both colour-scheme states intentionally resolve to this
+   light, warm paper identity; the site does not advertise a theme switch. */
+:root,
+:root[data-theme="light"],
+:root[data-theme="dark"] {
+  color-scheme: light;
+
+  --sl-color-white: var(--ink);
+  --sl-color-gray-1: var(--ink);
+  --sl-color-gray-2: var(--ink-soft);
+  --sl-color-gray-3: var(--ink-mute);
+  --sl-color-gray-4: var(--rule-strong);
+  --sl-color-gray-5: var(--rule);
+  --sl-color-gray-6: var(--surface-sunken);
+  --sl-color-gray-7: var(--surface);
+  --sl-color-black: var(--page);
+  --sl-color-accent-low: var(--surface-accent);
+  --sl-color-accent: var(--accent);
+  --sl-color-accent-high: var(--accent-strong);
+  --sl-color-text: var(--ink-soft);
+  --sl-color-text-accent: var(--accent);
+  --sl-color-text-invert: var(--accent-ink);
+  --sl-color-bg: var(--page);
+  --sl-color-bg-nav: var(--surface);
+  --sl-color-bg-sidebar: color-mix(in srgb, var(--surface) 72%, var(--page));
+  --sl-color-bg-inline-code: var(--surface-sunken);
+  --sl-color-bg-accent: var(--accent);
+  --sl-color-hairline-light: color-mix(in srgb, var(--rule) 45%, transparent);
+  --sl-color-hairline: color-mix(in srgb, var(--rule) 65%, transparent);
+  --sl-color-hairline-shade: var(--rule);
+  --sl-color-backdrop-overlay: rgb(21 37 41 / 0.66);
+
+  --sl-color-blue-high: #184e82;
+  --sl-color-blue: var(--model-1);
+  --sl-color-blue-low: #dbe5ef;
+  --sl-color-green-high: #15533f;
+  --sl-color-green: var(--model-3);
+  --sl-color-green-low: #dce9e3;
+  --sl-color-orange-high: var(--accent-strong);
+  --sl-color-orange: var(--dawn);
+  --sl-color-orange-low: var(--surface-accent);
+  --sl-color-purple-high: #6f3953;
+  --sl-color-purple: var(--model-5);
+  --sl-color-purple-low: #eadde3;
+  --sl-color-red-high: #762821;
+  --sl-color-red: var(--lapse-hot);
+  --sl-color-red-low: #efdfdc;
+
+  --sl-font: var(--sans);
+  --sl-font-mono: var(--mono);
+  --sl-content-width: 49rem;
+  --sl-sidebar-width: 17.5rem;
+  --sl-content-gap-y: 1.15rem;
+  --sl-line-height: 1.68;
+  --sl-line-height-headings: 1.05;
+  --sl-shadow-sm: none;
+  --sl-shadow-md: none;
+  --sl-shadow-lg: none;
+}
+
+body {
+  font-family: var(--sans);
+}
+
+/* The header, sidebar, and content use rules and surface shifts instead of
+   soft shadows, matching the rest of the project. */
+.header {
+  box-shadow: none;
+}
+
+.sidebar-pane {
+  background-image: linear-gradient(to bottom, rgb(145 59 12 / 0.035), transparent 18rem);
+}
+
+#starlight__sidebar a,
+#starlight__sidebar summary {
+  border-radius: 0;
+}
+
+#starlight__sidebar a {
+  color: var(--ink-soft);
+}
+
+#starlight__sidebar a:hover,
+#starlight__sidebar a:focus-visible {
+  color: var(--ink);
+}
+
+#starlight__sidebar a[aria-current="page"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+#starlight__sidebar a[aria-current="page"] * {
+  color: inherit;
+}
+
+.sl-markdown-content {
+  font-size: 1.06rem;
+}
+
+.sl-markdown-content > p:first-child {
+  color: var(--ink);
+  font-size: 1.19rem;
+  line-height: 1.58;
+}
+
+h1#_top,
+.sl-markdown-content :is(h1, h2):not(:where(.not-content *)) {
+  font-family: var(--display);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+h1#_top {
+  position: relative;
+  padding-bottom: 1rem;
+  margin-top: 1.8rem;
+}
+
+h1#_top::after {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 7rem;
+  height: 4px;
+  background: var(--accent);
+  content: "";
+}
+
+.sl-markdown-content h2:not(:where(.not-content *)) {
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--rule);
+  color: var(--accent-strong);
+}
+
+.sl-markdown-content h3:not(:where(.not-content *)) {
+  font-family: var(--sans);
+  font-size: 1.18rem;
+  font-weight: 700;
+}
+
+.sl-markdown-content a:not(:where(.not-content *)) {
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+.sl-markdown-content code:not(:where(.not-content *)) {
+  border: 1px solid color-mix(in srgb, var(--rule) 45%, transparent);
+  border-radius: 2px;
+  font-family: var(--mono);
+}
+
+.sl-markdown-content pre:not(:where(.not-content *)),
+.expressive-code .frame {
+  border-radius: 2px;
+  box-shadow: none;
+}
+
+.sl-markdown-content pre:not(:where(.not-content *)) {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.expressive-code .frame {
+  border: 1px solid var(--rule);
+  border-top: 2px solid var(--rule-strong);
+}
+
+.sl-markdown-content table:not(:where(.not-content *)) {
+  width: 100%;
+  border-top: 2px solid var(--rule-strong);
+}
+
+.sl-markdown-content th:not(:where(.not-content *)) {
+  background: var(--surface-raised);
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.sl-markdown-content td:not(:where(.not-content *)) {
+  background: rgb(255 253 248 / 0.58);
+}
+
+.sl-markdown-content tr:nth-child(even) td:not(:where(.not-content *)) {
+  background: rgb(239 228 211 / 0.44);
+}
+
+.sl-markdown-content :is(th, td):not(:where(.not-content *)) {
+  padding: 0.72rem 0.8rem;
+  border-bottom-color: var(--rule);
+}
+
+.sl-markdown-content :is(th:first-child, td:first-child):not(:where(.not-content *)) {
+  padding-inline-start: 0.8rem;
+}
+
+.sl-markdown-content :is(th:last-child, td:last-child):not(:where(.not-content *)) {
+  padding-inline-end: 0.8rem;
+}
+
+.sl-markdown-content .figure-shell:not(:where(.not-content *)),
+.sl-markdown-content figure.figure-shell {
+  width: 100%;
+  padding: clamp(1rem, 2vw, 1.4rem);
+  margin: 2rem 0 2.75rem;
+  border: 1px solid var(--rule-strong);
+  background:
+    linear-gradient(var(--surface), var(--surface)) padding-box,
+    repeating-linear-gradient(0deg, transparent 0 23px, rgb(119 105 86 / 0.06) 24px);
+  color: var(--ink-soft);
+}
+
+.sl-markdown-content figure.figure-shell:focus-within {
+  border-color: var(--accent);
+}
+
+.pagination-links a {
+  border-radius: 2px;
+  box-shadow: none;
+}
+
+site-search button[data-open-modal] {
+  border-radius: 2px;
+  box-shadow: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+@media (max-width: 49.99rem) {
+  .sl-markdown-content {
+    font-size: 1rem;
+  }
+
+  .sl-markdown-content > p:first-child {
+    font-size: 1.1rem;
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  :root {
+    --page: #fff;
+    --surface: #fff;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .sl-markdown-content .figure-shell:not(:where(.not-content *)),
+  .sl-markdown-content figure.figure-shell {
+    width: 100%;
+    margin-inline: 0;
+    break-inside: avoid;
+  }
+}

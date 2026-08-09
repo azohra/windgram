@@ -1,0 +1,54 @@
+---
+title: Defaults and tokens
+description: Configure the package's reference scene and renderer through direct options and tokens.
+---
+
+Windgram ships one reference look. Configure scene behaviour through
+`SceneOptions` and visual values through the renderer's `--wg-*` CSS tokens.
+
+```ts title="build-reference-scene.ts"
+import type { WindgramProfile } from "windgram/contract";
+import { buildScene, DEFAULT_OVERLAYS } from "windgram/scene";
+
+export function buildClubScene(profile: WindgramProfile) {
+  return buildScene(profile, {
+    timeZone: profile.site.timeZone ?? "Etc/UTC",
+    smooth: false,
+    overlays: {
+      ...DEFAULT_OVERLAYS,
+      thermalIndex: true,
+    },
+  });
+}
+```
+
+`DEFAULT_OVERLAYS` exposes the package defaults when a control must enumerate
+every layer. Omit `overlays` when the reference defaults are sufficient.
+
+## Read token authorities
+
+`windgram/svg` exports two maps:
+
+- `TOKEN_DEFAULTS` contains every non-stability renderer token; and
+- `STABILITY_TOKEN_DEFAULTS` contains the ordered eight-class stability ramp.
+
+Token keys omit the CSS prefix: `surface` maps to `--wg-surface`, and
+`stable` maps to `--wg-stab-stable`. Read the maps for legends and swatches;
+override CSS custom properties on an ancestor for a downstream presentation.
+
+```ts title="stability-swatches.ts"
+import { STABILITY_TOKEN_DEFAULTS } from "windgram/svg";
+
+export const stabilitySwatches = Object.entries(STABILITY_TOKEN_DEFAULTS).map(
+  ([name, color]) => ({ name, color }),
+);
+```
+
+The reference renderer keeps the stability field pale so lines, markers,
+labels, and white wind barbs remain foreground. The
+[stability-ramp research article](/research/stability-ramp/) records the
+measured palette constraints.
+
+Display windows, overlay choices, CAPE classes, sink rates, and local colour
+overrides belong to the downstream publisher. Pass them directly to
+`buildScene` or the consuming stylesheet.

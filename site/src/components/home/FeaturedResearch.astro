@@ -1,0 +1,244 @@
+---
+import type { DocPage } from "../../lib/research";
+import ResearchThumbnail from "../research/ResearchThumbnail.astro";
+
+interface Props {
+  entries: DocPage[];
+}
+
+const { entries } = Astro.props;
+const dateFormat = new Intl.DateTimeFormat("en-CA", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  timeZone: "UTC",
+});
+---
+
+<section id="research" class="home-research" aria-labelledby="home-research-title">
+  <div class="home-research__inner">
+    <header class="home-research__header">
+      <div>
+        <p>Research</p>
+        <h2 id="home-research-title">Methods, tests, and design decisions</h2>
+      </div>
+      <a href="/research/">Browse all research <span aria-hidden="true">→</span></a>
+    </header>
+
+    <ol class="research-grid">
+      {entries.map((entry) => (
+        <li>
+          <article class:list={["research-card", `research-card--${entry.researchKind ?? "method"}`]}>
+            <a class="research-card__visual" href={entry.url} aria-label={`Read ${entry.title}`}>
+              <ResearchThumbnail entry={entry} />
+            </a>
+            <div class="research-card__copy">
+              <p class="research-card__meta">
+                <span>{entry.section}</span>
+                {entry.published && <time datetime={entry.published.toISOString()}>{dateFormat.format(entry.published)}</time>}
+                <span>{entry.readingMinutes} min</span>
+              </p>
+              <h3><a href={entry.url}>{entry.title}</a></h3>
+              <p>{entry.summary}</p>
+            </div>
+          </article>
+        </li>
+      ))}
+    </ol>
+
+  </div>
+</section>
+
+<style>
+  .home-research {
+    padding-block: clamp(4.5rem, 9vw, 8rem);
+    background: color-mix(in srgb, var(--surface) 45%, transparent);
+    border-block: 1px solid var(--rule);
+  }
+
+  .home-research__inner {
+    width: min(74.25rem, calc(100% - 3.5rem));
+    margin-inline: auto;
+  }
+
+  .home-research__header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 2rem;
+    margin-block-end: 2.2rem;
+    padding-block-end: 1rem;
+    border-block-end: 1px solid var(--rule-strong);
+  }
+
+  .home-research__header p {
+    margin: 0 0 0.65rem;
+    color: var(--accent-strong);
+    font: 700 0.7rem/1.4 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .home-research__header h2 {
+    max-width: 48rem;
+    margin: 0;
+    font-size: clamp(2.7rem, 5vw, 4.6rem);
+    line-height: 0.9;
+  }
+
+  .home-research__header > a {
+    flex: 0 0 auto;
+    padding: 0.8rem 0.9rem;
+    color: var(--accent-strong);
+    background: var(--surface-accent);
+    border: 1px solid var(--rule-strong);
+    font: 700 0.68rem/1.3 var(--mono);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .home-research__header > a:hover {
+    background: var(--surface-raised);
+    text-decoration: none;
+  }
+
+  .research-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(20rem, 0.7fr);
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .research-card {
+    display: grid;
+    grid-template-rows: 12rem 1fr;
+    height: 100%;
+    background: var(--surface);
+    border: 1px solid var(--rule-strong);
+  }
+
+  .research-grid > li:first-child {
+    grid-row: 1 / 3;
+  }
+
+  .research-grid > li:first-child .research-card {
+    grid-template-rows: minmax(17rem, 1.2fr) minmax(0, 0.8fr);
+  }
+
+  .research-grid > li:not(:first-child) .research-card {
+    grid-template-rows: 9rem 1fr;
+  }
+
+  .research-grid > li:not(:first-child) .research-card__visual {
+    border-block-end: 1px solid var(--rule-strong);
+  }
+
+  .research-card__visual {
+    display: block;
+    overflow: hidden;
+    color: var(--ink);
+    border-block-end: 1px solid var(--rule-strong);
+  }
+
+  .research-card__visual:hover {
+    text-decoration: none;
+  }
+
+  .research-card__visual :global(.research-thumbnail) {
+    height: 100%;
+    min-height: 100%;
+    border: 0;
+  }
+
+  .research-card__visual :global(.research-thumbnail > svg) {
+    width: 100%;
+    height: calc(100% - 24px);
+  }
+
+  .research-card__copy {
+    padding: 1.15rem;
+  }
+
+  .research-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    margin: 0;
+    color: var(--ink-mute);
+    font: 0.62rem/1.4 var(--mono);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .research-card__meta > * + *::before {
+    margin-inline: 0.38rem;
+    content: "/";
+  }
+
+  .research-card h3 {
+    margin: 0.7rem 0 0.65rem;
+    font-size: clamp(1.5rem, 2.5vw, 2rem);
+    line-height: 1;
+  }
+
+  .research-card h3 a {
+    color: var(--ink);
+  }
+
+  .research-card__copy > p:last-child {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 0.88rem;
+    line-height: 1.52;
+  }
+
+  @media (max-width: 53rem) {
+    .research-grid {
+      grid-template-columns: 1fr;
+      grid-template-rows: auto;
+    }
+
+    .research-grid > li:first-child {
+      grid-row: auto;
+    }
+
+    .research-grid > li:first-child .research-card,
+    .research-grid > li:not(:first-child) .research-card {
+      grid-template-columns: minmax(13rem, 0.7fr) minmax(0, 1.3fr);
+      grid-template-rows: 1fr;
+    }
+
+    .research-grid > li:first-child .research-card__visual,
+    .research-grid > li:not(:first-child) .research-card__visual {
+      min-height: 13rem;
+      border-block-end: 0;
+      border-inline-end: 1px solid var(--rule-strong);
+    }
+  }
+
+  @media (max-width: 38rem) {
+    .home-research__inner {
+      width: min(100% - 2rem, 74.25rem);
+    }
+
+    .home-research__header {
+      align-items: start;
+      flex-direction: column;
+    }
+
+    .research-grid > li:first-child .research-card,
+    .research-grid > li:not(:first-child) .research-card {
+      grid-template-columns: 1fr;
+      grid-template-rows: 10.5rem 1fr;
+    }
+
+    .research-grid > li:first-child .research-card__visual,
+    .research-grid > li:not(:first-child) .research-card__visual {
+      min-height: 0;
+      border-inline-end: 0;
+      border-block-end: 1px solid var(--rule-strong);
+    }
+  }
+</style>

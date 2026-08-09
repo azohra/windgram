@@ -1,0 +1,153 @@
+{
+  "$schema": "../scenario.schema.json",
+  "schemaVersion": 1,
+  "id": "morning-inversion-erodes",
+  "title": "A morning inversion erodes past launch",
+  "lesson": "The mixed layer starts below launch, then daytime warming deepens it through launch altitude.",
+  "kind": "deterministic",
+  "modelShape": "hourly-core",
+  "timeZone": "Etc/UTC",
+  "site": {
+    "id": "synthetic-high-launch",
+    "name": "Synthetic High Launch",
+    "synthetic": true,
+    "latitude": 49,
+    "longitude": -123,
+    "altitudeM": 1500,
+    "modelElevationM": 900
+  },
+  "clock": {
+    "referenceTime": "2000-01-01T06:00:00Z",
+    "generatedAt": "2000-01-01T06:00:00Z",
+    "startAt": "2000-01-01T12:00:00Z",
+    "stepHours": 1,
+    "hourCount": 6,
+    "seed": 14002
+  },
+  "baseline": {
+    "type": "synthetic",
+    "path": "baselines/synthetic-five-level-day.source.json"
+  },
+  "transforms": [
+    {
+      "type": "surface-field-curve",
+      "field": "temperatureC",
+      "points": [
+        {
+          "hourOffset": 0,
+          "value": 10
+        },
+        {
+          "hourOffset": 1,
+          "value": 13
+        },
+        {
+          "hourOffset": 2,
+          "value": 17
+        },
+        {
+          "hourOffset": 3,
+          "value": 21
+        },
+        {
+          "hourOffset": 4,
+          "value": 24
+        },
+        {
+          "hourOffset": 5,
+          "value": 25
+        }
+      ]
+    },
+    {
+      "type": "surface-field-curve",
+      "field": "sensibleHeatFluxWm2",
+      "points": [
+        {
+          "hourOffset": 0,
+          "value": 20
+        },
+        {
+          "hourOffset": 1,
+          "value": 80
+        },
+        {
+          "hourOffset": 2,
+          "value": 170
+        },
+        {
+          "hourOffset": 3,
+          "value": 260
+        },
+        {
+          "hourOffset": 4,
+          "value": 300
+        },
+        {
+          "hourOffset": 5,
+          "value": 240
+        }
+      ]
+    }
+  ],
+  "semantics": {
+    "precipitation": "instantRate"
+  },
+  "capabilities": {
+    "levels": true,
+    "pressureLevels": [
+      925,
+      850,
+      800,
+      700,
+      600
+    ],
+    "verticalVelocity": false,
+    "heatFluxes": true,
+    "gust": false,
+    "cape": false,
+    "cin": false,
+    "pblHeight": false,
+    "cloudLayers": false,
+    "cloudProfile": false
+  },
+  "assertions": [
+    {
+      "id": "starts-below-launch",
+      "description": "The first boundary-layer top remains below the synthetic high launch.",
+      "actual": {
+        "field": "derived.boundaryLayerTopM",
+        "hour": 0
+      },
+      "operator": "less-than",
+      "expected": {
+        "field": "site.altitudeM"
+      }
+    },
+    {
+      "id": "heating-strengthens",
+      "description": "Daytime sensible heating grows while the inversion is being eroded.",
+      "actual": {
+        "field": "surface.sensibleHeatFluxWm2",
+        "hour": 4
+      },
+      "operator": "greater-than",
+      "expected": {
+        "field": "surface.sensibleHeatFluxWm2",
+        "hour": 0
+      }
+    },
+    {
+      "id": "crosses-launch",
+      "description": "The warmed boundary layer eventually rises above launch altitude.",
+      "actual": {
+        "field": "derived.boundaryLayerTopM",
+        "hour": 4
+      },
+      "operator": "greater-than",
+      "expected": {
+        "field": "site.altitudeM"
+      }
+    }
+  ]
+}

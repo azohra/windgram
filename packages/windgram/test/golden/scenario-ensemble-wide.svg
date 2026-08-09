@@ -1,0 +1,236 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 534" role="img" aria-label="Windgram for Synthetic Ridge, model ensemble-wide, 2000-01-01 12:00 to 17:00 (Etc/UTC): surface metric strips above a time-height field; derived series, isotherms, shading overlays and winds aloft are drawn over the profile." class="wg">
+<style>
+.wg text { font-family: var(--wg-font, "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif); }
+.wg .wg-mono { font-family: var(--wg-font-mono, "IBM Plex Mono", ui-monospace, monospace); }
+.wg-frame { fill: var(--wg-surface, #fffdf8); stroke: var(--wg-rule, #776956); }
+.wg-strip-frame { fill: var(--wg-strip-bg, #f2f4f1); stroke: var(--wg-rule, #776956); }
+.wg-gridline { stroke: var(--wg-rule, #776956); }
+.wg-hourline { stroke: var(--wg-ink, #152529); }
+.wg-text { fill: var(--wg-ink, #152529); }
+.wg-text-soft { fill: var(--wg-ink-soft, #2f454a); }
+.wg-text-mute { fill: var(--wg-ink-mute, #40565a); }
+.wg-strip-name { fill: var(--wg-ink, #152529); font-size: var(--wg-text-strip-name, 10.5px); font-weight: 700; }
+.wg-strip-unit { fill: var(--wg-ink-mute, #40565a); font-size: var(--wg-text-strip-unit, 9.5px); }
+.wg-strip-scale { fill: var(--wg-ink-mute, #40565a); font-size: var(--wg-text-strip-scale, 8px); }
+.wg-tick { fill: var(--wg-ink-mute, #40565a); font-size: var(--wg-text-tick, 10.5px); }
+.wg-hour-tick { fill: var(--wg-ink-mute, #40565a); font-size: var(--wg-text-hour-tick, 11px); }
+.wg-series-label { font-size: var(--wg-text-series-label, 10.5px); font-weight: 700; }
+.wg-launch-label { fill: var(--wg-ink, #152529); font-size: var(--wg-text-launch, 10.5px); font-weight: 600; }
+.wg-surface-temp { fill: var(--wg-temp, #913b0c); font-size: var(--wg-text-surface-temp, 9.5px); font-weight: 700; }
+.wg-haloed-text { stroke: var(--wg-halo-text, var(--wg-halo, #fffdf8)); paint-order: stroke; }
+.wg-halo { stroke: var(--wg-halo-series, transparent); }
+.wg-selected-column { fill: var(--wg-accent, #913b0c); opacity: 0.05; }
+.wg-selected-line { stroke: var(--wg-accent, #913b0c); }
+.wg-launch-line { stroke: var(--wg-ink, #152529); }
+.wg-strip-pressure { stroke: var(--wg-pressure, #963f36); }
+.wg-strip-pressure-area, .wg-strip-pressure-band { fill: var(--wg-pressure, #963f36); }
+.wg-strip-precipitation { stroke: var(--wg-rain, #207a83); }
+.wg-strip-precipitation-area, .wg-strip-precipitation-band { fill: var(--wg-rain, #207a83); }
+.wg-strip-cloudCover { stroke: var(--wg-cloud, #5b6969); }
+.wg-strip-cloudCover-area, .wg-strip-cloudCover-band { fill: var(--wg-cloud, #5b6969); }
+.wg-strip-thermalStrength { stroke: var(--wg-lift, #9a7500); }
+.wg-strip-thermalStrength-area, .wg-strip-thermalStrength-band { fill: var(--wg-lift, #9a7500); }
+.wg-strip-buoyancyShear { stroke: var(--wg-bs, #6d597a); }
+.wg-strip-buoyancyShear-area, .wg-strip-buoyancyShear-band { fill: var(--wg-bs, #6d597a); }
+.wg-strip-cape { stroke: var(--wg-cape, #8a4a08); }
+.wg-strip-cape-area, .wg-strip-cape-band { fill: var(--wg-cape, #8a4a08); }
+.wg-cape-calm { fill: var(--wg-cape-calm, #dde3d5); opacity: 0.6; }
+.wg-cape-watch { fill: var(--wg-cape-watch, #e7c46c); opacity: 0.6; }
+.wg-cape-risk { fill: var(--wg-cape-risk, #d98243); opacity: 0.6; }
+.wg-cape-severe { fill: var(--wg-cape-severe, #c04f3a); opacity: 0.6; }
+.wg-cape-capped { opacity: 0.28; }
+.wg-bs-unopposed { fill: var(--wg-bs, #6d597a); opacity: 0.18; }
+.wg-cloud-cell { fill: var(--wg-cloud, #5b6969); }
+.wg-strip-row-label { fill: var(--wg-ink-mute, #40565a); font-size: var(--wg-text-row-tag, 7.5px); }
+.wg-gust { fill: var(--wg-gust, #355963); font-size: var(--wg-text-gust, 9.5px); font-weight: 700; }
+.wg-series-pbl { stroke: var(--wg-pbl, #56609b); }
+.wg-series-pbl-band { fill: var(--wg-pbl, #56609b); opacity: 0.16; }
+.wg-stab-very-unstable { fill: var(--wg-stab-very-unstable, #d95f52); }
+.wg-stab-unstable { fill: var(--wg-stab-unstable, #de8f3a); }
+.wg-stab-conditional-strong { fill: var(--wg-stab-conditional-strong, #c67eb6); }
+.wg-stab-conditional { fill: var(--wg-stab-conditional, #aeaad9); }
+.wg-stab-near-neutral { fill: var(--wg-stab-near-neutral, #d7b29b); }
+.wg-stab-stable { fill: var(--wg-stab-stable, #768bb9); }
+.wg-stab-inverted { fill: var(--wg-stab-inverted, #9aa19d); }
+.wg-stab-strong-inversion { fill: var(--wg-stab-strong-inversion, #b3b9b6); }
+.wg-cloud-hatch-line { stroke: var(--wg-ink-soft, #2f454a); }
+.wg-cloud-medium { fill: var(--wg-cloud, #5b6969); opacity: 0.22; }
+.wg-cloud-light { fill: var(--wg-cloud, #5b6969); opacity: 0.1; }
+.wg-ti-weak { fill: var(--wg-ti-weak, #f4e3c0); opacity: 0.55; }
+.wg-ti-fair { fill: var(--wg-ti-fair, #ecc57e); opacity: 0.55; }
+.wg-ti-good { fill: var(--wg-ti-good, #de9b4e); opacity: 0.55; }
+.wg-ti-strong { fill: var(--wg-ti-strong, #c96a33); opacity: 0.55; }
+.wg-shear-light { fill: var(--wg-shear-light, #cfc3de); opacity: 0.5; }
+.wg-shear-moderate { fill: var(--wg-shear-moderate, #a58ec4); opacity: 0.5; }
+.wg-shear-strong { fill: var(--wg-shear-strong, #7b5ea7); opacity: 0.5; }
+.wg-rh-60 { fill: var(--wg-rh-60, #d3e0e3); opacity: 0.5; }
+.wg-rh-80 { fill: var(--wg-rh-80, #a9c7cf); opacity: 0.5; }
+.wg-rh-95 { fill: var(--wg-rh-95, #7fadbb); opacity: 0.5; }
+.wg-omega-lift { fill: var(--wg-omega-lift, #8dc2a0); opacity: 0.4; }
+.wg-omega-lift-strong { fill: var(--wg-omega-lift-strong, #56a377); opacity: 0.5; }
+.wg-omega-sink { fill: var(--wg-omega-sink, #d3a68f); opacity: 0.4; }
+.wg-omega-sink-strong { fill: var(--wg-omega-sink-strong, #bd7d5c); opacity: 0.5; }
+.wg-series-boundary { stroke: var(--wg-boundary, #a46b10); }
+.wg-series-boundary-band { fill: var(--wg-boundary, #a46b10); opacity: 0.16; }
+.wg-series-cloud-base { stroke: var(--wg-cloud-base, #355963); }
+.wg-series-cloud-base-band { fill: var(--wg-cloud-base, #355963); opacity: 0.16; }
+.wg-series-usable { stroke: var(--wg-usable, #2179ad); }
+.wg-series-usable-band { fill: var(--wg-usable, #2179ad); opacity: 0.16; }
+.wg-isotherm { stroke: var(--wg-ink, #152529); }
+.wg-isotherm-freezing { stroke: var(--wg-freezing, #2b748f); }
+.wg-isotherm-label { fill: var(--wg-ink, #152529); }
+.wg-isotherm-label-freezing { fill: var(--wg-freezing, #2b748f); }
+.wg-dewpoint-isoline { stroke: var(--wg-dewpoint, #3a7d4f); }
+.wg-dewpoint-label { fill: var(--wg-dewpoint, #3a7d4f); }
+.wg-barb { stroke: var(--wg-wind, #ffffff); }
+.wg-barb-fill { fill: var(--wg-wind, #ffffff); stroke: var(--wg-wind, #ffffff); }
+.wg-barb-halo { stroke: var(--wg-halo-barb, #355963); }
+.wg-barb-fill-halo { fill: var(--wg-halo-barb, #355963); stroke: var(--wg-halo-barb, #355963); }
+.wg-marker-wing { fill: var(--wg-usable, #2179ad); stroke: var(--wg-usable, #2179ad); }
+.wg-marker-cloud { fill: var(--wg-cloud-marker, #f8f3d8); stroke: var(--wg-cloud-base, #355963); }
+.wg-marker-halo { fill: var(--wg-halo-marker, var(--wg-halo, #fffdf8)); stroke: var(--wg-halo-marker, var(--wg-halo, #fffdf8)); }
+.wg-key-label { fill: var(--wg-ink-mute, #40565a); font-size: var(--wg-text-tick, 10.5px); }
+.wg-key-title { fill: var(--wg-ink, #152529); font-size: var(--wg-text-key-title, 9px); font-weight: 700; letter-spacing: 0.08em; }
+.wg-key-boundary { fill: var(--wg-ink-mute, #40565a); font-size: var(--wg-text-key-boundary, 8px); }
+.wg-key-group { fill: var(--wg-key-group-ink, #ffffff); stroke: var(--wg-key-group-halo, #00000066); paint-order: stroke; font-size: var(--wg-text-key-group, 8px); font-weight: 700; }
+.wg-key-band { fill: var(--wg-ink-mute, #40565a); opacity: 0.16; }
+.wg-key-frame { fill: none; stroke: var(--wg-rule, #776956); }
+</style>
+<defs><pattern id="scenario-ensemble-wide-only-cloud-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" class="wg-cloud-hatch-line" stroke-width="1.2"/></pattern></defs>
+<rect x="60" y="20" width="264" height="25" class="wg-strip-frame" stroke-width="0.7"/>
+<line x1="60" y1="32.5" x2="324" y2="32.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
+<path d="M60,20 C63.67,20 71,19.17 82,20 C93,20.83 111.33,23.33 126,25 C140.67,26.67 155.33,28.33 170,30 C184.67,31.67 199.33,33.33 214,35 C228.67,36.67 243.33,38.33 258,40 C272.67,41.67 291,44.17 302,45 C313,45.83 320.33,45 324,45 L324,45 C320.33,45 313,45.83 302,45 C291,44.17 272.67,41.67 258,40 C243.33,38.33 228.67,36.67 214,35 C199.33,33.33 184.67,31.67 170,30 C155.33,28.33 140.67,26.67 126,25 C111.33,23.33 93,20.83 82,20 C71,19.17 63.67,20 60,20 Z" class="wg-strip-pressure-band"/>
+<path d="M60,20 C63.67,20 71,19.17 82,20 C93,20.83 111.33,23.33 126,25 C140.67,26.67 155.33,28.33 170,30 C184.67,31.67 199.33,33.33 214,35 C228.67,36.67 243.33,38.33 258,40 C272.67,41.67 291,44.17 302,45 C313,45.83 320.33,45 324,45 L324.00,45 L60.00,45 Z" class="wg-strip-pressure-area" opacity="0.3"/>
+<path d="M60,20 C63.67,20 71,19.17 82,20 C93,20.83 111.33,23.33 126,25 C140.67,26.67 155.33,28.33 170,30 C184.67,31.67 199.33,33.33 214,35 C228.67,36.67 243.33,38.33 258,40 C272.67,41.67 291,44.17 302,45 C313,45.83 320.33,45 324,45" class="wg-strip-pressure" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="31" text-anchor="end" class="wg-strip-name">Pressure</text>
+<text x="52" y="42" text-anchor="end" class="wg-strip-unit">kPa</text>
+<text x="332" y="28" class="wg-strip-scale wg-mono">90</text>
+<text x="332" y="45" class="wg-strip-scale wg-mono">89.9</text>
+<rect x="60" y="50" width="264" height="25" class="wg-strip-frame" stroke-width="0.7"/>
+<line x1="60" y1="62.5" x2="324" y2="62.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
+<path d="M60,75 C63.67,75 71,75 82,75 C93,75 111.33,75 126,75 C140.67,75 155.33,75 170,75 C184.67,75 199.33,75 214,75 C228.67,75 243.33,75 258,75 C272.67,75 291,75 302,75 C313,75 320.33,75 324,75 L324,75 C320.33,75 313,75 302,75 C291,75 272.67,75 258,75 C243.33,75 228.67,75 214,75 C199.33,75 184.67,75 170,75 C155.33,75 140.67,75 126,75 C111.33,75 93,75 82,75 C71,75 63.67,75 60,75 Z" class="wg-strip-precipitation-band"/>
+<path d="M60,75 C63.67,75 71,75 82,75 C93,75 111.33,75 126,75 C140.67,75 155.33,75 170,75 C184.67,75 199.33,75 214,75 C228.67,75 243.33,75 258,75 C272.67,75 291,75 302,75 C313,75 320.33,75 324,75 L324.00,75 L60.00,75 Z" class="wg-strip-precipitation-area" opacity="0.3"/>
+<path d="M60,75 C63.67,75 71,75 82,75 C93,75 111.33,75 126,75 C140.67,75 155.33,75 170,75 C184.67,75 199.33,75 214,75 C228.67,75 243.33,75 258,75 C272.67,75 291,75 302,75 C313,75 320.33,75 324,75" class="wg-strip-precipitation" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="61" text-anchor="end" class="wg-strip-name">Precip</text>
+<text x="52" y="72" text-anchor="end" class="wg-strip-unit">mm/h</text>
+<text x="332" y="58" class="wg-strip-scale wg-mono">0.5</text>
+<text x="332" y="75" class="wg-strip-scale wg-mono">0</text>
+<rect x="60" y="80" width="264" height="25" class="wg-strip-frame" stroke-width="0.7"/>
+<line x1="60" y1="92.5" x2="324" y2="92.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
+<path d="M60,101.25 C63.67,101.25 71,101.25 82,101.25 C93,101.25 111.33,101.25 126,101.25 C140.67,101.25 155.33,101.25 170,101.25 C184.67,101.25 199.33,101.25 214,101.25 C228.67,101.25 243.33,101.25 258,101.25 C272.67,101.25 291,101.25 302,101.25 C313,101.25 320.33,101.25 324,101.25 L324,101.25 C320.33,101.25 313,101.25 302,101.25 C291,101.25 272.67,101.25 258,101.25 C243.33,101.25 228.67,101.25 214,101.25 C199.33,101.25 184.67,101.25 170,101.25 C155.33,101.25 140.67,101.25 126,101.25 C111.33,101.25 93,101.25 82,101.25 C71,101.25 63.67,101.25 60,101.25 Z" class="wg-strip-cloudCover-band"/>
+<path d="M60,101.25 C63.67,101.25 71,101.25 82,101.25 C93,101.25 111.33,101.25 126,101.25 C140.67,101.25 155.33,101.25 170,101.25 C184.67,101.25 199.33,101.25 214,101.25 C228.67,101.25 243.33,101.25 258,101.25 C272.67,101.25 291,101.25 302,101.25 C313,101.25 320.33,101.25 324,101.25 L324.00,105 L60.00,105 Z" class="wg-strip-cloudCover-area" opacity="0.3"/>
+<path d="M60,101.25 C63.67,101.25 71,101.25 82,101.25 C93,101.25 111.33,101.25 126,101.25 C140.67,101.25 155.33,101.25 170,101.25 C184.67,101.25 199.33,101.25 214,101.25 C228.67,101.25 243.33,101.25 258,101.25 C272.67,101.25 291,101.25 302,101.25 C313,101.25 320.33,101.25 324,101.25" class="wg-strip-cloudCover" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="91" text-anchor="end" class="wg-strip-name">Cloud</text>
+<text x="52" y="102" text-anchor="end" class="wg-strip-unit">%</text>
+<text x="332" y="88" class="wg-strip-scale wg-mono">100</text>
+<text x="332" y="105" class="wg-strip-scale wg-mono">0</text>
+<rect x="60" y="110" width="264" height="25" class="wg-strip-frame" stroke-width="0.7"/>
+<line x1="60" y1="122.5" x2="324" y2="122.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
+<path d="M60,123 C63.67,123 71,123.17 82,123 C93,122.83 111.33,122.15 126,122 C140.67,121.85 155.33,122.01 170,122.08 C184.67,122.15 199.33,122.17 214,122.42 C228.67,122.67 243.33,123.38 258,123.58 C272.67,123.79 291,123.65 302,123.67 C313,123.68 320.33,123.67 324,123.67 L324,127.75 C320.33,127.75 313,127.96 302,127.75 C291,127.54 272.67,126.72 258,126.5 C243.33,126.28 228.67,126.51 214,126.42 C199.33,126.32 184.67,125.89 170,125.92 C155.33,125.94 140.67,126.32 126,126.58 C111.33,126.85 93,127.35 82,127.5 C71,127.65 63.67,127.5 60,127.5 Z" class="wg-strip-thermalStrength-band"/>
+<path d="M60,126.42 C63.67,126.42 71,126.47 82,126.42 C93,126.36 111.33,126.25 126,126.08 C140.67,125.92 155.33,125.42 170,125.42 C184.67,125.42 199.33,125.94 214,126.08 C228.67,126.22 243.33,126.18 258,126.25 C272.67,126.32 291,126.46 302,126.5 C313,126.54 320.33,126.5 324,126.5 L324.00,135 L60.00,135 Z" class="wg-strip-thermalStrength-area" opacity="0.3"/>
+<path d="M60,126.42 C63.67,126.42 71,126.47 82,126.42 C93,126.36 111.33,126.25 126,126.08 C140.67,125.92 155.33,125.42 170,125.42 C184.67,125.42 199.33,125.94 214,126.08 C228.67,126.22 243.33,126.18 258,126.25 C272.67,126.32 291,126.46 302,126.5 C313,126.54 320.33,126.5 324,126.5" class="wg-strip-thermalStrength" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="121" text-anchor="end" class="wg-strip-name">w*</text>
+<text x="52" y="132" text-anchor="end" class="wg-strip-unit">m/s</text>
+<text x="332" y="118" class="wg-strip-scale wg-mono">3</text>
+<text x="332" y="135" class="wg-strip-scale wg-mono">0</text>
+<rect x="60" y="148" width="264" height="340" class="wg-frame"/>
+<path d="M60 148L324 148L324 488L60 488L60 148ZM60 148L324 148L324 488L110.41 488L82 486.47L60 486.47L60 148Z" class="wg-stab-very-unstable" fill-rule="evenodd"/>
+<path d="M60 148L324 148L324 488L110.41 488L82 486.47L60 486.47L60 148ZM235.92 407.12L302 406.39L324 406.39L324 471.08L302 471.08L261.67 470.59L226.83 470.38L166.33 470.28L100.33 470.44L60 470.5L60 408.82L82 408.82L120.5 408.4L188.33 407.65L235.92 407.12Z" class="wg-stab-unstable" fill-rule="evenodd"/>
+<path d="M235.92 407.12L302 406.39L324 406.39L324 471.08L302 471.08L261.67 470.59L226.83 470.38L166.33 470.28L100.33 470.44L60 470.5L60 408.82L82 408.82L120.5 408.4L188.33 407.65L235.92 407.12Z" class="wg-stab-conditional-strong" fill-rule="evenodd"/>
+<path d="M60 148L324 148L324 488L60 488L60 148ZM60 148L324 148L324 488L60 488L60 148Z" class="wg-cloud-dense" fill-rule="evenodd" fill="url(#scenario-ensemble-wide-only-cloud-hatch)"/>
+<path d="M60 148L324 148L324 488L60 488L60 148ZM60 148L324 148L324 488L60 488L60 148Z" class="wg-cloud-medium" fill-rule="evenodd"/>
+<path d="M60 148L324 148L324 488L60 488L60 148ZM60 148L324 148L324 488L60 488L60 148Z" class="wg-cloud-light" fill-rule="evenodd"/>
+<rect x="148" y="20" width="44" height="468" class="wg-selected-column"/>
+<line x1="170" x2="170" y1="20" y2="488" class="wg-selected-line" stroke-width="1" stroke-dasharray="3 4"/>
+<line x1="60" y1="488" x2="324" y2="488" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="491" text-anchor="end" class="wg-tick">900m</text>
+<text x="332" y="491" class="wg-tick">2953ft</text>
+<line x1="60" y1="420" x2="324" y2="420" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="423" text-anchor="end" class="wg-tick">1599m</text>
+<text x="332" y="423" class="wg-tick">5245ft</text>
+<line x1="60" y1="352" x2="324" y2="352" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="355" text-anchor="end" class="wg-tick">2298m</text>
+<text x="332" y="355" class="wg-tick">7538ft</text>
+<line x1="60" y1="284" x2="324" y2="284" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="287" text-anchor="end" class="wg-tick">2996m</text>
+<text x="332" y="287" class="wg-tick">9831ft</text>
+<line x1="60" y1="216" x2="324" y2="216" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="219" text-anchor="end" class="wg-tick">3695m</text>
+<text x="332" y="219" class="wg-tick">12123ft</text>
+<line x1="60" y1="148" x2="324" y2="148" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="151" text-anchor="end" class="wg-tick">4394m</text>
+<text x="332" y="151" class="wg-tick">14416ft</text>
+<line x1="82" x2="82" y1="148" y2="488" class="wg-hourline" stroke-width="0.6" opacity="0.15"/>
+<text x="82" y="506" text-anchor="middle" class="wg-hour-tick wg-mono">12</text>
+<text x="126" y="506" text-anchor="middle" class="wg-hour-tick wg-mono">13</text>
+<line x1="170" x2="170" y1="148" y2="488" class="wg-hourline" stroke-width="0.6" opacity="0.15"/>
+<text x="170" y="506" text-anchor="middle" class="wg-hour-tick wg-mono">14</text>
+<text x="214" y="506" text-anchor="middle" class="wg-hour-tick wg-mono">15</text>
+<line x1="258" x2="258" y1="148" y2="488" class="wg-hourline" stroke-width="0.6" opacity="0.15"/>
+<text x="258" y="506" text-anchor="middle" class="wg-hour-tick wg-mono">16</text>
+<text x="302" y="506" text-anchor="middle" class="wg-hour-tick wg-mono">17</text>
+<text x="82" y="520" text-anchor="middle" class="wg-surface-temp wg-mono">20°</text>
+<text x="126" y="520" text-anchor="middle" class="wg-surface-temp wg-mono">20°</text>
+<text x="170" y="520" text-anchor="middle" class="wg-surface-temp wg-mono">20°</text>
+<text x="214" y="520" text-anchor="middle" class="wg-surface-temp wg-mono">20°</text>
+<text x="258" y="520" text-anchor="middle" class="wg-surface-temp wg-mono">20°</text>
+<text x="302" y="520" text-anchor="middle" class="wg-surface-temp wg-mono">20°</text>
+<line x1="60" x2="324" y1="473.4" y2="473.4" class="wg-launch-line" stroke-width="1" stroke-dasharray="2 4" opacity="0.68"/>
+<text x="67" y="467.4" class="wg-launch-label wg-haloed-text" stroke-width="2.5">launch 1050 m</text>
+<path d="M82,431.37 C89.33,431.55 111.33,432.09 126,432.45 C140.67,432.81 155.33,433.17 170,433.53 C184.67,433.88 199.33,434.24 214,434.6 C228.67,434.95 243.33,435.32 258,435.68 C272.67,436.04 294.67,436.58 302,436.76 L302,466.11 C294.67,466.19 272.67,466.43 258,466.59 C243.33,466.75 228.67,466.92 214,467.08 C199.33,467.24 184.67,467.4 170,467.56 C155.33,467.73 140.67,467.89 126,468.05 C111.33,468.21 89.33,468.46 82,468.54 Z" class="wg-series-boundary-band"/>
+<path d="M82,381.34 C89.33,381.51 111.33,381.32 126,382.36 C140.67,383.4 155.33,386.96 170,387.56 C184.67,388.16 199.33,387.05 214,385.94 C228.67,384.83 243.33,382.59 258,380.9 C272.67,379.21 294.67,376.64 302,375.78 L302,404.63 C294.67,404.29 272.67,402.6 258,402.56 C243.33,402.53 228.67,403.92 214,404.43 C199.33,404.93 184.67,406.31 170,405.61 C155.33,404.92 140.67,402.24 126,400.26 C111.33,398.27 89.33,394.8 82,393.71 Z" class="wg-series-cloud-base-band"/>
+<path d="M82,435.35 C89.33,435.38 111.33,435.43 126,435.54 C140.67,435.64 155.33,435.64 170,435.95 C184.67,436.26 199.33,436.81 214,437.39 C228.67,437.98 243.33,438.8 258,439.44 C272.67,440.08 294.67,440.93 302,441.23 L302,471.43 C294.67,471.17 272.67,470.23 258,469.89 C243.33,469.55 228.67,469.43 214,469.39 C199.33,469.35 184.67,469.41 170,469.65 C155.33,469.88 140.67,470.31 126,470.81 C111.33,471.31 89.33,472.34 82,472.64 Z" class="wg-series-usable-band"/>
+<path d="M82,468.54 C89.33,468.46 111.33,468.21 126,468.05 C140.67,467.89 155.33,467.73 170,467.56 C184.67,467.4 199.33,467.24 214,467.08 C228.67,466.92 243.33,466.75 258,466.59 C272.67,466.43 294.67,466.19 302,466.11" class="wg-halo" fill="none" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="10 5"/>
+<path d="M82,468.54 C89.33,468.46 111.33,468.21 126,468.05 C140.67,467.89 155.33,467.73 170,467.56 C184.67,467.4 199.33,467.24 214,467.08 C228.67,466.92 243.33,466.75 258,466.59 C272.67,466.43 294.67,466.19 302,466.11" class="wg-series-boundary" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="10 5"/>
+<path d="M82,391.36 C89.33,391.29 111.33,390.12 126,390.94 C140.67,391.75 155.33,395.02 170,396.27 C184.67,397.51 199.33,398.36 214,398.42 C228.67,398.48 243.33,397.72 258,396.64 C272.67,395.55 294.67,392.7 302,391.92" class="wg-halo" fill="none" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 5"/>
+<path d="M82,391.36 C89.33,391.29 111.33,390.12 126,390.94 C140.67,391.75 155.33,395.02 170,396.27 C184.67,397.51 199.33,398.36 214,398.42 C228.67,398.48 243.33,397.72 258,396.64 C272.67,395.55 294.67,392.7 302,391.92" class="wg-series-cloud-base" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 5"/>
+<path d="M82,470.8 C89.33,470.63 111.33,470.1 126,469.8 C140.67,469.51 155.33,469.19 170,469.03 C184.67,468.88 199.33,468.9 214,468.87 C228.67,468.84 243.33,468.87 258,468.84 C272.67,468.82 294.67,468.76 302,468.74" class="wg-halo" fill="none" stroke-width="4.1" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M82,470.8 C89.33,470.63 111.33,470.1 126,469.8 C140.67,469.51 155.33,469.19 170,469.03 C184.67,468.88 199.33,468.9 214,468.87 C228.67,468.84 243.33,468.87 258,468.84 C272.67,468.82 294.67,468.76 302,468.74" class="wg-series-usable" fill="none" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M82,260.3 C89.33,260.21 111.33,259.97 126,259.81 C140.67,259.65 155.33,259.48 170,259.32 C184.67,259.16 199.33,259 214,258.84 C228.67,258.67 243.33,258.51 258,258.35 C272.67,258.19 294.67,257.94 302,257.86" class="wg-halo" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 3 1 3"/>
+<path d="M82,260.3 C89.33,260.21 111.33,259.97 126,259.81 C140.67,259.65 155.33,259.48 170,259.32 C184.67,259.16 199.33,259 214,258.84 C228.67,258.67 243.33,258.51 258,258.35 C272.67,258.19 294.67,257.94 302,257.86" class="wg-isotherm wg-isotherm-freezing" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 3 1 3"/>
+<path d="M82,371.23 C89.33,371.15 111.33,370.9 126,370.74 C140.67,370.58 155.33,370.42 170,370.26 C184.67,370.09 199.33,369.93 214,369.77 C228.67,369.61 243.33,369.44 258,369.28 C272.67,369.12 294.67,368.88 302,368.8" class="wg-halo" fill="none" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M82,371.23 C89.33,371.15 111.33,370.9 126,370.74 C140.67,370.58 155.33,370.42 170,370.26 C184.67,370.09 199.33,369.93 214,369.77 C228.67,369.61 243.33,369.44 258,369.28 C272.67,369.12 294.67,368.88 302,368.8" class="wg-isotherm" fill="none" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M82,488 C89.33,488 111.33,488 126,488 C140.67,488 155.33,488 170,488 C184.67,488 199.33,488 214,488 C228.67,488 243.33,488 258,488 C272.67,488 294.67,488 302,488" class="wg-halo" fill="none" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M82,488 C89.33,488 111.33,488 126,488 C140.67,488 155.33,488 170,488 C184.67,488 199.33,488 214,488 C228.67,488 243.33,488 258,488 C272.67,488 294.67,488 302,488" class="wg-isotherm" fill="none" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<g transform="translate(170 469.03)"><path d="M-8 2Q0-6.5 8 2Q0-1.5-8 2Z" class="wg-marker-halo" stroke-width="2.4"/><path d="M-8 2Q0-6.5 8 2Q0-1.5-8 2Z" class="wg-marker-wing" stroke-width="0.6"/></g>
+<g transform="translate(170 396.27)"><path d="M-7 2.5h14a3.2 3.2 0 0 0-.6-6.3A5 5 0 0 0-3-5a4 4 0 0 0-4 4 3 3 0 0 0 0 3.5Z" class="wg-marker-halo" stroke-width="2.4"/><path d="M-7 2.5h14a3.2 3.2 0 0 0-.6-6.3A5 5 0 0 0-3-5a4 4 0 0 0-4 4 3 3 0 0 0 0 3.5Z" class="wg-marker-cloud" stroke-width="0.6"/></g>
+<g transform="translate(82 477.38) rotate(355) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(82 419.88) rotate(358) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(82 371.23) rotate(340) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(82 283.65) rotate(15) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L4.5 -3.2" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L4.5 -3.2" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(82 166.88) rotate(79) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2 M0 -0.8 L4.5 1.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2 M0 -0.8 L4.5 1.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(126 477.38) rotate(358) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(126 419.4) rotate(351) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(126 370.74) rotate(318) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(126 283.16) rotate(37) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(126 166.39) rotate(24) scale(0.85)"><path d="M0 5 L0 -20" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 -20 L9.5 -15 L0 -15 Z" class="wg-barb-fill-halo" stroke-width="1"/><path d="M0 5 L0 -20" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/><path d="M0 -20 L9.5 -15 L0 -15 Z" class="wg-barb-fill" stroke-width="1"/></g>
+<g transform="translate(170 477.38) rotate(2) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(170 418.91) rotate(34) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(170 370.26) rotate(342) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(170 282.68) rotate(357) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(170 165.9) rotate(19) scale(0.85)"><path d="M0 5 L0 -20" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 -20 L9.5 -15 L0 -15 Z" class="wg-barb-fill-halo" stroke-width="1"/><path d="M0 5 L0 -20" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/><path d="M0 -20 L9.5 -15 L0 -15 Z" class="wg-barb-fill" stroke-width="1"/></g>
+<g transform="translate(214 477.38) rotate(5) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(214 418.42) rotate(352) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(214 369.77) rotate(311) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L4.5 -3.2" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L4.5 -3.2" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(214 282.19) rotate(1) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(214 165.42) rotate(62) scale(0.85)"><path d="M0 5 L0 -20" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 -20 L9.5 -15 L0 -15 Z" class="wg-barb-fill-halo" stroke-width="1"/><path d="M0 5 L0 -20" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/><path d="M0 -20 L9.5 -15 L0 -15 Z" class="wg-barb-fill" stroke-width="1"/></g>
+<g transform="translate(258 477.38) rotate(8) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(258 417.94) rotate(346) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(258 369.28) rotate(21) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L4.5 -3.2" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L4.5 -3.2" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(258 281.7) rotate(12) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2 M0 -0.8 L4.5 1.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2 M0 -0.8 L4.5 1.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(258 164.93) rotate(38) scale(0.85)"><path d="M0 5 L0 -20 M0 -11.5 L4.5 -9.1" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 -20 L9.5 -15 L0 -15 Z" class="wg-barb-fill-halo" stroke-width="1"/><path d="M0 5 L0 -20 M0 -11.5 L4.5 -9.1" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/><path d="M0 -20 L9.5 -15 L0 -15 Z" class="wg-barb-fill" stroke-width="1"/></g>
+<g transform="translate(302 477.38) rotate(12) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(302 417.45) rotate(15) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(302 368.8) rotate(341) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(302 281.22) rotate(82) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2 M0 -0.8 L4.5 1.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2 M0 -0.8 L4.5 1.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(302 164.45) rotate(21) scale(0.85)"><path d="M0 5 L0 -20 M0 -11.5 L4.5 -9.1" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 -20 L9.5 -15 L0 -15 Z" class="wg-barb-fill-halo" stroke-width="1"/><path d="M0 5 L0 -20 M0 -11.5 L4.5 -9.1" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/><path d="M0 -20 L9.5 -15 L0 -15 Z" class="wg-barb-fill" stroke-width="1"/></g>
+<text x="82" y="455.38" text-anchor="middle" class="wg-gust wg-haloed-text wg-mono" stroke-width="2.2">G32</text>
+<text x="126" y="455.38" text-anchor="middle" class="wg-gust wg-haloed-text wg-mono" stroke-width="2.2">G36</text>
+<text x="170" y="455.38" text-anchor="middle" class="wg-gust wg-haloed-text wg-mono" stroke-width="2.2">G40</text>
+<text x="214" y="455.38" text-anchor="middle" class="wg-gust wg-haloed-text wg-mono" stroke-width="2.2">G43</text>
+<text x="258" y="455.38" text-anchor="middle" class="wg-gust wg-haloed-text wg-mono" stroke-width="2.2">G47</text>
+<text x="302" y="455.38" text-anchor="middle" class="wg-gust wg-haloed-text wg-mono" stroke-width="2.2">G50</text>
+<text x="298" y="252.86" text-anchor="end" class="wg-isotherm-label wg-isotherm-label-freezing wg-series-label wg-haloed-text" stroke-width="2.5">0°</text>
+<text x="298" y="363.8" text-anchor="end" class="wg-isotherm-label wg-series-label wg-haloed-text" stroke-width="2.5">10°</text>
+<text x="298" y="483" text-anchor="end" class="wg-isotherm-label wg-series-label wg-haloed-text" stroke-width="2.5">20°</text>
+</svg>

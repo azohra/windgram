@@ -1,28 +1,29 @@
 ---
-// The one-home-per-quantity split as one picture: the pipeline card owns the
-// four derived-core quantities, the published document in the middle is the
-// only interface, the package card owns the pure functions. Every list item
-// traces to why-this-project-exists.md, windgram/windgram.py, or the package
-// exports — the figure shows the split; the prose argues it.
+import Figure from "../figure/Figure.astro";
+
+// The authority boundary as one picture: the pipeline card owns the stored
+// derived core, the document is the interface, and the package owns pure
+// functions and typed statements over published state.
 ---
 
-<figure class="quantity-homes" aria-labelledby="quantity-homes-title quantity-homes-caption">
-  <header>
-    <h3 id="quantity-homes-title">Where each quantity lives</h3>
-    <span>Two homes, one interface: the published document.</span>
-  </header>
-
-  <div class="graphic-scroll" tabindex="0" aria-label="Scrollable diagram of the pipeline, the published document, and the package">
+<Figure
+  id="quantity-homes"
+  title="Authority across the document boundary"
+  lesson="The pipeline publishes authoritative values; the package derives views and projections from the document."
+  description="The pipeline derives stored quantities that need provider inputs or cross-run authority. The npm package derives pure functions, typed statements, and a parameterized usable-lift projection from the published document."
+  caption="Authority declared by windgram/windgram.py and the windgram package exports."
+  units="Conceptual ownership map; no numeric scale"
+>
+  <div class="graphic-scroll" role="region" tabindex="0" aria-label="Scrollable diagram of the pipeline, the published document, and the package">
     <svg viewBox="0 0 960 486" role="img" aria-labelledby="quantity-homes-svg-title quantity-homes-svg-desc">
-      <title id="quantity-homes-svg-title">One home per quantity</title>
+      <title id="quantity-homes-svg-title">Authority across the document boundary</title>
       <desc id="quantity-homes-svg-desc">
         The pipeline (windgram/windgram.py) derives boundary-layer top, thermal velocity, cloud
-        base, and usable-lift top, and writes the published schema-version-1 document once per run.
+        base, and the default usable-lift top, and writes the published schema-version-1 document once per run.
         The windgram npm package reads only that document and owns humidity conversions, lapse and
-        stability, thermal index and shear, day windowing with the timezone as a parameter, the
-        1-2-1 smoothing option, and the scene-to-SVG renderer. The rule: anything needing inputs
-        beyond the published JSON or cross-run authority lives in the pipeline; any pure function of
-        the document lives in the package; no quantity lives in both.
+        stability, thermal index and shear, day windowing with the timezone as a parameter, typed
+        single-profile analysis, a sink-rate projection from the published inputs, the 1-2-1 smoothing
+        option, and the scene-to-SVG renderer.
       </desc>
 
       <!-- ================= left: the pipeline ================= -->
@@ -47,11 +48,11 @@
 
       <path d="M48 266 l5 -5 5 5 -5 5 Z" class="qh-bullet-pipe"/>
       <text x="64" y="270" class="qh-item qh-mono">usableLiftTopM</text>
-      <text x="64" y="285" class="qh-item-note">strongest-core sink crossing · cloud cap</text>
+      <text x="64" y="285" class="qh-item-note">published 1.0 m/s sink crossing · cloud cap</text>
 
       <line x1="48" y1="308" x2="288" y2="308" class="qh-foot-rule"/>
-      <text x="48" y="328" class="qh-foot">Reads what the document never carries:</text>
-      <text x="48" y="342" class="qh-foot">GRIB columns · model terrain · cross-run history.</text>
+      <text x="48" y="328" class="qh-foot">Uses provider context beyond the hour blocks:</text>
+      <text x="48" y="342" class="qh-foot">GRIB fields · cross-run history; terrain is echoed in site.</text>
 
       <!-- ================= centre: the document ================= -->
       <path d="M380 74 h176 l24 24 v236 h-200 Z" class="qh-doc"/>
@@ -82,26 +83,26 @@
       <rect x="656" y="24" width="272" height="332" class="qh-card"/>
       <rect x="656" y="24" width="272" height="52" class="qh-card-head"/>
       <text x="672" y="47" class="qh-home">THE PACKAGE</text>
-      <text x="672" y="64" class="qh-home-sub qh-mono">npm windgram · four subpath exports</text>
+      <text x="672" y="64" class="qh-home-sub qh-mono">npm windgram · six subpath exports</text>
 
-      <text x="672" y="102" class="qh-list-head qh-mono">PURE FUNCTIONS OF THE DOCUMENT</text>
+      <text x="672" y="102" class="qh-list-head qh-mono">PURE FUNCTIONS + TYPED STATEMENTS</text>
 
       <circle cx="677" cy="120" r="4" class="qh-bullet-pkg"/>
       <text x="690" y="124" class="qh-item" font-size="12">humidity conversions</text>
-      <circle cx="677" cy="150" r="4" class="qh-bullet-pkg"/>
-      <text x="690" y="154" class="qh-item" font-size="12">lapse rate &amp; stability classes</text>
-      <circle cx="677" cy="180" r="4" class="qh-bullet-pkg"/>
-      <text x="690" y="184" class="qh-item" font-size="12">thermal index · shear · B/S</text>
-      <circle cx="677" cy="210" r="4" class="qh-bullet-pkg"/>
-      <text x="690" y="214" class="qh-item" font-size="12">day windowing <tspan class="qh-item-note">— timezone a parameter</tspan></text>
-      <circle cx="677" cy="240" r="4" class="qh-bullet-pkg"/>
-      <text x="690" y="244" class="qh-item" font-size="12">smooth121 <tspan class="qh-item-note">— a renderer option</tspan></text>
-      <circle cx="677" cy="270" r="4" class="qh-bullet-pkg"/>
-      <text x="690" y="274" class="qh-item" font-size="12">scene graph → SVG renderer</text>
+      <circle cx="677" cy="148" r="4" class="qh-bullet-pkg"/>
+      <text x="690" y="152" class="qh-item" font-size="12">lapse · shear · sink-rate projection</text>
+      <circle cx="677" cy="176" r="4" class="qh-bullet-pkg"/>
+      <text x="690" y="180" class="qh-item" font-size="12">analyze <tspan class="qh-item-note">— cited findings over one profile</tspan></text>
+      <circle cx="677" cy="204" r="4" class="qh-bullet-pkg"/>
+      <text x="690" y="208" class="qh-item" font-size="12">day windowing <tspan class="qh-item-note">— timezone a parameter</tspan></text>
+      <circle cx="677" cy="232" r="4" class="qh-bullet-pkg"/>
+      <text x="690" y="236" class="qh-item" font-size="12">smooth121 <tspan class="qh-item-note">— a renderer option</tspan></text>
+      <circle cx="677" cy="260" r="4" class="qh-bullet-pkg"/>
+      <text x="690" y="264" class="qh-item" font-size="12">scene graph → SVG renderer</text>
 
       <line x1="672" y1="300" x2="912" y2="300" class="qh-foot-rule"/>
-      <text x="672" y="320" class="qh-foot">Consumers run it anywhere the JSON reaches:</text>
-      <text x="672" y="334" class="qh-foot">this site · acrophobia.ca · any future frontend.</text>
+      <text x="672" y="320" class="qh-foot">Consumers run it wherever the JSON reaches,</text>
+      <text x="672" y="334" class="qh-foot">with thresholds, tokens, and windows kept downstream.</text>
 
       <!-- ================= flows ================= -->
       <path d="M304 196 H372" class="qh-flow" marker-end="url(#qh-head)"/>
@@ -125,30 +126,9 @@
     </svg>
   </div>
 
-  <figcaption id="quantity-homes-caption">
-    Homes as declared in <code>windgram/windgram.py</code> and <code>packages/windgram</code>.
-  </figcaption>
-</figure>
+</Figure>
 
 <style>
-  .quantity-homes {
-    display: block;
-    width: min(980px, calc(100vw - 32px));
-    margin: 28px 50% 44px;
-    transform: translateX(-50%);
-    color: var(--ink);
-    border-top: 3px solid var(--accent);
-    border-bottom: 1px solid var(--rule-strong);
-  }
-  header {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 6px 24px;
-    align-items: end;
-    padding: 18px 0 16px;
-  }
-  .quantity-homes h3 { margin: 0; font: 700 29px/1 var(--display); text-transform: uppercase; }
-  header > span { font: 13px/1.4 var(--mono); color: var(--ink-mute); }
   .graphic-scroll {
     overflow-x: auto;
     background: var(--surface);
@@ -185,11 +165,4 @@
   .qh-rule-word { fill: var(--accent-strong); font-family: var(--display); font-size: 19px; font-weight: 800; letter-spacing: .04em; }
   .qh-rule-text { fill: var(--ink); font-size: 13px; }
   .qh-em { font-weight: 700; }
-  figcaption { padding: 12px 0 14px; font: 12px/1.5 var(--mono); color: var(--ink-mute); }
-  @media (max-width: 720px) {
-    header { grid-template-columns: 1fr; }
-    .quantity-homes h3 { font-size: 25px; }
-    header > span { font-size: 12px; }
-    .graphic-scroll { margin-inline: -8px; }
-  }
 </style>

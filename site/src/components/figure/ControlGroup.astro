@@ -1,0 +1,59 @@
+---
+interface Props {
+  label: string;
+  resetLabel?: string;
+  showReset?: boolean;
+}
+
+const {
+  label,
+  resetLabel = "Reset",
+  showReset = true,
+} = Astro.props;
+---
+
+<div class="wg-control-group" role="group" aria-label={label}>
+  <div class="wg-control-group__fields">
+    <slot />
+  </div>
+  {showReset && (
+    <button class="wg-control-group__reset" type="button" data-figure-reset>
+      {resetLabel}
+    </button>
+  )}
+</div>
+
+<script>
+  function resetFigure(control: HTMLButtonElement) {
+    const figure = control.closest<HTMLElement>("[data-figure]");
+    if (!figure) return;
+
+    for (const form of figure.querySelectorAll<HTMLFormElement>("form")) form.reset();
+    for (const field of figure.querySelectorAll<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>(
+      "input, select, textarea",
+    )) {
+      if (field.form) continue;
+      if (field instanceof HTMLInputElement) {
+        if (field.type === "checkbox" || field.type === "radio") {
+          field.checked = field.defaultChecked;
+        } else {
+          field.value = field.defaultValue;
+        }
+      } else if (field instanceof HTMLTextAreaElement) {
+        field.value = field.defaultValue;
+      } else if (field.multiple) {
+        for (const option of field.options) option.selected = option.defaultSelected;
+      } else {
+        const defaultIndex = [...field.options].findIndex((option) => option.defaultSelected);
+        field.selectedIndex = defaultIndex >= 0 ? defaultIndex : 0;
+      }
+    }
+    figure.dispatchEvent(new CustomEvent("figure:reset", { bubbles: true }));
+  }
+
+  for (const control of document.querySelectorAll<HTMLButtonElement>("[data-figure-reset]")) {
+    if (control.dataset.figureResetReady === "true") continue;
+    control.dataset.figureResetReady = "true";
+    control.addEventListener("click", () => resetFigure(control));
+  }
+</script>

@@ -54,10 +54,9 @@
      the --wg-stab-* tokens. */
 
   /* windgram package tokens — the windgram/svg renderer styles everything
-     by --wg-* custom properties; mapping them onto this theme keeps the
-     chart palette single-sourced here. Overlay hues the theme takes no
-     position on yet (TI, shear, RH, omega) fall back to the package
-     defaults. */
+     by --wg-* custom properties. The site maps shared chrome colours and
+     inherits every other package default, including white wind barbs with
+     their slate outline. */
   --wg-surface: var(--surface);
   --wg-strip-bg: #f2f4f1;
   --wg-halo: var(--surface);
@@ -73,7 +72,6 @@
   --wg-usable: var(--chart-usable);
   --wg-boundary: var(--chart-boundary);
   --wg-cloud-base: var(--chart-wind);
-  --wg-wind: var(--chart-wind);
   --wg-freezing: var(--chart-freezing);
   /* No --wg-stab-* overrides: this site inherits the package's default
      stability ramp rather than re-stating it. */
@@ -309,8 +307,11 @@ a:hover {
   margin: 0;
 }
 .prose table {
+  display: block;
   width: 100%;
+  max-width: 100%;
   margin: 22px 0 30px;
+  overflow-x: auto;
   border-collapse: collapse;
   font-size: 15px;
 }
@@ -345,6 +346,15 @@ a:hover {
   transform: translateX(-50%);
 }
 @media (max-width: 560px) {
+  .site-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .site-nav {
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
+  }
   .shell {
     padding-inline: 18px;
   }

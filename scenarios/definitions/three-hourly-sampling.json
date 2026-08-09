@@ -1,0 +1,147 @@
+{
+  "$schema": "../scenario.schema.json",
+  "schemaVersion": 1,
+  "id": "three-hourly-sampling",
+  "title": "A genuinely three-hourly profile",
+  "lesson": "Sparse forecast samples retain their three-hour cadence and do not imply invented intermediate model hours.",
+  "kind": "deterministic",
+  "modelShape": "three-hourly-regional",
+  "timeZone": "Etc/UTC",
+  "site": {
+    "id": "synthetic-sparse-ridge",
+    "name": "Synthetic Sparse Ridge",
+    "synthetic": true,
+    "latitude": 49,
+    "longitude": -123,
+    "altitudeM": 1050,
+    "modelElevationM": 900
+  },
+  "clock": {
+    "referenceTime": "2000-01-01T00:00:00Z",
+    "generatedAt": "2000-01-01T00:00:00Z",
+    "startAt": "2000-01-01T06:00:00Z",
+    "stepHours": 3,
+    "hourCount": 6,
+    "seed": 14010
+  },
+  "baseline": {
+    "type": "synthetic",
+    "path": "baselines/synthetic-five-level-day.source.json"
+  },
+  "transforms": [
+    {
+      "type": "surface-field-curve",
+      "field": "temperatureC",
+      "points": [
+        {
+          "hourOffset": 0,
+          "value": 12
+        },
+        {
+          "hourOffset": 1,
+          "value": 17
+        },
+        {
+          "hourOffset": 2,
+          "value": 23
+        },
+        {
+          "hourOffset": 3,
+          "value": 25
+        },
+        {
+          "hourOffset": 4,
+          "value": 19
+        },
+        {
+          "hourOffset": 5,
+          "value": 13
+        }
+      ]
+    },
+    {
+      "type": "surface-field-curve",
+      "field": "sensibleHeatFluxWm2",
+      "points": [
+        {
+          "hourOffset": 0,
+          "value": 10
+        },
+        {
+          "hourOffset": 2,
+          "value": 260
+        },
+        {
+          "hourOffset": 3,
+          "value": 320
+        },
+        {
+          "hourOffset": 5,
+          "value": -20
+        }
+      ]
+    }
+  ],
+  "semantics": {
+    "precipitation": "windowMeanRate"
+  },
+  "capabilities": {
+    "levels": true,
+    "pressureLevels": [
+      925,
+      850,
+      800,
+      700,
+      600
+    ],
+    "verticalVelocity": false,
+    "heatFluxes": true,
+    "gust": false,
+    "cape": false,
+    "cin": false,
+    "pblHeight": false,
+    "cloudLayers": false,
+    "cloudProfile": false
+  },
+  "assertions": [
+    {
+      "id": "first-sparse-step-warms",
+      "description": "The second published sample is warmer than the first sparse sample.",
+      "actual": {
+        "field": "surface.temperatureC",
+        "hour": 1
+      },
+      "operator": "greater-than",
+      "expected": {
+        "field": "surface.temperatureC",
+        "hour": 0
+      }
+    },
+    {
+      "id": "second-sparse-step-warms",
+      "description": "The third published sample is warmer than the second sparse sample.",
+      "actual": {
+        "field": "surface.temperatureC",
+        "hour": 2
+      },
+      "operator": "greater-than",
+      "expected": {
+        "field": "surface.temperatureC",
+        "hour": 1
+      }
+    },
+    {
+      "id": "late-sparse-step-cools",
+      "description": "The final published sample is cooler than the preceding sparse sample.",
+      "actual": {
+        "field": "surface.temperatureC",
+        "hour": 5
+      },
+      "operator": "less-than",
+      "expected": {
+        "field": "surface.temperatureC",
+        "hour": 4
+      }
+    }
+  ]
+}

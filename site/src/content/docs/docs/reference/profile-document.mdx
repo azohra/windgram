@@ -1,0 +1,86 @@
+---
+title: Profile document
+description: Map the portable boundary between provider-aware generation and headless rendering.
+---
+
+A profile is the portable boundary between generation and rendering. It
+identifies its contract version, model, publication, site, optional provider
+semantics, and every chronological forecast hour. Day windows and local time
+remain consumer choices, with the site's timezone echoed for new documents.
+
+```text
+profile
+├── schemaVersion + model
+├── run { referenceTime, generatedAt, members? }
+├── site { identity, coordinates, launch altitude, model elevation, timeZone? }
+├── semantics? { gust?, precipitation? }
+└── hours[]
+    ├── validAt
+    ├── surface
+    ├── levels[]
+    └── derived
+```
+
+## Hour blocks
+
+| Block | Representative values | Contract rule |
+| --- | --- | --- |
+| `surface` | pressure, temperature, moisture, winds, heat fluxes, precipitation, and declared optional science fields | Optional capability fields are absent, never filled with zero |
+| `levels` | height, temperature, dew point, wind, and optional omega/cloud fraction | Entries are ascending by height; pressure is the isobaric coordinate |
+| `derived` | boundary-layer top, thermal velocity, cloud base, usable-lift top | Computed by the pipeline from the full required inputs |
+
+## Run, site, and semantics
+
+`run.referenceTime` is model initialization; `run.generatedAt` identifies the
+publication. Ensemble documents also declare total membership once at
+`run.members`.
+
+`site.altitudeM` is surveyed launch elevation (nullable in stored profiles);
+`site.modelElevationM` is grid terrain. Keep both because derived column values
+and display launch lines answer different questions.
+
+The v0.4 publication wave added optional `site.timeZone`, echoed from the
+site catalogue's required IANA zone. New documents therefore carry their own
+local-time context. The field remains optional so older schema-1 profiles stay
+valid; absence means the document predates the echo and requires a caller-owned
+timezone choice.
+
+The optional `semantics` block lets a stored document retain gust and
+precipitation meaning without joining the catalogue. Its absence creates no
+default.
+
+## Deterministic and ensemble values
+
+Every numeric position can contain a number or an ensemble percentile object. Consumers switch on the value shape, not a model name.
+
+```ts title="read-wind.ts"
+import { isEnsembleDropout, isEnsembleValue, type WindgramProfile } from "windgram/contract";
+
+export function firstWindSpeed(profile: WindgramProfile): number | null | undefined {
+  const speed = profile.hours[0]?.surface.windSpeedMs;
+
+  return speed === undefined
+    ? undefined
+    : isEnsembleValue(speed)
+      ? isEnsembleDropout(speed) ? null : speed.p50
+      : speed;
+}
+```
+
+Per-position contributor counts and censoring are explained in
+[Ensemble values](/docs/data/ensemble-values/).
+
+## Validate before use
+
+Use `parseWindgramProfileJson` for raw stored text or
+`parseWindgramProfile` for an already-parsed value. Both return `null` on a
+rejected boundary. The package schemas and generated JSON Schema define every
+field constraint.
+
+## Discover capabilities
+
+`data/models.json` is the machine-readable catalogue. It declares which models exist, their cadence and levels, and the semantics of optional capabilities. A consumer should render those declarations instead of assuming every model supplies the same fields.
+
+See [Schemas and units](/docs/reference/schemas-and-units/) for the integration
+crosswalk. The full field-by-field contract and generated JSON Schema live with
+the [`windgram` package](https://github.com/azohra/windgram/tree/main/packages/windgram).

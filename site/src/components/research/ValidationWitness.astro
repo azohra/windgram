@@ -1,0 +1,179 @@
+---
+import Figure from "../figure/Figure.astro";
+
+type Mode = "projection" | "time";
+
+interface Props {
+  mode: Mode;
+}
+
+interface WitnessStage {
+  eyebrow: string;
+  title: string;
+  detail: string;
+}
+
+interface WitnessDefinition {
+  id: string;
+  title: string;
+  lesson: string;
+  description: string;
+  caption: string;
+  units: string;
+  stages: WitnessStage[];
+  conclusion: string;
+}
+
+const definitions: Record<Mode, WitnessDefinition> = {
+  projection: {
+    id: "projection-witness",
+    title: "A plausible speed can still point the wrong way",
+    lesson: "Vector components become meteorological direction only after their grid convention and projection are resolved.",
+    description: "Four-stage validation chain: decode plausible U and V components; read the grid-relative convention from projection metadata; rotate into true east and north; compare the resulting bearing with independent geolocation and sibling-model witnesses. In the recorded REPS check, 261 degrees grid-relative became 236.6 degrees true.",
+    caption: "Recorded REPS and HRRR checks. Rotation preserves magnitude, so speed alone cannot witness direction.",
+    units: "direction degrees true · geolocation comparison degrees",
+    stages: [
+      { eyebrow: "Parsed payload", title: "U and V decode", detail: "The component magnitudes produce a realistic wind speed." },
+      { eyebrow: "Projection metadata", title: "Grid axes ≠ true axes", detail: "Lambert and rotated-latitude grids declare the component convention." },
+      { eyebrow: "Required transform", title: "Rotate before direction", detail: "Resolve the vector into true east and north, then derive bearing." },
+      { eyebrow: "Independent witness", title: "261° → 236.6°", detail: "ecCodes geolocation and sibling forecasts bracket the corrected REPS direction." },
+    ],
+    conclusion: "A correct wind magnitude is compatible with an incorrect bearing because rotation changes direction without changing speed.",
+  },
+  time: {
+    id: "time-semantics-witness",
+    title: "One unit can describe three different clocks",
+    lesson: "A field name and W/m² unit do not say whether a heat-flux value is instantaneous, averaged, or accumulated.",
+    description: "A comparison of heat-flux semantics observed in provider products: HRRR and REPS publish instantaneous values; GFS publishes averages over growing windows that reset every six hours; GEPS publishes accumulations that require differencing. Product-definition and time-range metadata, checked as a sequence across resets, identify the semantics.",
+    caption: "The builders preserve each provider's declared time semantics before the shared derivation consumes heat flux.",
+    units: "heat flux W/m² · time windows h",
+    stages: [
+      { eyebrow: "HRRR · REPS", title: "Instantaneous", detail: "The value describes the product's stated instant." },
+      { eyebrow: "GFS", title: "Growing average", detail: "The averaging window grows, then resets every six hours." },
+      { eyebrow: "GEPS", title: "Accumulation", detail: "Successive products must be differenced over their declared intervals." },
+      { eyebrow: "Independent witness", title: "Inspect the sequence", detail: "Read product-definition and time-range metadata across a window reset." },
+    ],
+    conclusion: "Normalizing units without normalizing the provider's clock can move afternoon heating into the morning while leaving believable numbers.",
+  },
+};
+
+const { mode } = Astro.props;
+const figure = definitions[mode];
+if (!figure) throw new Error(`Unknown validation witness mode: ${mode}`);
+---
+
+<Figure
+  id={figure.id}
+  title={figure.title}
+  lesson={figure.lesson}
+  description={figure.description}
+  caption={figure.caption}
+  units={figure.units}
+>
+  <ol class:list={["witness-chain", `witness-chain--${mode}`]}>
+    {figure.stages.map((stage, index) => (
+      <li>
+        <span class="witness-chain__number">{String(index + 1).padStart(2, "0")}</span>
+        <p class="witness-chain__eyebrow">{stage.eyebrow}</p>
+        <h4>{stage.title}</h4>
+        <p>{stage.detail}</p>
+        {index < figure.stages.length - 1 && <span class="witness-chain__arrow" aria-hidden="true">→</span>}
+      </li>
+    ))}
+  </ol>
+  <p class="witness-conclusion"><strong>What the second witness changes:</strong> {figure.conclusion}</p>
+</Figure>
+
+<style>
+  .witness-chain {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+    padding: clamp(0.85rem, 2vw, 1.25rem);
+    list-style: none;
+  }
+
+  .witness-chain li {
+    position: relative;
+    min-width: 0;
+    min-height: 12rem;
+    padding: 0.9rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+  }
+
+  .witness-chain li + li { border-inline-start: 0; }
+
+  .witness-chain__number {
+    color: var(--accent);
+    font: 800 1.55rem/1 var(--display);
+  }
+
+  .witness-chain__eyebrow {
+    margin: 2rem 0 0.35rem;
+    color: var(--accent-strong);
+    font: 700 0.62rem/1.35 var(--mono);
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+  }
+
+  .witness-chain h4 {
+    margin: 0 0 0.55rem;
+    color: var(--ink);
+    font-size: 1.05rem;
+    line-height: 1.1;
+  }
+
+  .witness-chain li > p:last-of-type {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 0.78rem;
+    line-height: 1.48;
+  }
+
+  .witness-chain__arrow {
+    position: absolute;
+    z-index: 2;
+    top: 0.65rem;
+    right: -0.7rem;
+    display: grid;
+    place-items: center;
+    width: 1.4rem;
+    height: 1.4rem;
+    color: var(--accent-ink);
+    background: var(--accent);
+    border-radius: 50%;
+    font: 700 0.75rem/1 var(--mono);
+  }
+
+  .witness-chain--time li:nth-child(1) { border-block-start: 4px solid var(--chart-usable); }
+  .witness-chain--time li:nth-child(2) { border-block-start: 4px solid var(--chart-boundary); }
+  .witness-chain--time li:nth-child(3) { border-block-start: 4px solid var(--chart-wind); }
+  .witness-chain--time li:nth-child(4) { border-block-start: 4px solid var(--accent); }
+
+  .witness-conclusion {
+    margin: 0;
+    padding: 0.9rem 1.15rem;
+    color: var(--ink-soft);
+    background: var(--surface-accent);
+    border-block-start: 1px solid var(--rule);
+    font-size: 0.87rem;
+    line-height: 1.55;
+  }
+
+  .witness-conclusion strong { color: var(--ink); }
+
+  @media (max-width: 52rem) {
+    .witness-chain { grid-template-columns: 1fr; }
+    .witness-chain li { min-height: 0; }
+    .witness-chain li + li { border-inline-start: 1px solid var(--rule); border-block-start: 0; }
+    .witness-chain__eyebrow { margin-block-start: 0.7rem; }
+    .witness-chain__arrow { top: auto; right: auto; bottom: -0.72rem; left: 0.8rem; transform: rotate(90deg); }
+    .witness-chain--time li:nth-child(n) { border-inline-start: 4px solid var(--accent); }
+  }
+
+  @media print {
+    .witness-chain { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .witness-chain li { break-inside: avoid; }
+  }
+</style>

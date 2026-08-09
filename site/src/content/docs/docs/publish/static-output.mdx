@@ -1,0 +1,78 @@
+---
+title: Publish static output
+description: Move generated manifests and profiles to publisher-controlled storage.
+---
+
+import { Steps } from '@astrojs/starlight/components';
+import PublishingFlow from '../../../../components/starlight/PublishingFlow.astro';
+
+A windgram publisher produces files ahead of page view time. A website can
+host those files directly or render them during its own build.
+
+<PublishingFlow />
+
+## Responsibility sequence
+
+<Steps>
+
+1. **Generate model-dependent values in Python.** Quantities that require inputs beyond the published document stay in the pipeline.
+2. **Validate the document boundary.** Consumers accept only profile documents that satisfy the exported contract.
+3. **Publish static artifacts.** Put versioned JSON and generated assets on infrastructure the publisher controls.
+4. **Render from the artifact.** Build a scene and serialize SVG in Node, a worker, or another non-DOM runtime.
+
+</Steps>
+
+## Know the output tree
+
+The CLI writes one directory per selected model beneath `--output`:
+
+```text
+public/data/
+  <model-slug>/
+    manifest.json
+    sites/
+      <site-slug>.json
+    history/
+      <site-slug>/
+        <YYYY-MM>.jsonl.gz
+```
+
+`data/runs.json` is a repository-wide index rebuilt by the repository publish
+workflow from all manifests; a single-model external output does not gain that
+file automatically. Treat the manifest and each profile as one publication
+pair. Their `referenceTime` values must agree before rendering; the
+`windgram/transport` loader performs that check for TypeScript consumers.
+
+## Put the tree on static storage
+
+Copy or sync the output directory only after a successful builder exit. Keep
+paths stable, preserve JSON content types and gzip encoding, and let caches
+expire independently without assuming an atomic multi-file deployment. That
+last condition is why consumers validate the manifest/profile pair.
+
+Possible destinations include a club's existing static site, object storage,
+or a private member-gated application. They are deployment choices, not
+Windgram features. Do not add credentials, launch membership, or access policy
+to the profile contract.
+
+## Validate before rendering
+
+```ts title="render-profile.ts"
+import { readFile } from "node:fs/promises";
+import { parseWindgramProfileJson } from "windgram/contract";
+import { buildScene } from "windgram/scene";
+import { renderSvg } from "windgram/svg";
+
+const source = await readFile("./public/data/hrrr-conus/sites/test-hill.json", "utf8");
+const profile = parseWindgramProfileJson(source);
+
+if (!profile) throw new Error("profile failed contract validation");
+
+const scene = buildScene(profile, { timeZone: "America/Vancouver" });
+const svg = renderSvg(scene, { idPrefix: "club-profile" });
+```
+
+The package contract, scene, and SVG tests exercise this validation → scene →
+serialization chain. The input path, timezone, rendering options, palette,
+hosting destination, and audience remain downstream configuration. A publisher
+can change them without copying formulas or renderer internals.

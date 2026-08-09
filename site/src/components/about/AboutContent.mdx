@@ -1,0 +1,65 @@
+import QuantityHomes from "../research/QuantityHomes.astro";
+
+# Why this project exists
+
+Free flight has shaped my aviation career, and this is a landmark project within it. Windgram turns
+the work of understanding model output into something I can give back: an open pipeline and library
+that clubs, pilots, and other publishers can inspect, adapt, and run for themselves.
+
+Windgram produces versioned profile documents and renders them. A downstream application decides
+where, when, and for whom those documents are presented. [acrophobia.ca](https://acrophobia.ca) was
+the first downstream publisher and applies its own access and presentation choices.
+
+## The open-pipeline bet
+
+Windgram publishes shareable inputs, makes derivations executable, versions the resulting document,
+and lets more than one frontend draw it. Readers can check the number behind a mark, compare a profile
+with its archived run, and build another presentation from the same science.
+
+## An acknowledged lineage
+
+This work descends from [canadarasp](https://github.com/ajberkley/canadarasp#readme). canadarasp ran
+this kind of publication for years and kept its operations open enough for this project to learn
+from; the first derivations here were faithful ports of its constants. That is a debt worth naming.
+The jobs and architectures now differ: canadarasp draws national maps from a standing server, while
+Windgram derives site columns, publishes portable documents, and supplies a reusable renderer.
+
+## Portable state
+
+Portable documents keep renderer decisions reversible. The prototype stored display units,
+pre-smoothed height series, a Pacific daylight window, and thresholds that belonged to one chart.
+
+The current contract inverts those defaults: SI values, unsmoothed derived series, every forecast
+hour, published source fields, slugs as identity, declared field semantics, and a `schemaVersion` on
+every document. Presentation choices—timezone, window, palette, smoothing, overlays, and interaction—
+belong to the renderer or the downstream application.
+
+## Authority across the document boundary
+
+The Python pipeline owns published values that need provider inputs or cross-run authority:
+boundary-layer top, thermal velocity, cloud base, and the default usable-lift top. The `windgram`
+npm package owns pure functions of a published document, contract validation, the headless scene
+graph, hit-testing, and the reference SVG serializer. Its parameterized `usableLiftTopM` projects
+the published inputs for another sink rate without replacing the stored 1.0 m/s value.
+
+<QuantityHomes />
+
+The versioned JSON between the pipeline and package carries model and site identity,
+times, units, declared provider semantics, source fields, and pipeline-derived values. The model
+catalogue states what each model can and cannot publish. Missing capability remains an honest absence,
+not a zero invented by a frontend.
+
+## Publishing
+
+The pipeline fetches provider data, derives profiles, and publishes static artifacts. The package
+validates those artifacts and turns them into a scene or SVG. Club sites, personal publishers, and
+other downstream applications choose their schedule, hosting, location catalogue, access, retention,
+alerts, and presentation.
+
+The [documentation overview](/docs/overview/) maps these responsibilities. Executable authority lives in
+[`windgram/windgram.py`](https://github.com/azohra/windgram/blob/main/windgram/windgram.py) for
+pipeline derivations,
+[`packages/windgram`](https://github.com/azohra/windgram/tree/main/packages/windgram) for the
+contract and renderer, and
+[`data/models.json`](https://github.com/azohra/windgram/blob/main/data/models.json) for the model
+catalogue.

@@ -1,4 +1,6 @@
 ---
+import Figure from "../figure/Figure.astro";
+
 const failures = [
   { number: "01", failure: "Misregistered WCS crop", href: "#a-wcs-crop-sampled-the-wrong-cells", check: "Compare crop samples with an independent point query." },
   { number: "02", failure: "Successful zero-filled subset", href: "#a-broken-wcs-request-returned-valid-zeros", check: "Test physical plausibility: afternoon heat cannot be zero everywhere." },
@@ -10,10 +12,14 @@ const failures = [
 ];
 ---
 
-<figure class="failure-atlas" aria-labelledby="failure-title failure-caption">
-  <header class="figure-heading">
-    <h3 id="failure-title">Seven forecast-data failures and their independent checks</h3>
-  </header>
+<Figure
+  id="failure-atlas"
+  title="Seven forecast-data failures and their independent checks"
+  lesson="A payload can parse cleanly while still representing the wrong place, vector, time window, model, or run."
+  description="Seven observed provider-data failures, each paired with the independent check that exposed it."
+  caption="Incidents observed during model-feed verification through 2026-08-08."
+  units="Diagnostic relationships; no numeric scale"
+>
 
   <div class="matrix-heading" aria-hidden="true">
     <span>Failure</span><span></span><span>Independent check</span>
@@ -31,20 +37,9 @@ const failures = [
     ))}
   </ol>
 
-  <figcaption id="failure-caption">
-    Incidents observed during model-feed verification through 2026-08-08.
-  </figcaption>
-</figure>
+</Figure>
 
 <style>
-  .failure-atlas {
-    width: min(940px, calc(100vw - 32px));
-    margin: 28px 50% 44px;
-    transform: translateX(-50%);
-    color: var(--ink);
-  }
-  .figure-heading { padding-bottom: 10px; border-bottom: 2px solid var(--ink); }
-  .figure-heading h3 { margin: 0; font-family: var(--sans); font-size: 18px; letter-spacing: 0; text-transform: none; }
   .matrix-heading { font-family: var(--mono); font-size: 12px; letter-spacing: .055em; text-transform: uppercase; color: var(--ink-mute); }
   .matrix-heading { display: grid; grid-template-columns: minmax(0, 1fr) 42px minmax(0, 1.22fr); padding: 13px 10px 6px; }
   .diagnostic-matrix { margin: 0; padding: 0; list-style: none; border-bottom: 1px solid var(--rule-strong); }
@@ -54,7 +49,6 @@ const failures = [
   .failure-number { font-family: var(--mono); font-size: 12px; color: var(--accent); }
   .relationship { text-align: center; font-family: var(--mono); font-size: 19px; color: var(--accent); }
   .check-label { font-size: 14px; line-height: 1.4; color: var(--ink-soft); }
-  figcaption { margin-top: 13px; font-family: var(--mono); font-size: 13px; line-height: 1.5; color: var(--ink-mute); }
   @media (max-width: 620px) {
     .matrix-heading { grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1.15fr); padding-inline: 0; font-size: 11px; }
     .diagnostic-matrix li { grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1.15fr); min-height: 78px; padding-inline: 0; }

@@ -1,0 +1,41 @@
+---
+title: Schemas and units
+description: Locate the executable contract and resolve the unit boundaries most likely to cause integration errors.
+---
+
+The zod schemas in `packages/windgram/src/contract/index.ts` are behavioural
+authority. Generated JSON Schema artifacts ship with the npm package and live
+under `packages/windgram/schema/` for profile, manifest, model, site, and run
+index documents. Regenerate them with the package command; never edit generated
+schemas by hand.
+
+## Unit boundary map
+
+| Quantity family | Contract convention | Common mistake |
+| --- | --- | --- |
+| Surface pressure | Pa | Treating it as the hPa vertical coordinate |
+| Pressure levels | hPa | Multiplying named isobaric levels by 100 in labels |
+| Heights and elevations | metres; profile altitude values are MSL unless explicitly AGL | Plotting model PBL depth directly on an MSL axis |
+| Model PBL height | metres AGL | Comparing it to `derived.boundaryLayerTopM` without adding `site.modelElevationM` |
+| Temperature and dew point | °C | Treating dew-point depression as published dew point |
+| Wind speed and gust | m/s | Displaying as km/h without a named conversion |
+| Wind direction | meteorological FROM, 0–359° | Using mathematical TO-direction |
+| Vertical velocity | omega, Pa/s; negative is lift | Reading negative as sinking geometric velocity |
+| Precipitation | mm/h with declared provider window semantics | Comparing instantaneous and window-mean rates as identical measurements |
+| Cloud and cloud layers | percent | Replacing unavailable fields with 0% |
+| CAPE/CIN | J/kg | Treating absent CIN as zero inhibition |
+
+The contract JSDoc and generated schemas define each field. The
+[profile guide](/docs/reference/profile-document/)
+maps document blocks; [model capabilities](/docs/reference/model-capabilities/)
+explains declared absence and semantics.
+
+## Height conversion example
+
+To place `surface.pblHeightM` beside MSL series, add
+`profile.site.modelElevationM`. Do not add surveyed launch altitude: the
+model's PBL depth is referenced to model terrain.
+
+For pure unit conversions, use package exports such as `msToKmh` from
+`windgram/derive`. The deprecated `windgram/scene` re-export was retained
+through the v0.3 line and removed in v0.4.0.

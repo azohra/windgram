@@ -1,0 +1,14 @@
+---
+interface Props {
+  captionId: string;
+  caption?: string;
+  units?: string;
+}
+
+const { captionId, caption, units } = Astro.props;
+---
+
+<figcaption id={captionId} class="wg-figure__caption">
+  {caption && <span>{caption}</span>}
+  {units && <span class="wg-figure__units"><span class="wg-figure__units-label">Units</span> {units}</span>}
+</figcaption>

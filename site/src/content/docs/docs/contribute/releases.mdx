@@ -1,0 +1,48 @@
+---
+title: Release boundaries
+description: Keep dataset schema, npm package, Python pipeline, and publication identity independent.
+---
+
+Windgram has several independent version and publication boundaries. Read the
+full compatibility policy in [Data and package versioning](/docs/data/versioning/);
+use this contributor checklist for intentional releases.
+
+## npm package
+
+The package version in `packages/windgram/package.json` governs exported
+TypeScript/JavaScript APIs. Before publishing:
+
+1. update code, tests, integration guide, and affected website docs together;
+2. regenerate JSON Schemas when the zod contract changed;
+3. run package tests, typecheck, and build;
+4. choose a version consistent with the documented pre-1.0 compatibility
+   policy; and
+5. create a `v<version>` tag only after main contains that exact version.
+
+The repository release workflow checks tag/package agreement, tests, builds,
+and publishes to npm with provenance. A package tag does not bump Python or
+the dataset schema automatically.
+
+## Dataset schema
+
+`schemaVersion` changes only for a breaking stored-document contract change,
+not for a new model, new publication, additive optional field, or package
+release. A breaking change requires migration strategy, synchronized publisher
+and parser support, regenerated schemas, fixtures, and updated documentation.
+
+## Python pipeline
+
+The Python version in `pyproject.toml` describes the provider ingestion and
+publication implementation. It advances for deliberate pipeline distribution
+changes; it does not mirror npm numbers. Scientific changes to a derived value
+must update tests and affected research prose even when the profile shape is
+unchanged.
+
+## Data publication
+
+`(referenceTime, generatedAt)` identifies a static publication. Republishing a
+corrected run is not a software release. Manifests, current profiles, history,
+and the run index are generated publisher output and are never edited by hand.
+
+Provider-derived material keeps its attribution independently of code licence
+or package provenance.

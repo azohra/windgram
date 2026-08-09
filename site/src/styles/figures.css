@@ -1,0 +1,375 @@
+/* Shared semantic frame for explanatory figures. The figure body owns its
+   scientific geometry; this file owns the repeated frame, metadata, controls,
+   legend, caption, responsive breakout, and print treatment. */
+
+.wg-figure {
+  --wg-figure-inline-space: clamp(0.9rem, 2.6vw, 1.45rem);
+
+  display: block;
+  max-width: 100%;
+  margin-block: 1.75rem 2.75rem;
+  color: var(--ink);
+  background: color-mix(in srgb, var(--surface) 82%, transparent);
+  border-block: 1px solid var(--rule-strong);
+  border-block-start-width: 3px;
+  border-block-start-color: var(--accent);
+}
+
+.wg-figure--content {
+  width: 100%;
+}
+
+.wg-figure--wide {
+  width: min(61.25rem, calc(100vw - 2rem));
+  max-width: none;
+  margin-inline: 50%;
+  transform: translateX(-50%);
+}
+
+.wg-figure__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem 1.5rem;
+  align-items: end;
+  padding: 1rem var(--wg-figure-inline-space) 0.9rem;
+  border-block-end: 2px solid var(--ink);
+}
+
+.wg-figure__title {
+  margin: 0;
+  color: var(--ink);
+  font: 700 clamp(1.1rem, 2.3vw, 1.35rem)/1.2 var(--sans);
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.wg-figure__lesson {
+  max-width: 52rem;
+  margin: 0.35rem 0 0;
+  color: var(--ink-soft);
+  font: 0.85rem/1.5 var(--mono);
+}
+
+.wg-figure__body {
+  min-width: 0;
+}
+
+.wg-figure__controls,
+.wg-figure__legend {
+  padding: 0.8rem var(--wg-figure-inline-space);
+  background: color-mix(in srgb, var(--surface-raised) 60%, var(--surface));
+  border-block-end: 1px solid var(--rule);
+}
+
+.wg-figure__legend {
+  border-block-start: 1px solid var(--rule);
+  border-block-end: 0;
+}
+
+.wg-figure__caption {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.65rem 1.5rem;
+  align-items: start;
+  margin: 0;
+  padding: 0.75rem var(--wg-figure-inline-space) 0.9rem;
+  color: var(--ink-mute);
+  font: 0.76rem/1.55 var(--mono);
+  border-block-start: 1px solid var(--rule);
+}
+
+.wg-figure__units {
+  max-width: 19rem;
+  text-align: end;
+}
+
+.wg-figure__units-label {
+  color: var(--accent-strong);
+  font-weight: 700;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.wg-control-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  align-items: end;
+  justify-content: space-between;
+}
+
+.wg-control-group__fields {
+  display: flex;
+  flex: 1 1 24rem;
+  flex-wrap: wrap;
+  gap: 0.65rem 1rem;
+  align-items: end;
+}
+
+.wg-control-group :is(label, button, select, input) {
+  font: 0.78rem/1.35 var(--mono);
+}
+
+.wg-control-group label {
+  display: grid;
+  gap: 0.25rem;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.wg-control-group :is(button, select, input) {
+  min-height: 2.5rem;
+}
+
+.wg-control-group__reset {
+  padding: 0.45rem 0.8rem;
+  color: var(--accent-strong);
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.wg-control-group__reset:hover {
+  color: var(--accent-ink);
+  background: var(--accent);
+}
+
+.wg-legend {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.55rem 1rem;
+  align-items: start;
+  color: var(--ink-soft);
+  font: 0.75rem/1.4 var(--mono);
+}
+
+.wg-legend__title {
+  color: var(--ink-mute);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.wg-legend ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wg-legend li {
+  display: grid;
+  grid-template-columns: 1.1rem auto;
+  gap: 0.42rem;
+  align-items: start;
+  margin: 0;
+}
+
+.wg-legend__mark {
+  --wg-legend-color: var(--ink-soft);
+
+  display: block;
+  width: 1rem;
+  margin-block-start: 0.45em;
+  color: var(--wg-legend-color);
+}
+
+.wg-legend__mark--line {
+  border-block-start: 3px solid currentColor;
+}
+
+.wg-legend__mark--dot {
+  width: 0.65rem;
+  height: 0.65rem;
+  margin-block-start: 0.22em;
+  background: currentColor;
+  border-radius: 50%;
+}
+
+.wg-legend__mark--area {
+  height: 0.65rem;
+  margin-block-start: 0.22em;
+  background: color-mix(in srgb, currentColor 28%, transparent);
+  border: 1px solid currentColor;
+}
+
+.wg-legend__description {
+  display: block;
+  color: var(--ink-mute);
+}
+
+/* Interactive laboratory bodies. One deliberate set of values for the five
+   labs (they had drifted apart): conclusions measure 66ch, range inputs
+   min(18rem, 62vw) with a 6rem output slot, readouts use the bordered grid
+   at 0.76rem mono. Only genuinely lab-specific geometry (the timing lab's
+   paired panels) stays in component styles. */
+.wg-lab {
+  min-width: 0;
+  padding: clamp(0.8rem, 2vw, 1.25rem);
+}
+
+.wg-lab__readout {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem 1rem;
+  margin-block-end: 0.85rem;
+  color: var(--ink-soft);
+  font: 0.76rem/1.45 var(--mono);
+}
+
+.wg-lab__readout > span {
+  padding-inline-start: 0.65rem;
+  border-inline-start: 2px solid var(--rule-strong);
+}
+
+.wg-lab__readout strong {
+  display: block;
+  color: var(--ink);
+}
+
+/* Two side-by-side panels (the timing lab's paired sections). */
+.wg-lab__readout--pair {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.wg-lab__chart-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
+}
+
+.wg-lab__chart-scroll:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.wg-lab__mount svg {
+  display: block;
+  width: var(--wg-lab-scene-width, 100%);
+  max-width: none;
+  height: auto;
+  margin-inline: auto;
+}
+
+.wg-lab__range-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.wg-lab__range-row input {
+  width: min(18rem, 62vw);
+}
+
+.wg-lab__range-row output {
+  min-width: 6rem;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.wg-lab__conclusion {
+  max-width: 66ch;
+  margin: 1rem 0 0;
+  color: var(--ink-soft);
+  font: 0.9rem/1.6 var(--sans);
+}
+
+.wg-lab__conclusion strong {
+  color: var(--accent-strong);
+}
+
+@media (max-width: 48rem) {
+  .wg-lab__readout--pair {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 42rem) {
+  .wg-lab__readout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wg-lab *,
+  .wg-lab *::before,
+  .wg-lab *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+.wg-visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+  clip: rect(0 0 0 0) !important;
+  clip-path: inset(50%) !important;
+}
+
+/* Starlight's content column already accounts for its sidebar and table of
+   contents. A requested wide figure therefore stays inside that safe column. */
+.sl-markdown-content .wg-figure--wide {
+  width: 100%;
+  max-width: 100%;
+  margin-inline: 0;
+  transform: none;
+}
+
+@media (max-width: 44rem) {
+  .wg-figure {
+    --wg-figure-inline-space: 0.85rem;
+    margin-block: 1.4rem 2.2rem;
+  }
+
+  .wg-figure__header,
+  .wg-figure__caption {
+    grid-template-columns: 1fr;
+  }
+
+  .wg-figure__units {
+    max-width: none;
+    text-align: start;
+  }
+
+  .wg-legend {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  .wg-figure,
+  .wg-figure--wide {
+    width: 100%;
+    max-width: 100%;
+    margin: 1.25rem 0;
+    break-inside: avoid;
+    transform: none;
+    background: #fff;
+  }
+
+  .wg-figure__controls {
+    display: none;
+  }
+
+  .wg-control-group__reset {
+    display: none;
+  }
+
+  .wg-figure__body svg {
+    min-width: 0 !important;
+    max-width: 100%;
+  }
+}

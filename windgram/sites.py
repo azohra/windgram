@@ -10,10 +10,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from .config import sites_path
+
 SITES_SCHEMA_VERSION = 1
 
 
-def load_sites(path: Path = Path("sites.json")) -> list[dict]:
+def load_sites(path: Path | None = None) -> list[dict]:
+    path = sites_path() if path is None else path
     document = json.loads(path.read_text())
     version = document.get("schemaVersion") if isinstance(document, dict) else None
     if version != SITES_SCHEMA_VERSION:

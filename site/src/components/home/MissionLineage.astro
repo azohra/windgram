@@ -1,0 +1,219 @@
+---
+import SkylineMark from "../SkylineMark.astro";
+---
+
+<section id="project" class="home-mission" aria-labelledby="home-mission-title">
+  <div class="home-mission__inner">
+    <div class="mission-grid">
+      <div class="mission-statement">
+        <div class="mission-statement__mark" aria-hidden="true"><SkylineMark /></div>
+        <header>
+          <span>Why Windgram exists</span>
+          <h2 id="home-mission-title">Built for free flight</h2>
+        </header>
+        <p>
+          Clubs and pilots can generate model-derived profiles and publish their own windgrams with
+          inspectable, reusable, open tools.
+        </p>
+      </div>
+
+      <article>
+        <p class="mission-grid__label">Lineage</p>
+        <h3>Built with gratitude for canadarasp</h3>
+        <p>
+          Windgram descends from <a href="https://github.com/ajberkley/canadarasp#readme">canadarasp</a>,
+          whose open operations made this work possible to study and whose constants anchored the
+          first faithful derivation ports. The projects now do different jobs; the debt remains worth naming.
+        </p>
+      </article>
+
+      <article>
+        <p class="mission-grid__label">First downstream publisher</p>
+        <h3>Acrophobia was the first downstream publisher</h3>
+        <p>
+          <a href="https://acrophobia.ca">acrophobia.ca</a> consumes the published artifacts and
+          applies its own access, current-results presentation, and operational context to them.
+        </p>
+      </article>
+    </div>
+
+    <nav class="mission-links" aria-label="Continue reading about the project">
+      <a href="/about/">Read why the project exists <span aria-hidden="true">→</span></a>
+      <a href="/docs/overview/">Explore the project architecture <span aria-hidden="true">→</span></a>
+    </nav>
+  </div>
+</section>
+
+<style>
+  .home-mission {
+    padding-block: clamp(4.5rem, 9vw, 8rem);
+  }
+
+  .home-mission__inner {
+    width: min(74.25rem, calc(100% - 3.5rem));
+    margin-inline: auto;
+  }
+
+  .mission-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr 0.85fr;
+    border: 1px solid var(--rule-strong);
+  }
+
+  .mission-grid .mission-statement,
+  .mission-grid article {
+    min-width: 0;
+    margin: 0;
+    padding: clamp(1.35rem, 3vw, 2rem);
+    border-inline-end: 1px solid var(--rule);
+  }
+
+  .mission-grid article:last-child {
+    border-inline-end: 0;
+  }
+
+  .mission-grid .mission-statement {
+    display: grid;
+    align-content: space-between;
+    min-height: 23rem;
+    color: var(--surface);
+    background: var(--accent-strong);
+  }
+
+  .mission-statement__mark {
+    width: 5.5rem;
+    color: var(--surface-accent);
+  }
+
+  .mission-grid .mission-statement :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .mission-statement header {
+    margin-block: 3rem;
+  }
+
+  .mission-statement header span {
+    color: var(--surface-accent);
+    font: 700 0.66rem/1.4 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .mission-statement h2 {
+    margin: 0.65rem 0 0;
+    color: var(--surface);
+    font-size: clamp(3.3rem, 6vw, 5.5rem);
+    line-height: 0.85;
+  }
+
+  .mission-grid .mission-statement > p {
+    margin: 0;
+    font-size: clamp(1rem, 1.8vw, 1.2rem);
+    line-height: 1.55;
+  }
+
+  .mission-grid article {
+    background: color-mix(in srgb, var(--surface) 72%, transparent);
+  }
+
+  .mission-grid__label {
+    margin: 0;
+    color: var(--accent-strong);
+    font: 700 0.65rem/1.4 var(--mono);
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+
+  .mission-grid h3 {
+    margin: 3.5rem 0 0.85rem;
+    font-size: clamp(1.55rem, 2.6vw, 2.15rem);
+    line-height: 0.96;
+  }
+
+  .mission-grid article > p:last-child {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+
+  .mission-links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mission-links a {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.9rem 1rem;
+    color: var(--ink);
+    background: var(--surface-raised);
+    border-inline: 1px solid var(--rule-strong);
+    border-block-end: 1px solid var(--rule-strong);
+    font: 700 0.7rem/1.4 var(--mono);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .mission-links a + a {
+    border-inline-start: 0;
+  }
+
+  .mission-links a:hover {
+    color: var(--accent-strong);
+    background: var(--surface-accent);
+    text-decoration: none;
+  }
+
+  @media (max-width: 58rem) {
+    .mission-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .mission-grid .mission-statement {
+      grid-column: 1 / -1;
+      min-height: 18rem;
+      border-inline-end: 0;
+      border-block-end: 1px solid var(--rule);
+    }
+  }
+
+  @media (max-width: 39rem) {
+    .home-mission__inner {
+      width: min(100% - 2rem, 74.25rem);
+    }
+
+    .mission-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .mission-grid .mission-statement {
+      grid-column: auto;
+    }
+
+    .mission-grid article {
+      border-inline-end: 0;
+      border-block-end: 1px solid var(--rule);
+    }
+
+    .mission-grid article:last-child {
+      border-block-end: 0;
+    }
+
+    .mission-grid h3 {
+      margin-block-start: 2.2rem;
+    }
+
+    .mission-links {
+      grid-template-columns: 1fr;
+    }
+
+    .mission-links a + a {
+      border-inline-start: 1px solid var(--rule-strong);
+    }
+  }
+</style>

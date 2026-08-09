@@ -1,0 +1,231 @@
+---
+title: Author a teaching scenario
+description: Create deterministic, model-shaped teaching data from source-shaped inputs and production derivation.
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+A Windgram scenario is a deterministic recipe over source-shaped atmospheric
+columns. Generation applies declared transforms, calls the same Python
+derivation used by publishers, validates the resulting profile contract and
+lesson assertions, and commits the output for reproducible figures.
+
+<Aside type="tip" title="Fixed synthetic identity">
+  Use a synthetic model and site identity, fixed time, fixed seed, and
+  repository-local input. Public figures describe the atmospheric relationship;
+  the component and generated registry preserve provenance.
+</Aside>
+
+## The authority chain
+
+```text
+scenario.schema.json
+        +
+definitions/<id>.json ──→ source baseline ──→ declared transforms
+                                                │
+                                                ▼
+                               Python profile derivation
+                                                │
+                                                ▼
+                            contract + lesson assertions
+                                                │
+                                                ▼
+                    generated profile(s) + scenarios/index.json
+```
+
+The inputs are:
+
+- `scenarios/scenario.schema.json`: the closed definition vocabulary;
+- `scenarios/definitions/*.json`: one discoverable recipe per top-level file;
+- source files named by each definition's `baseline.path`: input values, never
+  `derived.*`; and
+- `windgram/scenarios.py`: validation, transform, generation, assertion, and
+  deterministic serialization behaviour.
+
+The outputs are `scenarios/generated/*.profile.json` and
+`scenarios/index.json`. They are committed so generator checks and every
+package, renderer, or site integration consume identical bytes. Never edit an
+output or its hash by hand.
+
+## Start from a working recipe
+
+<Steps>
+
+1. **Choose one lesson.** State a relationship that a reader can see and a test
+   can establish, such as a cap eroding after heating or a wider member spread
+   producing a wider percentile band.
+2. **Copy the nearest definition.** Use
+   `scenarios/definitions/minimal-valid.json` for a deterministic starting
+   point, an `ensemble-*.json` definition for member output, or
+   `model-timing-disagreement.json` for a controlled comparison.
+3. **Give it synthetic identity.** The filename and `id` use the same lowercase
+   hyphenated slug. It must not equal a production slug from
+   `data/models.json`. Keep `site.synthetic: true` and use a synthetic site
+   name.
+4. **Fix time and randomness.** Set UTC `referenceTime`, `generatedAt`, and
+   `startAt`, an allowed `stepHours`, an explicit IANA timezone, `hourCount`,
+   and integer `seed`. No value may depend on the wall-clock date, machine-local time,
+   or ambient randomness.
+5. **Select a local baseline.** A synthetic baseline is preferred. A calibrated
+   baseline requires the [calibration provenance](#calibrated-baselines-and-attribution).
+6. **Change source inputs with declared transforms.** Do not write a derived
+   output to force the desired picture.
+7. **Declare semantics and capabilities honestly.** Field presence after all
+   transforms must match the declaration. Gust semantics, when present, match
+   `capabilities.gust`; precipitation semantics are always explicit.
+8. **Assert the lesson.** Add machine-readable assertions that name exact
+   hours, fields, and comparison targets where needed. Assertions observe
+   output; they do not author it.
+9. **Generate, inspect, and test.** Commit the recipe and all regenerated
+   outputs together.
+
+</Steps>
+
+The complete schema is the authority. This excerpt shows the identity and
+clock properties that should be obvious in review:
+
+```json title="definition excerpt"
+{
+  "schemaVersion": 1,
+  "id": "synthetic-example",
+  "title": "A controlled teaching relationship",
+  "lesson": "A fixed input change creates one observable and asserted output relationship.",
+  "kind": "deterministic",
+  "modelShape": "hourly-core",
+  "timeZone": "Etc/UTC",
+  "site": {
+    "id": "synthetic-ridge",
+    "name": "Synthetic Ridge",
+    "synthetic": true,
+    "latitude": 49,
+    "longitude": -123,
+    "altitudeM": 1050,
+    "modelElevationM": 900
+  },
+  "clock": {
+    "referenceTime": "2000-01-01T06:00:00Z",
+    "generatedAt": "2000-01-01T06:00:00Z",
+    "startAt": "2000-01-01T12:00:00Z",
+    "stepHours": 1,
+    "hourCount": 6,
+    "seed": 520
+  }
+}
+```
+
+This excerpt omits required fields. Copy a
+committed valid recipe so required baseline, transform, semantics, capability,
+and assertion fields are not guessed.
+
+## Model shape and capabilities
+
+`modelShape` is an abstract transport shape, not a claim that a named provider
+produced the values.
+
+| Shape | Structural promise |
+| --- | --- |
+| `hourly-rich` | Hourly levels, heat fluxes, gust, CAPE/CIN, model PBL height, and cloud layers |
+| `hourly-core` | Hourly levels and heat fluxes without optional science fields |
+| `three-hourly-regional` | Three-hour steps and a reduced pressure-level set |
+| `ensemble-five-level` | Member-derived percentile output on exactly five pressure levels |
+
+The `capabilities` object must describe the transformed source, including exact
+pressure and vertical-velocity levels. Omission is meaningful. If gust, CAPE,
+CIN, PBL height, cloud layers, or the cloud profile is declared unavailable,
+the corresponding source field must be absent—not zero.
+
+The scenario's `semantics` maps its synthetic transport into the same public
+v0.3 vocabulary used by profiles. It does not borrow semantics from a
+production model name.
+
+## Author source changes
+
+The transform vocabulary is closed. It supports surface-field
+curves, level temperature and dew-point-depression offsets, wind speed and
+direction changes, pressure tendency, explicit optional capability fields,
+time shifts, and elevation adjustments.
+
+Transforms may write source quantities such as
+`surface.sensibleHeatFluxWm2` or `levels.temperatureC`. They may not name
+`derived.boundaryLayerTopM`, `derived.thermalVelocityMs`,
+`derived.cloudBaseM`, or `derived.usableLiftTopM`. Those values require the
+pipeline's inputs and therefore have one authority: the Python profile
+derivation.
+
+If the lesson needs a new transform type, that is a generator change rather
+than a one-off escape hatch. Update the scenario schema, implementation,
+positive and invalid fixtures, and tests together. Physical exceptions are
+narrow, explicit, reasoned schema entries; they are not a general bypass for
+plausibility checks.
+
+## Ensemble and comparison recipes
+
+An ensemble recipe declares its member count and seeded perturbations. Each
+member source column is derived independently before the normal production
+aggregator computes percentile objects. Preserve these rules:
+
+- `members` at a numeric position counts contributors to that position and can
+  be lower than `run.members` when null member values are excluded;
+- percentiles remain ordered from p10 through p90;
+- `ceiledMembers` is used only where the column ceiling censored a height; and
+- wind direction uses the shared circular aggregation rather than a linear
+  percentile across north.
+
+Ensemble assertions address one position inside a percentile block with a
+trailing key, such as `surface.temperatureC.p90` or
+`derived.usableLiftTopM.members`, so a recipe can assert band width and member
+accounting, not just presence. Nearest-height level selection uses the
+ensemble median (`p50`) height.
+
+A comparison declares neutral variant ids and labels. Variant transforms use
+their `target`; generated filenames and registry entries retain that identity.
+Describe a controlled difference such as earlier and later development. Do not
+call one model correct, probable, safer, or a majority result.
+
+## Calibrated baselines and attribution
+
+Real provider output may be used offline to calibrate plausible magnitudes and
+vertical relationships. It does not become a site dependency or a public
+forecast example.
+
+A calibrated definition names a sibling provenance JSON record. Its required
+fields are listed in
+[`scenarios/README.md`](https://github.com/azohra/windgram/blob/main/scenarios/README.md#baselines-and-attribution),
+next to the baselines they describe.
+
+The public definition replaces baseline identity and time with its synthetic
+site and fixed clock. Website code must not import the calibration baseline
+directly. Credit the provider adjacent to any discussion of the calibration
+method.
+
+## Generate and test
+
+From the repository root:
+
+```sh title="Terminal"
+uv run python -m windgram.scenarios generate
+uv run python -m windgram.scenarios check
+uv run pytest tests/test_scenarios.py tests/test_scenario_ensembles.py
+uv run pytest tests/test_scenario_calibration.py
+pnpm --dir packages/windgram test
+pnpm --dir site check
+pnpm --dir site build
+```
+
+`generate` discovers only top-level definition JSON files, removes unmanaged
+generated profile files, writes canonical JSON, and rebuilds the registry with
+SHA-256 hashes. `check` generates expected bytes in memory and fails on stale,
+missing, or unmanaged output without modifying the worktree.
+
+Review all of these in the same change:
+
+- the definition and any intentional baseline, schema, or generator change;
+- each generated profile named by the scenario;
+- the scenario's registry metadata and hashes;
+- assertion coverage of the stated lesson; and
+- any figure or prose that the changed relationship makes stale.
+
+If a selected scenario also owns an SVG golden, follow the deliberate golden
+review policy in [Tests by change](/docs/contribute/tests/#golden-svg-changes-require-review). A new
+hash or screenshot is not itself proof that the scenario still teaches the
+right relationship.

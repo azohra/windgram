@@ -1,0 +1,178 @@
+---
+import { msToKmh, p50 } from "windgram/derive";
+import type { SceneGraph } from "windgram/scene";
+import type { TeachingScenario } from "../../lib/scenarios";
+
+interface Props {
+  scenario: TeachingScenario;
+  scene: SceneGraph;
+  mode?: "summary" | "lines" | "pressure" | "wind";
+}
+
+const { scenario, scene, mode = "summary" } = Astro.props;
+const validAt = scene.hourValidAts[scene.selectedHourIndex];
+const hour = scenario.profile.hours.find((candidate) => candidate.validAt === validAt);
+if (!hour) throw new Error(`${scenario.id} selected hour is absent from its profile`);
+const time = new Intl.DateTimeFormat("en-CA", {
+  timeZone: scenario.timeZone,
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+}).format(new Date(validAt));
+const pressurePa = p50(hour.surface.pressurePa);
+const pressureKpa = pressurePa === null ? null : pressurePa / 1000;
+const usableLiftM = p50(hour.derived.usableLiftTopM);
+const boundaryLayerM = p50(hour.derived.boundaryLayerTopM);
+const cloudBaseM = p50(hour.derived.cloudBaseM);
+const windMs = p50(hour.surface.windSpeedMs);
+const windKmh = windMs === null ? null : msToKmh(windMs);
+const formatHeight = (value: number | null) =>
+  value == null ? "not defined" : `${Math.round(value).toLocaleString("en-CA")} m`;
+const formatNumber = (value: number | null, digits: number, unit = "") =>
+  value === null ? "not defined" : `${value.toFixed(digits)}${unit}`;
+---
+
+<aside class:list={["windgram-annotations", `windgram-annotations--${mode}`]} aria-label="Selected-hour annotations">
+  <p class="windgram-annotations__time">
+    <strong>{time}</strong>
+    <span>peak thermal-velocity hour</span>
+  </p>
+  <dl>
+    {(mode === "summary" || mode === "lines") && (
+      <>
+        <div>
+          <dt>w*</dt>
+          <dd>{formatNumber(p50(hour.derived.thermalVelocityMs), 1, " m/s")}</dd>
+        </div>
+        <div>
+          <dt>Usable lift</dt>
+          <dd>{formatHeight(usableLiftM)}</dd>
+        </div>
+        <div>
+          <dt>Boundary layer</dt>
+          <dd>{formatHeight(boundaryLayerM)}</dd>
+        </div>
+        <div>
+          <dt>Cloud base</dt>
+          <dd>{formatHeight(cloudBaseM)}</dd>
+        </div>
+      </>
+    )}
+    {mode === "summary" && (
+      <>
+        <div>
+          <dt>Surface</dt>
+          <dd>{formatNumber(p50(hour.surface.temperatureC), 0, " °C")}</dd>
+        </div>
+        <div>
+          <dt>Cloud cover</dt>
+          <dd>{formatNumber(p50(hour.surface.cloudCoverPercent), 0, "%")}</dd>
+        </div>
+      </>
+    )}
+    {mode === "pressure" && (
+      <>
+        <div>
+          <dt>Pressure</dt>
+          <dd>{formatNumber(pressureKpa, 2, " kPa")}</dd>
+        </div>
+        <div>
+          <dt>Precipitation</dt>
+          <dd>{formatNumber(p50(hour.surface.precipitationMmHr), 1, " mm/h")}</dd>
+        </div>
+        <div>
+          <dt>Cloud cover</dt>
+          <dd>{formatNumber(p50(hour.surface.cloudCoverPercent), 0, "%")}</dd>
+        </div>
+        <div>
+          <dt>Surface wind</dt>
+          <dd>{formatNumber(windKmh, 0, " km/h")}</dd>
+        </div>
+      </>
+    )}
+    {mode === "wind" && (
+      <>
+        <div>
+          <dt>Surface wind</dt>
+          <dd>{formatNumber(windKmh, 0, " km/h")} from {formatNumber(p50(hour.surface.windDirectionDeg), 0, "°")}</dd>
+        </div>
+        <div>
+          <dt>Usable-lift top</dt>
+          <dd>{formatHeight(usableLiftM)}</dd>
+        </div>
+      </>
+    )}
+  </dl>
+</aside>
+
+<style>
+  .windgram-annotations {
+    display: grid;
+    grid-template-columns: minmax(10rem, auto) 1fr;
+    gap: 0.65rem 1.2rem;
+    align-items: stretch;
+    padding: 0.7rem 1rem;
+    background: var(--surface-raised);
+    border-block-end: 1px solid var(--rule);
+    font: 0.73rem/1.4 var(--mono);
+  }
+
+  .windgram-annotations__time {
+    display: grid;
+    align-content: center;
+    gap: 0.15rem;
+    margin: 0;
+    padding-inline-end: 1rem;
+    border-inline-end: 2px solid var(--accent);
+  }
+
+  .windgram-annotations__time strong {
+    color: var(--accent-strong);
+    font-size: 1rem;
+  }
+
+  .windgram-annotations__time span,
+  dt {
+    color: var(--ink-mute);
+  }
+
+  dl {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+    gap: 0.55rem 1rem;
+    margin: 0;
+  }
+
+  dl div {
+    min-width: 0;
+  }
+
+  dt,
+  dd {
+    margin: 0;
+  }
+
+  dt {
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+  }
+
+  dd {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  @media (max-width: 38rem) {
+    .windgram-annotations {
+      grid-template-columns: 1fr;
+    }
+
+    .windgram-annotations__time {
+      padding: 0 0 0.55rem;
+      border-inline-end: 0;
+      border-block-end: 2px solid var(--accent);
+    }
+  }
+</style>

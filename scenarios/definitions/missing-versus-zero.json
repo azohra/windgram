@@ -1,0 +1,112 @@
+{
+  "$schema": "../scenario.schema.json",
+  "schemaVersion": 1,
+  "id": "missing-versus-zero",
+  "title": "Missing capability is not measured zero",
+  "lesson": "An unsupported gust field is absent, while supported precipitation is present and explicitly zero.",
+  "kind": "deterministic",
+  "modelShape": "hourly-core",
+  "timeZone": "Etc/UTC",
+  "site": {
+    "id": "synthetic-dry-ridge",
+    "name": "Synthetic Dry Ridge",
+    "synthetic": true,
+    "latitude": 49,
+    "longitude": -123,
+    "altitudeM": 1050,
+    "modelElevationM": 900
+  },
+  "clock": {
+    "referenceTime": "2000-01-01T06:00:00Z",
+    "generatedAt": "2000-01-01T06:00:00Z",
+    "startAt": "2000-01-01T12:00:00Z",
+    "stepHours": 1,
+    "hourCount": 6,
+    "seed": 14009
+  },
+  "baseline": {
+    "type": "synthetic",
+    "path": "baselines/synthetic-five-level-day.source.json"
+  },
+  "transforms": [
+    {
+      "type": "surface-field-curve",
+      "field": "precipitationMm",
+      "points": [
+        {
+          "hourOffset": 0,
+          "value": 0
+        },
+        {
+          "hourOffset": 5,
+          "value": 0
+        }
+      ]
+    },
+    {
+      "type": "surface-field-curve",
+      "field": "cloudCoverPercent",
+      "points": [
+        {
+          "hourOffset": 0,
+          "value": 0
+        },
+        {
+          "hourOffset": 5,
+          "value": 0
+        }
+      ]
+    }
+  ],
+  "semantics": {
+    "precipitation": "instantRate"
+  },
+  "capabilities": {
+    "levels": true,
+    "pressureLevels": [
+      925,
+      850,
+      800,
+      700,
+      600
+    ],
+    "verticalVelocity": false,
+    "heatFluxes": true,
+    "gust": false,
+    "cape": false,
+    "cin": false,
+    "pblHeight": false,
+    "cloudLayers": false,
+    "cloudProfile": false
+  },
+  "assertions": [
+    {
+      "id": "gust-is-absent",
+      "description": "The unsupported gust field is absent rather than filled with zero.",
+      "actual": {
+        "field": "surface.windGustMs",
+        "hour": 2
+      },
+      "operator": "absent"
+    },
+    {
+      "id": "precipitation-is-present",
+      "description": "The supported precipitation field remains present in the dry sample.",
+      "actual": {
+        "field": "surface.precipitationMmHr",
+        "hour": 2
+      },
+      "operator": "present"
+    },
+    {
+      "id": "precipitation-is-zero",
+      "description": "The present precipitation value explicitly reports a dry zero.",
+      "actual": {
+        "field": "surface.precipitationMmHr",
+        "hour": 2
+      },
+      "operator": "equal",
+      "expected": 0
+    }
+  ]
+}

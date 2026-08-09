@@ -1,0 +1,145 @@
+---
+title: Pure derivations
+description: Use published state for pure quantities, local-day projection, and valid-time alignment.
+---
+
+`windgram/derive` owns calculations that are pure functions of published
+documents. It does not duplicate pipeline derivations that require raw model
+inputs.
+
+## Authority boundary
+
+| Owner | Quantities |
+| --- | --- |
+| Python pipeline | Published boundary-layer top, thermal velocity, cloud base, and default usable-lift top |
+| TypeScript derive export | Moisture conversions, vector wind, lapse and stability, thermal index, shear, B/S ratio, local-day grouping, projection, valid-time alignment, units, smoothing, and parameterized usable lift |
+
+The package's `usableLiftTopM(inputs, sinkRateMs)` projects the published
+inputs for another sink rate without replacing the stored default.
+At `1.0` m/s it matches the pipeline fixture exactly. The scene does not apply
+that p50 recomputation to ensembles because it would not equal a per-member
+derivation aggregated to percentiles.
+
+## Deterministic and ensemble inputs
+
+Derivation functions take numbers. Select a percentile before passing an
+ensemble scalar:
+
+```ts title="median-lapse.ts"
+import type { WindgramProfile } from "windgram/contract";
+import { p50, surfaceLapseCPer1000Ft, stabilityClass } from "windgram/derive";
+
+export function firstStability(profile: WindgramProfile): string | null {
+  const hour = profile.hours[0];
+  const level = hour?.levels[0];
+  if (!hour || !level) return null;
+
+  const surfaceTemperatureC = p50(hour.surface.temperatureC);
+  const heightM = p50(level.heightM);
+  const temperatureC = p50(level.temperatureC);
+  if (surfaceTemperatureC === null || heightM === null || temperatureC === null) return null;
+
+  const lapse = surfaceLapseCPer1000Ft(
+    surfaceTemperatureC,
+    profile.site.modelElevationM,
+    { heightM, temperatureC },
+  );
+  return lapse === null ? null : stabilityClass(lapse);
+}
+```
+
+`p50` returns `null` for a full ensemble dropout, so numeric derivations guard
+the selected percentile before use.
+
+## Choose shear for the terrain
+
+`surfaceToBoundaryLayerShearMs` subtracts the surface and boundary-layer-top
+wind vectors. That construction assumes both vectors sample one air mass. A
+mountain valley can place thermally driven surface flow beneath separate flow
+aloft, making the ratio low even on a deeply convective day.
+
+`buoyancyShearRatio` returns `Infinity` when nonzero buoyancy faces zero shear
+and `null` for 0/0. Use the height-resolved `windShear` field when terrain
+separates the surface circulation from the winds aloft. The
+[valley B/S case study](/research/bs-ratio-valley/) records the measured case.
+
+## Window in the site's timezone
+
+Profiles publish all forecast hours in UTC. Profiles from the v0.4 publication
+wave echo the catalogued IANA timezone at `site.timeZone`; an older compatible
+profile may omit it, so callers still need an explicit fallback.
+
+```ts title="local-days.ts"
+import type { WindgramProfile } from "windgram/contract";
+import { groupByLocalDay, windgramDisplayHours } from "windgram/derive";
+
+export function displayDays(profile: WindgramProfile, olderProfileTimeZone?: string) {
+  const timeZone = profile.site.timeZone ?? olderProfileTimeZone;
+  if (!timeZone) throw new Error("older profile needs an explicit IANA timezone");
+  const display = windgramDisplayHours(profile.hours, { timeZone });
+  return groupByLocalDay(display, timeZone);
+}
+```
+
+`groupByLocalDay` and `windgramDisplayHours` are tested across timezones,
+custom bounds, short days, and empty input. Pass a returned day's `hours`
+directly to `buildScene`.
+
+## Subtract fields with `projectProfile`
+
+`projectProfile` reduces a document to the hours and fields a reader needs.
+It can select one local calendar day, replace every `levels` array with `[]`,
+and keep named field subsets. Every retained value is copied unchanged: the
+function applies no threshold, aggregation, interpolation, or judgment.
+
+```ts title="project-profile.ts"
+import type { WindgramProfile } from "windgram/contract";
+import { projectProfile } from "windgram/derive";
+
+export function compactTeachingInput(profile: WindgramProfile, day: string) {
+  return projectProfile(profile, {
+    day,
+    dropLevels: true,
+    fields: {
+      surface: ["windSpeedMs", "windGustMs"],
+      derived: ["thermalVelocityMs", "usableLiftTopM"],
+    },
+  });
+}
+```
+
+Day selection uses `options.timeZone` first and `profile.site.timeZone`
+second. If neither exists, `projectProfile` throws instead of guessing which
+UTC hours belong to the requested local day. Projection without a `day` needs
+no timezone.
+
+With no field selection, the result remains a full contract-shaped document;
+`dropLevels` also remains valid because an empty levels array is allowed.
+Selecting fields produces `ProjectedWindgramProfile`, whose hour blocks are
+partial by design. Do not pass that partial projection back through the full
+profile parser or into `buildScene`.
+
+## Intersect instants with `alignByValidAt`
+
+`alignByValidAt` returns only the UTC `validAt` instants shared by every input
+profile. Each row keeps each model's original hour, keyed by its slug.
+
+```ts title="align-hours.ts"
+import type { WindgramProfile } from "windgram/contract";
+import { alignByValidAt, p50 } from "windgram/derive";
+
+export function sharedSurfaceWind(profiles: readonly WindgramProfile[]) {
+  return alignByValidAt(profiles).map((row) => ({
+    validAt: row.validAt,
+    values: Object.entries(row.byModel).map(([model, hour]) => ({
+      model,
+      windSpeedMs: p50(hour.surface.windSpeedMs),
+    })),
+  }));
+}
+```
+
+The join performs string equality on published UTC instants and preserves each
+model's original values, elevation, semantics, and run identity. Empty input
+returns no rows; duplicate model slugs throw. Use
+[`compareProfiles`](/docs/typescript/compare/) for cross-model findings.

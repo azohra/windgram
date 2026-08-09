@@ -17,11 +17,10 @@ from windgram.build_geps import (
     _require_plausible_model_elevation,
     _sample_scalar_members,
     _sample_wind_members,
-    circular_median,
-    percentile,
     previous_scheduled_hour,
 )
 from windgram.datamart import DownloadStats
+from windgram.ensemble import circular_median, percentile
 from windgram.moisture import dew_point_depression
 from windgram.publish import compact_json, round_document
 from windgram.sentinel import mask_sentinel
@@ -36,7 +35,7 @@ SITE = {
 }
 
 
-# --- percentiles and circular consensus (GEPS inlines the REPS helpers) -------
+# --- shared percentiles and circular consensus --------------------------------
 
 
 def test_the_published_points_land_on_exact_ranks_for_21_members():

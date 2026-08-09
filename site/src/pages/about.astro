@@ -1,0 +1,21 @@
+---
+import AboutContent from "../components/about/AboutContent.mdx";
+import Base from "../layouts/Base.astro";
+---
+
+<Base
+  title="Why this project exists — Windgram"
+  description="Why Windgram is an open pipeline and library for people who publish free-flight windgrams."
+  activeNav="about"
+>
+  <main class="shell prose about-shell">
+    <AboutContent />
+  </main>
+</Base>
+
+<style>
+  .about-shell {
+    padding-top: 42px;
+    padding-bottom: 72px;
+  }
+</style>

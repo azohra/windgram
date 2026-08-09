@@ -1,0 +1,85 @@
+---
+title: Compare model profiles
+description: Report cross-model window agreement and height spread while preserving each document's evidence and comparability facts.
+---
+
+`windgram/compare` compares validated profiles for one site. It analyzes every
+document with one timezone and threshold set, then compares the resulting
+findings.
+
+## Build a comparison
+
+```ts title="compare-profiles.ts"
+import type { WindgramProfile } from "windgram/contract";
+import { compareProfiles, type WindgramComparison } from "windgram/compare";
+
+export function compareSite(
+  profiles: readonly WindgramProfile[],
+  timeZone: string,
+): WindgramComparison {
+  return compareProfiles(profiles, {
+    timeZone,
+    thresholds: {
+      flyableWindow: { wstarMinMs: 1.0, depthMinM: 350 },
+    },
+    unavailable: [{ model: "nam", miss: "absent" }],
+  });
+}
+```
+
+Every profile must carry the same `site.id`. The function throws for an empty
+input or mixed sites. The output records the resolved thresholds and retains
+each model's source analysis under `analyses`.
+
+## Read the member ledger
+
+Each `ComparisonMemberLedger` states the facts that affect comparability:
+
+| Field | Meaning |
+| --- | --- |
+| `kind` | Deterministic or ensemble document shape |
+| `referenceTime` / `runAgeHours` | Run identity and age relative to the newest member |
+| `stepHours` / `hours` | Forecast cadence and published horizon |
+| `modelElevationM` / `elevationDeltaM` | Grid terrain and its launch-relative difference |
+| `benched` | A terrain mismatch whose published lift never reaches launch |
+
+Transport misses belong in `options.unavailable`, preserving the expected
+model roster even when a document is absent or invalid.
+
+## Read the findings
+
+```ts title="comparison-findings.ts"
+import type { WindgramComparison } from "windgram/compare";
+
+export function comparisonRows(comparison: WindgramComparison) {
+  return comparison.findings.map((finding) => {
+    if (finding.kind === "windowAgreement") {
+      return {
+        day: finding.day,
+        windows: finding.windows.map((vote) => vote.model),
+        quiet: finding.quiet.map((vote) => vote.model),
+        abstained: finding.abstained,
+        unanimous: finding.unanimous,
+        startSpreadHours: finding.timing.startSpreadHours,
+        endSpreadHours: finding.timing.endSpreadHours,
+      };
+    }
+    return {
+      day: finding.day,
+      spreadM: finding.spreadM,
+      peaks: finding.peaks,
+    };
+  });
+}
+```
+
+`windowAgreement` counts qualifying windows and complete quiet days as votes.
+A truncated quiet day abstains. Window edges clipped by the document horizon
+stay out of the corresponding timing spread.
+
+`heightSpread` lists each model's launch-relative peak and the difference
+between the highest and lowest. It does not create a mean or consensus height.
+
+`COMPARE_VOCABULARY_VERSION` versions these finding kinds independently of
+the published profile `schemaVersion`. Downstream publishers choose weighting,
+display language, and operational thresholds.

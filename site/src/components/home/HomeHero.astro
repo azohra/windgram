@@ -1,0 +1,326 @@
+---
+import SkylineMark from "../SkylineMark.astro";
+---
+
+<section class="home-hero" aria-labelledby="home-title">
+  <div class="home-hero__copy">
+    <p class="home-hero__eyebrow">Open source · Python + JSON + TypeScript</p>
+    <h1 id="home-title">Open windgram infrastructure for free flight.</h1>
+    <p class="home-hero__lede">
+      A Python publication pipeline, an open data contract, and a headless npm renderer for clubs,
+      pilots, researchers, and publishers building for free flight.
+    </p>
+    <nav class="home-hero__actions" aria-label="Start with Windgram">
+      <a class="home-hero__action home-hero__action--primary" href="/docs/getting-started/">
+        Start publishing <span aria-hidden="true">→</span>
+      </a>
+      <a class="home-hero__action" href="/research/">Read research</a>
+      <a class="home-hero__action" href="https://github.com/azohra/windgram">View GitHub</a>
+    </nav>
+  </div>
+
+  <div class="home-hero__artifact" aria-label="Three connected Windgram artifacts">
+    <div class="home-hero__skyline" aria-hidden="true"><SkylineMark /></div>
+    <p class="home-hero__artifact-label">One inspectable path</p>
+    <ol>
+      <li class="artifact-card artifact-card--python">
+        <span>01 / Pipeline</span>
+        <strong>derive_windgram_profile()</strong>
+        <small>Python · model columns in</small>
+      </li>
+      <li class="artifact-card artifact-card--contract">
+        <span>02 / Contract</span>
+        <strong>{`{ "schemaVersion": 1 }`}</strong>
+        <small>Portable · versioned JSON</small>
+      </li>
+      <li class="artifact-card artifact-card--renderer">
+        <span>03 / Package</span>
+        <strong>buildScene() → SVG</strong>
+        <small>npm · headless and deterministic</small>
+      </li>
+    </ol>
+    <div class="home-hero__packet" aria-hidden="true"></div>
+  </div>
+</section>
+
+<style>
+  .home-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.18fr) minmax(21rem, 0.82fr);
+    gap: clamp(2.5rem, 7vw, 7rem);
+    align-items: center;
+    width: min(74.25rem, calc(100% - 3.5rem));
+    min-height: min(47rem, calc(100svh - 5.5rem));
+    margin-inline: auto;
+    padding-block: clamp(4rem, 10vw, 8rem) clamp(4.5rem, 9vw, 7rem);
+  }
+
+  .home-hero__eyebrow,
+  .home-hero__artifact-label {
+    margin: 0;
+    color: var(--accent-strong);
+    font: 700 0.72rem/1.4 var(--mono);
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    max-width: 49rem;
+    margin: 0.9rem 0 1.5rem;
+    font-size: clamp(3.6rem, 7vw, 6rem);
+    line-height: 0.83;
+    letter-spacing: -0.015em;
+  }
+
+  .home-hero__lede {
+    max-width: 43rem;
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: clamp(1.08rem, 2vw, 1.32rem);
+    line-height: 1.58;
+  }
+
+  .home-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    margin-block: 2rem 0;
+  }
+
+  .home-hero__action {
+    display: inline-flex;
+    gap: 0.8rem;
+    align-items: center;
+    min-height: 3rem;
+    padding: 0.7rem 1rem;
+    color: var(--ink);
+    background: color-mix(in srgb, var(--surface) 82%, transparent);
+    border: 1px solid var(--rule-strong);
+    border-radius: 2px;
+    font: 700 0.76rem/1.2 var(--mono);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .home-hero__action:hover {
+    color: var(--accent-strong);
+    background: var(--surface);
+    text-decoration: none;
+  }
+
+  .home-hero__action--primary {
+    color: var(--accent-ink);
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .home-hero__action--primary:hover {
+    color: var(--accent-ink);
+    background: var(--accent-strong);
+  }
+
+  .home-hero__artifact {
+    position: relative;
+    isolation: isolate;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 31rem;
+    padding: 2rem 1.6rem;
+    overflow: hidden;
+    background:
+      linear-gradient(90deg, transparent 49.8%, color-mix(in srgb, var(--rule) 45%, transparent) 50%, transparent 50.2%),
+      repeating-linear-gradient(0deg, transparent 0 2.7rem, color-mix(in srgb, var(--rule) 28%, transparent) 2.7rem calc(2.7rem + 1px)),
+      color-mix(in srgb, var(--surface) 86%, transparent);
+    border: 1px solid var(--rule-strong);
+    border-block-start: 4px solid var(--accent);
+  }
+
+  .home-hero__artifact::before {
+    position: absolute;
+    inset: auto -5rem -6rem auto;
+    width: 17rem;
+    height: 17rem;
+    background: color-mix(in srgb, var(--model-1) 13%, transparent);
+    border: 1px solid color-mix(in srgb, var(--model-1) 28%, transparent);
+    border-radius: 50%;
+    content: "";
+  }
+
+  .home-hero__skyline {
+    position: absolute;
+    top: 1.6rem;
+    right: 1.4rem;
+    width: 4.7rem;
+    color: color-mix(in srgb, var(--accent) 76%, transparent);
+  }
+
+  .home-hero__skyline :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .home-hero__artifact ol {
+    position: relative;
+    display: grid;
+    gap: 1.25rem;
+    margin: 2.3rem 0 0;
+    padding: 0 0 0 1.25rem;
+    list-style: none;
+  }
+
+  .home-hero__artifact ol::before {
+    position: absolute;
+    inset: 1.2rem auto 1.2rem 0;
+    border-inline-start: 2px solid var(--rule-strong);
+    content: "";
+  }
+
+  .artifact-card {
+    position: relative;
+    display: grid;
+    min-width: 0;
+    gap: 0.25rem;
+    padding: 1rem 0.95rem 1.05rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    box-shadow: 0.38rem 0.38rem 0 var(--surface-sunken);
+  }
+
+  .artifact-card::before {
+    position: absolute;
+    top: 1.15rem;
+    left: -1.7rem;
+    width: 0.75rem;
+    height: 0.75rem;
+    background: var(--surface);
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+    content: "";
+  }
+
+  .artifact-card span,
+  .artifact-card small {
+    color: var(--ink-mute);
+    font: 0.65rem/1.4 var(--mono);
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+  }
+
+  .artifact-card strong {
+    color: var(--ink);
+    font: 700 clamp(0.86rem, 1.5vw, 1rem)/1.4 var(--mono);
+    overflow-wrap: anywhere;
+  }
+
+  .artifact-card--contract {
+    transform: translateX(1rem);
+  }
+
+  .artifact-card--renderer {
+    transform: translateX(2rem);
+  }
+
+  .home-hero__packet {
+    position: absolute;
+    z-index: 3;
+    top: 7.25rem;
+    left: 1.21rem;
+    width: 0.8rem;
+    height: 0.8rem;
+    background: var(--accent);
+    border: 2px solid var(--surface);
+    border-radius: 50%;
+    box-shadow: 0 0 0 1px var(--accent);
+    animation: packet-route 7s ease-in-out infinite;
+  }
+
+  @keyframes packet-route {
+    0%, 10% { transform: translateY(0); }
+    42%, 55% { transform: translateY(7.15rem); }
+    88%, 100% { transform: translateY(14.35rem); }
+  }
+
+  @media (max-width: 58rem) {
+    .home-hero {
+      grid-template-columns: 1fr;
+      min-height: 0;
+    }
+
+    .home-hero__artifact {
+      min-height: auto;
+    }
+
+    .home-hero__artifact ol {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      padding: 1.3rem 0 0;
+    }
+
+    .home-hero__artifact ol::before {
+      inset: 0 1.2rem auto;
+      border-block-start: 2px solid var(--rule-strong);
+      border-inline-start: 0;
+    }
+
+    .artifact-card,
+    .artifact-card--contract,
+    .artifact-card--renderer {
+      transform: none;
+    }
+
+    .artifact-card::before {
+      top: -1.7rem;
+      left: 1.15rem;
+    }
+
+    .home-hero__packet {
+      display: none;
+    }
+  }
+
+  @media (max-width: 43rem) {
+    .home-hero {
+      width: min(100% - 2rem, 74.25rem);
+      padding-block-start: 3.25rem;
+    }
+
+    h1 {
+      font-size: clamp(3.1rem, 15vw, 4.5rem);
+    }
+
+    .home-hero__actions {
+      display: grid;
+    }
+
+    .home-hero__action {
+      justify-content: space-between;
+    }
+
+    .home-hero__artifact {
+      padding-inline: 1rem;
+    }
+
+    .home-hero__artifact ol {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      padding: 0 0 0 1.1rem;
+    }
+
+    .home-hero__artifact ol::before {
+      inset: 1rem auto 1rem 0;
+      border-block-start: 0;
+      border-inline-start: 2px solid var(--rule-strong);
+    }
+
+    .artifact-card::before {
+      top: 1.15rem;
+      left: -1.55rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .home-hero__packet {
+      animation: none;
+    }
+  }
+</style>

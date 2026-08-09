@@ -227,7 +227,7 @@ describe("fields", () => {
 });
 
 describe("series", () => {
-  it("draws the three derived series with the gold-standard strokes", () => {
+  it("draws the three derived series with the reference strokes", () => {
     const scene = buildScene(deterministicSceneProfile(), TZ);
     const byKey = Object.fromEntries(scene.series.map((entry) => [entry.key, entry]));
     expect(byKey["boundaryLayerTop"]).toMatchObject({ strokeWidth: 2, dash: "10 5" });

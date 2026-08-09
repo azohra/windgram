@@ -7,9 +7,10 @@ import {
   luminanceGray,
   oklabLightness,
 } from "./ramp-math";
+import Figure from "../figure/Figure.astro";
 
 /* The shipped palette arrives from the package export at build time (the
-   same one-home pattern as Base.astro's --stab-* generation); the
+   same authority pattern as Base.astro's --stab-* generation); the
    canadarasp palette is the article's cited lineage. Each is drawn as a
    contiguous swatch strip on the surface it was designed against, with a
    luminance-matched grayscale row beneath — what a grayscale print or a
@@ -53,20 +54,23 @@ const description = ramps
   .join(" ");
 ---
 
-<figure class="ramp-strips" aria-labelledby="ramp-strips-title ramp-strips-caption">
-  <header>
-    <h3 id="ramp-strips-title">Two palettes, and what grayscale keeps</h3>
-    <span>Swatches imported from the package exports at build time — nothing here is retyped.</span>
-  </header>
+<Figure
+  id="stability-ramp-strips"
+  title="A background palette and its lineage"
+  lesson="A quiet field spends its lightness budget on the chart content drawn above it; the key and readouts carry class order."
+  {description}
+  caption="The shipped ramp comes from the package export; the canadarasp row records its cited lineage. Neither grayscale row preserves class order, so hue, the key, readouts, and field geometry carry that meaning."
+  units="sRGB colours and luminance-matched grayscale"
+>
 
-  <div class="graphic-scroll" tabindex="0" aria-label="Scrollable comparison of the two stability palettes with grayscale rows">
+  <div class="graphic-scroll" role="region" tabindex="0" aria-label="Scrollable comparison of the two stability palettes with grayscale rows">
     <svg
       viewBox={`0 0 1040 ${svgHeight}`}
       role="img"
       aria-labelledby="ramp-strips-svg-title ramp-strips-svg-desc"
     >
       <title id="ramp-strips-svg-title">
-        The default stability ramp and the canadarasp preset as swatch strips, each above its
+        The default stability ramp and the historical canadarasp palette as swatch strips, each above its
         luminance-matched grayscale row
       </title>
       <desc id="ramp-strips-svg-desc">
@@ -133,35 +137,9 @@ const description = ramps
     </svg>
   </div>
 
-  <figcaption id="ramp-strips-caption">
-    Each strip sits on the surface its palette was designed against. The grayscale rows are
-    computed at build time as the gray of equal relative luminance (sRGB linearized) — and neither
-    design's grays keep the class order, on purpose: a background field spends its lightness budget
-    on staying pale under the chart's content, and hands the ordering to the key, the cursor
-    readouts, and the field's own geometry. canadarasp's stable swatch disappears into its
-    background by design — the pivot that does not transfer to a chart whose surface is paper.
-  </figcaption>
-</figure>
+</Figure>
 
 <style>
-  .ramp-strips {
-    display: block;
-    width: min(1040px, calc(100vw - 32px));
-    margin: 28px 50% 44px;
-    transform: translateX(-50%);
-    color: var(--ink);
-    border-top: 3px solid var(--accent);
-    border-bottom: 1px solid var(--rule-strong);
-  }
-  header {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 6px 24px;
-    align-items: end;
-    padding: 18px 0 16px;
-  }
-  .ramp-strips h3 { margin: 0; font: 700 29px/1 var(--display); text-transform: uppercase; }
-  header > span { font: 13px/1.4 var(--mono); color: var(--ink-mute); }
   .graphic-scroll {
     overflow-x: auto;
     background: var(--surface);
@@ -176,11 +154,7 @@ const description = ramps
   .rs-backing { stroke: var(--rule); stroke-width: 1; }
   .rs-rowlabel { fill: var(--ink-mute); font-size: 10.5px; text-anchor: end; }
   .rs-hex { fill: var(--ink-mute); font-size: 10px; text-anchor: middle; }
-  figcaption { padding: 12px 0 14px; font: 12px/1.5 var(--mono); color: var(--ink-mute); }
   @media (max-width: 720px) {
-    header { grid-template-columns: 1fr; }
-    .ramp-strips h3 { font-size: 25px; }
-    header > span { font-size: 12px; }
     .graphic-scroll { margin-inline: -8px; }
   }
 </style>

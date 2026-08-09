@@ -1,5 +1,6 @@
 ---
 import { STABILITY_TOKEN_DEFAULTS, TOKEN_DEFAULTS } from "windgram/svg";
+import AttributionLine from "../components/AttributionLine.astro";
 import SkylineMark from "../components/SkylineMark.astro";
 import "@fontsource/big-shoulders/700.css";
 import "@fontsource/big-shoulders/800.css";
@@ -16,12 +17,12 @@ import "../styles/theme.css";
 interface Props {
   title: string;
   description: string;
-  activeNav?: "research" | "docs";
+  activeNav?: "research" | "docs" | "about";
 }
 
 const { title, description, activeNav } = Astro.props;
 
-// The stability ramp's one home is the package export; the site's --stab-*
+// The package export is the stability ramp authority; the site's --stab-*
 // custom properties (figure legends, StabilityGuide, HomeWindgram) are
 // generated from it at build time instead of hand-mirroring hexes in CSS.
 // The same pattern serves the package hues theme.css takes no position on
@@ -37,7 +38,7 @@ const stabilityStyle = `:root { ${stabilityTokens} ${packageTokens} }`;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -52,9 +53,10 @@ const stabilityStyle = `:root { ${stabilityTokens} ${packageTokens} }`;
         <SkylineMark />
         Windgram
       </a>
-      <nav class="site-nav">
-        <a href="/" aria-current={activeNav === "research" ? "page" : undefined}>Research</a>
-        <a href="/docs/" aria-current={activeNav === "docs" ? "page" : undefined}>Integrate</a>
+      <nav class="site-nav" aria-label="Project">
+        <a href="/docs/" aria-current={activeNav === "docs" ? "page" : undefined}>Docs</a>
+        <a href="/research/" aria-current={activeNav === "research" ? "page" : undefined}>Research</a>
+        <a href="/about/" aria-current={activeNav === "about" ? "page" : undefined}>About</a>
         <a href="https://github.com/azohra/windgram">GitHub</a>
       </nav>
     </header>
@@ -62,12 +64,7 @@ const stabilityStyle = `:root { ${stabilityTokens} ${packageTokens} }`;
     <slot />
 
     <footer class="site-footer">
-      <p>
-        Forecast source data © Environment and Climate Change Canada and NOAA's Open Data
-        Dissemination program, used under their respective open-data licences. Derived profiles are
-        free to use with attribution. Code is MIT licensed.
-        <a href="https://github.com/azohra/windgram">azohra/windgram</a>
-      </p>
+      <AttributionLine />
     </footer>
   </body>
 </html>

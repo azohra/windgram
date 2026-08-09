@@ -1,11 +1,8 @@
 /* derive/ — pure functions of published state. Everything here needs only
-   the profile JSON; anything needing raw model fields or cross-run authority
-   (W*, BL top, cloud base, usable-lift top) lives in the pipeline and is
-   never recomputed here (the one-home rule). The one deliberate re-run is
-   usableLiftTopM: the pipeline's published value stays authoritative at the
-   default 1.0 m/s sink rate (tests assert exact parity), and the same
-   derivation exposed here — over published inputs only — lets a renderer
-   answer other sink rates without republishing anything.
+   the profile JSON. The pipeline publishes the authoritative W*, boundary-
+   layer top, cloud base, and default usable-lift top. usableLiftTopM projects
+   the published inputs at another sink rate without changing that document;
+   its 1.0 m/s result matches the published value.
 
    Every derivation takes plain numbers; to run one against an ensemble
    profile, select the median first with p50. The document-shaped helpers

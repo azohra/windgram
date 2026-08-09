@@ -1,0 +1,55 @@
+---
+title: Model catalogue
+description: Discover models and render their declared capabilities from the catalogue.
+---
+
+`data/models.json` is the machine-readable declaration of which models exist
+in the dataset. Its zod authority is `modelCatalogueSchema` from
+`windgram/contract`; provider evidence lives in the dated
+[forecast feed reference](/docs/reference/forecast-model-feeds/).
+
+## Entry structure
+
+| Group | Fields | Consumer use |
+| --- | --- | --- |
+| Identity | `slug`, `label`, `provider` | Path identity and reader-facing label |
+| Schedule | `stepHours`, `horizonHours`, `runIntervalHours` | Time sampling, horizon, and expected publication cadence |
+| Grid | `gridKm` | Declared horizontal resolution |
+| Lifecycle | `experimental`, optional `sunset` | Availability context and machine-readable retirement |
+| Kind | `deterministic` or `ensemble` | Document interpretation without a named-model branch |
+| Capabilities | levels, omega provenance, heat fluxes, gust/precipitation semantics, convection, PBL and cloud fields | Honest feature presence and labels |
+
+`stepHours` declares the finest published step, not a whole-horizon promise: NAM drops from hourly
+to three-hourly output after 36 hours and GEPS from three-hourly to six-hourly after 192 hours. The
+dated [forecast feed reference](/docs/reference/forecast-model-feeds/) records each model's full
+cadence.
+
+## Discover models from the catalogue
+
+```ts title="read-models.ts"
+import { parseModelCatalogueJson } from "windgram/contract";
+
+export function modelLabels(text: string): string[] {
+  const catalogue = parseModelCatalogueJson(text);
+  if (!catalogue) throw new Error("unsupported model catalogue");
+
+  return catalogue.models.map(
+    (model) => `${model.slug}: ${model.label} (${model.capabilities.gust})`,
+  );
+}
+```
+
+A new catalogue entry is not a package enum change.
+
+## Absence and semantics are declarations
+
+Capability booleans state whether a family exists. Gust and precipitation go
+further by declaring meaning: readers must not label two different windows as
+the same measurement. Vertical velocity declares both provenance and the
+subset of levels that carries it.
+
+Render the declaration. Do not infer features from the provider, grid size,
+kind, slug, or another model in the same family. See
+[Model capabilities](/docs/reference/model-capabilities/) for the reading
+consequences and [Choose models](/docs/models/choosing/) for task-oriented
+selection.

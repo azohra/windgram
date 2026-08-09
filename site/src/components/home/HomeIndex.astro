@@ -1,0 +1,117 @@
+---
+const sections = [
+  { number: "01", label: "Windgram", href: "#read" },
+  { number: "02", label: "Build", href: "#build" },
+  { number: "03", label: "Research", href: "#research" },
+  { number: "04", label: "Project", href: "#project" },
+];
+---
+
+<nav class="home-index" aria-label="Explore this page">
+  <div class="home-index__inner">
+    <span class="home-index__label">Explore</span>
+    <ol>
+      {sections.map((section) => (
+        <li>
+          <a href={section.href}>
+            <small>{section.number}</small>
+            <span>{section.label}</span>
+          </a>
+        </li>
+      ))}
+    </ol>
+  </div>
+</nav>
+
+<style>
+  .home-index {
+    position: sticky;
+    z-index: 20;
+    top: 0;
+    color: var(--ink);
+    background: color-mix(in srgb, var(--surface) 94%, transparent);
+    border-block: 1px solid var(--rule-strong);
+    backdrop-filter: blur(12px);
+  }
+
+  .home-index__inner {
+    display: flex;
+    width: min(74.25rem, calc(100% - 3.5rem));
+    margin-inline: auto;
+  }
+
+  .home-index__label {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    padding-inline: 1rem 1.4rem;
+    color: var(--surface);
+    background: var(--accent-strong);
+    font: 700 0.66rem/1 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  ol {
+    display: grid;
+    flex: 1;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li + li {
+    border-inline-start: 1px solid var(--rule);
+  }
+
+  a {
+    display: flex;
+    gap: 0.55rem;
+    align-items: baseline;
+    justify-content: center;
+    min-height: 3.25rem;
+    padding: 0.85rem 0.65rem;
+    color: var(--ink-soft);
+    font: 700 0.68rem/1.2 var(--mono);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  a:hover {
+    color: var(--accent-strong);
+    background: var(--surface-accent);
+    text-decoration: none;
+  }
+
+  small {
+    color: var(--accent-strong);
+    font-size: 0.58rem;
+  }
+
+  @media (max-width: 46rem) {
+    .home-index {
+      position: relative;
+    }
+
+    .home-index__inner {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .home-index__label {
+      position: sticky;
+      z-index: 1;
+      left: 0;
+    }
+
+    ol {
+      display: flex;
+      min-width: max-content;
+    }
+
+    li {
+      min-width: 7rem;
+    }
+  }
+</style>

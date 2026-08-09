@@ -1,0 +1,229 @@
+---
+const paths = [
+  {
+    number: "A",
+    audience: "Club publisher",
+    title: "Publish for a club",
+    detail: "Configure launch facts, choose a catalogued model, run the Python CLI, and host static output under your own policy.",
+    action: "Follow the publishing path",
+    href: "/docs/publish/configure-launches/",
+    artifact: "sites.json → static profiles",
+  },
+  {
+    number: "B",
+    audience: "TypeScript integrator",
+    title: "Build a renderer",
+    detail: "Validate profiles, derive quantities, analyze one model or compare several, then construct a scene and render with your own tokens.",
+    action: "Render a first windgram",
+    href: "/docs/typescript/render-first-windgram/",
+    artifact: "contract → findings / scene → SVG",
+  },
+  {
+    number: "C",
+    audience: "Technical learner",
+    title: "Learn the methods",
+    detail: "Read figures beside the equations, evidence, model limits, and dated research decisions that produced them.",
+    action: "Start reading a windgram",
+    href: "/docs/learn/reading-a-windgram/",
+    artifact: "profile → figure → method",
+  },
+];
+---
+
+<section id="build" class="home-paths" aria-labelledby="home-paths-title">
+  <div class="home-paths__inner">
+    <div class="home-paths__layout">
+      <header class="home-paths__header">
+        <p>Start here</p>
+        <h2 id="home-paths-title">Choose what you want to build</h2>
+        <div>Publish profiles, integrate the renderer, or learn how to read the result.</div>
+      </header>
+
+      <div class="home-paths__grid">
+        {paths.map((path) => (
+          <article class="path-card">
+            <div class="path-card__topline">
+              <span class="path-card__number">{path.number}</span>
+              <span class="path-card__audience">{path.audience}</span>
+            </div>
+            <h3>{path.title}</h3>
+            <p>{path.detail}</p>
+            <code>{path.artifact}</code>
+            <a href={path.href}>{path.action} <span aria-hidden="true">→</span></a>
+          </article>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .home-paths {
+    padding-block: clamp(4.5rem, 9vw, 8rem);
+    background: var(--ink);
+    color: var(--surface);
+  }
+
+  .home-paths__inner {
+    width: min(74.25rem, calc(100% - 3.5rem));
+    margin-inline: auto;
+  }
+
+  .home-paths__layout {
+    display: grid;
+    grid-template-columns: minmax(16rem, 0.65fr) minmax(0, 1.35fr);
+    gap: clamp(2.5rem, 7vw, 7rem);
+    align-items: start;
+  }
+
+  .home-paths__header {
+    position: sticky;
+    top: 5.5rem;
+    padding-block-start: 0.65rem;
+    border-block-start: 4px solid var(--surface-accent);
+  }
+
+  .home-paths__header > p {
+    margin: 0 0 1.25rem;
+    color: var(--surface-accent);
+    font: 700 0.7rem/1.4 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .home-paths__header h2 {
+    margin: 0;
+    color: var(--surface);
+    font-size: clamp(2.8rem, 5.4vw, 4.9rem);
+    line-height: 0.88;
+  }
+
+  .home-paths__header > div {
+    margin-block-start: 1.6rem;
+    color: color-mix(in srgb, var(--surface) 78%, transparent);
+    font-size: 1rem;
+    line-height: 1.6;
+  }
+
+  .home-paths__grid {
+    display: grid;
+    border: 1px solid color-mix(in srgb, var(--surface) 48%, transparent);
+  }
+
+  .path-card {
+    display: grid;
+    grid-template-columns: 4rem minmax(11rem, 0.8fr) minmax(0, 1.2fr);
+    grid-template-areas:
+      "top title detail"
+      "top artifact action";
+    gap: 1rem 1.4rem;
+    min-width: 0;
+    min-height: 12.5rem;
+    padding: clamp(1.2rem, 3vw, 2rem);
+    background: color-mix(in srgb, var(--ink-soft) 42%, transparent);
+    border-block-end: 1px solid color-mix(in srgb, var(--surface) 34%, transparent);
+  }
+
+  .path-card:last-child {
+    border-block-end: 0;
+  }
+
+  .path-card__topline {
+    grid-area: top;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .path-card__number {
+    display: grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    color: var(--ink);
+    background: var(--surface-accent);
+    border-radius: 50%;
+    font: 800 1.15rem/1 var(--display);
+  }
+
+  .path-card__audience {
+    writing-mode: vertical-rl;
+    color: color-mix(in srgb, var(--surface) 75%, transparent);
+    font: 600 0.65rem/1.4 var(--mono);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  h3 {
+    grid-area: title;
+    align-self: end;
+    margin: 0;
+    color: var(--surface);
+    font-size: clamp(2rem, 3.4vw, 3rem);
+    line-height: 0.9;
+  }
+
+  .path-card p {
+    grid-area: detail;
+    margin: 0;
+    color: color-mix(in srgb, var(--surface) 78%, transparent);
+    font-size: 0.96rem;
+    line-height: 1.58;
+  }
+
+  .path-card code {
+    grid-area: artifact;
+    align-self: start;
+    color: var(--surface-accent);
+    font: 0.7rem/1.5 var(--mono);
+  }
+
+  .path-card a {
+    grid-area: action;
+    display: flex;
+    align-self: end;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block-start: 0.9rem;
+    color: var(--surface);
+    border-block-start: 1px solid color-mix(in srgb, var(--surface) 45%, transparent);
+    font: 700 0.72rem/1.4 var(--mono);
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+  }
+
+  .path-card a:hover {
+    color: var(--surface-accent);
+    text-decoration: none;
+  }
+
+  @media (max-width: 54rem) {
+    .home-paths__layout {
+      grid-template-columns: 1fr;
+    }
+
+    .home-paths__header {
+      position: static;
+    }
+
+    .path-card {
+      grid-template-columns: 3.5rem minmax(10rem, 0.8fr) minmax(0, 1.2fr);
+    }
+  }
+
+  @media (max-width: 34rem) {
+    .home-paths__inner {
+      width: min(100% - 2rem, 74.25rem);
+    }
+
+    .path-card {
+      grid-template-columns: 2.7rem minmax(0, 1fr);
+      grid-template-areas:
+        "top title"
+        "top detail"
+        "top artifact"
+        "top action";
+    }
+  }
+</style>

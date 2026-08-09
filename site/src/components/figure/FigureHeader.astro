@@ -1,0 +1,23 @@
+---
+interface Props {
+  titleId: string;
+  title: string;
+  lesson?: string;
+  headingLevel?: "h2" | "h3" | "h4";
+}
+
+const {
+  titleId,
+  title,
+  lesson,
+  headingLevel = "h3",
+} = Astro.props;
+const Heading = headingLevel;
+---
+
+<header class="wg-figure__header">
+  <div class="wg-figure__heading-copy">
+    <Heading id={titleId} class="wg-figure__title">{title}</Heading>
+    {lesson && <p class="wg-figure__lesson">{lesson}</p>}
+  </div>
+</header>

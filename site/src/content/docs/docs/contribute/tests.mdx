@@ -1,0 +1,101 @@
+---
+title: Tests by change
+description: Run the smallest authoritative check first, then the complete gate your change can affect.
+---
+
+Focused tests shorten feedback; complete gates catch shared contracts. A
+change ships with the prose and generated artifacts it makes stale.
+
+| Change class | Focused checks | Complete relevant gate |
+| --- | --- | --- |
+| Python builder or publisher | matching `tests/test_build_*.py`, `test_cli.py`, publication/history tests | `uv run pytest` |
+| Scenario definition or generator | scenario and calibration/ensemble tests | scenario `generate`, `check`, Python suite, package scenario tests |
+| Contract/schema | package contract tests and schema generation | package test + typecheck; Python suite when publisher shape changes |
+| Pure derivation | matching package test | package test + typecheck |
+| Scene/SVG/key/token | matching scene or serializer tests and golden diff review | package test + typecheck + site check/build |
+| Documentation/content | site check/build, link and fragment audit | Playwright boundary, accessibility, interaction, search, and responsive visual QA |
+| Provider declaration | focused builder/catalogue parity tests | Python suite and affected package/site gates |
+
+## Scenario checks are two different operations
+
+`uv run windgram scenarios generate` writes committed outputs.
+`uv run windgram scenarios check` is read-only and fails when definitions,
+generated profiles, hashes, or registry drift. Never regenerate merely to make
+a diff disappear; inspect whether the lesson and assertions still hold.
+
+## Golden SVG changes require review
+
+Golden files under `packages/windgram/test/golden/` protect the reference
+renderer and selected scenario output. A mismatch is a review request asking
+whether geometry, labels, units, IDs, accessibility, or tokens changed
+intentionally — not an instruction to accept new pixels.
+
+1. Change the authoritative scene, tokens, renderer, or scenario input.
+2. Run the package tests and inspect the failed SVG diff.
+3. Confirm geometry, labels, units, ordering, accessibility, and stable IDs.
+4. Only then update snapshots deliberately:
+
+   ```sh
+   pnpm --dir packages/windgram exec vitest run --update
+   ```
+
+5. Review every changed SVG in the diff and rerun the package tests, site
+   check, and site build.
+
+Never update a golden solely to obtain a green test, and avoid broad golden
+churn: if a supposedly local change rewrites unrelated fixtures, find the
+unstable input or unintended shared change first. When chart visibility
+changes, test `buildKeySpec` against that exact scene; key snapshots are not
+a substitute for scene/key parity assertions.
+
+## No-live boundary gate
+
+Run the complete local boundary gate with:
+
+```sh
+pnpm --dir site test:boundary
+```
+
+It builds the static site, serves that output locally, and visits every built
+HTML route except the generated 404 in an external-network-blocked browser.
+The check fails if a
+normal route makes a runtime request for a catalogue, current manifest, current
+profile, run index, or history archive, or restores the retired live-result
+controls. CI can use `test:boundary:built` after its existing site build.
+
+## The site QA gate is static and deterministic
+
+Run the full browser QA gate with:
+
+```sh
+pnpm --dir site test:qa
+```
+
+It builds once, blocks external network access, and checks every canonical
+route at desktop and 390 px widths. The suite covers named landmarks and
+controls, unique SVG IDs, native keyboard and touch-equivalent lab controls,
+Reset states, labelled horizontal figure exploration, textual conclusions,
+research navigation, Pagefind search, page-level overflow, reduced motion,
+and reviewed screenshots. `test:qa:built` reuses an existing static build;
+`test:built` runs both this gate and the no-live-data boundary in CI.
+
+Screenshot changes are review artifacts, not an automatic update. Run:
+
+```sh
+pnpm --dir site exec playwright test visuals.spec.ts --update-snapshots
+```
+
+only after checking that the changed layout, figure frame, and responsive
+behavior are intentional. The snapshot path is platform-neutral and the
+configured Chromium version is the rendering baseline.
+
+## Deterministic CI inputs
+
+- committed provider fixtures;
+- fixed clocks and explicit timezones;
+- seeded synthetic scenarios;
+- blocked external browser network access; and
+- no downstream credentials.
+
+Provider verification and network smoke runs are explicit review activities.
+Fixtures and synthetic scenarios make the automated suite deterministic.

@@ -1,0 +1,86 @@
+{
+  "$schema": "../scenario.schema.json",
+  "schemaVersion": 1,
+  "id": "ensemble-tight",
+  "title": "A tightly grouped synthetic ensemble",
+  "lesson": "Closely grouped member inputs produce narrow percentile bands while preserving circular wind direction across north.",
+  "kind": "ensemble",
+  "modelShape": "ensemble-five-level",
+  "timeZone": "Etc/UTC",
+  "site": {
+    "id": "synthetic-ridge",
+    "name": "Synthetic Ridge",
+    "synthetic": true,
+    "latitude": 49,
+    "longitude": -123,
+    "altitudeM": 1050,
+    "modelElevationM": 900
+  },
+  "clock": {
+    "referenceTime": "2000-01-01T06:00:00Z",
+    "generatedAt": "2000-01-01T06:00:00Z",
+    "startAt": "2000-01-01T12:00:00Z",
+    "stepHours": 1,
+    "hourCount": 6,
+    "seed": 15001
+  },
+  "baseline": {
+    "type": "synthetic",
+    "path": "baselines/synthetic-five-level-day.source.json"
+  },
+  "transforms": [],
+  "semantics": {
+    "precipitation": "instantRate"
+  },
+  "capabilities": {
+    "levels": true,
+    "pressureLevels": [925, 850, 800, 700, 600],
+    "verticalVelocity": false,
+    "heatFluxes": true,
+    "gust": false,
+    "cape": false,
+    "cin": false,
+    "pblHeight": false,
+    "cloudLayers": false,
+    "cloudProfile": false
+  },
+  "ensemble": {
+    "members": 9,
+    "perturbations": [
+      {"field": "surface.temperatureC", "distribution": "symmetric", "spread": 0.4, "correlation": "whole-column"},
+      {"field": "surface.windDirectionDeg", "distribution": "symmetric", "spread": 12, "correlation": "by-hour"},
+      {"field": "surface.sensibleHeatFluxWm2", "distribution": "uniform", "spread": 8, "correlation": "by-hour"},
+      {"field": "levels.temperatureC", "distribution": "symmetric", "spread": 0.3, "correlation": "by-level"},
+      {"field": "levels.windDirectionDeg", "distribution": "uniform", "spread": 10, "correlation": "independent"}
+    ]
+  },
+  "assertions": [
+    {
+      "id": "temperature-band-is-narrow",
+      "description": "Tightly grouped member temperatures keep the p10-p90 band within one degree.",
+      "actual": {"field": "surface.temperatureC.p90", "hour": 2},
+      "operator": "equal",
+      "expected": {"field": "surface.temperatureC.p10", "hour": 2},
+      "tolerance": 1
+    },
+    {
+      "id": "every-member-contributes",
+      "description": "All nine members contribute to the surface temperature band.",
+      "actual": {"field": "surface.temperatureC.members", "hour": 2},
+      "operator": "equal",
+      "expected": 9
+    },
+    {
+      "id": "lift-band-exists",
+      "description": "The aggregate publishes a usable-lift percentile band.",
+      "actual": {"field": "derived.usableLiftTopM", "hour": 2},
+      "operator": "present"
+    },
+    {
+      "id": "wrapped-direction-exists",
+      "description": "The aggregate publishes the circularly combined surface direction.",
+      "actual": {"field": "surface.windDirectionDeg", "hour": 1},
+      "operator": "present"
+    }
+  ]
+}

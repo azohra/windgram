@@ -1,0 +1,135 @@
+---
+import ControlGroup from "../figure/ControlGroup.astro";
+import Figure from "../figure/Figure.astro";
+import Legend from "../figure/Legend.astro";
+import {
+  utcHourLabel,
+  windLabel,
+  windShearFrame,
+  type LabScenarioSource,
+} from "../../lib/labs";
+import { scenarioById } from "../../lib/scenarios";
+
+const scenario = scenarioById("shear-through-lift-band");
+const source: LabScenarioSource = {
+  profile: scenario.profile,
+  timeZone: scenario.timeZone,
+};
+const profile = scenario.profile;
+const initialHourIndex = 3;
+const initial = windShearFrame(source, initialHourIndex);
+---
+
+<Figure
+  id="wind-shear-lab"
+  title="Follow the wind through the lift band"
+  lesson="Move through teaching hours while the package samples the same wind field at launch and usable-lift top."
+  description="An interactive vertical wind profile showing changing wind speed and direction between launch altitude and the derived usable-lift top."
+  caption="Wind components are interpolated from the package scene; vector shear is calculated by windgram/derive."
+  units="wind m/s and degrees from · shear m/s · height m MSL"
+  {scenario}
+>
+  <ControlGroup slot="controls" label="Wind-shear laboratory controls">
+    <label for="wind-shear-hour">
+      Teaching hour
+      <span class="wg-lab__range-row">
+        <input
+          id="wind-shear-hour"
+          data-shear-hour
+          type="range"
+          min="0"
+          max={profile.hours.length - 1}
+          value={initialHourIndex}
+          step="1"
+        />
+        <output for="wind-shear-hour" data-shear-hour-output>
+          {utcHourLabel(profile.hours[initialHourIndex].validAt)}
+        </output>
+      </span>
+    </label>
+  </ControlGroup>
+
+  <div class="wg-lab" data-shear-lab>
+    <script
+      is:inline
+      type="application/json"
+      data-shear-source
+      set:html={JSON.stringify(source)}
+    />
+    <div class="wg-lab__readout" aria-live="polite" aria-atomic="true">
+      <span>At launch <strong data-shear-launch>{windLabel(initial.launchWind)}</strong></span>
+      <span>At usable top <strong data-shear-top>{windLabel(initial.usableWind)}</strong></span>
+      <span>Vector shear <strong data-shear-value>{initial.shearMs === null ? "not available" : `${initial.shearMs.toFixed(1)} m/s`}</strong></span>
+    </div>
+    <div
+      class="wg-lab__chart-scroll"
+      tabindex="0"
+      role="region"
+      aria-label="Scrollable wind-shear profile"
+    >
+      <div
+        class="wg-lab__mount"
+        data-shear-mount
+        style={`--wg-lab-scene-width: ${initial.scene.width}px`}
+        set:html={initial.svg}
+      />
+    </div>
+    <p class="wg-lab__conclusion">
+      <strong>Conclusion.</strong> A single surface wind cannot describe this column: wind strengthens
+      and turns between launch and the top of the usable-lift band.
+    </p>
+  </div>
+
+  <Legend
+    slot="legend"
+    label="Wind-shear figure legend"
+    items={[
+      { label: "Wind barbs", color: "var(--chart-wind)", mark: "line" },
+      { label: "Shear field", description: "package scene classes from the published wind column", mark: "area" },
+      { label: "Usable-lift top", color: "var(--chart-usable)", mark: "line" },
+    ]}
+  />
+</Figure>
+
+<script>
+  import {
+    utcHourLabel,
+    windLabel,
+    windShearFrame,
+    type LabScenarioSource,
+  } from "../../lib/labs";
+
+  for (const figure of document.querySelectorAll<HTMLElement>("#wind-shear-lab[data-figure]")) {
+    if (figure.dataset.shearReady === "true") continue;
+    figure.dataset.shearReady = "true";
+    const source = figure.querySelector<HTMLScriptElement>("[data-shear-source]");
+    const hourControl = figure.querySelector<HTMLInputElement>("[data-shear-hour]");
+    const hourOutput = figure.querySelector<HTMLOutputElement>("[data-shear-hour-output]");
+    const launchOutput = figure.querySelector<HTMLElement>("[data-shear-launch]");
+    const topOutput = figure.querySelector<HTMLElement>("[data-shear-top]");
+    const shearOutput = figure.querySelector<HTMLElement>("[data-shear-value]");
+    const mount = figure.querySelector<HTMLElement>("[data-shear-mount]");
+    if (
+      !source?.textContent || !hourControl || !hourOutput || !launchOutput ||
+      !topOutput || !shearOutput || !mount
+    ) continue;
+
+    const scenario = Object.freeze(
+      JSON.parse(source.textContent),
+    ) as Readonly<LabScenarioSource>;
+
+    const render = () => {
+      const hourIndex = Number(hourControl.value);
+      const frame = windShearFrame(scenario, hourIndex);
+      hourOutput.value = utcHourLabel(scenario.profile.hours[hourIndex].validAt);
+      launchOutput.textContent = windLabel(frame.launchWind);
+      topOutput.textContent = windLabel(frame.usableWind);
+      shearOutput.textContent = frame.shearMs === null ? "not available" : `${frame.shearMs.toFixed(1)} m/s`;
+      mount.innerHTML = frame.svg;
+      mount.style.setProperty("--wg-lab-scene-width", `${frame.scene.width}px`);
+    };
+
+    hourControl.addEventListener("input", render);
+    figure.addEventListener("figure:reset", render);
+  }
+</script>

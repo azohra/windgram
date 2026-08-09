@@ -1,0 +1,97 @@
+---
+import { Icon } from "@astrojs/starlight/components";
+---
+
+<windgram-menu-button class="print:hidden">
+  <button
+    aria-expanded="false"
+    aria-label="Menu"
+    aria-controls="starlight__sidebar"
+    class="sl-flex md:sl-hidden"
+  >
+    <Icon name="bars" class="open-menu" />
+    <Icon name="close" class="close-menu" />
+  </button>
+</windgram-menu-button>
+
+<script>
+  class WindgramMenuButton extends HTMLElement {
+    button = this.querySelector("button")!;
+    desktop = matchMedia("(min-width: 50em)");
+
+    constructor() {
+      super();
+      this.button.addEventListener("click", () => {
+        this.setExpanded(this.getAttribute("aria-expanded") !== "true");
+      });
+      this.closest("nav")?.addEventListener("keyup", (event) => {
+        if (event.code !== "Escape") return;
+        this.setExpanded(false);
+        this.button.focus();
+      });
+      this.desktop.addEventListener("change", () => this.setExpanded(false));
+    }
+
+    setExpanded(expanded: boolean) {
+      const value = String(expanded);
+      this.setAttribute("aria-expanded", value);
+      this.button.setAttribute("aria-expanded", value);
+      document.body.toggleAttribute("data-mobile-menu-expanded", expanded);
+      document.querySelectorAll<HTMLElement>(".main-frame, .sl-skip-link").forEach((element) => {
+        element.toggleAttribute("inert", expanded);
+      });
+    }
+  }
+
+  customElements.define("windgram-menu-button", WindgramMenuButton);
+</script>
+
+<style>
+  @layer starlight.components {
+    button {
+      position: fixed;
+      z-index: var(--sl-z-index-navbar);
+      top: calc((var(--sl-nav-height) - var(--sl-menu-button-size)) / 2);
+      inset-inline-end: var(--sl-nav-pad-x);
+      width: var(--sl-menu-button-size);
+      height: var(--sl-menu-button-size);
+      padding: 0.5rem;
+      border: 1px solid transparent;
+      border-radius: 50%;
+      background: var(--surface-raised);
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    button:hover {
+      border-color: var(--rule);
+      background: var(--surface-sunken);
+    }
+
+    [aria-expanded="true"] button {
+      border-color: var(--accent);
+      background: var(--ink);
+      color: var(--accent-ink);
+    }
+
+    [aria-expanded="true"] button :global(.open-menu) {
+      display: none;
+    }
+
+    :not([aria-expanded="true"]) button :global(.close-menu) {
+      display: none;
+    }
+  }
+</style>
+
+<style is:global>
+  [data-mobile-menu-expanded] {
+    overflow: hidden;
+  }
+
+  @media (min-width: 50rem) {
+    [data-mobile-menu-expanded] {
+      overflow: auto;
+    }
+  }
+</style>

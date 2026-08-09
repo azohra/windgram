@@ -1,0 +1,235 @@
+---
+import { STABILITY_TOKEN_DEFAULTS } from "windgram/svg";
+import type { DocPage } from "../../lib/research";
+import { researchThumbnailFor, type ResearchThumbnailKind } from "../../lib/research-thumbnails";
+
+interface Props {
+  entry: Pick<
+    DocPage,
+    "number" | "title" | "section" | "researchKind" | "status" | "accent" | "thumbnail"
+  >;
+}
+
+const { entry } = Astro.props;
+const thumbnail = researchThumbnailFor(entry);
+const ramp = Object.values(STABILITY_TOKEN_DEFAULTS);
+const labels: Record<ResearchThumbnailKind, string> = {
+  "lift-limits": "Three limits",
+  "validation-witnesses": "Seven checks",
+  "ensemble-ceiling": "Censoring",
+  "stability-contrast": "Measured ramp",
+  "model-succession": "Lifecycle",
+  "cloud-base-delta": "De-capping",
+  "terrain-shear": "Terrain flow",
+};
+const descriptions: Record<ResearchThumbnailKind, string> = {
+  "lift-limits": "Parcel top, usable-lift top, and cloud base follow different paths through one day.",
+  "validation-witnesses": "Seven parseable payloads are paired with seven independent checks.",
+  "ensemble-ceiling": "A narrow band pinned to 700 hPa opens into measured spread when the column extends to 500 hPa.",
+  "stability-contrast": "Eight stability colours and the repaired adjacent-colour difference under deuteranopia.",
+  "model-succession": "Two retiring NAM feed legs converge on one dated RRFS successor.",
+  "cloud-base-delta": "A small cloud-base correction reveals a usable-lift crossing 480 metres lower.",
+  "terrain-shear": "A valley surface wind and flow aloft belong to different circulations.",
+};
+---
+
+<div
+  class:list={["research-thumbnail", `research-thumbnail--${thumbnail.accent}`]}
+  role="img"
+  aria-label={`${thumbnail.title}. ${descriptions[thumbnail.visual]}`}
+  data-thumbnail-visual={thumbnail.visual}
+>
+  <svg viewBox="0 0 320 164" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+    {thumbnail.visual === "lift-limits" && (
+      <g class="lift-visual">
+        <text x="18" y="22" class="visual-title">ONE COLUMN · THREE LIMITS</text>
+        <line x1="22" y1="124" x2="300" y2="124" class="axis" />
+        <line x1="22" y1="36" x2="22" y2="124" class="axis" />
+        <path d="M28 108 C66 104 82 58 126 62 S198 82 222 48 S274 47 296 62" class="line parcel" />
+        <path d="M28 116 C64 114 82 88 126 77 S197 50 229 66 S271 93 296 105" class="line usable" />
+        <path d="M28 96 C66 82 95 90 128 60 S205 38 240 53 S279 61 296 72" class="line cloud" />
+        <text x="237" y="42" class="label cloud-label">CLOUD</text>
+        <text x="228" y="78" class="label parcel-label">PARCEL</text>
+        <text x="246" y="112" class="label usable-label">USABLE</text>
+      </g>
+    )}
+
+    {thumbnail.visual === "validation-witnesses" && (
+      <g class="validation-visual">
+        <text x="18" y="22" class="visual-title">PARSED PAYLOAD</text>
+        <text x="302" y="22" class="visual-title end">INDEPENDENT WITNESS</text>
+        {Array.from({ length: 7 }, (_, index) => {
+          const y = 38 + index * 14;
+          return (
+            <g>
+              <circle cx="30" cy={y} r="5.5" class="failure-node" />
+              <text x="30" y={y + 3} class="node-number">{String(index + 1).padStart(2, "0")}</text>
+              <line x1="42" y1={y} x2="268" y2={y} class="witness-line" />
+              <path d={`M270 ${y} l5 5 10 -11`} class="check" />
+            </g>
+          );
+        })}
+        <text x="18" y="145" class="visual-note">HTTP 200 IS NOT IDENTITY, PLACE, DIRECTION, OR TIME</text>
+      </g>
+    )}
+
+    {thumbnail.visual === "ensemble-ceiling" && (
+      <g class="ensemble-visual">
+        <text x="18" y="22" class="visual-title">SAME MEMBERS · MORE HEADROOM</text>
+        <rect x="18" y="34" width="132" height="98" class="panel" />
+        <rect x="170" y="34" width="132" height="98" class="panel" />
+        <text x="30" y="49" class="panel-title">700 hPa ceiling</text>
+        <text x="182" y="49" class="panel-title">500 hPa ceiling</text>
+        <line x1="30" y1="70" x2="138" y2="70" class="ceiling" />
+        <path d="M32 70 C66 70 102 69 136 70 L136 77 C102 76 66 77 32 76 Z" class="band" />
+        <path d="M184 109 C214 102 239 70 288 60 L288 92 C248 97 217 116 184 122 Z" class="band resolved" />
+        <path d="M184 115 C221 107 246 87 288 77" class="median" />
+        <text x="84" y="101" class="metric">16 m</text>
+        <text x="236" y="101" class="metric">205 m</text>
+        <text x="84" y="116" class="visual-note center">PINNED</text>
+        <text x="236" y="116" class="visual-note center">RESOLVED</text>
+      </g>
+    )}
+
+    {thumbnail.visual === "stability-contrast" && (
+      <g class="stability-visual">
+        <text x="18" y="22" class="visual-title">EIGHT CLASSES · MEASURED BOUNDARIES</text>
+        {ramp.map((color, index) => (
+          <rect x={18 + index * 35.5} y="36" width="35.5" height="46" fill={color} />
+        ))}
+        <line x1="18" y1="94" x2="302" y2="94" class="floor" />
+        <text x="18" y="108" class="visual-note">DEUTERANOPIA · ADJACENT ΔE</text>
+        <rect x="18" y="118" width="92" height="12" class="old-bar" />
+        <text x="116" y="128" class="metric small">2.8 · ancestor</text>
+        <rect x="202" y="118" width="72" height="12" class="new-bar" />
+        <text x="280" y="128" class="metric small">7.0</text>
+      </g>
+    )}
+
+    {thumbnail.visual === "model-succession" && (
+      <g class="lifecycle-visual">
+        <text x="18" y="22" class="visual-title">TWO FEED LEGS · ONE SUCCESSOR</text>
+        <rect x="18" y="38" width="82" height="32" class="model-box" />
+        <rect x="18" y="84" width="82" height="32" class="model-box" />
+        <text x="59" y="58" class="model-name">NAM 12K</text>
+        <text x="59" y="104" class="model-name">NAM 3K</text>
+        <path d="M100 54 H137 L155 77 M100 100 H137 L155 77" class="flow" />
+        <path d="M155 60 L172 77 L155 94 L138 77 Z" class="sunset" />
+        <text x="155" y="74" class="sunset-date">06</text>
+        <text x="155" y="84" class="sunset-month">OCT</text>
+        <path d="M172 77 H206" class="flow" />
+        <rect x="206" y="55" width="96" height="44" class="successor-box" />
+        <text x="254" y="75" class="model-name successor-name">RRFS</text>
+        <text x="254" y="89" class="visual-note center">SUCCESSOR</text>
+      </g>
+    )}
+
+    {thumbnail.visual === "cloud-base-delta" && (
+      <g class="cloud-delta-visual">
+        <text x="18" y="22" class="visual-title">A SMALL BASE SHIFT REVEALS A LOWER CROSSING</text>
+        <line x1="24" y1="121" x2="298" y2="121" class="axis" />
+        <path d="M28 61 C74 54 114 57 158 55 S246 57 294 50" class="line old-cloud" />
+        <path d="M28 49 C74 42 114 45 158 43 S246 45 294 38" class="line new-cloud" />
+        <path d="M28 92 C84 78 120 68 158 67 S228 73 294 82" class="line old-lift" />
+        <path d="M28 92 C84 78 118 69 150 70 S184 110 220 110 S267 96 294 91" class="line new-lift" />
+        <line x1="197" y1="72" x2="197" y2="108" class="delta-brace" />
+        <line x1="191" y1="72" x2="203" y2="72" class="delta-brace" />
+        <line x1="191" y1="108" x2="203" y2="108" class="delta-brace" />
+        <text x="207" y="93" class="metric delta-label">−480 m</text>
+        <text x="32" y="39" class="visual-note">BOLTON LCL</text>
+        <text x="32" y="72" class="visual-note">RETIRED 121 m/°C</text>
+      </g>
+    )}
+
+    {thumbnail.visual === "terrain-shear" && (
+      <g class="terrain-visual">
+        <text x="18" y="22" class="visual-title">TWO WINDS · TWO CIRCULATIONS</text>
+        <path d="M10 132 L10 91 L62 56 L116 110 L159 126 L205 102 L260 54 L310 87 L310 132 Z" class="terrain" />
+        <path d="M91 111 C110 106 128 107 146 115" class="wind surface-wind" />
+        <path d="M139 115 l-12 -7 M139 115 l-13 4" class="wind surface-wind" />
+        <path d="M75 49 H206" class="wind aloft-wind" />
+        <path d="M206 49 l-13 -7 M206 49 l-13 7" class="wind aloft-wind" />
+        <line x1="224" y1="45" x2="224" y2="112" class="separation" />
+        <circle cx="224" cy="49" r="4" class="flow-dot aloft-dot" />
+        <circle cx="224" cy="108" r="4" class="flow-dot surface-dot" />
+        <text x="78" y="42" class="visual-note">FLOW ALOFT</text>
+        <text x="71" y="126" class="visual-note on-terrain">VALLEY WIND</text>
+        <text x="234" y="82" class="visual-note">NOT ONE</text>
+        <text x="234" y="94" class="visual-note">AIR MASS</text>
+      </g>
+    )}
+  </svg>
+
+  <div class="thumbnail-meta" aria-hidden="true">
+    <span>{thumbnail.number}</span>
+    <span>{labels[thumbnail.visual]}</span>
+  </div>
+</div>
+
+<style>
+  .research-thumbnail { position: relative; min-height: 148px; overflow: hidden; color: var(--ink); background: var(--surface); border: 1px solid var(--rule); border-top: 3px solid var(--thumb-accent, var(--accent)); }
+  .research-thumbnail--amber { --thumb-accent: var(--accent); }
+  .research-thumbnail--blue { --thumb-accent: var(--chart-wind); }
+  .research-thumbnail--green { --thumb-accent: var(--chart-usable); }
+  .research-thumbnail--red { --thumb-accent: var(--status-serious); }
+  svg { display: block; width: 100%; height: auto; font-family: var(--mono); }
+  .visual-title { fill: var(--ink-soft); font-size: 9px; font-weight: 700; letter-spacing: .08em; }
+  .visual-title.end { text-anchor: end; }
+  .visual-note { fill: var(--ink-mute); font-size: 8px; font-weight: 600; letter-spacing: .04em; }
+  .visual-note.center { text-anchor: middle; }
+  .axis, .panel, .floor { fill: none; stroke: var(--rule); stroke-width: 1; }
+  .line { fill: none; stroke-width: 2.6; }
+  .lift-visual .parcel { stroke: var(--chart-boundary); stroke-dasharray: 7 4; }
+  .lift-visual .usable { stroke: var(--chart-usable); }
+  .lift-visual .cloud { stroke: var(--chart-cloud); stroke-dasharray: 2 4; }
+  .label { font-size: 8px; font-weight: 700; paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
+  .cloud-label { fill: var(--chart-cloud); }
+  .parcel-label { fill: var(--chart-boundary); }
+  .usable-label { fill: var(--chart-usable); }
+  .failure-node { fill: var(--status-serious); }
+  .node-number { fill: var(--surface); font-size: 5px; font-weight: 700; text-anchor: middle; }
+  .witness-line { stroke: var(--rule); stroke-width: 1; }
+  .check { fill: none; stroke: var(--chart-usable); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .panel { fill: color-mix(in srgb, var(--surface-raised) 45%, var(--surface)); }
+  .panel-title { fill: var(--ink-soft); font-size: 8px; font-weight: 700; }
+  .ceiling { stroke: var(--status-serious); stroke-width: 1.5; stroke-dasharray: 4 3; }
+  .band { fill: color-mix(in srgb, var(--chart-usable) 24%, transparent); stroke: var(--chart-usable); stroke-width: 1; }
+  .band.resolved { fill: color-mix(in srgb, var(--chart-usable) 30%, transparent); }
+  .median { fill: none; stroke: var(--chart-usable); stroke-width: 2; }
+  .metric { fill: var(--ink); font-size: 13px; font-weight: 700; text-anchor: middle; }
+  .metric.small { font-size: 9px; text-anchor: start; }
+  .old-bar { fill: var(--status-serious); }
+  .new-bar { fill: var(--chart-usable); }
+  .model-box, .successor-box { fill: var(--surface-raised); stroke: var(--rule-strong); }
+  .successor-box { fill: color-mix(in srgb, var(--chart-usable) 12%, var(--surface)); stroke: var(--chart-usable); }
+  .model-name { fill: var(--ink); font-size: 10px; font-weight: 700; text-anchor: middle; }
+  .successor-name { fill: var(--chart-usable); font-size: 13px; }
+  .flow { fill: none; stroke: var(--rule-strong); stroke-width: 1.5; }
+  .sunset { fill: var(--surface-accent); stroke: var(--accent); stroke-width: 1.5; }
+  .sunset-date, .sunset-month { fill: var(--accent-strong); font-weight: 700; text-anchor: middle; }
+  .sunset-date { font-size: 10px; }
+  .sunset-month { font-size: 7px; }
+  .old-cloud { stroke: var(--chart-cloud); stroke-dasharray: 3 3; }
+  .new-cloud { stroke: var(--chart-cloud); }
+  .old-lift { stroke: var(--chart-usable); opacity: .45; }
+  .new-lift { stroke: var(--status-serious); }
+  .delta-brace { stroke: var(--status-serious); stroke-width: 1.4; }
+  .delta-label { fill: var(--status-serious); font-size: 11px; text-anchor: start; }
+  .terrain { fill: var(--surface-accent); stroke: var(--rule-strong); stroke-width: 1.2; }
+  .wind { fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .surface-wind { stroke: var(--accent); }
+  .aloft-wind { stroke: var(--chart-wind); }
+  .separation { stroke: var(--rule-strong); stroke-width: 1; stroke-dasharray: 3 3; }
+  .flow-dot { stroke: var(--surface); stroke-width: 2; }
+  .aloft-dot { fill: var(--chart-wind); }
+  .surface-dot { fill: var(--accent); }
+  .on-terrain { fill: var(--ink); paint-order: stroke; stroke: var(--surface-accent); stroke-width: 3px; }
+  .thumbnail-meta { position: absolute; right: 0; bottom: 0; left: 0; display: flex; justify-content: space-between; gap: 10px; padding: 6px 8px; color: var(--ink); background: color-mix(in srgb, var(--surface) 90%, transparent); border-top: 1px solid var(--rule); font: 9px/1.2 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
+  .thumbnail-meta span:last-child { color: var(--thumb-accent); font-weight: 700; }
+  @media (prefers-reduced-motion: reduce) {
+    .research-thumbnail * { transition: none !important; animation: none !important; }
+  }
+  @media print {
+    .research-thumbnail { min-height: 110px; }
+  }
+</style>

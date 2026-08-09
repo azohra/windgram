@@ -1,0 +1,37 @@
+---
+title: Development setup
+description: Prepare the Python, package, and site workspaces and understand which generated files stay untouched.
+---
+
+Windgram is one repository with Python 3.12+, a pnpm workspace, the npm
+package, generated scenarios, and an Astro/Starlight site. Read `AGENTS.md`
+before changing any layer.
+
+## Install from a clean clone
+
+```sh title="Terminal"
+corepack enable
+pnpm install --frozen-lockfile
+uv sync
+```
+
+The root `packageManager` pin selects pnpm; the root lockfile governs both
+`site/` and `packages/*`. `uv.lock` governs Python. Do not hand-edit either
+lockfile.
+
+## Run the repository gates
+
+The complete check gate — scenario check, Python suite, package tests and
+typecheck, site check and build — is maintained in the repository's
+[`CONTRIBUTING.md`](https://github.com/azohra/windgram/blob/main/CONTRIBUTING.md#set-up-and-run-the-full-check).
+Use [Tests by change](/docs/contribute/tests/) for focused feedback first.
+
+## Edit the authority
+
+Every change edits an authoritative input and regenerates its outputs with
+the owner command. The authority table and the list of generated files that
+are never hand-edited are maintained in
+[`CONTRIBUTING.md`](https://github.com/azohra/windgram/blob/main/CONTRIBUTING.md#know-which-file-is-authoritative).
+
+Keep working notes in gitignored `notes/`. Research records dated findings;
+reference records verified provider facts.

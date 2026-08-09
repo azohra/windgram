@@ -1,0 +1,150 @@
+{
+  "$schema": "../scenario.schema.json",
+  "schemaVersion": 1,
+  "id": "cloud-base-limits-lift",
+  "title": "Cloud base limits an otherwise deep climb",
+  "lesson": "A saturated layer pins usable lift at cloud base even while the heated boundary layer extends higher.",
+  "kind": "deterministic",
+  "modelShape": "hourly-core",
+  "timeZone": "Etc/UTC",
+  "site": {
+    "id": "synthetic-cloudy-ridge",
+    "name": "Synthetic Cloudy Ridge",
+    "synthetic": true,
+    "latitude": 49,
+    "longitude": -123,
+    "altitudeM": 1050,
+    "modelElevationM": 900
+  },
+  "clock": {
+    "referenceTime": "2000-01-01T06:00:00Z",
+    "generatedAt": "2000-01-01T06:00:00Z",
+    "startAt": "2000-01-01T12:00:00Z",
+    "stepHours": 1,
+    "hourCount": 6,
+    "seed": 14004
+  },
+  "baseline": {
+    "type": "synthetic",
+    "path": "baselines/synthetic-five-level-day.source.json"
+  },
+  "transforms": [
+    {
+      "type": "surface-field-curve",
+      "field": "temperatureC",
+      "points": [
+        {
+          "hourOffset": 0,
+          "value": 23
+        },
+        {
+          "hourOffset": 3,
+          "value": 27
+        },
+        {
+          "hourOffset": 5,
+          "value": 24
+        }
+      ]
+    },
+    {
+      "type": "surface-field-curve",
+      "field": "dewPointDepressionC",
+      "points": [
+        {
+          "hourOffset": 0,
+          "value": 18
+        },
+        {
+          "hourOffset": 5,
+          "value": 18
+        }
+      ]
+    },
+    {
+      "type": "surface-field-curve",
+      "field": "sensibleHeatFluxWm2",
+      "points": [
+        {
+          "hourOffset": 0,
+          "value": 220
+        },
+        {
+          "hourOffset": 3,
+          "value": 360
+        },
+        {
+          "hourOffset": 5,
+          "value": 180
+        }
+      ]
+    },
+    {
+      "type": "dew-point-depression-offset",
+      "altitudeBandM": {
+        "bottomM": 2000,
+        "topM": 2200
+      },
+      "offsetC": -6
+    }
+  ],
+  "semantics": {
+    "precipitation": "instantRate"
+  },
+  "capabilities": {
+    "levels": true,
+    "pressureLevels": [
+      925,
+      850,
+      800,
+      700,
+      600
+    ],
+    "verticalVelocity": false,
+    "heatFluxes": true,
+    "gust": false,
+    "cape": false,
+    "cin": false,
+    "pblHeight": false,
+    "cloudLayers": false,
+    "cloudProfile": false
+  },
+  "assertions": [
+    {
+      "id": "deep-mixed-layer",
+      "description": "Peak heating carries the boundary-layer top above the synthetic cloud base.",
+      "actual": {
+        "field": "derived.boundaryLayerTopM",
+        "hour": 3
+      },
+      "operator": "greater-than",
+      "expected": {
+        "field": "derived.cloudBaseM",
+        "hour": 3
+      }
+    },
+    {
+      "id": "usable-lift-present",
+      "description": "The heated column produces usable lift below the saturated layer.",
+      "actual": {
+        "field": "derived.usableLiftTopM",
+        "hour": 3
+      },
+      "operator": "present"
+    },
+    {
+      "id": "lift-pinned-to-cloud",
+      "description": "The usable-lift top is exactly limited by the diagnosed cloud base.",
+      "actual": {
+        "field": "derived.usableLiftTopM",
+        "hour": 3
+      },
+      "operator": "equal",
+      "expected": {
+        "field": "derived.cloudBaseM",
+        "hour": 3
+      },
+      "tolerance": 0.01
+    }
+  ]
+}

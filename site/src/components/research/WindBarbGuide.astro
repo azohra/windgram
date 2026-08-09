@@ -1,279 +1,153 @@
 ---
-import exampleProfile from "./forecast-example.json";
-import { windgramProfileSchema } from "windgram/contract";
-import { msToKmh, p50 } from "windgram/derive";
+import {
+  altitudeForY,
+  windBarbParts,
+} from "windgram/scene";
+import Figure from "../figure/Figure.astro";
+import SyntheticWindgram from "../windgram/SyntheticWindgram.astro";
+import WindgramAnnotations from "../windgram/WindgramAnnotations.astro";
+import {
+  onlyOverlays,
+  renderSyntheticWindgram,
+} from "../../lib/example-windgram";
+import { scenarioById } from "../../lib/scenarios";
 
-/* This component reads the fixed deterministic example document: every
-   Scalar is a plain number, so its median is never null (full dropout is
-   an ensemble-only shape). */
-const med = (value: Parameters<typeof p50>[0]): number => p50(value)!;
-
-import { modelBySlug, modelDisplayName } from "../../lib/catalogue";
-
-// The same fixed sample profile the article's windgram draws, validated
-// against the package contract at build time; the guide reads its peak hour.
-const sample = windgramProfileSchema.parse(exampleProfile);
-const hours = sample.hours.map((hour) => ({
-  validAt: hour.validAt,
-  thermalVelocityMs: med(hour.derived.thermalVelocityMs),
-  usableLiftTopM: med(hour.derived.usableLiftTopM),
-  levels: hour.levels.map((level) => ({
-    heightM: med(level.heightM),
-    windDirectionDeg: med(level.windDirectionDeg),
-    windSpeedKmh: Math.round(msToKmh(med(level.windSpeedMs)) * 10) / 10,
-  })),
-}));
-const peak = hours.reduce((best, hour) =>
-  hour.thermalVelocityMs > best.thermalVelocityMs ? hour : best,
+const scenario = scenarioById("shear-through-lift-band");
+const idPrefix = "wind-barb-shear-through-lift-band";
+const overlays = onlyOverlays(
+  "wind",
+  "windShear",
+  "usableLiftTop",
+  "launch",
+  "selectedHour",
 );
-const launchM = sample.site.altitudeM ?? 0;
-const topM = peak.usableLiftTopM ?? Number.POSITIVE_INFINITY;
-// Launch to usable-lift top, plus the first level above the top — the
-// article teaches reading the wind just above the band as well.
-const ascending = [...peak.levels].sort((a, b) => a.heightM - b.heightM);
-const bandLevels = ascending.filter((level) => level.heightM >= launchM && level.heightM <= topM);
-const aboveTop = ascending.find((level) => level.heightM > topM);
-const levels = aboveTop ? [...bandLevels, aboveTop] : bandLevels;
-const selected = levels.filter((_, index, values) =>
-  [0, Math.floor((values.length - 1) / 2), values.length - 1].includes(index),
+const { scene } = renderSyntheticWindgram(
+  scenario,
+  { overlays, columnWidthPx: 105, plotHeightPx: 430 },
+  idPrefix,
 );
-const compassPoints = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
-const compassPoint = (degrees: number) =>
-  compassPoints[Math.round((((degrees % 360) + 360) % 360) / 22.5) % 16];
-
-function barb(speedKmh: number) {
-  const rounded = Math.max(0, Math.round(speedKmh / 5) * 5);
-  const pennants = Math.floor(rounded / 50);
-  const remainder = rounded - pennants * 50;
-  const full = Math.floor(remainder / 10);
-  const half = remainder - full * 10 >= 5;
-  const pennantPaths = Array.from({ length: pennants }, (_, index) => {
-    const y = -18 + index * 8;
-    return `M0 ${y} L11 ${y + 5.5} L0 ${y + 5.5} Z`;
-  });
-  const offset = pennants * 8;
-  const feathers = Array.from({ length: full }, (_, index) => {
-    const y = -18 + offset + index * 4.5;
-    return `M0 ${y} L10 ${y + 5}`;
-  });
-  if (half) {
-    const y = -18 + offset + full * 4.5 + (full === 0 ? 3 : 0);
-    feathers.push(`M0 ${y} L5 ${y + 2.5}`);
-  }
-  return { pennants: pennantPaths, rounded, shaft: [`M0 7 L0 -18`, ...feathers].join(" ") };
-}
-
-const anatomy = barb(15);
-const speedExamples = [5, 10, 50].map((speedKmh) => ({ speedKmh, ...barb(speedKmh) }));
-const sampleMinM = selected[0]?.heightM ?? launchM;
-const sampleMaxM = selected[selected.length - 1]?.heightM ?? topM;
-const sampleY = (heightM: number) =>
-  540 - ((heightM - sampleMinM) / Math.max(1, sampleMaxM - sampleMinM)) * 90;
-const flightBand = selected.map((level) => ({
-  ...level,
-  ...barb(level.windSpeedKmh),
-  compass: compassPoint(level.windDirectionDeg),
-  speedKmh: level.windSpeedKmh,
-  y: sampleY(level.heightM),
-}));
-const localTime = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "America/Vancouver",
-  hour: "2-digit",
-  minute: "2-digit",
-  hour12: false,
-}).format(new Date(peak.validAt));
-// Band summary computed from the fixed sample, so a regenerated fixture
-// never leaves stale readouts behind.
-const bandLow = flightBand[0];
-const bandHigh = flightBand[flightBand.length - 1];
-const speedSummary = `${bandLow.speedKmh.toFixed(1)} → ${bandHigh.speedKmh.toFixed(1)} km/h`;
-const directionSummary = `${bandLow.compass} → ${bandHigh.compass}`;
-const runLabel = `${sample.run.referenceTime.slice(0, 10)} ${sample.run.referenceTime.slice(11, 13)}Z`;
-const modelEntry = modelBySlug(sample.model);
-const modelLabel = modelEntry ? modelDisplayName(modelEntry) : sample.model;
+const selectedX = scene.scales.plotLeft + (scene.selectedHourIndex + 0.5) * scene.scales.columnWidth;
+const selectedColumn = scene.barbs
+  .filter((barb) => Math.abs(barb.x - selectedX) < 0.01)
+  .map((barb) => ({
+    altitudeM: altitudeForY(scene, barb.y),
+    directionDeg: barb.directionDeg,
+    speedKmh: barb.speedKmh,
+    roundedSpeedKmh: windBarbParts(barb.speedKmh).roundedSpeedKmh,
+  }))
+  .sort((left, right) => left.altitudeM - right.altitudeM);
+const sampleIndexes = [...new Set([
+  0,
+  Math.floor((selectedColumn.length - 1) / 2),
+  selectedColumn.length - 1,
+])];
+const samples = sampleIndexes.map((index) => selectedColumn[index]).filter(Boolean);
 ---
 
-<figure class="wind-barb-guide" aria-labelledby="wind-barb-title wind-barb-caption">
-  <header>
-    <h3 id="wind-barb-title">Decode a wind barb, then read the flight band</h3>
-    <span>This chart counts speed in km/h.</span>
-  </header>
+<Figure
+  id="wind-barb-guide"
+  title="Read wind from launch through usable lift"
+  lesson={scenario.lesson}
+  description={scenario.accessibilityDescription}
+  caption="The shaft points toward the direction the air comes from. The npm serializer draws every shaft, feather, pennant, placement, and rotation; the table samples its selected-hour scene graph."
+  units="wind speed km/h · direction degrees from true north · altitude m ASL"
+  {scenario}
+>
+  <WindgramAnnotations {scenario} {scene} mode="wind" />
+  <SyntheticWindgram
+    {scenario}
+    {idPrefix}
+    {overlays}
+    columnWidthPx={105}
+    plotHeightPx={430}
+    scrollLabel="Scrollable wind-shear profile with package-rendered wind barbs"
+  />
 
-  <div class="graphic-scroll" tabindex="0" aria-label="Scrollable wind-barb decoding diagram">
-    <svg viewBox="0 0 1040 600" role="img" aria-labelledby="wind-svg-title wind-svg-desc">
-      <title id="wind-svg-title">Wind-barb direction, speed marks, and one vertical wind profile</title>
-      <desc id="wind-svg-desc">
-        A large compass explains that a wind barb shaft points toward the direction the air comes from.
-        This chart counts a half tick as 5 kilometres per hour, a full tick as 10, and a pennant as 50.
-        A vertical sample shows {bandLow.compass} to {bandHigh.compass} wind increasing from
-        {bandLow.speedKmh.toFixed(1)} to {bandHigh.speedKmh.toFixed(1)} kilometres per hour with height.
-        Other publishers may count the same marks in knots.
-      </desc>
-
-      <text x="20" y="31" class="section-label">1 · DIRECTION</text>
-      <text x="20" y="57" class="section-title">The shaft points to the air's source</text>
-
-      <g class="compass">
-        <circle cx="196" cy="166" r="91" class="compass-ring" />
-        <line x1="196" y1="70" x2="196" y2="262" />
-        <line x1="100" y1="166" x2="292" y2="166" />
-        <text x="196" y="58">N</text>
-        <text x="304" y="171">E</text>
-        <text x="196" y="283">S</text>
-        <text x="87" y="171">W</text>
-        <g transform="translate(196 166) rotate(247.5) scale(3.2)">
-          <path d={anatomy.shaft} class="barb halo" />
-          <path d={anatomy.shaft} class="barb" />
-        </g>
-        <circle cx="196" cy="166" r="4.5" class="station" />
-      </g>
-
-      <g class="direction-callouts">
-        <path d="M128 204 C79 230 67 247 55 260" />
-        <circle cx="128" cy="204" r="3" />
-        <text x="20" y="302" class="callout-title">UPWIND END</text>
-        <text x="20" y="323">Feathers sit where the air comes from:</text>
-        <text x="20" y="343">west-southwest in this example.</text>
-
-        <path d="M234 140 C322 101 359 92 405 92" />
-        <circle cx="234" cy="140" r="3" />
-        <text x="328" y="121" class="callout-title">OPPOSITE THE SHAFT</text>
-        <text x="328" y="142">The air travels toward ENE.</text>
-      </g>
-
-      <line x1="504" y1="18" x2="504" y2="334" class="section-rule" />
-
-      <text x="538" y="31" class="section-label">2 · SPEED</text>
-      <text x="538" y="57" class="section-title">Here, the marks count km/h</text>
-      {speedExamples.map((example, index) => {
-        const centerX = 610 + index * 165;
-        const label = example.speedKmh === 5 ? "half tick" : example.speedKmh === 10 ? "full tick" : "pennant";
-        return (
-          <g class="speed-example">
-            <g transform={`translate(${centerX} 166) scale(3)`}>
-              <path d={example.shaft} class="barb halo" />
-              {example.pennants.map((pennant) => <path d={pennant} class="pennant halo" />)}
-              <path d={example.shaft} class="barb" />
-              {example.pennants.map((pennant) => <path d={pennant} class="pennant" />)}
-            </g>
-            <text x={centerX} y="252" class="speed-value">{example.speedKmh} km/h</text>
-            <text x={centerX} y="276" class="speed-name">{label}</text>
-          </g>
-        );
-      })}
-      <path d="M551 312 H992" class="addition-rule" />
-      <text x="551" y="323" class="speed-note">The same shapes often count knots on aviation charts.</text>
-      <text x="551" y="341" class="speed-note">Read the printed unit before decoding the marks.</text>
-
-      <line x1="20" y1="356" x2="1020" y2="356" class="major-rule" />
-      <text x="20" y="389" class="section-label">3 · ONE VERTICAL SAMPLE · {localTime}</text>
-      <text x="20" y="416" class="section-title">Read from launch upward</text>
-
-      <g class="profile-axis">
-        <line x1="169" y1="442" x2="169" y2="554" />
-        <path d="M169 442 l-6 12 h12 z" />
-        <text x="148" y="566">launch</text>
-        <text x="148" y="436">higher</text>
-      </g>
-
-      {flightBand.map((level) => (
-        <g class="profile-level">
-          <line x1="169" y1={level.y} x2="570" y2={level.y} />
-          <circle cx="169" cy={level.y} r="5" />
-          <text x="148" y={level.y + 5} class="altitude">{Math.round(level.heightM).toLocaleString("en-CA")} m</text>
-          <g transform={`translate(236 ${level.y}) rotate(${level.windDirectionDeg}) scale(1.8)`}>
-            <path d={level.shaft} class="barb halo" />
-            {level.pennants.map((pennant) => <path d={pennant} class="pennant halo" />)}
-            <path d={level.shaft} class="barb" />
-            {level.pennants.map((pennant) => <path d={pennant} class="pennant" />)}
-          </g>
-          <text x="302" y={level.y - 3} class="reading-main">{level.compass} · {level.speedKmh.toFixed(1)} km/h</text>
-          <text x="302" y={level.y + 17} class="reading-detail">
-            {level.windDirectionDeg.toFixed(0)}° from · symbol rounds to {level.rounded} km/h
-          </text>
-        </g>
-      ))}
-
-      <g class="profile-summary">
-        <text x="640" y="405" class="callout-title">WHAT CHANGES THROUGH THE BAND</text>
-        <text x="640" y="449" class="summary-value">{speedSummary}</text>
-        <text x="640" y="473">Speed increases between the lowest</text>
-        <text x="640" y="493">and highest sampled levels.</text>
-        <text x="640" y="535" class="summary-value direction-value">{directionSummary}</text>
-        <text x="640" y="559">The turn with height marks directional shear.</text>
-      </g>
-    </svg>
+  <div
+    class="barb-reading"
+    slot="legend"
+    role="region"
+    tabindex="0"
+    aria-label="Scrollable wind-barb reading table"
+  >
+    <div class="barb-key">
+      <strong>Read the printed unit</strong>
+      <span>half feather 5 · full feather 10 · pennant 50 km/h</span>
+      <span>The same shapes often count knots on other aviation charts.</span>
+    </div>
+    <table>
+      <caption>Selected hour, sampled from the rendered scene</caption>
+      <thead>
+        <tr><th>Altitude</th><th>Wind from</th><th>Speed</th><th>Barb rounds to</th></tr>
+      </thead>
+      <tbody>
+        {samples.map((sample) => (
+          <tr>
+            <td>{Math.round(sample.altitudeM).toLocaleString("en-CA")} m</td>
+            <td>{sample.directionDeg.toFixed(0)}°</td>
+            <td>{sample.speedKmh.toFixed(1)} km/h</td>
+            <td>{sample.roundedSpeedKmh} km/h</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   </div>
-
-  <figcaption id="wind-barb-caption">
-    Aviation charts often use knots; the symbol does not identify its own unit. This is a single-hour
-    vertical sample, not a time–height chart.
-    <span class="source-note">Fixed source: {modelLabel}, run {runLabel}.</span>
-  </figcaption>
-</figure>
+</Figure>
 
 <style>
-  .wind-barb-guide {
-    display: block;
-    width: min(1040px, calc(100vw - 32px));
-    margin: 28px 50% 44px;
-    transform: translateX(-50%);
-    color: var(--ink);
-    border-top: 3px solid var(--chart-wind);
-    border-bottom: 1px solid var(--rule-strong);
-  }
-  header {
+  .barb-reading {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 6px 24px;
-    align-items: end;
-    padding: 18px 0 16px;
+    grid-template-columns: minmax(12rem, 0.7fr) minmax(30rem, 1.3fr);
+    gap: 1rem 1.5rem;
+    align-items: start;
+    color: var(--ink-soft);
+    font: 0.73rem/1.45 var(--mono);
   }
-  .wind-barb-guide h3 { margin: 0; font: 700 29px/1 var(--display); text-transform: uppercase; }
-  header > span { font: 13px/1.4 var(--mono); color: var(--ink-mute); }
-  .graphic-scroll {
-    overflow-x: auto;
-    background: var(--surface);
-    border: 1px solid var(--rule);
-    scrollbar-color: var(--accent) var(--surface-raised);
+
+  .barb-key {
+    display: grid;
+    gap: 0.25rem;
   }
-  svg { display: block; width: 100%; min-width: 820px; height: auto; font-family: var(--mono); }
-  .section-label { fill: var(--chart-wind); font-size: 12px; font-weight: 700; letter-spacing: .08em; }
-  .section-title { fill: var(--ink); font: 700 20px var(--display); text-transform: uppercase; }
-  .section-rule, .major-rule { stroke: var(--rule-strong); stroke-width: 1; }
-  .major-rule { stroke-width: 1.4; }
-  .compass line { stroke: var(--rule); stroke-width: .8; opacity: .55; }
-  .compass-ring { fill: var(--surface); stroke: var(--ink); stroke-width: 1.2; }
-  .compass text { fill: var(--ink-mute); font-size: 13px; text-anchor: middle; }
-  .station { fill: var(--surface); stroke: var(--chart-wind); stroke-width: 2; }
-  .barb { fill: none; stroke: var(--chart-wind); stroke-width: 1.8; stroke-linecap: round; vector-effect: non-scaling-stroke; }
-  .pennant { fill: var(--surface); stroke: var(--chart-wind); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
-  .barb.halo { stroke: var(--surface); stroke-width: 5; }
-  .pennant.halo { fill: var(--surface); stroke: var(--surface); stroke-width: 5; }
-  .direction-callouts path { fill: none; stroke: var(--rule-strong); stroke-width: 1; }
-  .direction-callouts circle { fill: var(--surface); stroke: var(--rule-strong); stroke-width: 1.4; }
-  .direction-callouts text, .profile-summary text { fill: var(--ink-soft); font-size: 13px; }
-  .callout-title { fill: var(--chart-wind) !important; font-size: 12px !important; font-weight: 700; letter-spacing: .06em; }
-  .speed-value { fill: var(--ink); font-size: 17px; font-weight: 700; text-anchor: middle; }
-  .speed-name { fill: var(--ink-mute); font-size: 13px; text-anchor: middle; }
-  .addition-rule { fill: none; stroke: var(--rule); stroke-width: 1; }
-  .speed-note { fill: var(--ink-mute); font-size: 12px; }
-  .profile-axis line { stroke: var(--ink); stroke-width: 2; }
-  .profile-axis path { fill: var(--ink); }
-  .profile-axis text { fill: var(--ink-mute); font-size: 11px; text-anchor: end; text-transform: uppercase; }
-  .profile-level > line { stroke: var(--rule); stroke-width: .8; stroke-dasharray: 2 5; }
-  .profile-level > circle { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
-  .altitude { fill: var(--ink); font-size: 13px; font-weight: 700; text-anchor: end; }
-  .reading-main { fill: var(--ink); font-size: 15px; font-weight: 700; }
-  .reading-detail { fill: var(--ink-mute); font-size: 12px; }
-  .summary-value { fill: var(--ink) !important; font: 700 30px var(--display) !important; letter-spacing: .01em; }
-  .direction-value { font-size: 26px !important; }
-  figcaption { padding: 12px 0 14px; font: 13px/1.55 var(--mono); color: var(--ink-soft); }
-  .source-note { display: block; margin-top: 5px; font-size: 11px; color: var(--ink-mute); }
-  @media (max-width: 720px) {
-    header { grid-template-columns: 1fr; }
-    .wind-barb-guide h3 { font-size: 25px; }
-    header > span { font-size: 12px; }
-    .graphic-scroll { margin-inline: -8px; }
+
+  .barb-key strong {
+    color: var(--chart-wind);
+    font-size: 0.78rem;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font: inherit;
+  }
+
+  caption {
+    padding-block-end: 0.3rem;
+    color: var(--ink-mute);
+    text-align: start;
+  }
+
+  th,
+  td {
+    padding: 0.28rem 0.45rem;
+    text-align: start;
+    border-block-end: 1px solid var(--rule);
+  }
+
+  th {
+    color: var(--ink);
+    font-size: 0.65rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 48rem) {
+    .barb-reading {
+      grid-template-columns: 1fr;
+      overflow-x: auto;
+    }
+
+    table {
+      min-width: 34rem;
+    }
   }
 </style>

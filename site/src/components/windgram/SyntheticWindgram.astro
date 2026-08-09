@@ -1,0 +1,234 @@
+---
+import type { TeachingScenario } from "../../lib/scenarios";
+import {
+  renderSyntheticWindgram,
+  type InteractiveSyntheticWindgramOptions,
+  type SyntheticScenarioSource,
+  type SyntheticWindgramOptions,
+} from "../../lib/example-windgram";
+
+type Props = InteractiveSyntheticWindgramOptions & {
+  scenario: TeachingScenario;
+  idPrefix: string;
+  /**
+   * Embed the scenario's profile document inline so overlay controls in the
+   * surrounding figure can rebuild the scene client-side. Static figures omit
+   * it and ship only the server-rendered SVG.
+   */
+  interactive?: boolean;
+  scrollLabel?: string;
+  class?: string;
+};
+
+const {
+  scenario,
+  idPrefix,
+  interactive = false,
+  overlays,
+  columnWidthPx,
+  widthPx,
+  plotHeightPx,
+  hourLabel,
+  barbStride,
+  barbMinGapPx,
+  barbScale,
+  markerStride,
+  stripLabels,
+  displayDay = false,
+  scrollLabel = `Scrollable windgram for ${scenario.label}`,
+  class: className,
+} = Astro.props;
+const options: SyntheticWindgramOptions = {
+  ...(overlays ? { overlays } : {}),
+  ...(columnWidthPx === undefined ? {} : { columnWidthPx }),
+  ...(widthPx === undefined ? {} : { widthPx }),
+  ...(plotHeightPx === undefined ? {} : { plotHeightPx }),
+  ...(hourLabel === undefined ? {} : { hourLabel }),
+  ...(barbStride === undefined ? {} : { barbStride }),
+  ...(barbMinGapPx === undefined ? {} : { barbMinGapPx }),
+  ...(barbScale === undefined ? {} : { barbScale }),
+  ...(markerStride === undefined ? {} : { markerStride }),
+  ...(stripLabels === undefined ? {} : { stripLabels }),
+  displayDay,
+};
+const { scene, svg } = renderSyntheticWindgram(scenario, options, idPrefix);
+// The client script rebuilds from this embedded document rather than from
+// the scenario registry, which stays server-only: each page ships exactly
+// the profiles its own interactive figures embed.
+const source: SyntheticScenarioSource | null = interactive
+  ? {
+      id: scenario.id,
+      ...(scenario.variant === undefined ? {} : { variant: scenario.variant }),
+      profile: scenario.profile,
+      timeZone: scenario.timeZone,
+    }
+  : null;
+const clientOptions = JSON.stringify({
+  columnWidthPx,
+  widthPx,
+  plotHeightPx,
+  hourLabel,
+  barbStride,
+  barbMinGapPx,
+  barbScale,
+  markerStride,
+  stripLabels,
+  displayDay,
+});
+const initialOverlays = JSON.stringify(overlays ?? {});
+---
+
+<div
+  class:list={["synthetic-windgram", className]}
+  data-synthetic-windgram
+  data-scenario-id={scenario.id}
+  data-id-prefix={idPrefix}
+  data-scene-options={clientOptions}
+  data-initial-overlays={initialOverlays}
+  style={`--synthetic-windgram-width: ${scene.width}px`}
+>
+  {source && (
+    <script
+      is:inline
+      type="application/json"
+      data-windgram-source
+      set:html={JSON.stringify(source)}
+    />
+  )}
+  <div
+    class="synthetic-windgram__scroll"
+    role="region"
+    tabindex="0"
+    aria-label={scrollLabel}
+  >
+    <div
+      class="synthetic-windgram__mount"
+      data-windgram-mount
+      set:html={svg}
+    />
+  </div>
+  <p class="synthetic-windgram__scroll-cue" aria-hidden="true">
+    Scroll horizontally to inspect every hour →
+  </p>
+</div>
+
+<script>
+  import {
+    renderSyntheticWindgram,
+    type InteractiveSyntheticWindgramOptions,
+    type SyntheticScenarioSource,
+  } from "../../lib/example-windgram";
+  import type { OverlayName } from "windgram/scene";
+
+  for (const chart of document.querySelectorAll<HTMLElement>("[data-synthetic-windgram]")) {
+    if (chart.dataset.syntheticWindgramReady === "true") continue;
+    chart.dataset.syntheticWindgramReady = "true";
+
+    const mount = chart.querySelector<HTMLElement>("[data-windgram-mount]");
+    const figure = chart.closest<HTMLElement>("[data-figure]");
+    const idPrefix = chart.dataset.idPrefix;
+    if (!mount || !figure || !idPrefix) continue;
+
+    const options = JSON.parse(
+      chart.dataset.sceneOptions ?? "{}",
+    ) as InteractiveSyntheticWindgramOptions;
+    const initial = JSON.parse(chart.dataset.initialOverlays ?? "{}") as Partial<Record<OverlayName, boolean>>;
+    const controls = [...figure.querySelectorAll<HTMLInputElement>("input[data-windgram-overlay]")];
+    if (controls.length === 0) continue;
+
+    const sourceElement = chart.querySelector<HTMLScriptElement>("[data-windgram-source]");
+    if (!sourceElement?.textContent) {
+      throw new Error(
+        `[synthetic-windgram] ${idPrefix} has overlay controls but no embedded profile — render <SyntheticWindgram interactive />`,
+      );
+    }
+    const source = Object.freeze(
+      JSON.parse(sourceElement.textContent),
+    ) as Readonly<SyntheticScenarioSource>;
+
+    const currentOverlays = () => ({
+      ...initial,
+      ...Object.fromEntries(
+        controls.map((control) => [control.dataset.windgramOverlay as OverlayName, control.checked]),
+      ),
+    });
+    const rerender = () => {
+      const rendered = renderSyntheticWindgram(
+        source,
+        { ...options, overlays: currentOverlays() },
+        idPrefix,
+      );
+      mount.innerHTML = rendered.svg;
+      chart.dispatchEvent(new CustomEvent("windgram:scenechange", {
+        bubbles: true,
+        detail: { idPrefix, scene: rendered.scene },
+      }));
+    };
+
+    for (const control of controls) control.addEventListener("change", rerender);
+    figure.addEventListener("figure:reset", rerender);
+    figure.addEventListener("windgram:keyrequest", (event) => {
+      const requestedIdPrefix = (event as CustomEvent<{ idPrefix?: string }>).detail?.idPrefix;
+      if (requestedIdPrefix === idPrefix) rerender();
+    });
+
+    // Publish the current browser state after listeners attach. Together with
+    // the key's request below, this is a two-sided handshake: whichever
+    // component initializes second synchronizes the pair, including restored
+    // form state after back/forward navigation.
+    rerender();
+  }
+</script>
+
+<style>
+  .synthetic-windgram {
+    min-width: 0;
+    background: var(--surface);
+  }
+
+  .synthetic-windgram__scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-color: var(--accent) var(--surface-raised);
+  }
+
+  .synthetic-windgram__scroll:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+
+  .synthetic-windgram__mount :global(svg) {
+    display: block;
+    width: var(--synthetic-windgram-width);
+    max-width: none;
+    height: auto;
+  }
+
+  .synthetic-windgram__scroll-cue {
+    display: none;
+    margin: 0;
+    padding: 0.42rem 0.85rem;
+    color: var(--ink-mute);
+    background: var(--surface-raised);
+    border-block-start: 1px solid var(--rule);
+    font: 0.68rem/1.4 var(--mono);
+  }
+
+  @media (max-width: 44rem) {
+    .synthetic-windgram__scroll-cue {
+      display: block;
+    }
+  }
+
+  @media print {
+    .synthetic-windgram__mount :global(svg) {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .synthetic-windgram__scroll-cue {
+      display: none;
+    }
+  }
+</style>

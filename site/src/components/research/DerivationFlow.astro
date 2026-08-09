@@ -1,8 +1,15 @@
-<figure class="derivation-flow" aria-labelledby="derivation-title derivation-caption">
-  <header class="figure-heading">
-    <h3 id="derivation-title">Inputs and dependencies for each published field</h3>
-  </header>
+---
+import Figure from "../figure/Figure.astro";
+---
 
+<Figure
+  id="derivation-flow"
+  title="Inputs and dependencies across the document boundary"
+  lesson="The pipeline publishes four derived quantities; the package turns published levels into stability and cloud fields."
+  description="A dependency graph from model inputs through retained-column, parcel, and heat-flux intermediates to profile-derived quantities and package-rendered fields."
+  caption="The profile stores unsmoothed cloud base, boundary-layer top, thermal velocity, and usable-lift top. Scene options can smooth cloud base and usable lift; the package derives stability and cloud shading from published levels."
+  units="Metres, metres per second, and degrees Celsius where labelled"
+>
   <p class="scroll-cue" aria-hidden="true">Scroll across the dependency graph →</p>
   <div class="graph-scroll" role="region" aria-label="Scrollable windgram derivation dependency graph" tabindex="0">
     <svg class="dependency-graphic" viewBox="0 0 960 470" role="img" aria-labelledby="dependency-title dependency-description">
@@ -18,7 +25,7 @@
 
       <text x="34" y="30" class="column-label">MODEL INPUT</text>
       <text x="345" y="30" class="column-label">INTERMEDIATE</text>
-      <text x="680" y="30" class="column-label">PUBLISHED FIELD</text>
+      <text x="680" y="30" class="column-label">PROFILE OR SCENE FIELD</text>
 
       <g class="dependencies" aria-hidden="true">
         <path d="M205 72 C282 72 298 91 370 91" />
@@ -59,33 +66,19 @@
       </g>
 
       <g class="outputs">
-        <g transform="translate(675 52)"><circle cx="9" cy="9" r="9" /><text x="29" y="5">Stability field</text><text x="29" y="24" class="detail">adjacent-level lapse rate</text></g>
-        <g transform="translate(675 116)"><circle cx="9" cy="9" r="9" /><text x="29" y="5">Model-cloud flags</text><text x="29" y="24" class="detail">dew-point depression &lt; 0.5 °C</text></g>
-        <g transform="translate(675 183)"><circle cx="9" cy="9" r="9" /><text x="29" y="5">Cloud base</text><text x="29" y="24" class="detail">Bolton LCL · saturated-layer floor</text></g>
-        <g transform="translate(675 250)"><circle cx="9" cy="9" r="9" /><text x="29" y="5">Boundary-layer top</text><text x="29" y="24" class="detail">parcel/environment crossing</text></g>
-        <g transform="translate(675 317)"><circle cx="9" cy="9" r="9" /><text x="29" y="5">Thermal velocity, w*</text><text x="29" y="24" class="detail">virtual heat flux × layer depth</text></g>
-        <g transform="translate(766 398)" class="usable"><circle cx="9" cy="9" r="9" /><text x="29" y="5">Usable-lift top</text><text x="29" y="24" class="detail">core ≥ 1 m/s; cloud cap</text></g>
+        <g transform="translate(675 52)"><circle cx="9" cy="9" r="9" /><text x="29" y="5">Stability field</text><text x="29" y="24" class="detail">package · adjacent-level lapse rate</text></g>
+        <g transform="translate(675 116)"><circle cx="9" cy="9" r="9" /><text x="29" y="5">Cloud shading</text><text x="29" y="24" class="detail">package · cloud fraction or moisture</text></g>
+        <g transform="translate(675 183)"><circle cx="9" cy="9" r="9" /><text x="29" y="5">Cloud base</text><text x="29" y="24" class="detail">profile · Bolton LCL · moisture floor</text></g>
+        <g transform="translate(675 250)"><circle cx="9" cy="9" r="9" /><text x="29" y="5">Boundary-layer top</text><text x="29" y="24" class="detail">profile · parcel/environment crossing</text></g>
+        <g transform="translate(675 317)"><circle cx="9" cy="9" r="9" /><text x="29" y="5">Thermal velocity, w*</text><text x="29" y="24" class="detail">profile · virtual heat flux × depth</text></g>
+        <g transform="translate(766 398)" class="usable"><circle cx="9" cy="9" r="9" /><text x="29" y="5">Usable-lift top</text><text x="29" y="24" class="detail">profile · 1 m/s crossing · cloud cap</text></g>
       </g>
     </svg>
   </div>
 
-  <figcaption id="derivation-caption">
-    Cloud base and usable-lift top receive hourly smoothing after derivation. Stability, boundary-layer top, and w* do not.
-  </figcaption>
-</figure>
+</Figure>
 
 <style>
-  .derivation-flow {
-    width: min(980px, calc(100vw - 32px));
-    margin: 30px 50% 44px;
-    transform: translateX(-50%);
-    color: var(--ink);
-  }
-  .figure-heading {
-    padding-bottom: 10px;
-    border-bottom: 2px solid var(--ink);
-  }
-  .figure-heading h3 { margin: 0; font-family: var(--sans); font-size: 18px; letter-spacing: 0; text-transform: none; }
   .graph-scroll { width: 100%; }
   .scroll-cue { display: none; }
   .dependency-graphic { display: block; width: 100%; height: auto; background: var(--surface); border-bottom: 1px solid var(--rule); }
@@ -99,7 +92,6 @@
   .outputs .usable circle { fill: var(--accent); }
   .inputs text, .intermediates text, .outputs text { font-family: var(--sans); font-size: 14px; font-weight: 700; fill: var(--ink); }
   .inputs .detail, .intermediates .detail, .outputs .detail { font-family: var(--mono); font-size: 12px; font-weight: 400; fill: var(--ink-mute); }
-  figcaption { margin-top: 13px; font-family: var(--mono); font-size: 13px; line-height: 1.5; color: var(--ink-mute); }
   @media (min-width: 721px) {
     .scroll-cue { display: none !important; }
   }

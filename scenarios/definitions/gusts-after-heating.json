@@ -1,0 +1,166 @@
+{
+  "$schema": "../scenario.schema.json",
+  "schemaVersion": 1,
+  "id": "gusts-after-heating",
+  "title": "Gusts remain after convective heating fades",
+  "lesson": "Thermal velocity decays with the surface heat flux while the explicitly transported gust field stays elevated.",
+  "kind": "deterministic",
+  "modelShape": "hourly-rich",
+  "timeZone": "Etc/UTC",
+  "site": {
+    "id": "synthetic-gust-ridge",
+    "name": "Synthetic Gust Ridge",
+    "synthetic": true,
+    "latitude": 49.091868,
+    "longitude": -117.820838,
+    "altitudeM": 1591,
+    "modelElevationM": 1217.3
+  },
+  "clock": {
+    "referenceTime": "2000-01-01T12:00:00Z",
+    "generatedAt": "2000-01-01T12:00:00Z",
+    "startAt": "2000-01-01T13:00:00Z",
+    "stepHours": 1,
+    "hourCount": 10,
+    "seed": 14006
+  },
+  "baseline": {
+    "type": "calibrated",
+    "path": "baselines/hrrr-red-mountain-2026-08-08.source.json",
+    "provenancePath": "baselines/hrrr-red-mountain-2026-08-08.provenance.json"
+  },
+  "transforms": [
+    {
+      "type": "surface-field-curve",
+      "field": "temperatureC",
+      "points": [
+        {
+          "hourOffset": 0,
+          "value": 22
+        },
+        {
+          "hourOffset": 3,
+          "value": 26
+        },
+        {
+          "hourOffset": 9,
+          "value": 22
+        }
+      ]
+    },
+    {
+      "type": "surface-field-curve",
+      "field": "sensibleHeatFluxWm2",
+      "points": [
+        {
+          "hourOffset": 0,
+          "value": 100
+        },
+        {
+          "hourOffset": 2,
+          "value": 360
+        },
+        {
+          "hourOffset": 4,
+          "value": 180
+        },
+        {
+          "hourOffset": 6,
+          "value": 20
+        },
+        {
+          "hourOffset": 9,
+          "value": -30
+        }
+      ]
+    },
+    {
+      "type": "surface-field-curve",
+      "field": "windGustMs",
+      "points": [
+        {
+          "hourOffset": 0,
+          "value": 4
+        },
+        {
+          "hourOffset": 2,
+          "value": 8
+        },
+        {
+          "hourOffset": 4,
+          "value": 11
+        },
+        {
+          "hourOffset": 6,
+          "value": 10
+        },
+        {
+          "hourOffset": 9,
+          "value": 8
+        }
+      ]
+    }
+  ],
+  "semantics": {
+    "gust": "instant",
+    "precipitation": "instantRate"
+  },
+  "capabilities": {
+    "levels": true,
+    "pressureLevels": [
+      875,
+      850,
+      800,
+      750,
+      700,
+      650,
+      600
+    ],
+    "verticalVelocity": false,
+    "heatFluxes": true,
+    "gust": "instant",
+    "cape": true,
+    "cin": true,
+    "pblHeight": true,
+    "cloudLayers": true,
+    "cloudProfile": false
+  },
+  "assertions": [
+    {
+      "id": "thermal-peaks-with-heating",
+      "description": "Thermal velocity grows from the initial sample to peak surface heating.",
+      "actual": {
+        "field": "derived.thermalVelocityMs",
+        "hour": 2
+      },
+      "operator": "greater-than",
+      "expected": {
+        "field": "derived.thermalVelocityMs",
+        "hour": 0
+      }
+    },
+    {
+      "id": "thermal-decays",
+      "description": "Thermal velocity has decayed markedly after the heat flux collapses.",
+      "actual": {
+        "field": "derived.thermalVelocityMs",
+        "hour": 6
+      },
+      "operator": "less-than",
+      "expected": {
+        "field": "derived.thermalVelocityMs",
+        "hour": 2
+      }
+    },
+    {
+      "id": "gusts-stay-elevated",
+      "description": "The transported gust field remains elevated after thermal velocity decays.",
+      "actual": {
+        "field": "surface.windGustMs",
+        "hour": 6
+      },
+      "operator": "greater-than-or-equal",
+      "expected": 8
+    }
+  ]
+}

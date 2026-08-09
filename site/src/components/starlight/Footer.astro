@@ -1,0 +1,95 @@
+---
+import EditLink from "@astrojs/starlight/components/EditLink.astro";
+import LastUpdated from "@astrojs/starlight/components/LastUpdated.astro";
+import Pagination from "@astrojs/starlight/components/Pagination.astro";
+import AttributionLine from "../AttributionLine.astro";
+---
+
+<footer class="docs-footer">
+  <div class="page-meta">
+    <EditLink />
+    <LastUpdated />
+  </div>
+  <Pagination />
+  <div class="project-footer">
+    <AttributionLine />
+    <nav aria-label="Project footer">
+      <a href="/docs/">Docs</a>
+      <a href="/research/">Research</a>
+      <a href="/about/">About</a>
+      <a href="https://github.com/azohra/windgram">GitHub</a>
+    </nav>
+  </div>
+</footer>
+
+<style>
+  @layer starlight.components {
+    .docs-footer {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .page-meta {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 0.75rem 2rem;
+      margin-top: 3rem;
+      color: var(--ink-mute);
+      font-family: var(--mono);
+      font-size: var(--sl-text-xs);
+    }
+
+    .page-meta > :global(p:only-child) {
+      margin-inline-start: auto;
+    }
+
+    .project-footer {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 1.5rem 2rem;
+      align-items: start;
+      padding: 1.25rem 0 0;
+      margin-top: 1.5rem;
+      border-top: 1px solid var(--rule);
+      color: var(--ink-mute);
+      font-size: var(--sl-text-xs);
+    }
+
+    .project-footer :global(.attribution-line) {
+      max-width: 42rem;
+      margin: 0;
+    }
+
+    .project-footer nav {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 0.6rem 1rem;
+      font-family: var(--mono);
+      letter-spacing: 0.035em;
+      text-transform: uppercase;
+    }
+
+    .project-footer a {
+      color: var(--ink-soft);
+      text-decoration: none;
+    }
+
+    .project-footer a:hover {
+      color: var(--accent);
+      text-decoration: underline;
+    }
+
+    @media (max-width: 40rem) {
+      .project-footer {
+        grid-template-columns: 1fr;
+      }
+
+      .project-footer nav {
+        justify-content: flex-start;
+      }
+    }
+  }
+</style>

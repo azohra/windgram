@@ -1,9 +1,9 @@
 # windgram.azohra.com
 
-Astro renders the [research articles](../research/README.md) and
-[forecast model feed reference](../reference/forecast-model-feeds.md). The reading
-guide uses a fixed archived forecast; the model-selection entry fetches the
-latest published JSON from `raw.githubusercontent.com` in the browser.
+Astro renders the [research articles](../research/README.md), the learning and model guides in
+`src/content/docs/`, and the living [forecast model feed reference](../reference/forecast-model-feeds.md).
+Teaching figures use deterministic synthetic profiles bundled at build time. Normal site routes do
+not fetch the launch catalogue, current manifests, or current profiles in the browser.
 
 ## Developing
 
@@ -16,24 +16,21 @@ pnpm build    # -> dist/
 
 ## Source map
 
-- `src/lib/api.ts` — fetches manifests and site profiles, validates them
-  against `windgram/contract`, and enforces the reference-time skew guard
-  the pipeline's docs specify (a manifest and a site file can briefly
-  disagree about which run is current while GitHub's CDN converges).
 - `src/lib/catalogue.ts` — parses the repo's `data/models.json` through the
   package contract at build time, so catalogue drift fails the build
-  instead of shipping a picker that lies.
-- `src/lib/app.ts` — the chart page: windgrams are rendered through the
-  `windgram` workspace package (`scene` + `svg`); the app supplies day
-  windowing, overlay toggles, tooltips, and storage around it.
-- `src/lib/overlay.ts` — the multi-model comparison overlay, hand-built
-  SVG over many profiles at once (a site feature, not part of the
-  package).
-- `src/lib/research.ts` — renders `../research/*.md` directly at build time. The articles
-  stay single-sourced in the root `research/` folder; this only rewrites the
-  relative links (`forecast-model-feeds.md`, `../windgram/windgram.py`, …) into
-  site routes and GitHub links respectively, since those resolve differently
-  on GitHub than on this site.
+  before capability and horizon figures are generated.
+- `src/lib/scenarios.ts` — eagerly validates generated teaching profiles and
+  exposes them to the site as immutable build inputs.
+- `src/components/labs/` — interactive teaching figures driven by those
+  synthetic profiles and the `windgram` package's derivation and rendering
+  authorities.
+- `src/content/docs/docs/` — the Starlight documentation portal, including learning, model,
+  publishing, and reference routes.
+- `src/content/research/*.mdx` — the canonical research entries, with validated metadata and
+  explicit figure placement. `src/lib/research.ts` derives archive, navigation, and related-entry
+  metadata from the content collection.
+- `src/pages/docs/reference/forecast-model-feeds.astro` — renders the repository's living feed
+  reference through the documentation shell without duplicating its prose.
 
 ## Deploying
 
@@ -44,13 +41,6 @@ block) rather than a classic Pages project:
 - Root directory: `site`
 - Build command: `pnpm build`
 - Deploy command: `pnpm dlx wrangler deploy`
-- Build watch paths: `site/**`, `research/**`, `reference/**`. Data commits remain
-  excluded: live instruments fetch profiles at runtime, while article examples use
-  an explicit fixture under `site/src/components/research/`.
-
-## A known gap
-
-`src/lib/time.ts` hardcodes `America/Vancouver` for all day-grouping and
-hour labels, matching the founding catalogue. A site in another timezone
-added to `sites.json` would need that threaded through per-site rather than
-assumed — flagged there, not silently wrong.
+- Build watch paths: `site/**`, `reference/**`, and `scenarios/**`; the research articles live
+  under `site/src/content/research/` and rebuild through `site/**`, while changes to living
+  references and generated teaching scenarios rebuild through their own paths.

@@ -56,14 +56,11 @@ import type { FieldNode } from "./field.js";
  *   reading down, like the sky — whose cells darken with layer cloud
  *   fraction (surface.low/mid/highCloudPercent; NOAA models only).
  *
- * Presentation-wave overlay (0.5.0):
+ * Surface-temperature overlay:
  * - `surfaceTemperature`: per-hour "<n>°" readouts in a row under the
  *   hour labels — the classic windgram element pilots read the day's
- *   warming from. Pure function of published state
- *   (surface.temperatureC, rounded to integer °C), so it lives here
- *   under the one-home rule. Default on — unlike the science-wave
- *   overlays it always has data, so the default render grows one text
- *   row taller (a deliberate 0.5.0 look change).
+ *   warming from. It rounds published surface.temperatureC to integer °C.
+ *   The overlay is on by default and adds one text row to the scene.
  *
  * Cloud-shading precedence inside `clouds`: hours whose levels carry
  * cloudFractionPercent (GFS's model cloud profile) shade from it directly
@@ -144,8 +141,8 @@ export const DEFAULT_OVERLAYS: Readonly<Record<OverlayName, boolean>> = {
   usableLiftTop: true,
   launch: true,
   selectedHour: true,
-  // Presentation wave (0.5.0): always has data, so on-by-default is a
-  // deliberate change to the default render (one text row taller).
+  // Surface temperature always has data, so it defaults on and adds one
+  // text row to the reference render.
   surfaceTemperature: true,
 };
 
@@ -167,19 +164,11 @@ export interface CapeClassThresholds {
 }
 
 /**
- * The default CAPE classes — soaring thresholds, not severe-weather ones.
- * The WMO Handbook of Meteorology for Soaring Flight (WMO-No. 1038) treats
- * a few hundred J/kg of surface-based CAPE as where cumulus overdevelopment
- * enters the forecast problem, while SPC's operational categories
- * (weak < 1000, moderate 1000-2500) are tuned to severe storms and would
- * hide the OD band pilots care about. Chosen classes: calm < 300 (cumulus
- * stay friendly), watch 300-800 (afternoon overdevelopment possible), risk
- * 800-1500 (showers / spreadout likely), severe >= 1500 (thunderstorm
- * potential — a land-early day). The capped threshold of -50 J/kg CIN sits
- * where SPC's moderate-inhibition band starts (near -25 to -50). Consumers
- * with a different forecasting doctrine override via
- * `options.capeClasses`; the defaults render byte-identically to the
- * pre-option goldens.
+ * Default renderer classes for the CAPE strip. The boundaries are 300,
+ * 800, and 1500 J/kg; surface CIN at or below -50 J/kg dims the cell.
+ * These presentation classes are not weather-severity categories or
+ * operational thresholds. Consumers can replace them through
+ * `options.capeClasses`.
  */
 export const DEFAULT_CAPE_CLASSES: Readonly<CapeClassThresholds> = {
   watchJkg: 300,
@@ -253,7 +242,7 @@ export interface SceneOptions {
   widthPx?: number;
   /**
    * Height of the time-height profile panel in px (the strips keep their
-   * fixed heights above it). Default 340 — the gold-standard proportions.
+   * fixed heights above it). Default 340 — the reference proportions.
    * A page-scale consumer widening the columns raises this to match.
    */
   plotHeightPx?: number;

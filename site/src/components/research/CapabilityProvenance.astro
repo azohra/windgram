@@ -1,0 +1,59 @@
+---
+import type { ModelEntry } from "windgram/contract";
+import Figure from "../figure/Figure.astro";
+import { MODELS } from "../../lib/catalogue";
+
+type Provenance = ModelEntry["capabilities"]["verticalVelocity"];
+const definitions: Array<{ token: Provenance; title: string; source: string; publication: string }> = [
+  { token: "omega", title: "Native omega", source: "The provider publishes pressure vertical velocity.", publication: "The builder transports it into levels[].verticalVelocityPaS." },
+  { token: "fromGeometricW", title: "Converted geometric w", source: "The provider publishes geometric vertical velocity.", publication: "The pipeline normalizes it before writing the same profile field." },
+  { token: false, title: "Not published", source: "The current builder publishes no vertical-velocity field.", publication: "The profile omits it; consumers do not substitute zero." },
+];
+const groups = definitions.map((definition) => ({ ...definition, models: MODELS.filter((model) => model.capabilities.verticalVelocity === definition.token) }));
+const description = groups.map((group) => `${group.title}: ${group.models.length ? group.models.map((model) => model.label).join(", ") : "no current catalogue entries"}.`).join(" ");
+---
+
+<Figure
+  id="capability-provenance"
+  title="One profile field, explicit source provenance"
+  lesson="Normalized representation lets renderers share one field without erasing whether it came from native omega or converted geometric w."
+  {description}
+  caption="The tokens come from the typed capability contract; model membership comes from data/models.json. Empty groups remain visible so future catalogue entries have an honest destination."
+  units="capability tokens · published pressure vertical velocity Pa/s"
+>
+  <div class="provenance-grid">
+    {groups.map((group, index) => (
+      <section>
+        <span class="index">0{index + 1}</span><code>{group.token === false ? "false" : group.token}</code>
+        <h4>{group.title}</h4>
+        <p>{group.source}</p>
+        <div class="flow" aria-hidden="true"><i></i><span>pipeline boundary</span><i></i></div>
+        <p>{group.publication}</p>
+        <ul>
+          {group.models.map((model) => <li>{model.label}</li>)}
+          {group.models.length === 0 && <li class="empty">No current catalogue entry</li>}
+        </ul>
+      </section>
+    ))}
+  </div>
+</Figure>
+
+<style>
+  .provenance-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: var(--surface); }
+  section { min-width: 0; padding: 16px; }
+  section + section { border-left: 1px solid var(--rule); }
+  .index { color: var(--accent-strong); font: 700 11px/1 var(--mono); }
+  section > code { display: inline-block; margin-left: 8px; color: var(--ink-mute); font: 10px var(--mono); }
+  h4 { margin: 9px 0 8px; color: var(--ink); font: 700 17px/1.2 var(--sans); }
+  p { min-height: 54px; margin: 0; color: var(--ink-soft); font-size: 12px; line-height: 1.5; }
+  .flow { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; margin: 14px 0; color: var(--accent-strong); font: 9px var(--mono); text-transform: uppercase; }
+  .flow i { border-top: 1px solid var(--accent); }
+  ul { margin: 14px 0 0; padding: 10px 0 0; list-style: none; border-top: 1px solid var(--rule); }
+  li { color: var(--ink); font: 11px/1.5 var(--mono); }
+  li.empty { color: var(--ink-mute); font-style: italic; }
+  @media (max-width: 680px) {
+    .provenance-grid { grid-template-columns: 1fr; }
+    section + section { border-top: 1px solid var(--rule); border-left: 0; }
+    p { min-height: 0; }
+  }
+</style>

@@ -1,0 +1,101 @@
+---
+import Search from "@astrojs/starlight/components/Search.astro";
+import SiteTitle from "./SiteTitle.astro";
+
+const links = [
+  { label: "Docs", href: "/docs/" },
+  { label: "Research", href: "/research/" },
+  { label: "About", href: "/about/" },
+  { label: "GitHub", href: "https://github.com/azohra/windgram", external: true },
+];
+---
+
+<div class="docs-header">
+  <div class="title-wrapper"><SiteTitle /></div>
+  <div class="search"><Search /></div>
+  <nav class="global-nav" aria-label="Project">
+    {
+      links.map(({ label, href, external }) => (
+        <a
+          href={href}
+          aria-current={!external && Astro.url.pathname.startsWith(href) ? "page" : undefined}
+          target={external ? "_blank" : undefined}
+          rel={external ? "noopener" : undefined}
+        >
+          {label}
+        </a>
+      ))
+    }
+  </nav>
+</div>
+
+<style>
+  @layer starlight.components {
+    .docs-header {
+      display: grid;
+      grid-template-columns: minmax(max-content, 1fr) minmax(12rem, 22rem) auto;
+      align-items: center;
+      gap: clamp(0.75rem, 2vw, 1.5rem);
+      height: 100%;
+    }
+
+    .title-wrapper {
+      min-width: 0;
+      overflow: clip;
+      padding: 0.25rem;
+      margin: -0.25rem;
+    }
+
+    .search {
+      min-width: 0;
+    }
+
+    .global-nav {
+      display: flex;
+      align-items: center;
+      gap: 1.05rem;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.045em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .global-nav a {
+      color: var(--ink-soft);
+      text-decoration: none;
+      text-underline-offset: 0.25em;
+    }
+
+    .global-nav a:hover {
+      color: var(--ink);
+      text-decoration: underline;
+    }
+
+    .global-nav a[aria-current="page"] {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    @media (max-width: 71.99rem) {
+      .docs-header {
+        grid-template-columns: minmax(0, 1fr) auto;
+      }
+
+      .search {
+        justify-self: end;
+      }
+
+      .global-nav {
+        display: none;
+      }
+    }
+
+    @media (max-width: 49.99rem) {
+      .search {
+        width: 2.5rem;
+      }
+    }
+  }
+</style>

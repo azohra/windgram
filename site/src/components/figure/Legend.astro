@@ -1,0 +1,34 @@
+---
+export interface LegendItem {
+  label: string;
+  description?: string;
+  color?: string;
+  mark?: "line" | "dot" | "area";
+}
+
+interface Props {
+  items: LegendItem[];
+  label?: string;
+}
+
+const { items, label = "Figure legend" } = Astro.props;
+---
+
+<aside class="wg-legend" aria-label={label}>
+  <span class="wg-legend__title">{label}</span>
+  <ul>
+    {items.map((item) => (
+      <li>
+        <span
+          class:list={["wg-legend__mark", `wg-legend__mark--${item.mark ?? "line"}`]}
+          style={item.color ? `--wg-legend-color: ${item.color}` : undefined}
+          aria-hidden="true"
+        ></span>
+        <span>
+          <strong>{item.label}</strong>
+          {item.description && <span class="wg-legend__description">{item.description}</span>}
+        </span>
+      </li>
+    ))}
+  </ul>
+</aside>

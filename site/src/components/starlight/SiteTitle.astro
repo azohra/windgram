@@ -1,0 +1,74 @@
+---
+import SkylineMark from "../SkylineMark.astro";
+---
+
+<a href="/" class="site-title" aria-label="Windgram home">
+  <span class="mark" aria-hidden="true"><SkylineMark /></span>
+  <span class="wordmark">Windgram</span>
+  <span class="section">Docs</span>
+</a>
+
+<style>
+  @layer starlight.components {
+    .site-title {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      min-width: 0;
+      color: var(--ink);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .site-title:hover {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .mark {
+      display: grid;
+      width: 2.65rem;
+      color: var(--accent);
+    }
+
+    .mark :global(svg) {
+      width: 100%;
+      height: auto;
+    }
+
+    .wordmark {
+      overflow: hidden;
+      font-family: var(--display);
+      font-size: 1.3rem;
+      font-weight: 800;
+      letter-spacing: 0.025em;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    .section {
+      padding-inline-start: 0.62rem;
+      border-inline-start: 1px solid var(--rule);
+      color: var(--ink-mute);
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 24rem) {
+      .mark {
+        width: 2.15rem;
+      }
+
+      .wordmark {
+        font-size: 1.1rem;
+      }
+
+      .section {
+        display: none;
+      }
+    }
+  }
+</style>

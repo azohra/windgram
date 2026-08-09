@@ -1,0 +1,45 @@
+/* Figure motion is opt-in and control-driven. State changes may reveal
+   sequence, causality, or comparison; data values remain in static markup. */
+
+[data-motion-trigger="control"] [data-motion-part] {
+  transition:
+    opacity 180ms ease-out,
+    transform 180ms ease-out,
+    visibility 180ms step-end;
+}
+
+[data-motion-trigger="control"] [data-motion-part][data-motion-active="false"] {
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(0.25rem);
+}
+
+[data-motion-trigger="control"] [data-motion-part][data-motion-active="true"] {
+  visibility: visible;
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-motion-trigger="control"] [data-motion-part] {
+    transition: none !important;
+  }
+
+  /* Reduced-motion mode exposes every explanatory layer at once, independent
+     of the currently selected transition state. */
+  [data-motion-trigger="control"] [data-motion-part] {
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
+    clip-path: none !important;
+  }
+}
+
+@media print {
+  [data-motion-part] {
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
+    clip-path: none !important;
+  }
+}

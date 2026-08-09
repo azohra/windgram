@@ -1,0 +1,72 @@
+{
+  "$schema": "../../scenario.schema.json",
+  "schemaVersion": 1,
+  "id": "invalid-unknown-transform",
+  "title": "Invalid fixture: unknown transform",
+  "lesson": "This fixture proves that an undeclared transformation operation cannot enter the scenario pipeline.",
+  "kind": "deterministic",
+  "modelShape": "hourly-core",
+  "timeZone": "Etc/UTC",
+  "site": {
+    "id": "synthetic-ridge",
+    "name": "Synthetic Ridge",
+    "synthetic": true,
+    "latitude": 49,
+    "longitude": -123,
+    "altitudeM": 1050,
+    "modelElevationM": 900
+  },
+  "clock": {
+    "referenceTime": "2000-01-01T06:00:00Z",
+    "generatedAt": "2000-01-01T06:00:00Z",
+    "startAt": "2000-01-01T12:00:00Z",
+    "stepHours": 1,
+    "hourCount": 2,
+    "seed": 110
+  },
+  "baseline": {
+    "type": "synthetic",
+    "path": "baselines/minimal-hourly-core.source.json"
+  },
+  "transforms": [
+    {
+      "type": "invent-weather",
+      "field": "temperatureC",
+      "value": 20
+    }
+  ],
+  "semantics": {
+    "precipitation": "instantRate"
+  },
+  "capabilities": {
+    "levels": true,
+    "pressureLevels": [
+      925,
+      850,
+      700
+    ],
+    "verticalVelocity": false,
+    "heatFluxes": true,
+    "gust": false,
+    "cape": false,
+    "cin": false,
+    "pblHeight": false,
+    "cloudLayers": false,
+    "cloudProfile": false
+  },
+  "assertions": [
+    {
+      "id": "surface-warms",
+      "description": "The declared second teaching hour is warmer than the first.",
+      "actual": {
+        "field": "surface.temperatureC",
+        "hour": 1
+      },
+      "operator": "greater-than",
+      "expected": {
+        "field": "surface.temperatureC",
+        "hour": 0
+      }
+    }
+  ]
+}

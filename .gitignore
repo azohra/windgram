@@ -3,9 +3,12 @@ __pycache__/
 .pytest_cache/
 .DS_Store
 .venv/
+*.egg-info/
 site/dist/
 packages/windgram/dist/
 site/.astro/
+site/playwright-report/
+site/test-results/
 .wrangler/
 .claude/worktrees/
 notes/

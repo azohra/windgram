@@ -1,0 +1,187 @@
+---
+title: Data and package versioning
+description: The independent dataset, npm package, and Python pipeline versions, their compatibility rules, and the files that own them.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Windgram has three public version axes. They describe different boundaries and
+do not advance in lockstep.
+
+| Axis | Current value | Authority | What it versions |
+| --- | ---: | --- | --- |
+| Published JSON schema | `1` | `SCHEMA_VERSION` and the zod contract in `packages/windgram/src/contract/index.ts` | Profiles, manifests, and the model, site, and run-index document families |
+| npm package | `0.9.0` | `packages/windgram/package.json` | Contract guards, derivations, single-profile analysis, cross-model comparison, transport, scene graph, SVG renderer, tokens, and scene-derived key |
+| Python pipeline | `2.0.0` | `pyproject.toml` | The repository's provider ingestion, derivation, and publication implementation |
+
+The scenario-definition contract also carries `schemaVersion: 1`. That
+internal authoring format belongs to `scenarios/scenario.schema.json` and is
+independent of the published dataset schema.
+
+<Aside type="caution" title="Do not compare the numbers">
+  Python `2.0.0` does not mean profile schema 2, and npm `0.9.0` does not mean
+  profile schema 0.9. A consumer checks the document's `schemaVersion` with the
+  parser from the package version it has chosen.
+</Aside>
+
+## Published document compatibility
+
+Every current profile, manifest, model catalogue, site catalogue, and run index
+uses `schemaVersion: 1`. The generated JSON Schemas under
+`packages/windgram/schema/` describe the inputs accepted by npm 0.9.0; the zod
+schemas and their parse guards are the behavioural authority.
+
+From the 0.3 contract onward, compatibility follows these rules:
+
+- adding an optional field, enum-independent metadata, or a new model catalogue
+  entry can remain schema 1;
+- absence of an optional capability field means **not published**, never zero;
+- changing a stored profile or manifest field's unit or meaning, removing or
+  renaming one, changing its required shape, or making an optional field
+  required needs a schema-version change and explicit migration handling;
+- catalogue guards may become stricter at a documented pre-1.0 npm minor
+  boundary only when the released package names the rejected older shape and
+  the repository publishes the matching catalogue in the same tagged state;
+- readers should tolerate unknown additive keys but must reject an unsupported
+  `schemaVersion`;
+- model identity is an open slug from `data/models.json`, not a package enum;
+  adding a model is not a schema break; and
+- stored documents retain their own run, site, optional semantics, and optional
+  timezone echo. Consumers do not reinterpret old files using later catalogue
+  values.
+
+Version 1 has two historical compatibility boundaries:
+
+- npm 0.3.0 accepts pre-0.3 profiles because `semantics` and ensemble
+  `run.members` remain optional, but rejects the old unversioned bare-array
+  `sites.json` and model catalogues that lack `runIntervalHours` or
+  precipitation semantics; and
+- npm 0.4.0 still accepts pre-0.4 profiles because profile `site.timeZone` is
+  optional, but rejects site catalogues whose entries lack the now-required
+  IANA `timeZone`. Builders echo that catalogue value into new profiles so a
+  stored document can interpret local time without a catalogue join.
+
+The published catalogues changed in the matching `v0.3.0` and `v0.4.0`
+repository states. Therefore `schemaVersion: 1` identifies the document
+family; the selected npm package is the exact executable compatibility test.
+
+Use the raw-text guards at every storage or network boundary:
+
+```ts title="validate-profile.ts"
+import { parseWindgramProfileJson } from "windgram/contract";
+
+const profile = parseWindgramProfileJson(text);
+if (!profile) throw new Error("unsupported or invalid windgram profile");
+```
+
+Do not patch a rejected document in presentation code. Upgrade the publisher,
+choose a compatible package, or perform a named migration before validation.
+
+## npm package compatibility
+
+The npm package follows semantic-versioning intent. While the package remains
+below 1.0:
+
+- patch releases in one minor line are intended to be backwards-compatible
+  corrections;
+- a minor release may change a public TypeScript or JavaScript API and must
+  describe that change in the changelog and integration guide; and
+- a deprecation names the replacement and the release boundary at which the
+  old export may disappear.
+
+Package version does not govern the provider catalogue or force a dataset
+schema bump. For example, adding a pure derivation can advance the package
+without changing stored JSON. Conversely, adding a model entry can change the
+catalogue without changing package code.
+
+Consumers should pin an npm range appropriate to their tolerance, validate all
+external documents, and test deterministic and ensemble examples. Switch on
+the scalar value shape and declared capabilities, never a hard-coded model
+name.
+
+npm 0.9.0 keeps published profiles at `schemaVersion: 1` and includes these
+post-0.6 boundaries:
+
+- 0.7 accepts full ensemble dropout (`members: 0` with null percentiles),
+  makes `p50()` return `number | null`, and advances the analyze vocabulary to
+  version 3 with horizon coverage and clipped-window edges;
+- 0.8 adds `windgram/compare` and `COMPARE_VOCABULARY_VERSION` 1;
+- 0.8.1 distinguishes unopposed buoyancy from an unavailable B/S ratio and
+  documents the ratio's same-air-mass terrain assumption; and
+- 0.9 changes `sampledFieldPaths` to accept ordered banding and emit
+  interpolated iso-band paths filled with the even-odd rule.
+
+Treat `v0.9.0` as an API and SVG snapshot boundary while validating each
+document's independent `schemaVersion`. The
+[scene guide](/docs/typescript/scene/) defines the current presentation
+options and scene fields; the [SVG guide](/docs/typescript/svg/) defines
+rendering, tokens, and the scene-derived key.
+
+npm 0.5.0 changed the default rendered height and added the scene-derived key,
+surface-temperature row, and presentation controls. It did not change the
+accepted profile shape or finding vocabulary.
+
+The 0.4.0 package added two contract surfaces without changing profile schema
+version:
+
+- `ANALYZE_VOCABULARY_VERSION` versions the closed set of typed finding kinds
+  emitted by `windgram/analyze`; it began at `1` and is independent of the
+  published JSON `schemaVersion`; and
+- `windgram/scene` no longer re-exports `msToKmh`. That compatibility export
+  was deprecated through v0.3 and removed at the documented v0.4 boundary;
+  import it from `windgram/derive`.
+
+See [Analyze a profile](/docs/typescript/analyze/) for the finding vocabulary
+and [Compare model profiles](/docs/typescript/compare/) for the cross-document
+vocabulary. The [repository changelog](https://github.com/azohra/windgram/blob/main/CHANGELOG.md)
+records release comparisons.
+
+## Python pipeline compatibility
+
+`pyproject.toml` records Python project version `2.0.0` and requires
+Python 3.12 or later. The supported operational boundary is the repository's
+document output and documented builder invocations. Internal modules under
+`windgram/` are not a separately promised Python library API.
+
+When pipeline code changes a derived value without changing its JSON shape,
+record the scientific or correctness change and update tests and affected
+research prose. A change to the stored field's unit, null meaning, or contract
+shape follows [published document compatibility](#published-document-compatibility). Do not bump the Python
+version merely to mirror an npm release.
+
+## Publication identity
+
+A published run is identified by the pair
+`(run.referenceTime, run.generatedAt)`. A later `generatedAt` for the same
+`referenceTime` is a corrected re-publication that consumers should re-ingest;
+it is not a schema or package release. `data/runs.json` is regenerated from
+manifests and exposes those pairs across the published models.
+
+Forecast archives contain the complete profile document as it was published.
+They do not inherit later catalogue or package metadata.
+
+## Authority and generated artifacts
+
+A versioned change edits an authoritative input and regenerates its outputs
+with the owner command. The authority table and the list of generated files
+that are never hand-edited are maintained in the repository's
+[`CONTRIBUTING.md`](https://github.com/azohra/windgram/blob/main/CONTRIBUTING.md#know-which-file-is-authoritative).
+
+## Checks for a versioned change
+
+Run the complete repository gate from the root; the command list is
+maintained in
+[`CONTRIBUTING.md`](https://github.com/azohra/windgram/blob/main/CONTRIBUTING.md#set-up-and-run-the-full-check).
+
+For a contract edit, run `pnpm --dir packages/windgram schemas` first and
+inspect every emitted schema diff. The package contract test deep-compares
+those artifacts with the zod authority.
+
+For an intentional renderer change, follow the golden SVG review sequence in
+[Tests by change](/docs/contribute/tests/#golden-svg-changes-require-review).
+Golden updates are evidence of an approved visual change, not a routine
+response to failure.
+
+See the repository's
+[`CONTRIBUTING.md`](https://github.com/azohra/windgram/blob/main/CONTRIBUTING.md)
+for change-class test requirements and attribution policy.

@@ -1,18 +1,23 @@
 ---
+import Figure from "../figure/Figure.astro";
+
 const stages = [
   { number: "1", title: "Upstream model products", detail: "ECCC or NOAA publishes a forecast cycle." },
   { number: "2", title: "Completeness probe", detail: "Request the final required hour before fetching the run." },
   { number: "3", title: "Per-model builder", detail: "Fetch required records; verify; derive; serialize." },
   { number: "4", title: "Workflow commit", detail: "Commit every completed model directory and append one history record per site and run." },
-  { number: "5", title: "Browser read", detail: "Fetch manifest and profile; accept only a matching referenceTime." },
+  { number: "5", title: "Consumer read", detail: "Fetch manifest and profile; compare referenceTime; expose a torn pair as stale." },
 ];
 ---
 
-<figure class="pipeline-diagram" aria-labelledby="pipeline-title pipeline-caption">
-  <header class="figure-heading">
-    <h3 id="pipeline-title">Publication flow from model cycle to browser</h3>
-  </header>
-
+<Figure
+  id="pipeline-diagram"
+  title="Publication flow from model cycle to browser"
+  lesson="A run is published only after completeness and derivation checks, then read as static files."
+  description="A five-stage sequence from upstream forecast publication through completeness probing, model-specific building, one repository commit, and a consumer consistency check."
+  caption="Builders complete independently. Each polling cycle commits every finished model update once; consumers compare independently cached static files and choose their own stale-pair policy."
+  units="Ordered stages; no numeric scale"
+>
   <ol class="publication-flow">
     {stages.map((stage) => (
       <li>
@@ -30,20 +35,9 @@ const stages = [
     <span>manifest.json · site profiles · append-only history</span>
   </div>
 
-  <figcaption id="pipeline-caption">
-    Builders complete independently. Each polling cycle commits every finished model update once; browsers read static files from GitHub rather than a project API.
-  </figcaption>
-</figure>
+</Figure>
 
 <style>
-  .pipeline-diagram {
-    width: min(980px, calc(100vw - 32px));
-    margin: 28px 50% 44px;
-    transform: translateX(-50%);
-    color: var(--ink);
-  }
-  .figure-heading { padding-bottom: 10px; border-bottom: 2px solid var(--ink); }
-  .figure-heading h3 { margin: 0; font-family: var(--sans); font-size: 18px; letter-spacing: 0; text-transform: none; }
   .publication-flow { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; margin: 0; padding: 24px 0 18px; list-style: none; border-bottom: 1px solid var(--rule); }
   .publication-flow::before { content: ""; position: absolute; top: 42px; left: 10%; right: 10%; border-top: 2px solid var(--rule-strong); }
   .publication-flow li { position: relative; min-width: 0; padding: 0 11px; text-align: center; }
@@ -54,7 +48,6 @@ const stages = [
   .stage-copy span { font-size: 13px; line-height: 1.4; color: var(--ink-soft); }
   .publication-boundary { display: flex; justify-content: space-between; gap: 20px; padding: 11px 0; border-bottom: 2px solid var(--ink); font-family: var(--mono); font-size: 12px; color: var(--ink-mute); }
   .publication-boundary span:first-child { color: var(--accent-strong); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
-  figcaption { margin-top: 13px; font-family: var(--mono); font-size: 13px; line-height: 1.5; color: var(--ink-mute); }
   @media (max-width: 680px) {
     .publication-flow { grid-template-columns: 1fr; padding: 18px 0 8px; }
     .publication-flow::before { top: 22px; bottom: 31px; left: 18px; right: auto; border-top: 0; border-left: 2px solid var(--rule-strong); }

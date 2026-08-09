@@ -1,0 +1,207 @@
+---
+title: Author an infographic
+description: Build clear static and interactive teaching figures with controlled inputs, shared visual structure, and accessible equivalent explanations.
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+Each figure starts from one inspectable relationship and meaningful static
+markup.
+
+## Choose the evidence class first
+
+| Figure class | Appropriate input | Reader context |
+| --- | --- | --- |
+| Atmospheric teaching figure | A committed, validated teaching scenario | Accessible description and a traceable scenario id in the component |
+| Contract or pipeline diagram | Repository contract, code ownership, or publication sequence | Source or repository authority in the caption |
+| Model capability/reference figure | Build-time `data/models.json` declarations and dated provider reference | Capability and verification context; absence remains absence |
+| Research result | The article's recorded method and fixed result artifact | Method, units, limits, and citations adjacent to the claim |
+
+<Aside type="tip" title="Atmospheric figure inputs">
+  Use generated teaching profiles for atmospheric examples. Keep current
+  catalogues, manifests, profiles, and history archives outside the page-view
+  request path.
+</Aside>
+
+## The figure contract
+
+Require only the fields that help the reader:
+
+- a concise title;
+- an accessible description that explains the important relationships rather
+  than listing colours;
+- a visible finding only when the surrounding prose does not already state it;
+- a caption only when units, limits, or source details affect interpretation;
+- meaningful server-rendered content before client hydration; and
+- labelled controls, Reset, reduced-motion behaviour, and a narrow-screen
+  layout when interaction is present.
+
+The shared shell under `site/src/components/figure/` owns repeated frame,
+heading, caption, legend, and control structure. Research components
+own the scientific composition inside that shell; articles own where the
+figure appears in the argument. Do not copy shell markup or global visual
+tokens into each figure.
+
+## Build from the lesson outward
+
+<Steps>
+
+1. **Write the sentence the reader should learn.** If the conclusion needs a
+   paragraph of qualifications, narrow the figure.
+2. **Select authoritative input.** Use a scenario for atmospheric state,
+   package exports for pure derivations and renderer geometry, the model
+   catalogue for declared capabilities, or a cited fixed research result.
+3. **Design the static first frame.** The principal comparison and conclusion
+   must exist in the HTML or SVG returned before hydration.
+4. **Add interaction only when it teaches a change.** A control should reveal
+   sequence, causality, sensitivity, comparison, or state—not merely movement.
+5. **Write the equivalent explanation.** State the initial values, what the
+   control changes, and the conclusion in nearby prose or a stable readout.
+6. **Test all input modes and layouts.** Keyboard, touch, reduced motion, high
+   zoom, and narrow screens are part of the figure, not follow-up polish.
+
+</Steps>
+
+## Scenario-driven figures
+
+Website components consume scenarios through the validated
+`site/src/lib/scenarios.ts` interface. They do not import a generated JSON file,
+definition, or calibration baseline directly. That single boundary keeps the
+profile contract, lesson, timezone, capabilities, hashes, and accessibility
+metadata together.
+
+Use the npm package for scene construction and any derivation that is a pure
+function of the profile. Do not reimplement chart geometry, scalar narrowing,
+wind direction handling, day windowing, stability, shear, or usable-lift
+parameters in component-local code. Pipeline-authored `derived.*` values arrive
+from the generated profile.
+
+The component obtains a scenario by id from that library, passes its validated
+profile to package scene or derivation functions, and passes the library's
+lesson and accessibility metadata into the current figure shell. Use the
+actual exported types rather than duplicating their shape in a component.
+Labels such as “earlier” and “later” describe controlled variants without
+implying correctness, probability, or operational preference.
+
+Follow the [scenario authoring guide](/docs/contribute/scenario-authoring/) if
+the needed relationship does not exist. Do not bend an unrelated scenario in
+component code.
+
+## SVG and chart construction
+
+Use semantic groups and stable, readable labels. Include units in axes,
+readouts, or legends wherever a numeric value appears. Preserve meteorological
+direction conventions and the distinction between AGL and MSL, Pa and hPa,
+absence and zero, deterministic numbers and ensemble percentile objects.
+
+When the package renderer is appropriate, build its scene and serialize its
+SVG instead of rebuilding paths in Astro. Pass a unique stable `idPrefix` when
+multiple SVGs can share a page. Any hand-authored SVG must also ensure that
+clip paths, masks, gradients, markers, and labelled-by ids are unique across
+the complete document.
+
+A complete package-rendered windgram uses
+`renderKeySvg(buildKeySpec(scene))` for its key. When controls change overlay
+visibility, derive and render the key from the rebuilt scene. An all-layer key
+beside a progressive or hidden-layer state is false labelling. Give the key a
+stable `idPrefix` that differs from the chart prefix.
+
+Colour is never the only encoding. Pair it with position, shape, texture,
+stroke, label, or a textual readout. Reuse the project and package token
+authorities; a figure may introduce a semantic token but should not copy a
+palette value into multiple components.
+
+If a figure needs intentional horizontal exploration on a narrow screen,
+label that behaviour, make the region focusable, and support keyboard
+scrolling. The page itself must not overflow horizontally.
+
+## Interaction and motion
+
+Controls use native inputs or fully equivalent accessible semantics. Every
+control has a visible label, keyboard operation, touch-sized target, current
+value, and deterministic initial state. Reset restores every adjustable value
+and the same declared first frame.
+
+Motion is appropriate when it encodes:
+
+- a process sequence;
+- cause and effect;
+- transition between controlled states; or
+- correspondence between a control and a changed mark.
+
+Do not autoplay a complex explanation. Hover may supplement a view but cannot
+be the only way to retrieve a value or conclusion. Under
+`prefers-reduced-motion: reduce`, show a complete stable state, remove
+nonessential transitions, and preserve the finding. Animation state must not
+modify the scientific values stored in a scenario document.
+
+Client-side code may change presentation state. Scenario facts and the textual
+explanation remain in the static document.
+
+## Accessible description and caption
+
+Alt text such as “a windgram chart” is not equivalent access. Describe the
+relationship the visual encodes:
+
+> Six fixed teaching hours warm through midday. The usable-lift top rises from
+> below launch to 2,400 metres MSL, then falls as surface heat flux weakens.
+
+The exact numbers belong in a stable table or readout when readers need them.
+The prose finding can be shorter, but it should survive CSS, JavaScript, colour,
+and motion being unavailable.
+
+A caption records the details that affect interpretation:
+
+- which source produced the values;
+- what units and conventions apply;
+- what was held fixed or varied; and
+- what the figure cannot establish.
+
+For calibrated scenarios, provider credit belongs beside any discussion of
+the offline calibration method; do not present the provider run time as the
+figure's time.
+
+## Place figures explicitly
+
+Import a research figure in its canonical MDX article and place the component
+at the exact point where the prose introduces it:
+
+```mdx title="research article excerpt"
+import SpreadDiagram from "../../components/research/SpreadDiagram.astro";
+
+The width of the band records member disagreement, not event probability.
+
+<SpreadDiagram />
+```
+
+Do not attach figures by heading text, article order, or a central slug switch.
+Renaming a heading must not move or remove a visual. A reusable learning figure
+can also appear in documentation, but its lesson, input, and caption remain
+the same across layouts.
+
+## Verify the result
+
+Run from the repository root:
+
+```sh title="Terminal"
+uv run python -m windgram.scenarios check
+pnpm --dir packages/windgram test
+pnpm --dir packages/windgram typecheck
+pnpm --dir site check
+pnpm --dir site build
+```
+
+Then review the built figure at desktop and narrow widths and verify:
+
+- useful content exists before hydration;
+- no page-level horizontal overflow or duplicate SVG ids;
+- keyboard and touch produce the same states;
+- Reset restores every declared initial value;
+- a package key names only series and fields visible in the current scene;
+- reduced motion shows a complete stable finding;
+- every interaction has a textual equivalent.
+
+An intentional package-renderer change may alter committed SVG goldens. Follow
+the review-then-update sequence in
+[Tests by change](/docs/contribute/tests/#golden-svg-changes-require-review).
+Never update goldens to approve an unexplained visual change after the fact.

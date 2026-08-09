@@ -1,0 +1,117 @@
+---
+title: Analyze a profile
+description: Turn one validated profile into typed findings whose thresholds and source evidence travel with each statement.
+---
+
+`windgram/analyze` compresses one profile into a small, versioned vocabulary
+of findings. Each finding is a typed statement about magnitudes, timing,
+published absences, or arithmetic relationships in that document. Findings
+that depend on thresholds carry the thresholds that produced them; findings
+that cite hours carry the underlying values and UTC `validAt` instants in an
+`evidence` block.
+
+Use `windgram/derive` when you need quantities. Use `windgram/analyze` when you
+need a statement that remains inspectable after the full profile is no longer
+in the immediate view or prompt.
+
+[`windgram/compare`](/docs/typescript/compare/) applies one analysis threshold
+set across multiple models and compares their findings.
+
+## Analyze a validated document
+
+Validate a profile before passing it to the analysis API:
+
+```ts title="analyze-profile.ts"
+import {
+  analyzeProfile,
+  type WindgramAnalysis,
+} from "windgram/analyze";
+import { parseWindgramProfileJson } from "windgram/contract";
+
+export function analyzeProfileJson(text: string): WindgramAnalysis {
+  const profile = parseWindgramProfileJson(text);
+  if (!profile) throw new Error("invalid profile");
+
+  return analyzeProfile(profile, {
+    thresholds: {
+      flyableWindow: { wstarMinMs: 1.0, depthMinM: 350 },
+    },
+  });
+}
+```
+
+`thresholds` is optional. Overrides are merged by finding kind over
+`DEFAULT_ANALYZE_THRESHOLDS`. They are conventions chosen by the caller, not
+new physics, and the effective values are copied into every finding they
+shape.
+
+## Keep the evidence with the statement
+
+Narrow findings by their `kind` discriminant. This example prepares rows for
+a teaching table while retaining the exact series and instants behind every
+window.
+
+```ts title="window-rows.ts"
+import type { WindgramAnalysis } from "windgram/analyze";
+
+export function windowRows(analysis: WindgramAnalysis) {
+  return analysis.findings.flatMap((finding) => {
+    if (finding.kind !== "flyableWindow") return [];
+
+    return [{
+      day: finding.day,
+      localStart: finding.start.local,
+      localEnd: finding.end.local,
+      peakAboveLaunchM: finding.peakLiftTopAboveLaunchM,
+      thresholds: finding.thresholds,
+      evidence: {
+        validAt: finding.evidence.hours,
+        usableLiftTopM: finding.evidence.usableLiftTopM,
+        thermalVelocityMs: finding.evidence.thermalVelocityMs,
+        liftTopBandP10P90: finding.evidence.liftTopBandP10P90,
+      },
+    }];
+  });
+}
+```
+
+Do not reduce a finding to a prose label before storing its thresholds and
+evidence. Those fields are what make the compressed statement auditable.
+
+## Version 3 finding vocabulary
+
+`ANALYZE_VOCABULARY_VERSION` is `3`. Adding, renaming, or removing
+a `kind` is an analysis-contract event even when the profile
+`schemaVersion` remains `1`.
+
+| Finding kind | What it states | Evidence and limits |
+| --- | --- | --- |
+| `flyableWindow` | Consecutive hours meeting the embedded W\* and launch-relative depth thresholds | Carries `clippedAtStart` and `clippedAtEnd` when the window touches the document horizon |
+| `quietDay` | A local day produced no qualifying window and which threshold floors its best hours missed | Carries the day's peaks, failed criteria, effective thresholds, and a `coverage.truncated` verdict |
+| `liftCeiling` | Whether each segment's arithmetic ceiling is cloud-capped or sink-limited | Carries usable-lift top, cloud base, and boundary-layer top for each segment |
+| `capTiming` | CAPE build, CIN erosion, and precipitation timing relative to a window | Emitted only for hourly deterministic documents with CIN; no ensemble-median or three-hour interpolation claim |
+| `windSummary` | Maximum gust and climb-band wind magnitudes, timing, altitude, and persistence | Carries the document's gust semantics and reports magnitudes without policy labels |
+| `terrainMismatch` | Grid terrain delta and whether published lift ever arithmetically reaches surveyed launch altitude | Emitted only when launch altitude is known and the embedded mismatch threshold is met |
+| `ensembleMembership` | Contributor-count loss and p10–p90 band-width magnitude or trend | Spread and membership are not a confidence interval or confidence score |
+| `dataCaveats` | Absent quantity families, derived-null hours, coarse cadence, or UTC fallback | Threshold-free; absence remains “not published,” never zero |
+
+## Local time and cadence stay visible
+
+`analyzeProfile` chooses its timezone in this order:
+
+1. `options.timeZone`, when supplied;
+2. the profile's optional `site.timeZone`; then
+3. UTC for an older document, with `timeZoneSource: "utcFallback"` and a
+   `timesAreUtc` data caveat.
+
+Every `CitedInstant` keeps both its local label and the document's UTC
+`validAt`, so a finding can join back to the source hour. The analysis envelope
+also reports `stepHours`; cadence-sensitive findings gate themselves rather
+than inventing timing between published instants.
+
+Every finding `day` uses the exported `LocalDayKey` string type. Compute scene
+day windows and analysis with the same timezone so midnight does not split one
+local day across two keys.
+
+`resolveAnalyzeThresholds(overrides)` returns the complete threshold set used
+by `analyzeProfile` and `compareProfiles`.

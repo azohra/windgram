@@ -1,0 +1,64 @@
+---
+title: Render a first windgram
+description: Validate one profile and serialize a reference chart with its scene-derived key.
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+The `windgram` package ships ESM types and requires no DOM. This example reads
+a profile from disk, keeping loading policy separate from rendering.
+
+<Steps>
+
+1. Install the package:
+
+   ```sh title="Terminal"
+   npm install windgram
+   ```
+
+2. Validate the untrusted JSON, build a scene, and serialize the chart and its
+   key:
+
+   ```ts title="render-windgram.ts"
+   import { readFileSync, writeFileSync } from "node:fs";
+   import { parseWindgramProfile } from "windgram/contract";
+   import { buildKeySpec, buildScene } from "windgram/scene";
+   import { renderKeySvg, renderSvg } from "windgram/svg";
+
+   const raw: unknown = JSON.parse(readFileSync("./profile.json", "utf8"));
+   const profile = parseWindgramProfile(raw);
+   if (!profile) throw new Error("unsupported or invalid profile");
+
+   const timeZone = profile.site.timeZone;
+   if (!timeZone) throw new Error("older profile needs an explicit IANA timezone");
+   const scene = buildScene(profile, {
+     timeZone,
+     widthPx: 960,
+     hourLabel: "12h",
+   });
+   const svg = renderSvg(scene, { idPrefix: "club-main" });
+   const keySvg = renderKeySvg(buildKeySpec(scene), { idPrefix: "club-main-key" });
+   writeFileSync("./windgram.svg", svg);
+   writeFileSync("./windgram-key.svg", keySvg);
+   ```
+
+3. Place both SVGs in the consuming page or build. Each serializer returns a
+   complete `<svg>` document with the same token authority. Rebuild the
+   scene-derived key whenever controls rebuild the scene.
+
+</Steps>
+
+<Aside type="note" title="Timezone is explicit presentation input">
+  Profiles store UTC instants. Since the v0.4 publication wave, a new profile
+  echoes its catalogue's IANA zone at optional `site.timeZone`; older profiles
+  may omit it. `buildScene` still requires the chosen zone, so pass the echo or
+  a caller-owned fallback. Never infer it from a name or coordinate.
+</Aside>
+
+## Load static publications safely
+
+Use `loadProfile()` from `windgram/transport` for independently cached static
+input. It returns a matching pair with `stale: false`; after one retry, a torn
+pair returns with `stale: true` for the caller's cache policy. A 404 returns an
+`absent` `DocumentMiss`; a document rejected by its contract guard returns an
+`invalid` `DocumentMiss`.

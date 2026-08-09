@@ -1,0 +1,34 @@
+---
+title: Project overview
+description: How the pipeline, contract, package, project site, and downstream publishers fit together.
+---
+
+Windgram is an open-source Python publication pipeline, a versioned JSON contract, and a headless
+TypeScript renderer for free-flight windgrams. It is infrastructure that a club, pilot, researcher,
+or application can run and publish.
+
+## The responsibility boundary
+
+| Layer | Responsibility | Output or policy |
+| --- | --- | --- |
+| Python pipeline | Provider input, model-dependent sampling, and quantities that require unpublished inputs or cross-run authority | Published profile values |
+| Versioned JSON | Portable model, site, time, semantics, source-field, and derived-value documents | The data boundary between publisher and consumer |
+| `windgram` npm package | Contract validation, pure document derivations, scene construction, hit-testing, and reference SVG | Reusable analysis and presentation primitives |
+| This website | Documentation, research articles, and reproducible teaching figures | Technical learning and project reference |
+| Downstream publisher | Location selection, schedule, hosting, retention, presentation, access, verification, and safety language | A complete publication for its audience |
+
+## Authority by quantity
+
+The Python pipeline owns values that cannot be derived from the published profile alone, including
+the pipeline's boundary-layer, thermal-velocity, cloud-base, and usable-lift series. The TypeScript
+package owns pure functions of the published document and the reference renderer. Presentation
+parameters—such as timezone, windows, palette, overlays, and sink-rate choices exposed by the
+renderer—belong to the consumer.
+
+The parameterized `usableLiftTopM` is the explicit cross-runtime exception. It projects published
+inputs for another sink rate while the pipeline's stored 1.0 m/s value remains authoritative and
+parity-tested.
+
+The model catalogue is authoritative for capability and provider semantics. The
+[model-capabilities guide](/docs/reference/model-capabilities/) explains how consumers render those
+declarations.

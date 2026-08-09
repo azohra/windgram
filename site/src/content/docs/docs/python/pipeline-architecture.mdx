@@ -1,0 +1,55 @@
+---
+title: Pipeline architecture
+description: Follow provider bytes through sampling, derivation, rounding, current publication, and append-only history.
+---
+
+The Python publication pipeline exposes the `windgram` CLI and the versioned
+documents it writes as its supported interface.
+
+```text
+data/models.json + sites.json
+              │
+provider transport ──→ gridpoint sampling ──→ source-shaped hours
+                                                   │
+                                                   ▼
+                                      derive_windgram_profile
+                                                   │
+                                                   ▼
+                                   contract rounding + validation tests
+                                      │            │             │
+                                      ▼            ▼             ▼
+                                  profile      manifest      history
+```
+
+## Responsibility by module
+
+| Area | Repository home | Responsibility |
+| --- | --- | --- |
+| CLI and scoped paths | `windgram/cli.py`, `windgram/config.py` | Select model(s), validate site/output paths, cap smoke steps, dispatch safely |
+| Provider clients | `datamart.py`, `noaa.py`, `grib.py`, `geotiff.py` | Fetch, range-read, decode, sample, and account for transport work |
+| Builders | `build*.py` | Verify run completeness, request declared fields, preserve absence, assemble source hours |
+| Derivation | `windgram.py` | Produce published profile blocks and model-dependent derived values |
+| Ensemble aggregation | `ensemble.py` | Aggregate member profiles, including circular wind and censored counts |
+| Publication | `publish.py` | Round contract fields, write JSON, append gzip history, build run index |
+| Teaching scenarios | `scenarios.py` | Generate fixed inputs through the same derivation authority |
+
+## Authority boundary
+
+The pipeline owns values needing provider or unpublished model inputs:
+boundary-layer top, thermal velocity, cloud base, and the published default
+usable-lift top. The npm package owns calculations needing only a profile
+document and the reference renderer. Its parameterized `usableLiftTopM`
+projects those published inputs for another sink rate; the stored 1.0 m/s
+value remains the pipeline authority.
+
+The [windgram derivations](/docs/python/derivation-science/) define the
+pipeline equations, constants, fallbacks, and renderer-only transformations.
+
+## Generated scenarios
+
+Scenario generation starts from committed inputs with fixed identity and time,
+then calls the same profile derivation used by builders. Teaching figures
+consume the generated scenario registry.
+
+The [builder contract](/docs/python/builder-contract/) defines the required
+inputs, validation, and publication behavior for model modules.

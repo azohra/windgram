@@ -50,6 +50,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from .config import output_directory
 from .moisture import dew_point_depression
 from .noaa import (
     DownloadStats,
@@ -181,7 +182,7 @@ def main() -> None:
 
 def build(product: NamProduct) -> None:
     sites = load_sites()
-    out_dir = Path("data") / product.slug
+    out_dir = output_directory(product.slug)
     run = _latest_complete_run(product)
     if run is None:
         print(f"No complete {product.label} run is available.")

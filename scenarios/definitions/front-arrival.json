@@ -1,0 +1,238 @@
+{
+  "$schema": "../scenario.schema.json",
+  "schemaVersion": 1,
+  "id": "front-arrival",
+  "title": "A controlled frontal arrival sequence",
+  "lesson": "Pressure falls first, followed by increasing cloud, wind, and then precipitation as the synthetic front arrives.",
+  "kind": "deterministic",
+  "modelShape": "hourly-rich",
+  "timeZone": "Etc/UTC",
+  "site": {
+    "id": "synthetic-front-ridge",
+    "name": "Synthetic Front Ridge",
+    "synthetic": true,
+    "latitude": 49.091868,
+    "longitude": -117.820838,
+    "altitudeM": 1591,
+    "modelElevationM": 1217.3
+  },
+  "clock": {
+    "referenceTime": "2000-01-01T12:00:00Z",
+    "generatedAt": "2000-01-01T12:00:00Z",
+    "startAt": "2000-01-01T13:00:00Z",
+    "stepHours": 1,
+    "hourCount": 10,
+    "seed": 14007
+  },
+  "baseline": {
+    "type": "calibrated",
+    "path": "baselines/hrrr-red-mountain-2026-08-08.source.json",
+    "provenancePath": "baselines/hrrr-red-mountain-2026-08-08.provenance.json"
+  },
+  "transforms": [
+    {
+      "type": "surface-field-curve",
+      "field": "pressurePa",
+      "points": [
+        {
+          "hourOffset": 0,
+          "value": 101600
+        },
+        {
+          "hourOffset": 3,
+          "value": 101000
+        },
+        {
+          "hourOffset": 6,
+          "value": 100000
+        },
+        {
+          "hourOffset": 9,
+          "value": 99000
+        }
+      ]
+    },
+    {
+      "type": "surface-field-curve",
+      "field": "cloudCoverPercent",
+      "points": [
+        {
+          "hourOffset": 0,
+          "value": 5
+        },
+        {
+          "hourOffset": 2,
+          "value": 10
+        },
+        {
+          "hourOffset": 4,
+          "value": 55
+        },
+        {
+          "hourOffset": 6,
+          "value": 90
+        },
+        {
+          "hourOffset": 9,
+          "value": 100
+        }
+      ]
+    },
+    {
+      "type": "surface-field-curve",
+      "field": "windSpeedMs",
+      "points": [
+        {
+          "hourOffset": 0,
+          "value": 2
+        },
+        {
+          "hourOffset": 3,
+          "value": 3
+        },
+        {
+          "hourOffset": 5,
+          "value": 7
+        },
+        {
+          "hourOffset": 7,
+          "value": 12
+        },
+        {
+          "hourOffset": 9,
+          "value": 14
+        }
+      ]
+    },
+    {
+      "type": "surface-field-curve",
+      "field": "windGustMs",
+      "points": [
+        {
+          "hourOffset": 0,
+          "value": 3
+        },
+        {
+          "hourOffset": 3,
+          "value": 5
+        },
+        {
+          "hourOffset": 5,
+          "value": 11
+        },
+        {
+          "hourOffset": 7,
+          "value": 18
+        },
+        {
+          "hourOffset": 9,
+          "value": 20
+        }
+      ]
+    },
+    {
+      "type": "surface-field-curve",
+      "field": "precipitationMm",
+      "points": [
+        {
+          "hourOffset": 0,
+          "value": 0
+        },
+        {
+          "hourOffset": 4,
+          "value": 0
+        },
+        {
+          "hourOffset": 6,
+          "value": 1
+        },
+        {
+          "hourOffset": 8,
+          "value": 4
+        },
+        {
+          "hourOffset": 9,
+          "value": 3
+        }
+      ]
+    }
+  ],
+  "semantics": {
+    "gust": "instant",
+    "precipitation": "instantRate"
+  },
+  "capabilities": {
+    "levels": true,
+    "pressureLevels": [
+      875,
+      850,
+      800,
+      750,
+      700,
+      650,
+      600
+    ],
+    "verticalVelocity": false,
+    "heatFluxes": true,
+    "gust": "instant",
+    "cape": true,
+    "cin": true,
+    "pblHeight": true,
+    "cloudLayers": true,
+    "cloudProfile": false
+  },
+  "assertions": [
+    {
+      "id": "pressure-falls-first",
+      "description": "Surface pressure has already fallen before precipitation begins.",
+      "actual": {
+        "field": "surface.pressurePa",
+        "hour": 3
+      },
+      "operator": "less-than",
+      "expected": {
+        "field": "surface.pressurePa",
+        "hour": 0
+      }
+    },
+    {
+      "id": "cloud-builds",
+      "description": "Cloud cover increases strongly as the synthetic front approaches.",
+      "actual": {
+        "field": "surface.cloudCoverPercent",
+        "hour": 6
+      },
+      "operator": "greater-than",
+      "expected": {
+        "field": "surface.cloudCoverPercent",
+        "hour": 2
+      }
+    },
+    {
+      "id": "wind-increases",
+      "description": "Surface wind increases after the pressure fall and cloud build begin.",
+      "actual": {
+        "field": "surface.windSpeedMs",
+        "hour": 7
+      },
+      "operator": "greater-than",
+      "expected": {
+        "field": "surface.windSpeedMs",
+        "hour": 3
+      }
+    },
+    {
+      "id": "precipitation-arrives-last",
+      "description": "Precipitation is positive late in the controlled frontal sequence.",
+      "actual": {
+        "field": "surface.precipitationMmHr",
+        "hour": 8
+      },
+      "operator": "greater-than",
+      "expected": {
+        "field": "surface.precipitationMmHr",
+        "hour": 4
+      }
+    }
+  ]
+}

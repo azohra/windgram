@@ -1,0 +1,73 @@
+---
+title: Configure launches
+description: Define a versioned club launch catalogue for the Python publisher.
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+Every builder reads the same site catalogue. Pass its path with `--sites`; the
+file can live outside the Windgram checkout and the CLI resolves it to an
+absolute path for that dispatch.
+
+## Catalogue shape
+
+```json title="club-sites.json"
+{
+  "schemaVersion": 1,
+  "sites": [
+    {
+      "slug": "test-hill",
+      "name": "Test Hill",
+      "latitude": 49.0,
+      "longitude": -117.0,
+      "elevationM": 1000,
+      "timeZone": "America/Vancouver"
+    }
+  ]
+}
+```
+
+The catalogue must satisfy `sitesCatalogueSchema` from `windgram/contract` or
+the generated `packages/windgram/schema/sites.schema.json` artifact.
+
+| Field | Meaning |
+| --- | --- |
+| `schemaVersion` | Site-catalogue contract version; `1` |
+| `slug` | Stable lowercase, hyphenated identity used in output paths |
+| `name` | Reader-facing launch name |
+| `latitude`, `longitude` | Decimal degrees |
+| `elevationM` | Surveyed launch elevation, metres MSL |
+| `timeZone` | IANA timezone used to read local days and clock times |
+
+<Aside type="note" title="Launch elevation and model elevation differ">
+  `elevationM` is the launch fact. Each profile records the sampled grid
+  terrain separately as `site.modelElevationM`; the pipeline uses model
+  elevation for pressure-level filtering and model-column derivations.
+</Aside>
+
+## Add a site safely
+
+<Steps>
+
+1. Choose a stable slug. Renaming it changes every profile and history path.
+2. Record coordinates and surveyed elevation from an appropriate source for
+   your club. Do not infer elevation from a forecast grid.
+3. Declare the launch's IANA timezone. Local time changes day windows and the
+   meaning of timing findings, so builders echo this value into each profile
+   as `site.timeZone`; do not infer it from longitude in presentation code.
+4. Validate the whole file without fetching provider data:
+
+   ```sh title="Terminal"
+   uv run windgram build --model hrrr-conus --sites ./club-sites.json --output ./public/data --dry-run
+   ```
+
+5. Run the chosen model. If any configured site falls outside that model's
+   sampling guard, the build fails with an out-of-grid error rather than
+   publishing a clamped boundary value. Use a site catalogue appropriate to
+   the selected model domain.
+
+</Steps>
+
+The catalogue chooses sampling locations and their local clocks. It does not
+choose audience, launch suitability, display windows, or access policy. Those
+belong to the downstream publisher.

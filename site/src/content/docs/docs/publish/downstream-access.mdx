@@ -1,0 +1,45 @@
+---
+title: Downstream access
+description: Put static artifacts behind the public, private, or member-gated surface your publisher owns.
+---
+
+Windgram ends at inspectable static artifacts and reusable rendering tools.
+Authentication, membership, launch discovery, product navigation, alerts,
+retention, and operational language belong to the downstream application.
+
+## Choose access at the hosting boundary
+
+| Publication need | Downstream implementation |
+| --- | --- |
+| Public club archive | Static host or object storage with explicit retention |
+| Member-only current output | Application or edge authorization in front of the static tree |
+| Build-time chart pages | Fetch/validate during the downstream build and deploy generated HTML/SVG |
+| Custom interactive viewer | Validate documents, build a scene, and own browser state and accessibility |
+
+The JSON contract does not contain users, roles, sessions, launch permissions,
+or API keys. Adding them would couple portable forecast documents to one
+publisher's policy.
+
+## Read independently cached files safely
+
+Static storage can expose a new manifest before the matching profile cache
+entry expires, or the reverse. TypeScript consumers should use
+`loadProfile()` from `windgram/transport`, which fetches the pair, compares
+model and `referenceTime`, and retries once. It returns:
+
+- a consistent `{ manifest, profile, stale: false }` pair;
+- the freshest complete pair seen with `stale: true` when publication still
+  appears torn; or
+- `{ miss: "absent", url }` for a 404; or
+- `{ miss: "invalid", url }` when a fetched document fails its contract guard.
+
+Discriminate a `DocumentMiss` with `"miss" in result`. Non-404 HTTP failures
+throw `TransportHttpError`. Consumers own caching,
+credentials, fallback selection, and stale-state presentation.
+
+At every access level, keep provider attribution with derived material and
+state the publisher's operational limitations.
+
+The [provider-free example](/docs/publish/run-one-model/#run-the-provider-free-example)
+ends with a directory that can be copied byte-for-byte to any of these
+downstream boundaries. No Windgram process remains running after generation.

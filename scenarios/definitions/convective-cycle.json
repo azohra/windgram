@@ -1,0 +1,213 @@
+{
+  "$schema": "../scenario.schema.json",
+  "schemaVersion": 1,
+  "id": "convective-cycle",
+  "title": "A complete fair-weather convective cycle",
+  "lesson": "Morning stability gives way to a deep midday unstable column. The boundary layer, usable lift, and cloud base follow distinct arcs beneath wind that strengthens and veers with height.",
+  "kind": "deterministic",
+  "modelShape": "hourly-rich",
+  "timeZone": "Etc/UTC",
+  "site": {
+    "id": "synthetic-ridge",
+    "name": "Synthetic Ridge",
+    "synthetic": true,
+    "latitude": 49,
+    "longitude": -123,
+    "altitudeM": 1050,
+    "modelElevationM": 900
+  },
+  "clock": {
+    "referenceTime": "2000-01-01T06:00:00Z",
+    "generatedAt": "2000-01-01T06:00:00Z",
+    "startAt": "2000-01-01T10:00:00Z",
+    "stepHours": 1,
+    "hourCount": 10,
+    "seed": 14001
+  },
+  "baseline": {
+    "type": "synthetic",
+    "path": "baselines/convective-cycle.source.json"
+  },
+  "transforms": [],
+  "semantics": {
+    "gust": "hourMax",
+    "precipitation": "instantRate"
+  },
+  "capabilities": {
+    "levels": true,
+    "pressureLevels": [
+      925,
+      900,
+      850,
+      800,
+      750,
+      700,
+      650,
+      600
+    ],
+    "verticalVelocity": false,
+    "heatFluxes": true,
+    "gust": "hourMax",
+    "cape": true,
+    "cin": true,
+    "pblHeight": true,
+    "cloudLayers": true,
+    "cloudProfile": false
+  },
+  "assertions": [
+    {
+      "id": "morning-column-contained",
+      "description": "The boundary-layer top rises above its morning height by midday.",
+      "actual": {
+        "field": "derived.boundaryLayerTopM",
+        "hour": 0
+      },
+      "operator": "less-than",
+      "expected": {
+        "field": "derived.boundaryLayerTopM",
+        "hour": 5
+      }
+    },
+    {
+      "id": "mixed-layer-peaks-midday",
+      "description": "The boundary-layer top falls after its midday maximum.",
+      "actual": {
+        "field": "derived.boundaryLayerTopM",
+        "hour": 5
+      },
+      "operator": "greater-than",
+      "expected": {
+        "field": "derived.boundaryLayerTopM",
+        "hour": 6
+      }
+    },
+    {
+      "id": "usable-lift-appears",
+      "description": "Peak heating produces usable lift after the no-lift morning.",
+      "actual": {
+        "field": "derived.usableLiftTopM",
+        "hour": 5
+      },
+      "operator": "present"
+    },
+    {
+      "id": "usable-lift-decays",
+      "description": "The usable-lift top falls after peak surface heating.",
+      "actual": {
+        "field": "derived.usableLiftTopM",
+        "hour": 6
+      },
+      "operator": "less-than",
+      "expected": {
+        "field": "derived.usableLiftTopM",
+        "hour": 5
+      }
+    },
+    {
+      "id": "evening-heating-ends",
+      "description": "Negative evening heat flux reduces the derived thermal velocity to zero.",
+      "actual": {
+        "field": "derived.thermalVelocityMs",
+        "hour": 9
+      },
+      "operator": "equal",
+      "expected": 0
+    },
+    {
+      "id": "cloud-base-rises",
+      "description": "The drier heated surface raises cloud base above its morning height.",
+      "actual": {
+        "field": "derived.cloudBaseM",
+        "hour": 5
+      },
+      "operator": "greater-than",
+      "expected": {
+        "field": "derived.cloudBaseM",
+        "hour": 0
+      }
+    },
+    {
+      "id": "cape-follows-the-heating-cycle",
+      "description": "Surface CAPE rises from 320 to 780 J/kg as the midday column deepens.",
+      "actual": {
+        "field": "surface.capeJkg",
+        "hour": 5
+      },
+      "operator": "greater-than",
+      "expected": {
+        "field": "surface.capeJkg",
+        "hour": 4
+      }
+    },
+    {
+      "id": "cape-remains-moderate",
+      "description": "Peak surface CAPE stays at or below 800 J/kg.",
+      "actual": {
+        "field": "surface.capeJkg",
+        "hour": 5
+      },
+      "operator": "less-than-or-equal",
+      "expected": 800
+    },
+    {
+      "id": "cape-fades-after-peak",
+      "description": "Surface CAPE falls from 780 to 440 J/kg after the peak.",
+      "actual": {
+        "field": "surface.capeJkg",
+        "hour": 6
+      },
+      "operator": "less-than",
+      "expected": {
+        "field": "surface.capeJkg",
+        "hour": 5
+      }
+    },
+    {
+      "id": "inhibition-weakens-midday",
+      "description": "Surface CIN weakens from -35 to -5 J/kg as the midday column deepens.",
+      "actual": {
+        "field": "surface.cinJkg",
+        "hour": 5
+      },
+      "operator": "greater-than",
+      "expected": {
+        "field": "surface.cinJkg",
+        "hour": 4
+      }
+    },
+    {
+      "id": "speed-shear-through-column",
+      "description": "Midday wind gains at least 12 m/s between the surface and 600 hPa.",
+      "actual": {
+        "field": "levels.windSpeedMs",
+        "hour": 5,
+        "level": {
+          "pressureHpa": 600
+        }
+      },
+      "operator": "absolute-difference-at-least",
+      "expected": {
+        "field": "surface.windSpeedMs",
+        "hour": 5
+      },
+      "threshold": 12
+    },
+    {
+      "id": "directional-shear-through-column",
+      "description": "Midday wind turns at least 100 degrees between the surface and 600 hPa.",
+      "actual": {
+        "field": "levels.windDirectionDeg",
+        "hour": 5,
+        "level": {
+          "pressureHpa": 600
+        }
+      },
+      "operator": "absolute-difference-at-least",
+      "expected": {
+        "field": "surface.windDirectionDeg",
+        "hour": 5
+      },
+      "threshold": 100
+    }
+  ]
+}

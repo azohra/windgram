@@ -1,0 +1,129 @@
+---
+import ControlGroup from "../figure/ControlGroup.astro";
+import Figure from "../figure/Figure.astro";
+import Legend from "../figure/Legend.astro";
+import {
+  renderUsableLiftChart,
+  usableLiftSummary,
+  type LabScenarioSource,
+} from "../../lib/labs";
+import { scenarioById } from "../../lib/scenarios";
+
+const scenario = scenarioById("cloud-base-limits-lift");
+const source: LabScenarioSource = {
+  profile: scenario.profile,
+  timeZone: scenario.timeZone,
+};
+const initialSinkRateMs = 1;
+const initialSummary = usableLiftSummary(source.profile, initialSinkRateMs);
+const { scene: initialScene, svg: initialSvg } = renderUsableLiftChart(source, initialSinkRateMs);
+---
+
+<Figure
+  id="usable-lift-lab"
+  title="What stops usable lift first?"
+  lesson="Change only sink rate while the atmospheric column, parcel top, and cloud base remain fixed."
+  description="An interactive windgram applying the package's parameterized usable-lift derivation to a cloud-limited column."
+  caption="The control invokes windgram/derive usableLiftTopM for every hour; the same sink-rate option rebuilds the package scene."
+  units="sink m/s · height m MSL · time UTC"
+  {scenario}
+>
+  <ControlGroup slot="controls" label="Usable-lift laboratory controls">
+    <label for="usable-lift-sink-rate">
+      Sink rate
+      <span class="wg-lab__range-row">
+        <input
+          id="usable-lift-sink-rate"
+          data-usable-sink
+          type="range"
+          min="0.5"
+          max="6"
+          value={initialSinkRateMs}
+          step="0.1"
+        />
+        <output for="usable-lift-sink-rate" data-usable-sink-output>
+          {initialSinkRateMs.toFixed(1)} m/s
+        </output>
+      </span>
+    </label>
+  </ControlGroup>
+
+  <div class="wg-lab" data-usable-lab>
+    <script
+      is:inline
+      type="application/json"
+      data-usable-source
+      set:html={JSON.stringify(source)}
+    />
+    <div class="wg-lab__readout" aria-live="polite" aria-atomic="true">
+      <span>Derived hours <strong data-usable-count>{initialSummary.derivedCount}/{initialSummary.hourCount}</strong></span>
+      <span>Highest usable top <strong data-usable-peak>{initialSummary.peakM === null ? "none" : `${Math.round(initialSummary.peakM)} m`}</strong></span>
+    </div>
+    <div
+      class="wg-lab__chart-scroll"
+      tabindex="0"
+      role="region"
+      aria-label="Scrollable usable-lift chart"
+    >
+      <div
+        class="wg-lab__mount"
+        data-usable-mount
+        style={`--wg-lab-scene-width: ${initialScene.width}px`}
+        set:html={initialSvg}
+      />
+    </div>
+    <p class="wg-lab__conclusion">
+      <strong>Conclusion.</strong> In this controlled column, cloud base caps the derived usable top
+      across a broad range of sink rates; at sufficiently large sink rates, some hours have no
+      derived usable top at all.
+    </p>
+  </div>
+
+  <Legend
+    slot="legend"
+    label="Lift figure legend"
+    items={[
+      { label: "Parcel boundary-layer top", color: "var(--chart-lift)", mark: "line" },
+      { label: "Cloud base", color: "var(--wg-cloud-base)", mark: "line" },
+      { label: "Parameterized usable top", color: "var(--chart-usable)", mark: "line" },
+    ]}
+  />
+</Figure>
+
+<script>
+  import {
+    renderUsableLiftChart,
+    usableLiftSummary,
+    type LabScenarioSource,
+  } from "../../lib/labs";
+
+  for (const figure of document.querySelectorAll<HTMLElement>("#usable-lift-lab[data-figure]")) {
+    if (figure.dataset.usableReady === "true") continue;
+    figure.dataset.usableReady = "true";
+    const source = figure.querySelector<HTMLScriptElement>("[data-usable-source]");
+    const sink = figure.querySelector<HTMLInputElement>("[data-usable-sink]");
+    const output = figure.querySelector<HTMLOutputElement>("[data-usable-sink-output]");
+    const count = figure.querySelector<HTMLElement>("[data-usable-count]");
+    const peak = figure.querySelector<HTMLElement>("[data-usable-peak]");
+    const mount = figure.querySelector<HTMLElement>("[data-usable-mount]");
+    if (!source?.textContent || !sink || !output || !count || !peak || !mount) continue;
+
+    const scenario = Object.freeze(
+      JSON.parse(source.textContent),
+    ) as Readonly<LabScenarioSource>;
+
+    const render = () => {
+      const sinkRateMs = Number(sink.value);
+      output.value = `${sinkRateMs.toFixed(1)} m/s`;
+      const summary = usableLiftSummary(scenario.profile, sinkRateMs);
+      count.textContent = `${summary.derivedCount}/${summary.hourCount}`;
+      peak.textContent = summary.peakM === null ? "none" : `${Math.round(summary.peakM)} m`;
+      const { scene, svg } = renderUsableLiftChart(scenario, sinkRateMs);
+      mount.innerHTML = svg;
+      mount.style.setProperty("--wg-lab-scene-width", `${scene.width}px`);
+    };
+
+    sink.addEventListener("input", render);
+    figure.addEventListener("figure:reset", render);
+  }
+</script>

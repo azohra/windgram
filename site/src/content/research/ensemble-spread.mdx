@@ -1,0 +1,54 @@
+---
+title: "Column ceilings can hide ensemble spread"
+summary: "Adding 500 hPa headroom exposed spread that a 700 hPa ceiling had concealed"
+section: "Ensemble interpretation"
+kind: "experiment"
+published: 2026-08-08
+updated: 2026-08-08
+status: "current"
+order: 3
+scenarios:
+  - "ensemble-tight"
+  - "ensemble-wide"
+  - "ensemble-column-censored"
+thumbnail: "ensemble-ceiling"
+---
+
+import SpreadDiagram from "../../components/research/SpreadDiagram.astro";
+
+# Column ceilings can hide ensemble spread
+
+A REPS hour once placed all 21 members at the top of the published column. Their boundary-layer
+tops differed by only 16 m. Extending the source column from 700 to 500 hPa widened that spread to
+205 m and exposed 425 m of usable-lift spread without changing hours that had already terminated
+below 700 hPa.
+
+## Derive members before aggregation
+
+Each member passed through the complete nonlinear derivation as its own atmosphere before percentile
+aggregation. Averaging source temperature, moisture, and heat flux first would manufacture a column
+no member predicted. The current percentile shape, contributor counts, full-dropout form, and circular
+wind rule live in [Ensemble values](/docs/data/ensemble-values/).
+
+## The column ceiling and 500 hPa
+
+One strong forecast hour placed all 21 members at the 700 hPa column ceiling, about 3,150 m. Their
+boundary-layer tops differed by only 16 m. The narrow spread described the shared input ceiling, not
+the weather.
+
+Adding 500 hPa as computational headroom raised the ceiling to about 5,700 m. For the same hour, the
+boundary-layer spread widened from 16 m to 205 m and usable-lift spread widened to 425 m. Hours that
+had already terminated below 700 hPa remained bit-for-bit unchanged. `ceiledMembers` preserves the
+warning if a later atmosphere reaches the higher ceiling.
+
+<SpreadDiagram />
+
+## Spread is not probability
+
+Member fraction measures agreement among model realizations. “18 of 21” does not establish an 86%
+chance of usable lift. Probability requires calibration against archived forecasts and observations;
+this project does not yet have that evidence.
+
+The [forecast model feed reference](/docs/reference/forecast-model-feeds/) records the current source
+levels and provider paths. ECCC documents the underlying system on its
+[REPS open-data page](https://eccc-msc.github.io/open-data/msc-data/nwp_reps/readme_reps_en/).

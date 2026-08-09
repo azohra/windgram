@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+      - name: Enable pnpm from the workspace pin
+        run: corepack enable
+      - name: Install locked dependencies
+        run: |
+          uv sync --frozen
+          pnpm install --frozen-lockfile
+      - name: Check generated scenario drift
+        run: uv run python -m windgram.scenarios check
+      - name: Test Python pipeline
+        run: uv run pytest
+      - name: Test TypeScript package and scenario SVG goldens
+        run: pnpm --dir packages/windgram test
+      - name: Type-check TypeScript package
+        run: pnpm --dir packages/windgram typecheck
+      - name: Check site
+        run: pnpm --dir site check
+      - name: Build site without live forecast data
+        run: pnpm --dir site build
+      - name: Install browser for static site QA
+        run: pnpm --dir site exec playwright install --with-deps chromium
+      - name: Test static site boundary, accessibility, interaction, and visuals
+        run: pnpm --dir site test:built

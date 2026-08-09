@@ -59,7 +59,9 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from .config import output_directory
 from .datamart import DownloadStats, datamart_base, exists, fetch_bytes
+from .ensemble import aggregate_member_profiles
 from .grib import GribField, split_messages
 from .moisture import dew_point_depression
 from .noaa import wind_from_uv
@@ -69,7 +71,6 @@ from .sites import load_sites
 from .windgram import SCHEMA_VERSION, derive_windgram_profile
 
 SLUG = "geps"
-OUT_DIR = Path("data") / SLUG
 
 # The document's transport-semantics declaration (contract "semantics"):
 # precipitation is a run-total accumulation differenced per scheduled step
@@ -83,6 +84,12 @@ RUN_HOURS = ("12", "00")
 LAST_FORECAST_HOUR = 384
 # The feed's own schedule: 3-hourly through 192 h, 6-hourly to 384.
 FORECAST_HOURS = tuple(range(3, 193, 3)) + tuple(range(198, LAST_FORECAST_HOUR + 1, 6))
+
+
+def _out_dir() -> Path:
+    return output_directory(SLUG)
+
+
 # Per-host Datamart budget; the documented-limit arithmetic and the
 # one-job-per-host rule live with FETCH_CONCURRENCY in windgram/build.py.
 FETCH_CONCURRENCY = 5
@@ -144,7 +151,6 @@ WIND_LEVEL_TOKENS = {"TGL_10m": None} | {
     f"ISBL_{level:04d}": level for level in PRESSURE_LEVELS
 }
 
-PERCENTILE_POINTS = (10, 25, 50, 75, 90)
 # The per-hour surface positions, in the published hour's own key order.
 # Every position is a percentile block except wind direction (circular).
 # capeJkg and cinJkg are the point of this feed: capeJkg is conditional on
@@ -163,44 +169,6 @@ SURFACE_SCALARS = (
     "capeJkg",
     "cinJkg",
 )
-LEVEL_SCALARS = ("heightM", "temperatureC", "dewPointC", "windSpeedMs")
-DERIVED_SCALARS = (
-    "boundaryLayerTopM",
-    "thermalVelocityMs",
-    "cloudBaseM",
-    "usableLiftTopM",
-)
-CENSORED_SCALARS = ("boundaryLayerTopM", "usableLiftTopM")
-CEILING_TOLERANCE_M = 0.5
-
-
-def percentile(sorted_values: list[float], point: float) -> float:
-    """Percentile by linear interpolation between closest ranks (the sorted
-    values are trusted, not re-sorted). With 21 members every published point
-    lands on an exact rank: p10→2, p25→5, p50→10, p75→15, p90→18."""
-    if not sorted_values:
-        raise ValueError("percentile of no values")
-    rank = (len(sorted_values) - 1) * point / 100
-    low = math.floor(rank)
-    high = math.ceil(rank)
-    if low == high:
-        return sorted_values[low]
-    return sorted_values[low] + (rank - low) * (sorted_values[high] - sorted_values[low])
-
-
-def circular_median(bearings: list[float]) -> float:
-    """The consensus wind bearing: bearings are unwrapped to within ±180° of
-    their vector-mean bearing and the ordinary median of the unwrapped
-    angles is taken (the REPS convention, unchanged)."""
-    if not bearings:
-        raise ValueError("circular median of no bearings")
-    east = sum(math.sin(math.radians(bearing)) for bearing in bearings)
-    north = sum(math.cos(math.radians(bearing)) for bearing in bearings)
-    anchor = math.degrees(math.atan2(east, north))
-    unwrapped = sorted(
-        anchor + (bearing - anchor + 180) % 360 - 180 for bearing in bearings
-    )
-    return percentile(unwrapped, 50) % 360
 
 
 def previous_scheduled_hour(forecast_hour: int) -> int:
@@ -235,12 +203,12 @@ def main() -> None:
     download_stats = DownloadStats()
     result = _build_documents(reference_time, forecast_slots, sites, download_stats)
 
-    sites_dir = OUT_DIR / "sites"
+    sites_dir = _out_dir() / "sites"
     sites_dir.mkdir(parents=True, exist_ok=True)
     for document in result["documents"]:
         document = round_document(document)
         write_json(sites_dir / f"{document['site']['id']}.json", document, compact=True)
-        append_history(document, OUT_DIR / "history")
+        append_history(document, _out_dir() / "history")
     manifest = {
         "firstForecastHour": result["firstForecastHour"],
         "forecastHours": result["forecastHours"],
@@ -253,7 +221,7 @@ def main() -> None:
         "sites": [{"name": site["name"], "slug": site["slug"]} for site in sites],
         "stats": manifest_stats(download_stats, started_at),
     }
-    write_json(OUT_DIR / "manifest.json", manifest, compact=False)
+    write_json(_out_dir() / "manifest.json", manifest, compact=False)
     print(
         f"Published {len(result['documents'])} ensemble documents for {reference_time} "
         f"({download_stats.requests} downloads, "
@@ -317,7 +285,7 @@ def _file_url(variable_level: str, date: str, run_hour: str, forecast_hour: int)
 
 def _published_reference_time() -> str | None:
     try:
-        return json.loads((OUT_DIR / "manifest.json").read_text())["referenceTime"]
+        return json.loads((_out_dir() / "manifest.json").read_text())["referenceTime"]
     except (OSError, KeyError, ValueError):
         return None
 
@@ -642,88 +610,14 @@ def _with_dew_point_depression(level: dict) -> dict:
 
 
 def _aggregate_hours(member_profiles: list[dict]) -> list[dict]:
-    """Percentiles across the members' derived hours, published in the
-    contract's hour shape — surface, sounding levels, derived. A member whose
-    scalar is absent or null (sentinel-masked CAPE, no boundary layer, no
-    usable lift) is left out of that scalar's ranking; the members count says
-    how many contributed."""
-    aggregated_hours = []
-    for hour_index in range(len(member_profiles[0]["hours"])):
-        member_hours = [profile["hours"][hour_index] for profile in member_profiles]
-        aggregated_hours.append(
-            {
-                "validAt": member_hours[0]["validAt"],
-                "surface": {
-                    key: (
-                        circular_median(
-                            [hour["surface"][key] for hour in member_hours]
-                        )
-                        if key == "windDirectionDeg"
-                        else _percentile_block(
-                            [hour["surface"].get(key) for hour in member_hours]
-                        )
-                    )
-                    for key in SURFACE_SCALARS
-                },
-                "levels": _aggregate_levels(member_hours),
-                "derived": {
-                    key: _derived_block(member_hours, key) for key in DERIVED_SCALARS
-                },
-            }
-        )
-    return aggregated_hours
-
-
-def _aggregate_levels(member_hours: list[dict]) -> list[dict]:
-    """The ensemble sounding: per pressure level, percentiles across the
-    members whose filtered column kept it (a level below a member's model
-    terrain is absent from that member's profile and stays out of the
-    ranking). Direction is the circular median, a plain number."""
-    by_pressure: dict[int, list[dict]] = {}
-    for hour in member_hours:
-        for level in hour["levels"]:
-            by_pressure.setdefault(level["pressureHpa"], []).append(level)
-    aggregated = []
-    for pressure_hpa, levels in by_pressure.items():
-        block: dict = {"pressureHpa": pressure_hpa}
-        for key in LEVEL_SCALARS:
-            block[key] = _percentile_block([level[key] for level in levels])
-        block["windDirectionDeg"] = circular_median(
-            [level["windDirectionDeg"] for level in levels]
-        )
-        aggregated.append(block)
-    aggregated.sort(key=lambda level: level["heightM"]["p50"])
-    return aggregated
-
-
-def _derived_block(member_hours: list[dict], key: str) -> dict:
-    block = _percentile_block([hour["derived"][key] for hour in member_hours])
-    if key in CENSORED_SCALARS:
-        return {"ceiledMembers": _ceiled_members(member_hours, key), **block}
-    return block
-
-
-def _ceiled_members(member_hours: list[dict], key: str) -> int:
-    """How many defined members were censored at the top of their own column
-    — the derivation clamps there when the parcel is still buoyant at the
-    highest level, so the member's value is a floor, not a measurement."""
-    count = 0
-    for hour in member_hours:
-        value = hour["derived"][key]
-        levels = hour["levels"]
-        if value is None or not levels:
-            continue
-        if value >= levels[-1]["heightM"] - CEILING_TOLERANCE_M:
-            count += 1
-    return count
-
-
-def _percentile_block(values: list[float | None]) -> dict:
-    present = sorted(value for value in values if value is not None)
-    block: dict = {"members": len(present)}
-    for point in PERCENTILE_POINTS:
-        block[f"p{point}"] = percentile(present, point) if present else None
-    return block
+    """Aggregate independently derived GEPS member profiles."""
+    return aggregate_member_profiles(
+        member_profiles,
+        surface_scalars=SURFACE_SCALARS,
+        # Preserve GEPS's existing optional-field aggregation: a member may
+        # omit a non-direction surface scalar and leave that scalar's rank.
+        optional_surface_scalars=SURFACE_SCALARS,
+    )
 
 
 def _sample_scalar_members(

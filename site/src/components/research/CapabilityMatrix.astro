@@ -1,7 +1,8 @@
 ---
 import { MODELS, omegaLevels } from "../../lib/catalogue";
+import Figure from "../figure/Figure.astro";
 
-// Generated from data/models.json at build time (the same one-home pattern
+// Generated from data/models.json at build time (the same single-source pattern
 // as ModelHorizonChart), so the matrix can never drift from the catalogue:
 // capability columns per model, plus each model's retained pressure column
 // drawn to scale with omega-carrying levels accented.
@@ -77,13 +78,16 @@ const description = rows
   .join(" ");
 ---
 
-<figure class="capability-matrix" aria-labelledby="capability-matrix-title capability-matrix-caption">
-  <header>
-    <h3 id="capability-matrix-title">What each model declares</h3>
-    <span>Generated from the catalogue at build time — absent cells are the feed's absences.</span>
-  </header>
+<Figure
+  id="capability-matrix"
+  title="What each model declares"
+  lesson="The discovery catalogue, rather than frontend assumptions, decides which fields and pressure levels exist."
+  description={description}
+  caption="Capabilities are read from data/models.json on every build. Blank cells are declared absences; omega marks only the pressure levels where the provider publishes vertical velocity."
+  units="grid spacing km · cadence and horizon h · pressure hPa"
+>
 
-  <div class="graphic-scroll" tabindex="0" aria-label="Scrollable model capability matrix">
+  <div class="graphic-scroll" role="region" tabindex="0" aria-label="Scrollable model capability matrix">
     <svg
       viewBox={`0 0 1000 ${svgHeight}`}
       role="img"
@@ -184,32 +188,12 @@ const description = rows
     </svg>
   </div>
 
-  <figcaption id="capability-matrix-caption">
-    Capabilities exactly as declared in <code>data/models.json</code> (schemaVersion 1); the matrix
-    is regenerated from the catalogue on every build. Pressure columns are drawn to a common
-    1015–500 hPa scale.
-  </figcaption>
-</figure>
+  <p class="catalogue-source">
+    Generated from <code>data/models.json</code>; pressure columns share a 1015–500 hPa scale.
+  </p>
+</Figure>
 
 <style>
-  .capability-matrix {
-    display: block;
-    width: min(1040px, calc(100vw - 32px));
-    margin: 28px 50% 44px;
-    transform: translateX(-50%);
-    color: var(--ink);
-    border-top: 3px solid var(--accent);
-    border-bottom: 1px solid var(--rule-strong);
-  }
-  header {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 6px 24px;
-    align-items: end;
-    padding: 18px 0 16px;
-  }
-  .capability-matrix h3 { margin: 0; font: 700 29px/1 var(--display); text-transform: uppercase; }
-  header > span { font: 13px/1.4 var(--mono); color: var(--ink-mute); }
   .graphic-scroll {
     overflow-x: auto;
     background: var(--surface);
@@ -235,12 +219,9 @@ const description = rows
   .cm-axis { stroke: var(--rule-strong); stroke-width: 1; }
   .cm-axis-label { fill: var(--ink-mute); font-size: 9.5px; }
   .cm-legend { fill: var(--ink-mute); font-size: 10.5px; font-family: var(--sans); }
-  figcaption { padding: 12px 0 14px; font: 12px/1.5 var(--mono); color: var(--ink-mute); }
-  figcaption code { font-family: var(--mono); }
+  .catalogue-source { margin: 0; padding: 9px 14px; color: var(--ink-mute); font: 11px/1.45 var(--mono); border-top: 1px solid var(--rule); }
+  .catalogue-source code { font-family: var(--mono); }
   @media (max-width: 720px) {
-    header { grid-template-columns: 1fr; }
-    .capability-matrix h3 { font-size: 25px; }
-    header > span { font-size: 12px; }
     .graphic-scroll { margin-inline: -8px; }
   }
 </style>

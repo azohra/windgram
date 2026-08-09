@@ -1,0 +1,258 @@
+---
+import type { OverlayName } from "windgram/scene";
+import ControlGroup from "../figure/ControlGroup.astro";
+import Figure from "../figure/Figure.astro";
+import SyntheticWindgram from "../windgram/SyntheticWindgram.astro";
+import WindgramAnnotations from "../windgram/WindgramAnnotations.astro";
+import WindgramKey from "../windgram/WindgramKey.astro";
+import {
+  onlyOverlays,
+  overlayAvailability,
+  renderSyntheticWindgram,
+} from "../../lib/example-windgram";
+import { scenarioById } from "../../lib/scenarios";
+import SectionHeader from "./SectionHeader.astro";
+
+const scenario = scenarioById("convective-cycle");
+const overlays = onlyOverlays(
+  "pressure",
+  "precipitation",
+  "cape",
+  "cloudLayers",
+  "thermalStrength",
+  "surfaceTemperature",
+  "temperature",
+  "stability",
+  "wind",
+  "gusts",
+  "clouds",
+  "boundaryLayerTop",
+  "pblHeight",
+  "usableLiftTop",
+  "cloudBase",
+  "launch",
+  "selectedHour",
+);
+const availability = overlayAvailability(scenario);
+const { scene } = renderSyntheticWindgram(scenario, { overlays });
+const layers: Array<{
+  overlay: OverlayName;
+  number: string;
+  label: string;
+  detail: string;
+  checked: boolean;
+}> = [
+  {
+    overlay: "stability",
+    number: "01",
+    label: "Thermal structure",
+    detail: "Stability through each model column",
+    checked: true,
+  },
+  {
+    overlay: "wind",
+    number: "02",
+    label: "Wind aloft",
+    detail: "Speed and direction at each height",
+    checked: true,
+  },
+  {
+    overlay: "clouds",
+    number: "03",
+    label: "Moisture",
+    detail: "Near-saturated layers through each profile",
+    checked: true,
+  },
+  {
+    overlay: "boundaryLayerTop",
+    number: "04",
+    label: "Parcel boundary",
+    detail: "Depth of the convective mixing layer",
+    checked: true,
+  },
+  {
+    overlay: "usableLiftTop",
+    number: "05",
+    label: "Usable lift",
+    detail: "Height where lift falls below 1.0 m/s",
+    checked: true,
+  },
+  {
+    overlay: "cloudBase",
+    number: "06",
+    label: "Cloud base",
+    detail: "The lowest condensation height",
+    checked: true,
+  },
+];
+
+for (const layer of layers) {
+  if (!availability[layer.overlay]) {
+    throw new Error(`convective-cycle must provide the homepage ${layer.overlay} layer`);
+  }
+}
+for (const overlay of ["temperature", "cape", "gusts", "pblHeight", "cloudLayers", "surfaceTemperature"] as const) {
+  if (!availability[overlay]) {
+    throw new Error(`convective-cycle must provide the homepage ${overlay} context`);
+  }
+}
+---
+
+<section id="read" class="home-windgram-section" aria-labelledby="home-windgram-title">
+  <div class="home-section-inner">
+    <SectionHeader
+      eyebrow="Rendered output"
+      title="Forecast profiles, rendered as a windgram"
+      titleId="home-windgram-title"
+      intro="Toggle a layer to see how stability, wind, moisture, and derived heights build the chart."
+    />
+
+    <Figure
+      id="home-convective-cycle"
+      title="A fair-weather convective day"
+      description={scenario.accessibilityDescription}
+      caption="The parcel boundary, cloud base, and usable-lift top follow different paths because each measures a different limit."
+      units="Altitude m MSL and ft MSL; wind barbs in km/h; surface strips as labelled"
+      {scenario}
+      headingLevel="h3"
+      size="content"
+      class="home-windgram-figure"
+    >
+      <Fragment slot="controls">
+        <ControlGroup label="Show or hide the principal windgram layers" resetLabel="Reset layers">
+          <div class="home-layer-controls">
+            {layers.map((layer) => (
+              <label class="home-layer-control">
+                <input
+                  type="checkbox"
+                  data-windgram-overlay={layer.overlay}
+                  checked={layer.checked}
+                  autocomplete="off"
+                />
+                <span class="home-layer-control__number">{layer.number}</span>
+                <span class="home-layer-control__copy">
+                  <strong>{layer.label}</strong>
+                  <small>{layer.detail}</small>
+                </span>
+              </label>
+            ))}
+          </div>
+        </ControlGroup>
+      </Fragment>
+
+      <WindgramAnnotations {scenario} {scene} mode="summary" />
+      <SyntheticWindgram
+        {scenario}
+        idPrefix="home-convective-cycle"
+        interactive
+        class="home-windgram-preview"
+        {overlays}
+        widthPx={896}
+        plotHeightPx={320}
+        scrollLabel="Scrollable windgram with layer toggles"
+      />
+
+      <Fragment slot="legend">
+        <WindgramKey
+          {scene}
+          chartIdPrefix="home-convective-cycle"
+          scrollLabel="Scrollable key for the homepage windgram"
+        />
+      </Fragment>
+    </Figure>
+
+  </div>
+</section>
+
+<style>
+  .home-windgram-section {
+    padding-block: clamp(4.5rem, 9vw, 8rem);
+    background: color-mix(in srgb, var(--surface) 48%, transparent);
+    border-block: 1px solid var(--rule);
+  }
+
+  .home-section-inner {
+    width: min(70rem, calc(100% - 3.5rem));
+    margin-inline: auto;
+  }
+
+  .home-layer-controls {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    flex: 1 1 100%;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .home-windgram-section :global(.home-windgram-figure) {
+    width: min(100%, 56rem);
+    margin-inline: auto;
+  }
+
+  .home-windgram-section :global(.home-windgram-preview .synthetic-windgram__mount) {
+    display: grid;
+    justify-items: center;
+  }
+
+  :global(.wg-control-group .home-layer-control) {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr);
+    gap: 0.55rem;
+    align-items: start;
+    min-height: 4.2rem;
+    padding: 0.65rem;
+    background: color-mix(in srgb, var(--surface) 70%, transparent);
+    border: 1px solid var(--rule);
+    cursor: pointer;
+  }
+
+  :global(.wg-control-group .home-layer-control:hover) {
+    background: var(--surface);
+    border-color: var(--accent);
+  }
+
+  :global(.wg-control-group .home-layer-control input) {
+    width: 1.05rem;
+    min-width: 1.05rem;
+    height: 1.05rem;
+    min-height: 1.05rem;
+    margin: 0.1rem 0 0;
+    accent-color: var(--accent);
+  }
+
+  .home-layer-control__number {
+    color: var(--accent-strong);
+    font-size: 0.66rem;
+  }
+
+  .home-layer-control__copy {
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  .home-layer-control__copy strong {
+    color: var(--ink);
+    font: 700 0.78rem/1.3 var(--sans);
+  }
+
+  .home-layer-control__copy small {
+    color: var(--ink-mute);
+    font: 0.65rem/1.35 var(--mono);
+  }
+
+  @media (max-width: 48rem) {
+    .home-layer-controls {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 32rem) {
+    .home-section-inner {
+      width: min(100% - 2rem, 70rem);
+    }
+
+    .home-layer-controls {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

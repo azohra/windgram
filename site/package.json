@@ -6,9 +6,16 @@
     "dev": "pnpm --dir ../packages/windgram build && astro dev",
     "build": "pnpm --dir ../packages/windgram build && astro build",
     "preview": "astro preview",
-    "check": "pnpm --dir ../packages/windgram build && astro check"
+    "check": "pnpm --dir ../packages/windgram build && astro check",
+    "test:boundary": "pnpm run build && pnpm run test:boundary:built",
+    "test:boundary:built": "playwright test no-live-data.spec.ts routes.spec.ts",
+    "test:qa": "pnpm run build && pnpm run test:qa:built",
+    "test:qa:built": "playwright test accessibility.spec.ts interactions.spec.ts visuals.spec.ts",
+    "test:built": "playwright test"
   },
   "dependencies": {
+    "@astrojs/mdx": "^7.0.5",
+    "@astrojs/starlight": "^0.41.7",
     "@fontsource/big-shoulders": "^5.3.0",
     "@fontsource/ibm-plex-mono": "^5.3.0",
     "@fontsource/ibm-plex-sans": "^5.3.0",
@@ -18,6 +25,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.4",
+    "@playwright/test": "^1.62.1",
     "@types/node": "^22.10.0",
     "typescript": "^5.6.0"
   }

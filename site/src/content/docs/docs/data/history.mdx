@@ -1,0 +1,41 @@
+---
+title: Forecast history
+description: Consume append-only monthly gzip archives of published profiles.
+---
+
+Each successful new run appends the complete site profile to a monthly gzip
+archive:
+
+```text
+data/<model>/history/<site>/<YYYY-MM>.jsonl.gz
+```
+
+The month comes from `run.referenceTime`. Each line is the same profile
+document accepted by `parseWindgramProfile`; the archive has no reduced
+history-only shape.
+
+## Storage properties
+
+- One JSON line represents one model run for one site.
+- Appends are independent gzip members, so existing archive bytes do not need
+  to be rewritten.
+- Archives retain the run, site, semantics, hours, and derived values as
+  published at that time.
+- Current catalogue values do not retroactively reinterpret an archived
+  profile.
+
+## Read for analysis
+
+```sh title="Terminal"
+gzip -cd data/nam/history/dundee/2026-08.jsonl.gz \
+  | jq -r '.run.referenceTime'
+```
+
+Use an equivalent gzip reader when `gzip` or `jq` is unavailable. Applications
+should stream lines rather than inflate an entire long archive into memory.
+
+History supports reproducible analysis, calibration audits, and downstream
+archives. Archived output can also calibrate teaching-profile ranges offline.
+
+Publishers choose retention, indexing, query APIs, and access control outside
+the profile schema.

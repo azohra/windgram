@@ -1,0 +1,47 @@
+---
+title: Schedule builds
+description: Operate idempotent model builds and publish complete static runs.
+---
+
+A scheduler invokes the same `windgram build` command you ran manually. It
+runs outside the data contract. The publisher communicates its schedule and
+availability to consumers.
+
+## Use the declared cadence
+
+`data/models.json` declares each model's `runIntervalHours`, `stepHours`, and
+`horizonHours`. The living [forecast feed reference](/docs/reference/forecast-model-feeds/)
+records provider schedules and verification dates. Use both when choosing a
+polling window; never run a builder more often than its provider publishes.
+
+```text
+scheduler tick
+     │
+     ├─ latest run incomplete ──→ no publication
+     ├─ reference time unchanged → no rewrite
+     └─ complete new run ────────→ profiles + history + manifest
+                                         │
+                                         ▼
+                                  deploy static tree
+```
+
+## Operational rules
+
+- Run one model per job so a provider or model failure has an explicit label.
+- Prevent overlapping jobs against the same output directory.
+- Treat a zero exit as command completion, then inspect whether a new manifest
+  identity was actually produced.
+- Deploy only after the builder has completed. Consumers still guard
+  manifest/profile skew because CDN objects can expire independently.
+- Keep credentials and destination-specific settings in the scheduler or
+  hosting platform, never in profile JSON.
+- Preserve logs containing model slug, start/end time, exit status, and the
+  published `(referenceTime, generatedAt)` pair.
+
+The repository workflow demonstrates one scheduling policy for the repository
+data tree. A club may choose a different scheduler and access model, but should
+reuse the CLI and contract rather than copy builder internals.
+
+For a multi-model schedule, prefer separate invocations over `--all` when
+failure isolation matters. `--all` is useful for controlled batch execution
+and follows catalogue order, but one failing model stops that command.

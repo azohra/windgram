@@ -3,26 +3,23 @@
 TypeScript companion to the windgram dataset published from
 [github.com/azohra/windgram](https://github.com/azohra/windgram): the
 published contract, the derivations that are pure functions of it, the
-transport that fetches the documents consistently, and the gold-standard
-renderer (headless scene graph + reference SVG serializer).
+transport that fetches the documents consistently, and the reference renderer
+(headless scene graph + SVG serializer).
 
 ```sh
 npm install windgram
 ```
 
 The package ships ESM with type declarations; the only dependency is zod.
-Nothing touches the DOM, so everything below runs identically in Node,
+Nothing touches the DOM, so these APIs run identically in Node,
 workers, and browsers.
 
-## Fetch a live document
+## Load a published document
 
-The dataset is static JSON on GitHub's CDN — no key, no API. Discover models
-from the catalogue instead of hardcoding a list: the catalogue grows, slugs
-are the only model identity, and each entry declares what its model actually
-publishes. Then fetch the manifest + profile pair through
-`windgram/transport`, never by hand — the CDN's cache entries expire
-independently, so two naive fetches can silently span two different runs
-(the "torn read" the transport guard exists for; see
+Discover models from the catalogue. Each entry supplies the model slug and
+declares its published capabilities. Load a manifest and profile through
+`windgram/transport`: the two files can occupy independent cache entries, so
+the transport verifies that they describe the same run (see
 [Transport](#transport-windgramtransport)).
 
 ```ts
@@ -52,8 +49,6 @@ const loaded = await loadProfile({
   siteSlug: "dundee",
 });
 if ("miss" in loaded) {
-  // "absent" is routine (site outside the model's domain); "invalid" is a
-  // contract break and should be loud — that's why they're discriminated.
   throw new Error(`${model.label}/dundee ${loaded.miss}: ${loaded.url}`);
 }
 const { manifest, profile, stale } = loaded;
@@ -62,37 +57,27 @@ if (stale) console.warn("run still syncing across the CDN — pair may span two 
 console.log(`${model.label} at ${profile.site.name}, run ${profile.run.referenceTime}`);
 ```
 
-Everything arrives contract-validated: the `parse…Json` guards return the
-typed document or `null`, and the transport turns that into a
-discriminated miss — `{ miss: "invalid" }` from a URL that served 200
-means publisher and consumer disagree about the contract; fail loudly
-rather than patching around it, and never confuse it with `"absent"`.
+The `parse…Json` guards return a typed document or `null`. Transport loaders
+return the typed document or a `DocumentMiss`: `"absent"` for a 404 and
+`"invalid"` when a response body fails its published contract.
 (`parseWindgramProfile` and friends do the same for values you have already
 `JSON.parse`d — history lines, for instance, are one profile document per
 line.)
 
 ## Transport (`windgram/transport`)
 
-The pipeline publishes a model's manifest and its site profiles as separate
-files, and raw.githubusercontent's cache holds each for ~5 minutes
-independently — so around a publish, a manifest and a profile fetched
-together can describe **two different runs**. `loadProfile` owns the
-reference-time skew dance: fetch the pair, compare `run.referenceTime`
+The pipeline publishes a model's manifest and its site profiles as separately
+cached files, so around a publish a manifest and profile fetched
+together can describe **two different runs**. `loadProfile` performs the
+consistency check: fetch the pair, compare `run.referenceTime`
 against the manifest's, and on disagreement retry the pair once after a
 short delay (default 1500 ms). It resolves to:
 
 - `{ manifest, profile, stale: false }` — a consistent pair;
-- `{ manifest, profile, stale: true }` — still torn after the retry: a
-  publish is mid-sync. Show a "still syncing" note or fall back to a pair
-  you kept from earlier; never render the two documents as one forecast;
-- `{ miss: "absent", url }` — a 404: the model or site is simply not
-  published here (a site outside a model's domain reads this way; routine,
-  rarely worth a log line);
-- `{ miss: "invalid", url }` — the document exists but failed the contract
-  guards: a contract break or pre-release prototype data. It must not
-  render as garbage, and — the reason the two are discriminated — it must
-  not hide as a 404 either: log it loudly. Discriminate with
-  `"miss" in result`.
+- `{ manifest, profile, stale: true }` — the pair still names different runs
+  after the retry;
+- `{ miss: "absent", url }` — the model or site returned 404;
+- `{ miss: "invalid", url }` — a response body failed its contract guard.
 
 Non-404 HTTP failures throw `TransportHttpError` instead of masking
 themselves as absence. The pure pair check is exported too:
@@ -101,26 +86,24 @@ name the same model and run.
 
 `fetch` is a parameter, not an import: pass the runtime's own (browser,
 Node, workers — anything WHATWG-shaped), which keeps the module
-runtime-agnostic and the rest of the package I/O-free. Deliberately **no
-caching, no storage side effects**: no storage API is portable across those
-runtimes, and cache doctrine — keys, quotas, invalidation, whether a stale
-pair beats none — is consumer policy, not transport fact. The transport
-reports `stale` honestly; keeping a last-known-good pair around (as the
-reference site does with `sessionStorage`) is a layer you add on top.
+runtime-agnostic and the rest of the package I/O-free. The transport performs
+no caching or storage writes because keys, quotas, invalidation, and stale-pair
+policy belong to the consumer. The transport
+reports `stale`; callers can add a last-known-good store when their runtime
+and cache policy require one.
 
-`loadRuns({ fetch, baseUrl })` fetches `data/runs.json`, the cross-model
-run index: per published model, its current run's `referenceTime` and
-`generatedAt`, keyed by slug. One fetch answers "how fresh is everything"
-— judge lateness against each model's declared `runIntervalHours` (a run
-older than about twice the interval is genuinely late, not just a slow
-CDN).
+`loadRuns({ fetch, baseUrl })` fetches `data/runs.json`, the cross-model run
+index. It returns each published model's `referenceTime` and `generatedAt`,
+keyed by slug. Consumers can compare those timestamps with the catalogue's
+`runIntervalHours` under their own freshness policy.
 
 ## Depth one: data only (`contract` + `derive`)
 
 For consumers bringing their own UI. Everything that is a pure function of
-the published JSON lives in `windgram/derive`; the pipeline's own quantities
-(`derived.*` — W\*, boundary-layer top, cloud base, usable-lift top) arrive
-in the document and are never recomputed here.
+the published JSON lives in `windgram/derive`. The pipeline publishes the
+authoritative `derived.*` values. Package functions can project those published
+inputs with consumer parameters; for example, `usableLiftTopM` applies a chosen
+sink rate without changing the document.
 
 ```ts
 import { p50, stabilityClass, surfaceLapseCPer1000Ft, windgramDisplayHours } from "windgram/derive";
@@ -135,26 +118,36 @@ const day = windgramDisplayHours(profile.hours, {
 for (const hour of day) {
   const wStar = p50(hour.derived.thermalVelocityMs);
   const liftTopM = p50(hour.derived.usableLiftTopM); // null when lift can't beat sink
-  const cape = hour.surface.capeJkg; // optional: absent means "not published", never zero
-  console.log(hour.validAt, wStar.toFixed(1), liftTopM ?? "—", cape === undefined ? "—" : p50(cape));
+  const cape = hour.surface.capeJkg;
+  console.log(
+    hour.validAt,
+    wStar === null ? "—" : wStar.toFixed(1),
+    liftTopM ?? "—",
+    cape === undefined ? "—" : (p50(cape) ?? "—"),
+  );
 }
 
 // Derivations take plain numbers; ensemble positions go through p50 first.
 const noon = day[Math.floor(day.length / 2)];
 const first = noon?.levels[0];
 if (noon && first) {
-  const lapse = surfaceLapseCPer1000Ft(p50(noon.surface.temperatureC), profile.site.modelElevationM, {
-    heightM: p50(first.heightM),
-    temperatureC: p50(first.temperatureC),
-  });
-  if (lapse !== null) console.log(stabilityClass(lapse));
+  const surfaceTemperatureC = p50(noon.surface.temperatureC);
+  const heightM = p50(first.heightM);
+  const temperatureC = p50(first.temperatureC);
+  if (surfaceTemperatureC !== null && heightM !== null && temperatureC !== null) {
+    const lapse = surfaceLapseCPer1000Ft(surfaceTemperatureC, profile.site.modelElevationM, {
+      heightM,
+      temperatureC,
+    });
+    if (lapse !== null) console.log(stabilityClass(lapse));
+  }
 }
 ```
 
 Optional fields (`windGustMs`, `capeJkg`, `cinJkg`, `pblHeightM`, the cloud
-layers and profile) exist only where a model publishes them, and the
-catalogue's `capabilities` say which — including semantics, not just
-presence: `capabilities.gust` distinguishes an hour-max "gusting to" from an
+layers and profile) exist only where a model publishes them. The catalogue's
+`capabilities` declare presence and semantics: `capabilities.gust`
+distinguishes an hour-max "gusting to" from an
 instantaneous sample, and `capabilities.precipitation` an instantaneous
 rate from a window mean. Documents from the 0.3.0 wave echo those
 declarations in their own optional top-level `semantics` tag, so a stored
@@ -165,42 +158,29 @@ declaration; never fill a gap with zero.
 
 `derive/` outputs quantities; `analyze/` outputs **statements**: typed
 findings over one profile document, each carrying the thresholds that
-produced it and an evidence block scoped to the hours it cites. The
-vocabulary is deliberately small and versioned
-(`ANALYZE_VOCABULARY_VERSION`) — adding a kind is a contract event.
-Version 1 shipped exactly the kinds that survived the 2026-08 evidence
-spikes; version 2 adds `quietDay` on production consumer evidence:
+produced it and an evidence block scoped to the hours it cites.
+`ANALYZE_VOCABULARY_VERSION` versions the finding vocabulary; adding a kind
+is a contract event. Version 3 defines eight kinds:
 
-- `flyableWindow` / `liftCeiling` — the compression anchors. They restate
-  the published derived series on purpose: their value is compressing a
-  13–72k-token document into a ~1–2k statement of when and how high, plus
-  the timing anchor the other findings reference. Window thresholds
-  (W\* ≥ 0.9 m/s, ≥ 300 m over launch) are embedded in every finding and
-  caller-movable; the spike's sensitivity sweep measured them low-impact.
-- `quietDay` — the negative stated with evidence: a local day with no
-  flyable window carries the numbers that failed (the day's best W\* and
-  lift depth against the embedded floors, plus which floors failed), so a
-  consumer's headline can say *why* instead of only "no window". Its
-  `coverage` block carries the arithmetic `truncated` verdict — a quiet
-  call built from a sliver of a day (a short-horizon run ending before
-  the thermals start) is a data boundary, not a forecast, and must not
-  vote in cross-model comparisons. `flyableWindow` mirrors the same
-  honesty on the positive side with `clippedAtStart`/`clippedAtEnd`: a
-  window abutting the document's own hour range reads as ≥/≤, not as
-  opening or decay.
-- `capTiming` — CAPE build vs CIN erosion vs the window's close, gated to
-  hourly deterministic documents with CIN (ensemble-median CIN is bimodal;
-  3-hourly cap timing is interpolation).
+- `flyableWindow` / `liftCeiling` — restate the published derived series as
+  time and height findings. Each finding records its W\* and height-over-launch
+  thresholds; defaults are 0.9 m/s and 300 m, and callers can override them.
+  `clippedAtStart` and `clippedAtEnd` identify windows that touch the document
+  horizon.
+- `quietDay` — records a local day with no qualifying window, the day's best
+  W\* and lift depth, the effective thresholds, and which thresholds failed.
+  `coverage.truncated` identifies incomplete local-day coverage.
+- `capTiming` — relates CAPE growth and CIN erosion to the window close. It
+  requires hourly deterministic documents with CIN.
 - `windSummary` — max gust and max wind-in-band with altitude, timing, and
-  persistence. Magnitudes only, no hazard verdicts (the spikes' null
-  result; its JSDoc has the story).
+  persistence.
 - `terrainMismatch` — model grid terrain vs surveyed launch, with the one
   arithmetic verdict (`liftTopEverReachesLaunch`).
 - `ensembleMembership` — the per-quantity member-count profile (a p50
-  computed from 5-of-21 contributing members is a landmine) and band-width
-  magnitude/trend. Not called confidence, because it isn't.
-- `dataCaveats` — what the document cannot say: absent quantity families,
-  derived-null hours, cadence notes. Threshold-free.
+  can contain fewer contributors than the model's total membership) and
+  band-width magnitude and trend.
+- `dataCaveats` — reports absent quantity families, derived-null hours, and
+  cadence notes.
 
 ```ts
 import { analyzeProfile } from "windgram/analyze";
@@ -214,103 +194,60 @@ for (const finding of analysis.findings) {
 }
 ```
 
-Verdict enums appear only where the verdict is an arithmetic relation over
-published numbers; everything judgment-shaped ("flyable" beyond the stated
-arithmetic, "hazard", "confidence") stays downstream where it belongs.
-Findings are single-document by charter: cross-model statements live in
-`windgram/compare`, which compares these findings — never raw series.
+Verdict enums describe arithmetic relations over published numbers. Findings
+remain scoped to one document. Cross-model statements live in
+`windgram/compare`.
 
 ## Agreement with evidence (`windgram/compare`)
 
-Humans open three windgrams to read agreement and disagreement; naive
-cross-model comparison of the raw numbers reads mostly artifacts (grid
-elevation deltas, gust semantics families, run staleness, cadence — the
-documented reason the early consensus/outlier trials died).
-`compareProfiles(profiles, { timeZone })` does what a careful human does,
-explicitly: it analyzes every member with one timezone and one threshold
-set, then compares the *statements*.
+`compareProfiles` analyzes each document with one timezone and threshold set,
+then compares the resulting statements. It preserves model elevation, cadence,
+run age, and availability in the member ledger.
 
 ```ts
 import { compareProfiles } from "windgram/compare";
 
 const comparison = compareProfiles([hrdps, gfs, reps], {
   timeZone: "America/Vancouver",
-  unavailable: [{ model: "nam", miss: "absent" }], // the roster names the whole field
+  unavailable: [{ model: "nam", miss: "absent" }],
 });
+
 for (const finding of comparison.findings) {
   if (finding.kind === "windowAgreement") {
-    // per local day: window votes, quiet votes (with the numbers that
-    // failed), abstentions with reasons, and a timing envelope over the
-    // edges that are forecasts rather than data boundaries.
+    console.log(finding.day, finding.windows.length, finding.quiet.length);
   }
   if (finding.kind === "heightSpread") {
-    // launch-relative peaks per model + the spread — divergence stated,
-    // never averaged: no consensus height exists that any model forecast.
+    console.log(finding.day, finding.spreadM);
   }
 }
 ```
 
-Every non-vote has a stated reason: a member whose lift never reaches
-launch is benched in the `members` ledger (`terrainMismatch` — the case
-where a model's grid puts the site 1,300 m below the real launch); a
-truncated quiet day abstains (a model lacking a day's data does not get
-to call the day); a horizon-clipped window edge stays out of the timing
-envelope. The ledger states run age, cadence, and elevation deltas as
-facts for downstream judgment — weighting is deliberately not applied
-here. The vocabulary is versioned like analyze's
-(`COMPARE_VOCABULARY_VERSION`), and version 1 ships exactly the kinds the
-2026-08-09 findings spike earned: over nine live documents, 8/8
-comparable models were unanimous on window existence with ends within an
-hour of each other, while value-level consensus over the same corpus had
-measured mostly artifacts.
+`windowAgreement` reports qualifying-window votes, quiet-day votes,
+abstentions, and an envelope over unclipped window edges. `heightSpread`
+reports each model's launch-relative peak and their spread without averaging
+them into a new forecast. Terrain-mismatched members, truncated quiet days,
+and unavailable models remain visible in the comparison. The vocabulary
+version is exported as `COMPARE_VOCABULARY_VERSION`.
 
-## Feeding a windgram to an LLM
+## Choose an analysis payload
 
-The dataset was built to be self-describing — SI field names, per-document
-`semantics` tags, declared absences — so the honest recipe is raw documents
-plus the published reading context, projected down only as far as the
-budget requires. Measured budgets (2026-08 spikes, chars/4; dense JSON
-tokenizes ~25 % worse):
+- Pass the parsed profile when the consumer needs every published field.
+- Use `projectProfile` to select a local day, remove levels, or retain named
+  fields. Projection only removes data.
+- Use `analyzeProfile` when the consumer needs typed findings with their
+  thresholds and supporting values.
 
-| Payload | ≈ tokens |
-| --- | ---: |
-| one deterministic profile, full horizon, with reading context¹ | 13–14k |
-| one GEPS ensemble document, full horizon, raw | 72k |
-| one local day (`projectProfile({ day })`) | ~7.7k |
-| one day, levels stripped (`dropLevels`) | ~2.4k |
-| one day, derived-block field selection | ~0.5–1.5k |
-| `analyzeProfile` findings, evidence included | 0.8–2.2k |
-
-¹ profile + its models.json entry + the "reading a windgram" and
-derivations articles from `research/`.
-
-When each is appropriate:
-
-- **Raw document + reading context** — the default. One site, one or a few
-  models: it fits any current frontier context with room to spare, and the
-  LLM sees everything, including what a findings pass would summarize away.
-- **`projectProfile`** — when horizons multiply (all-model comparison at
-  one site: ~229k raw, ~48k day-windowed, ~10k derived-only) or sites do
-  (a 40-site scan fits under derived-only projection). Pure subtraction:
-  nothing is judged on the way down.
-- **`analyzeProfile` findings** — when the budget is tight, the sites are
-  many, or you want the model reasoning over claims it can check: every
-  finding carries its thresholds and the published numbers it derives
-  from, so the LLM (or a human) can audit the statement against the
-  evidence in the same payload. Verdicts exist only where they are
-  arithmetic; everything else is magnitudes and timing.
-
-Local time is load-bearing for all three: documents carry `site.timeZone`
-(0.4.0 wave), findings and projections use it, and the caller can override
-it.
+Measure the serialized result against the consumer's actual input budget.
+Projections and findings use `site.timeZone` unless the caller supplies an
+override.
 
 ## Depth two: custom rendering with shared numbers (`scene`)
 
 `buildScene(profile, options)` computes everything a chart needs — scales,
 axis ticks, metric strips, classified field patches, derived-height series,
 wind-barb and gust placements, markers, labels — as one typed, serializable
-scene graph. No DOM: draw it with SVG, canvas, or anything else, and use the
-same graph for interaction so tooltips and pixels can never disagree.
+scene graph. No DOM: draw it with SVG, canvas, or another target. Interaction
+can read the same scene scales and values used by the serializer.
 
 ```ts
 import { windgramDisplayHours } from "windgram/derive";
@@ -368,23 +305,24 @@ row under the time axis. Barb density is geometry-aware: stride 1 wherever
 the column pitch fits the glyph, a greedy pixel-gap walk up each column
 where level spacing is dense, and a pitch-following glyph scale — pin or
 force any of it with `barbStride`, `barbMinGapPx`, `barbScale`.
-`markerStride` turns the single selected-hour cloud/wing glyphs into
-trains along their lines. `stripLabels` overrides strip display names
+`markerStride` turns the single selected-hour cloud/wing glyphs into trains
+along their lines. An object form such as `{ every: 2, offset: 1 }` phases a
+train so coincident cloud-base and usable-lift markers can alternate hours.
+`stripLabels` overrides strip display names
 (`{ thermalStrength: "LIFT" }`) while keys and classes keep the honest
 identity.
 
 Two more options move conventions into the consumer's hands. `capeClasses`
 sets the CAPE strip's class boundaries; the default,
 `DEFAULT_CAPE_CLASSES` (calm < 300, watch < 800, risk < 1500,
-severe ≥ 1500 J/kg, cells dimmed as capped at CIN ≤ −50), documents its
-WMO-No. 1038 soaring rationale in its JSDoc and renders byte-identically to
-the pre-option output. `sinkRateMs` recomputes the usable-lift-top series
+severe ≥ 1500 J/kg, cells dimmed as capped at CIN ≤ −50), defines renderer
+classes rather than weather-severity categories or operational thresholds.
+`sinkRateMs` recomputes the usable-lift-top series
 with `windgram/derive`'s parameterized `usableLiftTopM` instead of reading
 the document's published value (which embeds the fixed 1.0 m/s convention);
-at 1.0 the recomputed series equals the published one exactly, and for
-ensemble documents the option deliberately no-ops — recomputing from p50
-inputs is not the pipeline's per-member derivation aggregated to
-percentiles, so the published percentile series is kept.
+at 1.0 the recomputed series equals the published one exactly. Ensemble
+documents keep the published percentile series because recomputing from p50
+inputs would differ from the pipeline's aggregated per-member derivation.
 
 ## Depth three: the reference chart (`svg`)
 
@@ -401,7 +339,7 @@ const svg = renderSvg(buildScene(profile, { timeZone: "America/Vancouver" }), {
 ```
 
 Every colour is a `--wg-*` CSS custom property with defaults matching the
-reference theme, so retheming is a token override on any ancestor — no fork:
+reference look, so a local colour override belongs on an ancestor — no fork:
 
 ```css
 .forecast-panel {
@@ -439,15 +377,15 @@ reference to start from.
 A windgram encodes meaning in line style, and nothing on the plot says
 which is which. `buildKeySpec(scene)` (from `windgram/scene`) derives a
 typed, serializable description of what that scene's key must say from
-what it actually drew — series entries carrying the REAL dash, stroke
+what it drew — series entries carrying the dash, stroke
 width, and class name; the condensation-hatch chip; the eight-class
 stability ramp with its boundaries straight from
 `WINDGRAM_STABILITY_CLASSES`; the p25–p75 band note for ensemble scenes.
-Every fact is inherited, never copied, so a key cannot drift from its
-chart. `renderKeySvg(keySpec, options)` (from `windgram/svg`) is the
+The key reads these facts from the scene instead of restating them.
+`renderKeySvg(keySpec, options)` (from `windgram/svg`) is the
 reference look: the centred swatch row, then the LAPSE RATE bar with
 boundary values above the cell edges and group words inside. The same
-`--wg-*` tokens theme chart and key together; labels are the only prose,
+`--wg-*` tokens style chart and key together; labels are the only prose,
 overridable per entry id via `buildKeySpec`'s `labels` option. Consumers
 building a focusable key (hover-to-preview, click-to-pin) read the spec
 and draw their own.
@@ -460,20 +398,14 @@ const scene = buildScene(profile, { timeZone });
 const key = renderKeySvg(buildKeySpec(scene)); // place it under the chart
 ```
 
-## One look, no themes
+## Presentation defaults
 
-The package ships one look — the reference defaults — and consumers who
-want a different one override the `--wg-*` tokens and scene options
-directly; there is no theme catalogue and no preset concept (the
-`windgram/presets` subpath departed in 0.6.0 — its one real job, naming
-the defaults, is done by the exports that ARE the defaults:
-`DEFAULT_OVERLAYS`, `DEFAULT_CAPE_CLASSES`, `TOKEN_DEFAULTS`,
-`STABILITY_TOKEN_DEFAULTS`). The reference look's stability hues follow
-the aerogram convention this pipeline gratefully inherits from
-[canadarasp](https://github.com/ajberkley/canadarasp) — warm instability
-over a receding stable field — hardened for colour-vision deficiency
-(see `STABILITY_TOKEN_DEFAULTS`' JSDoc for exactly what is and is not
-promised).
+The package ships one reference look. Override scene options and the `--wg-*`
+tokens directly for another presentation. `DEFAULT_OVERLAYS`,
+`DEFAULT_CAPE_CLASSES`, `TOKEN_DEFAULTS`, and `STABILITY_TOKEN_DEFAULTS`
+export the reference values. The stability ramp keeps a pale background field
+behind wind, height, marker, and temperature marks while preserving adjacent
+colour-vision boundaries.
 
 ## Ensemble documents
 
@@ -483,36 +415,29 @@ ensemble models publish `{members, p10, p25, p50, p75, p90, ceiledMembers?}`
 in the same positions. Switch on shape, never on model name:
 
 ```ts
-import { isEnsembleValue } from "windgram/contract";
+import { isEnsembleDropout, isEnsembleValue } from "windgram/contract";
 
 const wind = profile.hours[0]?.surface.windSpeedMs;
 if (wind !== undefined) {
   if (isEnsembleValue(wind)) {
-    console.log(`p50 ${wind.p50} m/s, p10–p90 ${wind.p10}–${wind.p90}, ${wind.members} members`);
+    if (isEnsembleDropout(wind)) console.log("no contributing members");
+    else console.log(`p50 ${wind.p50} m/s, p10–p90 ${wind.p10}–${wind.p90}, ${wind.members} members`);
   } else {
     console.log(`${wind} m/s`);
   }
 }
 ```
 
-`p50(scalar)` collapses either shape to the median (null passes through),
-so deterministic code paths work on ensemble profiles unchanged — noting
-that since 0.7.0 its return is honestly `number | null` for any Scalar,
-because of dropout (below). The scene graph handles the rest itself:
-ensemble series render their p50 line with p25–p75 band geometry wherever
-percentiles exist, a model without levels gracefully drops barbs, fields,
-and isotherms, and a dropout position renders as a gap.
+`p50(scalar)` returns the numeric value or ensemble median. It returns `null`
+for `null` and for full dropout (`members: 0` with every percentile `null`).
+The scene renders dropout positions as gaps and drops a level or hour whose
+required positions have no contributing members. Ensemble series render their
+p50 line with p25–p75 band geometry wherever percentiles exist.
 
 Ensemble documents from the 0.3.0 wave also declare their member count once,
 in `run.members`; each `EnsembleValue`'s own `members` is the per-position
-count of contributing members, which can be lower where members were
-censored — all the way to **full dropout**: `members: 0` with every
-percentile `null` means the run asked every member and none produced a
-value at this position. That is a published fact, distinct from both "not
-published" (the field is absent) and a forecast of none (the position is
-plain `null`); `isEnsembleDropout(value)` names it, `p50()` of it is
-`null`, and `analyze`'s `ensembleMembership` finding is where it surfaces
-as a statement.
+count of contributing members, which can be lower where members were censored
+or zero for full dropout.
 
 ## Deterministic documents: escaping `p50` with one check
 
@@ -591,6 +516,8 @@ return the typed document or `null`); likewise `parseWindgramManifest…`,
 Deterministic narrowing: `DeterministicWindgramProfile` and
 `isDeterministicProfile` (see
 [Deterministic documents](#deterministic-documents-escaping-p50-with-one-check)).
+`isEnsembleValue` narrows percentile objects; `isEnsembleDropout` identifies
+the all-null, zero-member shape.
 
 ### `windgram/derive`
 
@@ -610,14 +537,17 @@ with `p50(scalar)`.
   lifted at 0.0098 °C/m against level temperature);
 - shear: `vectorShearMs` between levels,
   `surfaceToBoundaryLayerShearMs` for a profile hour, and
-  `buoyancyShearRatio` (W* ÷ BL shear — definition in the JSDoc);
+  `buoyancyShearRatio` (W* ÷ BL shear). Surface-to-boundary-layer shear
+  assumes both winds describe the same air mass; terrain-driven valley
+  circulation can violate that assumption. Use the height-resolved
+  `windShear` field when terrain separates the layers;
 - usable lift: `usableLiftTopM` — the pipeline's hcrit derivation with the
   sink rate as a parameter, over published inputs only. The published
   `derived.usableLiftTopM` embeds a fixed **1.0 m/s** sink rate — that
   convention is part of the published value — and the default here
-  reproduces it exactly (asserted against a real pipeline fixture); other
-  sink rates answer "what about my glider?" without republishing anything
-  (the scene option `sinkRateMs` wires this into the renderer);
+  reproduces it exactly (asserted against a pipeline fixture); other sink
+  rates project the same inputs without republishing them (the scene option
+  `sinkRateMs` wires this into the renderer);
 - day windowing: `windgramDisplayHours` with timezone and day bounds as
   parameters (nothing hardcodes a timezone), `groupByLocalDay(hours,
   timeZone)` → `[{ dateKey, hours }]` for day tabs (each group feeds
@@ -625,18 +555,15 @@ with `p50(scalar)`.
   `localDateKey`;
 - projection: `projectProfile(profile, { day?, timeZone?, dropLevels?,
   fields? })` — window to one local day (the document's `site.timeZone` by
-  default), strip levels, select field subsets per block. Pure
-  subtraction, no thresholds; the budgets it buys are tabulated in
-  [Feeding a windgram to an LLM](#feeding-a-windgram-to-an-llm);
+  default), strip levels, and select field subsets per block. Projection
+  only removes data and applies no thresholds;
 - alignment: `alignByValidAt(profiles)` — the minimal cross-document join:
   the instants every profile publishes, chronological, each row carrying
-  the models' own hours keyed by slug. Rows are quantities, not claims —
-  elevation, semantics, and staleness differences are deliberately left
-  visible;
-- units: `msToKmh` (moved here from `windgram/scene` in 0.3.0 — it is a
-  pure unit conversion, not scene geometry);
-- smoothing: `smooth121`, the pipeline's retired 1-2-1 kernel as a renderer
-  option (only across contiguous one-hour steps).
+  the models' own hours keyed by slug. Rows are quantities, not claims;
+  elevation, semantics, and staleness differences remain visible;
+- units: `msToKmh`, a pure m/s-to-km/h conversion;
+- smoothing: `smooth121`, a 1-2-1 renderer option that applies only across
+  contiguous one-hour steps.
 
 ### `windgram/analyze`
 
@@ -644,28 +571,24 @@ Typed findings over one profile document (see
 [Statements with evidence](#statements-with-evidence-windgramanalyze)):
 `analyzeProfile(profile, { timeZone?, thresholds? })` →
 `WindgramAnalysis`, the finding types (`WindgramFinding` and its eight
-kinds), `DEFAULT_ANALYZE_THRESHOLDS` (the spikes' constants, embedded in
-every finding they shape, caller-movable per call), and
-`ANALYZE_VOCABULARY_VERSION`. The module docs carry the charter: analyze
-is single-document by evidence; cross-document statements live in
-`windgram/compare`.
+kinds), `DEFAULT_ANALYZE_THRESHOLDS` (embedded in every finding they shape
+and overridable per call), `resolveAnalyzeThresholds`, and
+`ANALYZE_VOCABULARY_VERSION`. Analyze findings remain scoped to one document.
 
 ### `windgram/compare`
 
-Typed statements over one site's documents across models (see
-[Agreement with evidence](#agreement-with-evidence-windgramcompare)):
-`compareProfiles(profiles, { timeZone, thresholds?, unavailable? })` →
-`WindgramComparison` — the member ledger (`ComparisonMemberLedger`,
-benching included), `windowAgreement` and `heightSpread` findings, and
-`COMPARE_VOCABULARY_VERSION`. Statements are compared, never raw series;
-agreement is reported, never manufactured.
+`compareProfiles(profiles, { timeZone, thresholds?, unavailable? })` returns
+`WindgramComparison`: a member ledger, per-day `windowAgreement` findings,
+per-day `heightSpread` findings, the source analyses, and
+`COMPARE_VOCABULARY_VERSION`.
 
 ### `windgram/transport`
 
 Fetching published documents correctly, with the runtime's fetch injected:
 `loadProfile` (the manifest + profile pair through the reference-time skew
 guard), `loadRuns` (the `data/runs.json` index), the pure pair check
-`runsConsistent`, and `TransportHttpError`. No caching, no storage — see
+`runsConsistent`, the discriminated `DocumentMiss`, and `TransportHttpError`.
+No caching, no storage — see
 [Transport](#transport-windgramtransport).
 
 ### `windgram/scene`
@@ -673,9 +596,12 @@ guard), `loadRuns` (the `data/runs.json` index), the pure pair check
 The headless renderer core: `buildScene(profile, options)` and the
 `SceneGraph` types, `DEFAULT_OVERLAYS`, `DEFAULT_CAPE_CLASSES`, the key
 facts (`buildKeySpec`, the `KeySpec` types), hit-testing (`cursorReading`,
-`xForHour`, `yForAltitude`, …), and the low-level geometry helpers the site's
+`xForHour`, `yForAltitude`, `scales.surfaceWindY`, …), and the low-level geometry helpers the site's
 own figures reuse (`windBarbPaths`, `BARB_GLYPH_RADIUS`,
 `sampledFieldPaths`, `curvedPath`, `pointPath`, `interpolateVertical`).
+`sampledFieldPaths` takes ordered `{ breakpoints, classNames }` banding and
+returns interpolated iso-band paths. Fill `FieldLayer` paths with
+`fill-rule="evenodd"`; the reference SVG serializer does this automatically.
 The deprecated `msToKmh` re-export departed in 0.4.0 as promised — import
 it from `windgram/derive`.
 
@@ -688,209 +614,18 @@ maps (`TOKEN_DEFAULTS`, `STABILITY_TOKEN_DEFAULTS`), and the
 deterministic — stable element ordering, two-decimal rounding — and golden
 fixtures in `test/golden/` lock it down.
 
-## The one-home rule
+## Authority boundary
 
-Every quantity has exactly one implementation. The pipeline (Python) owns
-anything needing inputs beyond the published JSON or cross-run authority —
-W\*, boundary-layer top, cloud base, usable-lift top arrive in the documents
-and this package **never recomputes them**. This package owns anything that
-is a pure function of the published JSON — RH, TI, shear, B/S, lapse,
-stability, windowing, smoothing — and the pipeline never publishes those.
+The pipeline (Python) owns stored values that need provider inputs or
+cross-run authority: W\*,
+boundary-layer top, cloud base, and usable-lift top. This package owns pure
+functions of the published JSON: RH, TI, shear, B/S, lapse, stability,
+windowing, smoothing, and consumer-parameter projections such as a different
+usable-lift sink rate. A projection does not replace the document's published
+value.
 
-## Versions
-
-The document `schemaVersion` stays 1 across these releases: profile
-additions are additive-optional, and consumers discover the rest from the
-catalogue.
-
-**0.9.0** — field patches are contours: the classes were always continuous
-underneath.
-
-- `sampledFieldPaths` emits iso-bands instead of run-length rects:
-  boundary vertices sit on the exact threshold crossing by linear
-  interpolation within each grid cell, so curved class boundaries render
-  as curves instead of 3–4 px staircases at page-scale column pitches.
-  Same grid, same null-region and clamp-above-top semantics, same class
-  names and tokens — only the geometry changed.
-- **Breaking (helper signature)**: the engine takes the banding itself —
-  `{ breakpoints, classNames }`, ascending, `null` = unpainted — instead
-  of an opaque `classify` closure: exact crossings need the thresholds.
-  The stability banding now derives from `WINDGRAM_STABILITY_CLASSES`
-  directly (one home). `buildScene` output shape is unchanged apart from
-  the paths; `FieldLayer` paths MUST be filled with fill-rule "evenodd"
-  (a band is its two threshold outlines in one path), as the reference
-  serializer now does.
-- Goldens regenerated; output size is at parity (collinear runs collapse
-  under a sub-rounding tolerance).
-
-**0.8.1** — the B/S ratio's terrain assumption, said out loud.
-
-- `surfaceToBoundaryLayerShearMs` and `buoyancyShearRatio` document the
-  same-air-mass assumption their construction rests on and its structural
-  failure at mountain sites (valley circulation pins the ratio to 0.3–0.7
-  on the best days — a verified production trace), pointing terrain-driven
-  consumers at the height-resolved `windShear` field. No classed-cell
-  doctrine ships on B/S.
-- An unopposed-buoyancy hour (zero shear, unbounded ratio) draws a
-  `wg-bs-unopposed` cell in the strip instead of hiding in the same gap
-  as "no ratio computable" — the best possible reading is not missing
-  data.
-
-**0.8.0** — `windgram/compare`: agreement with evidence.
-
-- New subpath, occupying the name analyze's charter reserved, on the
-  evidence that reservation demanded: the 2026-08-09 findings spike over
-  nine live documents, where statement-level agreement tracked real
-  forecast divergence (8/8 comparable models unanimous on window
-  existence; ends within 1 h once clipped edges stopped voting) while
-  value-level consensus over the same corpus had measured artifacts.
-- `compareProfiles(profiles, { timeZone, thresholds?, unavailable? })`
-  analyzes every member identically, then compares statements: the
-  comparability ledger (kind, cadence, run age, elevation delta,
-  terrain benching), `windowAgreement` per local day (window votes,
-  quiet votes with their failed numbers, truncation abstentions, timing
-  envelopes over unclipped edges), and `heightSpread` (per-model
-  launch-relative peaks + spread — divergence stated, never averaged).
-- `analyze` exports `resolveAnalyzeThresholds` so the comparison envelope
-  echoes the resolved threshold set without restating the merge.
-
-**0.7.0** — full ensemble dropout is a valid published fact; horizon
-truncation is named on both sides of the window vocabulary.
-
-- Contract: `EnsembleValue` admits exactly one new shape — `members: 0`
-  with every percentile `null` (nothing in between) — the form the live
-  GEPS/REPS documents already publish at hours where no member produced a
-  value. Both ECCC ensembles had become unreadable by the package's own
-  guards (`loadProfile` returned `miss: "invalid"`); the schema was
-  stricter than the honest data. `isEnsembleDropout` names the shape;
-  `schema/*.json` regenerated.
-- **Breaking (types)**: `p50()` returns `number | null` for any Scalar —
-  a dropout has no median. The scene renders dropout positions as gaps
-  and drops a level or hour whose core positions lost every member;
-  `analyze` carries dropout through membership counts and skips it in
-  band evidence.
-- `analyze` vocabulary v3: `quietDay.coverage` (hours, first/last cited
-  instants, the `truncated` verdict) and
-  `flyableWindow.clippedAtStart/clippedAtEnd` — the findings spike over
-  nine live documents showed a short-horizon run voting "quiet" on
-  pre-thermic hours alone, and window end-times spreading 7 h purely from
-  horizon clipping (1 h once clipped edges stop voting). A model lacking
-  a day's data does not get to call the day.
-
-**0.6.0** — the reference look, re-founded on the field-is-background
-principle; one look, no themes.
-
-- The stability ramp is replaced: the pale-register palette proven in
-  production by the first consumer, hardened where the validator found
-  real hazards (the deutan-blind conditional pair separated, the cool
-  tail internally light-ordered) — five of eight values are the
-  production palette's exactly. The old monotone-lightness ramp
-  optimized the wrong layer: it bought class-boundary ΔE with the
-  figure-ground contrast of everything drawn on top.
-  `STABILITY_TOKEN_DEFAULTS`' JSDoc states precisely what the pale
-  register does and does not promise.
-- Barbs are white (`--wg-wind`) with a fine slate rim (`--wg-halo-barb`)
-  — legible on every field cell and, unlike bare white, on the plain
-  paper of models that publish no levels; set the rim `transparent` for
-  the bare look. Series halos default off (`--wg-halo-series:
-  transparent`) — the dash-by-dash halo read as fuzz in production.
-- **Breaking**: the `windgram/presets` subpath is removed. The package
-  ships one look; the defaults' one-home exports (`DEFAULT_OVERLAYS`,
-  `DEFAULT_CAPE_CLASSES`, `TOKEN_DEFAULTS`, `STABILITY_TOKEN_DEFAULTS`)
-  replace `REFERENCE_PRESET`, and the canadarasp lineage stays credited
-  where it is inherited.
-- Marker trains take a phase (`markerStride: { usableLiftTop: { every: 2,
-  offset: 1 } }`) so trains on lines that can coincide alternate hours —
-  lift is capped at cloud base by contract, so a cloud with no wing means
-  "lift to base"; strips hold their terminal values flat to the plot
-  edges, closing the data-less half-column at each end; the surface barb
-  row sits clear of the plot floor instead of being bisected by it, with
-  `scales.surfaceWindY` exposed for hit-testing.
-- **Breaking**: `loadProfile` and `loadRuns` return a discriminated
-  `DocumentMiss` (`{ miss: "absent" | "invalid", url }`) instead of bare
-  `null`, so a site outside a model's domain and a contract break stop
-  presenting identically to logging pipelines.
-- `analyze` vocabulary v2: the new `quietDay` finding states a windowless
-  day's evidence (the day's best numbers against the embedded floors)
-  instead of leaving the negative to absence; `day` fields are typed
-  `LocalDayKey` with the zone-pairing contract documented, and
-  `CitedInstant.local` documents that voice formatting is deliberately
-  downstream.
-
-**0.5.0** — the presentation wave: the second consumer feedback list, plus
-the key.
-
-- The default render changes, deliberately (goldens regenerated once):
-  strip scales print at each strip's right edge (max top, min bottom);
-  the per-hour surface-temperature row appears under the time axis (the
-  `surfaceTemperature` overlay, on by default); barb density is
-  geometry-aware on both axes with a pitch-following glyph scale, and the
-  glyph itself spaces feathers wider on a longer shaft so stacks read as
-  feathers, not blobs; the surface wind row sits half a glyph height
-  clear of the plot floor instead of being bisected by it, with the gust
-  readouts just above the glyphs' reach and the placed row exposed as
-  `scales.surfaceWindY` for hit-testing.
-- New scene options, all defaulting to the reference conventions:
-  `hourLabel` (`"24h"` | `"12h"` | formatter, threaded through ticks and
-  aria label), `barbStride` / `barbMinGapPx` / `barbScale`, `widthPx`
-  (container fit), `markerStride` (glyph trains), `stripLabels` (display
-  voice; identity stays).
-- The key: `buildKeySpec(scene)` derives the typed key facts from what
-  the scene drew — real dashes, widths, classes, and the stability
-  boundaries from `WINDGRAM_STABILITY_CLASSES` — and
-  `renderKeySvg(keySpec)` is the reference look; tokens theme chart and
-  key together, and tests assert the spec against the scene so the two
-  cannot drift.
-- The token surface grows: `--wg-text-*` type-scale tokens for every
-  font size the serializer sets, per-element halo tokens
-  (`--wg-halo-series/-barb/-marker/-text`, each falling back to
-  `--wg-halo`, `transparent` as the off-switch), and `--wg-temp` for the
-  temperature row.
-
-**0.4.0** — the analysis-minimum wave, built to the evidence spikes'
-verdicts.
-
-- New `windgram/analyze` subpath: `analyzeProfile` and the version-1
-  finding vocabulary — exactly the kinds the spikes endorsed, thresholds
-  embedded, evidence scoped, verdicts only where arithmetic (see
-  [Statements with evidence](#statements-with-evidence-windgramanalyze)).
-- `derive` gains `projectProfile` (day window / levels strip / field
-  selection — the LLM-budget subtraction) and `alignByValidAt` (the
-  minimal cross-document join).
-- Contract: site catalogue entries **require** `timeZone` (IANA) —
-  pre-0.4.0 catalogues no longer validate (published data updated in the
-  same change, the 0.3.0 `runIntervalHours` precedent) — and profile
-  `site.timeZone` echoes it, optional: local time is load-bearing for
-  reading a windgram, and stored documents self-interpret their clock.
-- The README gains the measured
-  [Feeding a windgram to an LLM](#feeding-a-windgram-to-an-llm) recipe.
-- Removed: `windgram/scene`'s deprecated `msToKmh` re-export, as the
-  0.3.x deprecation promised; import from `windgram/derive`.
-
-**0.3.0** — the first-consumer feedback wave.
-
-- New `windgram/transport` subpath: `loadProfile` (the reference-time skew
-  guard as a library, fetch-injected, no storage), `loadRuns`,
-  `runsConsistent`, `TransportHttpError`.
-- Deterministic narrowing: `DeterministicWindgramProfile` +
-  `isDeterministicProfile` escape `p50()` with one check.
-- Contract: profiles gain the optional `semantics` tag (gust and
-  precipitation semantics echoed per document) and ensemble profiles
-  declare `run.members`; new `sitesCatalogueSchema` (sites.json is now
-  `{ schemaVersion, sites }`) and `runsIndexSchema` (`data/runs.json`)
-  with their parse guards; `manifest.stats` is typed as the stable core
-  (`downloads`, `downloadBytes`, `retries`, `durationMs`) plus an open
-  numeric extension. **Stricter**: `runIntervalHours` and
-  `capabilities.precipitation` are required — pre-0.3.0 catalogues no
-  longer validate (published data updated in the same change).
-- Ergonomics: `buildScene` accepts `hours` (hour objects or
-  `{ timeZone, dateKey }`) beside `hourIndices`; `derive` gains
-  `groupByLocalDay` and `msToKmh` (the latter moved from `scene`, where a
-  deprecated re-export remains until 0.4).
-- The JSON Schema artifacts now carry every field's semantics as
-  descriptions, and `sites.schema.json` / `runs.schema.json` join them.
-
-**0.2.0** — contract, derivations, scene graph, SVG serializer, presets.
+Release history lives in the repository
+[CHANGELOG](https://github.com/azohra/windgram/blob/main/CHANGELOG.md).
 
 ## Developing
 

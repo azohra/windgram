@@ -5,7 +5,7 @@ import { short } from "../scene/path.js";
 /* svg/ — the reference serializer: scene -> self-contained SVG string.
    Styling is class-name-driven; every colour lives in the stylesheet as a
    CSS custom property with a default matching the site's theme.css (the
-   current gold-standard look), so consumers theme by overriding --wg-*
+   reference look), so consumers theme by overriding --wg-*
    tokens without forking the renderer. Output is deterministic: stable
    element ordering, two-decimal rounding, no generated ids beyond the
    configurable prefix. */

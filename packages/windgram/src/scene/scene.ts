@@ -39,7 +39,7 @@ import {
   type SurfaceTemperatureMark,
 } from "./types.js";
 
-/* Layout constants ported from the site renderer (the gold standard for
+/* Layout constants ported from the site renderer (the reference for
    geometry). PROFILE_TOP is derived from the strip count instead of being a
    magic 148, so optional strips (B/S) can join without overlap. */
 const METRIC_TOP = 20;

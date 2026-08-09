@@ -1,0 +1,69 @@
+---
+import Figure from "../figure/Figure.astro";
+import { MODELS, modelBySlug } from "../../lib/catalogue";
+
+const retiring = MODELS.filter((model) => model.sunset).sort((a, b) =>
+  a.sunset!.date.localeCompare(b.sunset!.date) || a.label.localeCompare(b.label),
+);
+if (retiring.length === 0) throw new Error("ModelLifecycleTimeline requires at least one catalogued sunset");
+const description = retiring
+  .map((model) => {
+    const successor = model.sunset!.successor;
+    const successorLabel = successor ? modelBySlug(successor)?.label ?? successor : "no declared successor";
+    return `${model.label} retires ${model.sunset!.date}; successor ${successorLabel}.`;
+  })
+  .join(" ");
+const dateFormat = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
+---
+
+<Figure
+  id="model-lifecycle-timeline"
+  title="Retirement is catalogue data"
+  lesson="A model identity can survive ordinary upgrades, while a true succession gets an explicit date and successor slug."
+  {description}
+  caption="Every retirement date and successor token is rendered from data/models.json. A successor absent from the current catalogue remains a future slug, not a selectable model."
+  units="UTC calendar dates · catalogue slugs"
+>
+  <ol class="lifecycle">
+    {retiring.map((model) => {
+      const successor = model.sunset!.successor;
+      const successorModel = successor ? modelBySlug(successor) : undefined;
+      return (
+        <li>
+          <div class="active">
+            <span>Catalogued feed leg</span><strong>{model.label}</strong><code>{model.slug}</code>
+          </div>
+          <div class="sunset">
+            <span>Runs expected through</span>
+            <time datetime={model.sunset!.date}>{dateFormat.format(new Date(`${model.sunset!.date}T00:00:00Z`))}</time>
+          </div>
+          <div class="successor">
+            <span>Declared successor</span><strong>{successorModel?.label ?? successor ?? "None"}</strong>
+            {successor && <code>{successor}</code>}
+            {!successorModel && successor && <small>future slug; not yet catalogued</small>}
+          </div>
+        </li>
+      );
+    })}
+  </ol>
+</Figure>
+
+<style>
+  .lifecycle { display: grid; gap: 1px; margin: 0; padding: 0; list-style: none; background: var(--rule); }
+  .lifecycle li { display: grid; grid-template-columns: minmax(0, 1fr) 190px minmax(0, 1fr); background: var(--surface); }
+  .lifecycle li > div { position: relative; min-width: 0; padding: 18px; }
+  .lifecycle li > div + div { border-left: 1px solid var(--rule); }
+  .lifecycle li > div:not(:last-child)::after { position: absolute; top: 50%; right: -8px; z-index: 1; width: 14px; height: 14px; background: var(--surface); border-top: 1px solid var(--rule); border-right: 1px solid var(--rule); transform: translateY(-50%) rotate(45deg); content: ""; }
+  span, code, small { display: block; font-family: var(--mono); }
+  span { color: var(--ink-mute); font-size: 10px; letter-spacing: .05em; text-transform: uppercase; }
+  strong, time { display: block; margin-top: 7px; color: var(--ink); font: 700 18px/1.2 var(--sans); }
+  code { margin-top: 4px; color: var(--accent-strong); font-size: 11px; }
+  small { margin-top: 7px; color: var(--ink-mute); font-size: 9px; }
+  .sunset { text-align: center; background: var(--surface-accent); }
+  .sunset time { color: var(--accent-strong); font-family: var(--display); font-size: 22px; text-transform: uppercase; }
+  @media (max-width: 660px) {
+    .lifecycle li { grid-template-columns: 1fr; }
+    .lifecycle li > div + div { border-top: 1px solid var(--rule); border-left: 0; }
+    .lifecycle li > div:not(:last-child)::after { top: auto; right: 50%; bottom: -8px; transform: translateX(50%) rotate(135deg); }
+  }
+</style>

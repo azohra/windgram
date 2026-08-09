@@ -1,0 +1,69 @@
+---
+import type { TeachingScenario } from "../../lib/scenarios";
+import "../../styles/figures.css";
+import "../../styles/motion.css";
+import FigureCaption from "./FigureCaption.astro";
+import FigureHeader from "./FigureHeader.astro";
+
+interface Props {
+  id: string;
+  title: string;
+  lesson?: string;
+  description: string;
+  caption?: string;
+  units?: string;
+  scenario?: Pick<TeachingScenario, "id" | "kind" | "label" | "timeZone" | "variant">;
+  headingLevel?: "h2" | "h3" | "h4";
+  size?: "content" | "wide";
+  class?: string;
+}
+
+const {
+  id,
+  title,
+  lesson,
+  description,
+  caption,
+  units,
+  scenario,
+  headingLevel = "h3",
+  size = "wide",
+  class: className,
+} = Astro.props;
+const titleId = `${id}-title`;
+const descriptionId = `${id}-description`;
+const captionId = `${id}-caption`;
+const hasCaption = Boolean(caption || units);
+const describedBy = hasCaption ? `${descriptionId} ${captionId}` : descriptionId;
+---
+
+<figure
+  id={id}
+  class:list={["wg-figure", `wg-figure--${size}`, "not-content", className]}
+  aria-labelledby={titleId}
+  aria-describedby={describedBy}
+  data-figure
+  data-scenario-id={scenario?.id}
+>
+  <FigureHeader {titleId} {title} {lesson} {headingLevel} />
+
+  <p id={descriptionId} class="wg-visually-hidden">{description}</p>
+
+  {Astro.slots.has("controls") && (
+    <div class="wg-figure__controls">
+      <slot name="controls" />
+    </div>
+  )}
+
+  <div class="wg-figure__body">
+    <slot />
+  </div>
+
+  {Astro.slots.has("legend") && (
+    <div class="wg-figure__legend">
+      <slot name="legend" />
+    </div>
+  )}
+
+  {hasCaption && <FigureCaption {captionId} {caption} {units} />}
+</figure>

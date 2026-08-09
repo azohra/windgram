@@ -1,0 +1,124 @@
+---
+import ControlGroup from "../figure/ControlGroup.astro";
+import Figure from "../figure/Figure.astro";
+import Legend from "../figure/Legend.astro";
+import { renderParcelChart, type LabScenarioSource } from "../../lib/labs";
+import { scenarioById } from "../../lib/scenarios";
+
+const eroding = scenarioById("morning-inversion-erodes");
+const persistent = scenarioById("persistent-inversion");
+const initialKey = "eroding";
+const sources: Record<"eroding" | "persistent", LabScenarioSource> = {
+  eroding: { profile: eroding.profile, timeZone: eroding.timeZone },
+  persistent: { profile: persistent.profile, timeZone: persistent.timeZone },
+};
+
+const { scene: initialScene, svg: initialSvg } = renderParcelChart(
+  sources[initialKey],
+  initialKey,
+  eroding.profile.hours.length,
+);
+---
+
+<Figure
+  id="parcel-lab"
+  title="How a parcel meets an inversion"
+  lesson="Step through two controlled temperature columns: one cap yields to heating; the other persists."
+  description="An interactive windgram comparing an eroding morning inversion with a persistent inversion. The parcel-derived boundary-layer top is compared with launch altitude through six teaching hours."
+  caption="Choose a cap, then shorten or restore the teaching sequence. The reference scene is rebuilt from the selected immutable profile."
+  units="time UTC · height m MSL · temperature °C"
+  scenario={eroding}
+>
+  <ControlGroup slot="controls" label="Parcel laboratory controls">
+    <label for="parcel-lab-scenario">
+      Temperature column
+      <select id="parcel-lab-scenario" data-parcel-scenario>
+        <option value="eroding" selected>{eroding.label}</option>
+        <option value="persistent">{persistent.label}</option>
+      </select>
+    </label>
+    <label for="parcel-lab-hours">
+      Teaching sequence
+      <span class="wg-lab__range-row">
+        <input
+          id="parcel-lab-hours"
+          data-parcel-hours
+          type="range"
+          min="1"
+          max={eroding.profile.hours.length}
+          value={eroding.profile.hours.length}
+          step="1"
+        />
+        <output for="parcel-lab-hours" data-parcel-hours-output>
+          {eroding.profile.hours.length} hours
+        </output>
+      </span>
+    </label>
+  </ControlGroup>
+
+  <div class="wg-lab" data-parcel-lab>
+    <script is:inline type="application/json" data-parcel-source set:html={JSON.stringify(sources)} />
+    <div
+      class="wg-lab__chart-scroll"
+      tabindex="0"
+      role="region"
+      aria-label="Scrollable parcel and inversion chart"
+    >
+      <div
+        class="wg-lab__mount"
+        data-parcel-mount
+        style={`--wg-lab-scene-width: ${initialScene.width}px`}
+        set:html={initialSvg}
+      />
+    </div>
+    <p class="wg-lab__conclusion">
+      <strong>Conclusion.</strong> Surface heating can deepen a parcel-derived mixed layer through
+      launch altitude, but heating alone does not guarantee that outcome when the warm cap remains.
+    </p>
+  </div>
+
+  <Legend
+    slot="legend"
+    label="Parcel figure legend"
+    items={[
+      { label: "Parcel boundary-layer top", color: "var(--chart-lift)", mark: "line" },
+      { label: "Launch altitude", color: "var(--ink)", mark: "line" },
+      { label: "Stability field", description: "warmer and cooler classes come from the package scene", mark: "area" },
+    ]}
+  />
+</Figure>
+
+<script>
+  import { renderParcelChart, type LabScenarioSource } from "../../lib/labs";
+
+  type ParcelKey = "eroding" | "persistent";
+
+  for (const figure of document.querySelectorAll<HTMLElement>("#parcel-lab[data-figure]")) {
+    if (figure.dataset.parcelReady === "true") continue;
+    figure.dataset.parcelReady = "true";
+    const source = figure.querySelector<HTMLScriptElement>("[data-parcel-source]");
+    const select = figure.querySelector<HTMLSelectElement>("[data-parcel-scenario]");
+    const hours = figure.querySelector<HTMLInputElement>("[data-parcel-hours]");
+    const output = figure.querySelector<HTMLOutputElement>("[data-parcel-hours-output]");
+    const mount = figure.querySelector<HTMLElement>("[data-parcel-mount]");
+    if (!source?.textContent || !select || !hours || !output || !mount) continue;
+
+    const scenarios = Object.freeze(
+      JSON.parse(source.textContent),
+    ) as Readonly<Record<ParcelKey, LabScenarioSource>>;
+
+    const render = () => {
+      const key = select.value as ParcelKey;
+      const scenario = scenarios[key];
+      const count = Math.min(Number(hours.value), scenario.profile.hours.length);
+      output.value = `${count} ${count === 1 ? "hour" : "hours"}`;
+      const { scene, svg } = renderParcelChart(scenario, key, count);
+      mount.innerHTML = svg;
+      mount.style.setProperty("--wg-lab-scene-width", `${scene.width}px`);
+    };
+
+    select.addEventListener("change", render);
+    hours.addEventListener("input", render);
+    figure.addEventListener("figure:reset", render);
+  }
+</script>

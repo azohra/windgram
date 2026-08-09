@@ -1,0 +1,192 @@
+{
+  "$schema": "../scenario.schema.json",
+  "schemaVersion": 1,
+  "id": "shear-through-lift-band",
+  "title": "Wind shear crosses the usable-lift band",
+  "lesson": "Wind strengthens and turns materially from launch height toward the top of usable lift.",
+  "kind": "deterministic",
+  "modelShape": "hourly-core",
+  "timeZone": "Etc/UTC",
+  "site": {
+    "id": "synthetic-shear-ridge",
+    "name": "Synthetic Shear Ridge",
+    "synthetic": true,
+    "latitude": 49,
+    "longitude": -123,
+    "altitudeM": 1050,
+    "modelElevationM": 900
+  },
+  "clock": {
+    "referenceTime": "2000-01-01T06:00:00Z",
+    "generatedAt": "2000-01-01T06:00:00Z",
+    "startAt": "2000-01-01T12:00:00Z",
+    "stepHours": 1,
+    "hourCount": 6,
+    "seed": 14005
+  },
+  "baseline": {
+    "type": "synthetic",
+    "path": "baselines/synthetic-five-level-day.source.json"
+  },
+  "transforms": [
+    {
+      "type": "surface-field-curve",
+      "field": "temperatureC",
+      "points": [
+        {
+          "hourOffset": 0,
+          "value": 25
+        },
+        {
+          "hourOffset": 5,
+          "value": 26
+        }
+      ]
+    },
+    {
+      "type": "surface-field-curve",
+      "field": "dewPointDepressionC",
+      "points": [
+        {
+          "hourOffset": 0,
+          "value": 25
+        },
+        {
+          "hourOffset": 5,
+          "value": 25
+        }
+      ]
+    },
+    {
+      "type": "surface-field-curve",
+      "field": "sensibleHeatFluxWm2",
+      "points": [
+        {
+          "hourOffset": 0,
+          "value": 300
+        },
+        {
+          "hourOffset": 5,
+          "value": 320
+        }
+      ]
+    },
+    {
+      "type": "surface-field-curve",
+      "field": "windDirectionDeg",
+      "points": [
+        {
+          "hourOffset": 0,
+          "value": 220
+        },
+        {
+          "hourOffset": 5,
+          "value": 220
+        }
+      ]
+    },
+    {
+      "type": "surface-field-curve",
+      "field": "windSpeedMs",
+      "points": [
+        {
+          "hourOffset": 0,
+          "value": 3
+        },
+        {
+          "hourOffset": 5,
+          "value": 3
+        }
+      ]
+    },
+    {
+      "type": "wind-speed-scale",
+      "altitudeBandM": {
+        "bottomM": 2000,
+        "topM": 3300
+      },
+      "factor": 2.2
+    },
+    {
+      "type": "wind-direction-rotate",
+      "altitudeBandM": {
+        "bottomM": 2000,
+        "topM": 3300
+      },
+      "degrees": 100
+    }
+  ],
+  "semantics": {
+    "precipitation": "instantRate"
+  },
+  "capabilities": {
+    "levels": true,
+    "pressureLevels": [
+      925,
+      850,
+      800,
+      700,
+      600
+    ],
+    "verticalVelocity": false,
+    "heatFluxes": true,
+    "gust": false,
+    "cape": false,
+    "cin": false,
+    "pblHeight": false,
+    "cloudLayers": false,
+    "cloudProfile": false
+  },
+  "assertions": [
+    {
+      "id": "lift-reaches-shear",
+      "description": "Usable lift reaches into the layer represented by the 700 hPa sample.",
+      "actual": {
+        "field": "derived.usableLiftTopM",
+        "hour": 3
+      },
+      "operator": "greater-than",
+      "expected": {
+        "field": "levels.heightM",
+        "hour": 3,
+        "level": {
+          "pressureHpa": 700
+        }
+      }
+    },
+    {
+      "id": "speed-shear",
+      "description": "Wind speed changes materially between the surface and the upper lift band.",
+      "actual": {
+        "field": "levels.windSpeedMs",
+        "hour": 3,
+        "level": {
+          "pressureHpa": 700
+        }
+      },
+      "operator": "absolute-difference-at-least",
+      "expected": {
+        "field": "surface.windSpeedMs",
+        "hour": 3
+      },
+      "threshold": 10
+    },
+    {
+      "id": "directional-shear",
+      "description": "Wind direction turns materially between the surface and the upper lift band.",
+      "actual": {
+        "field": "levels.windDirectionDeg",
+        "hour": 3,
+        "level": {
+          "pressureHpa": 700
+        }
+      },
+      "operator": "absolute-difference-at-least",
+      "expected": {
+        "field": "surface.windDirectionDeg",
+        "hour": 3
+      },
+      "threshold": 80
+    }
+  ]
+}

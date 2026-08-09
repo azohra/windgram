@@ -1,0 +1,72 @@
+---
+title: Getting started
+description: The shortest supported path for publishers, TypeScript integrators, pipeline contributors, and technical learners.
+---
+
+import { Steps } from '@astrojs/starlight/components';
+
+```text
+provider files ──→ uv run windgram ──→ static profile JSON
+                                            │
+                                            ▼
+                                  npm package `windgram`
+                         validate → derive → scene → SVG
+                                  └ analyze → compare
+
+documentation + research ← committed teaching profiles
+```
+
+## Club publisher
+
+<Steps>
+
+1. Clone the repository and run `uv sync` with Python 3.12 or later.
+2. Create a versioned [launch catalogue](/docs/publish/configure-launches/).
+3. [Choose a catalogued model](/docs/models/choosing/) whose declared domain,
+   cadence, levels, and capabilities fit the publication.
+4. Preflight one model without network access or writes:
+
+   ```sh title="Terminal"
+   uv run windgram build --model hrrr-conus --sites ./club-sites.json --output ./public/data --max-steps 2 --dry-run
+   ```
+
+5. Remove `--dry-run` and the temporary `--max-steps` cap only when ready for
+   the provider's full data volume. Then [publish the static output](/docs/publish/static-output/)
+   on infrastructure you control.
+
+</Steps>
+
+## TypeScript integrator
+
+Install the ESM package and begin at its contract boundary:
+
+```sh title="Terminal"
+npm install windgram
+```
+
+[Render a first windgram](/docs/typescript/render-first-windgram/) covers the
+complete contract → scene → SVG path. The package is headless: the same scene
+and SVG code works in Node, workers, and browsers. Use `windgram/transport`
+when loading a manifest/profile pair from independently cached static storage.
+
+[Analyze a profile](/docs/typescript/analyze/) produces compact, auditable
+statements instead of chart geometry. The single-document API keeps the
+thresholds and source evidence behind each finding.
+
+[Compare model profiles](/docs/typescript/compare/) reports agreement and
+divergence across those findings while preserving each model's run, cadence,
+elevation, and availability.
+
+## Pipeline contributor
+
+Read [Pipeline architecture](/docs/python/pipeline-architecture/) before an
+internal module. Then follow [Development setup](/docs/contribute/development/)
+and select tests by change class. Provider facts are verified and recorded in
+the living feed reference before a builder consumes them.
+
+## Technical learner
+
+Start with [Reading a windgram](/docs/learn/reading-a-windgram/). The
+[teaching-scenario guide](/docs/learn/synthetic-teaching-data/) explains how
+figures isolate one relationship. The [research ledger](/research/) records
+how derivations and visual conventions were established.

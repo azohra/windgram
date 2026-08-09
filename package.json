@@ -1,5 +1,8 @@
 {
   "name": "windgram-repo",
   "private": true,
+  "scripts": {
+    "readme:hero": "pnpm --dir packages/windgram build && node scripts/generate-readme-hero.mjs"
+  },
   "packageManager": "pnpm@11.20.0"
 }

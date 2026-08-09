@@ -1,0 +1,172 @@
+---
+import {
+  DEFAULT_OVERLAYS,
+  type OverlayName,
+} from "windgram/scene";
+import ControlGroup from "../figure/ControlGroup.astro";
+
+interface Toggle {
+  overlay: OverlayName;
+  label: string;
+}
+
+interface Props {
+  availability: Record<OverlayName, boolean>;
+  overlays?: Partial<Record<OverlayName, boolean>>;
+}
+
+const { availability, overlays = {} } = Astro.props;
+const groups: { name: string; toggles: Toggle[] }[] = [
+  {
+    name: "Heights",
+    toggles: [
+      { overlay: "usableLiftTop", label: "Usable lift" },
+      { overlay: "boundaryLayerTop", label: "Boundary layer" },
+      { overlay: "cloudBase", label: "Cloud base" },
+      { overlay: "pblHeight", label: "Model PBL" },
+    ],
+  },
+  {
+    name: "Fields",
+    toggles: [
+      { overlay: "stability", label: "Stability" },
+      { overlay: "clouds", label: "Cloud" },
+      { overlay: "thermalIndex", label: "Thermal index" },
+      { overlay: "windShear", label: "Wind shear" },
+      { overlay: "relativeHumidity", label: "Humidity" },
+      { overlay: "verticalVelocity", label: "Vertical velocity" },
+    ],
+  },
+  {
+    name: "Contours and wind",
+    toggles: [
+      { overlay: "temperature", label: "Isotherms" },
+      { overlay: "dewPoint", label: "Dew point" },
+      { overlay: "wind", label: "Barbs" },
+      { overlay: "gusts", label: "Gust readout" },
+    ],
+  },
+  {
+    name: "Strips",
+    toggles: [
+      { overlay: "pressure", label: "Pressure" },
+      { overlay: "precipitation", label: "Precipitation" },
+      { overlay: "cape", label: "CAPE" },
+      { overlay: "cloudLayers", label: "Cloud layers" },
+      { overlay: "thermalStrength", label: "w* thermal" },
+      { overlay: "buoyancyShear", label: "B/S ratio" },
+    ],
+  },
+  {
+    name: "Labels and reference marks",
+    toggles: [
+      { overlay: "surfaceTemperature", label: "Surface temperature" },
+      { overlay: "launch", label: "Launch line" },
+      { overlay: "selectedHour", label: "Peak hour" },
+    ],
+  },
+];
+
+const covered = groups.flatMap((group) => group.toggles.map((toggle) => toggle.overlay));
+const packageOverlays = Object.keys(DEFAULT_OVERLAYS) as OverlayName[];
+if (
+  covered.length !== packageOverlays.length ||
+  new Set(covered).size !== covered.length ||
+  packageOverlays.some((overlay) => !covered.includes(overlay))
+) {
+  throw new Error("WindgramLayerControls must expose every package overlay exactly once.");
+}
+---
+
+<ControlGroup label="Windgram layers" resetLabel="Reset layers">
+  <div class="windgram-layer-groups">
+    {groups.map((group) => (
+      <fieldset>
+        <legend>{group.name}</legend>
+        {group.toggles.map((toggle) => {
+          const available = availability[toggle.overlay];
+          const enabled = available && (overlays[toggle.overlay] ?? DEFAULT_OVERLAYS[toggle.overlay]);
+          return (
+            <label class:list={["windgram-layer-control", { unavailable: !available }]}>
+              <input
+                class="windgram-layer-control__input"
+                type="checkbox"
+                data-windgram-overlay={toggle.overlay}
+                checked={enabled}
+                disabled={!available}
+                autocomplete="off"
+              />
+              <span>{toggle.label}</span>
+              {!available && <em>not present</em>}
+              {!available && (
+                <span class="wg-visually-hidden"> in this profile</span>
+              )}
+            </label>
+          );
+        })}
+      </fieldset>
+    ))}
+  </div>
+</ControlGroup>
+
+<style>
+  .windgram-layer-groups {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    gap: 0.75rem;
+  }
+
+  fieldset {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  legend {
+    margin-block-end: 0.3rem;
+    padding: 0;
+    color: var(--ink-mute);
+    font: 700 0.65rem/1.35 var(--mono);
+    letter-spacing: 0.045em;
+    text-transform: uppercase;
+  }
+
+  :global(.wg-control-group .windgram-layer-control) {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    min-height: 1.55rem;
+    font-weight: 400;
+    cursor: pointer;
+  }
+
+  :global(.wg-control-group .windgram-layer-control__input) {
+    width: 1rem;
+    height: 1rem;
+    min-width: 1rem;
+    min-height: 1rem;
+    margin: 0;
+    accent-color: var(--accent);
+  }
+
+  :global(.wg-control-group .windgram-layer-control.unavailable) {
+    color: var(--ink-mute);
+    cursor: not-allowed;
+  }
+
+  em {
+    color: var(--ink-mute);
+    font-size: 0.63rem;
+    font-style: normal;
+  }
+
+  @media (max-width: 32rem) {
+    .windgram-layer-groups {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

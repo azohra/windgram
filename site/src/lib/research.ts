@@ -1,18 +1,17 @@
 import fs from "node:fs";
 import path from "node:path";
+import { getCollection, type CollectionEntry } from "astro:content";
 import { marked } from "marked";
 
-// Renders directly from the repo's research/ and reference/ folders at build
-// time, so the site never forks a second copy of this writing that could
-// drift from the one GitHub already renders. Research articles are dated
-// stories of work done; reference docs are dated inventories verified
-// against the providers.
-const RESEARCH_DIR = path.resolve(process.cwd(), "../research");
+// Reference documents and the npm integration guide still render their
+// repository Markdown directly. Research entries are Astro content entries,
+// so their metadata, routing, and component placement travel with the prose.
 const REFERENCE_DIR = path.resolve(process.cwd(), "../reference");
 
 export type DocKind = "entry" | "reference";
 
-// Reading order for articles; reference documents live beside them.
+// Reference documents are a separate living-document surface. Research
+// articles are deliberately absent from this registry.
 interface DocDefinition {
   slug: string;
   file: string;
@@ -22,125 +21,7 @@ interface DocDefinition {
   summary: string;
   accent: "amber" | "blue" | "green" | "red";
 }
-
 const DOC_FILES: DocDefinition[] = [
-  {
-    slug: "reading-a-windgram",
-    file: "reading-a-windgram.md",
-    kind: "entry",
-    number: "01",
-    section: "Field guide",
-    summary: "Strips, stability, gusts, CAPE classes, derived heights, and wind barbs",
-    accent: "amber",
-  },
-  {
-    slug: "usable-lift-and-boundary-layer",
-    file: "usable-lift-and-boundary-layer.md",
-    kind: "entry",
-    number: "02",
-    section: "Lift definitions",
-    summary: "Boundary-layer top versus usable-lift top",
-    accent: "blue",
-  },
-  {
-    slug: "windgram-derivations",
-    file: "windgram-derivations.md",
-    kind: "entry",
-    number: "03",
-    section: "Derivation",
-    summary: "Equations and constants behind each published quantity",
-    accent: "green",
-  },
-  {
-    slug: "choosing-forecast-models",
-    file: "choosing-forecast-models.md",
-    kind: "entry",
-    number: "04",
-    section: "Model guide",
-    summary: "Model choice by spatial resolution and forecast schedule",
-    accent: "blue",
-  },
-  {
-    slug: "forecast-data-validation-failures",
-    file: "forecast-data-validation-failures.md",
-    kind: "entry",
-    number: "05",
-    section: "Data validation",
-    summary: "Forecast-data failures caught by independent checks",
-    accent: "red",
-  },
-  {
-    slug: "static-forecast-pipeline",
-    file: "static-forecast-pipeline.md",
-    kind: "entry",
-    number: "06",
-    section: "Publication system",
-    summary: "How builders publish static JSON through Git",
-    accent: "green",
-  },
-  {
-    slug: "ensemble-spread",
-    file: "ensemble-spread.md",
-    kind: "entry",
-    number: "07",
-    section: "Ensemble interpretation",
-    summary: "Interpret member percentiles under column censoring",
-    accent: "amber",
-  },
-  {
-    slug: "why-this-project-exists",
-    file: "why-this-project-exists.md",
-    kind: "entry",
-    number: "08",
-    section: "Purpose",
-    summary: "The open-pipeline bet, and the contract design that makes it hold",
-    accent: "red",
-  },
-  {
-    slug: "model-capabilities",
-    file: "model-capabilities.md",
-    kind: "entry",
-    number: "09",
-    section: "Capability semantics",
-    summary: "Per-model field meanings, and absences as stated facts",
-    accent: "blue",
-  },
-  {
-    slug: "stability-ramp",
-    file: "stability-ramp.md",
-    kind: "entry",
-    number: "10",
-    section: "Palette design",
-    summary: "The field is background: a pale register, measured floors, and a lineage credit",
-    accent: "amber",
-  },
-  {
-    slug: "adopting-a-retiring-model",
-    file: "adopting-a-retiring-model.md",
-    kind: "entry",
-    number: "11",
-    section: "Catalogue growth",
-    summary: "Four candidates, one retirement notice, the sunset field, and slugs as identity",
-    accent: "green",
-  },
-  {
-    slug: "retiring-121-metres-per-degree",
-    file: "retiring-121-metres-per-degree.md",
-    kind: "entry",
-    number: "12",
-    section: "Derivation evolution",
-    summary: "Bolton's LCL replaces an inherited constant, and de-capped hours surface",
-    accent: "blue",
-  },
-  {
-    slug: "bs-ratio-valley",
-    file: "bs-ratio-valley.md",
-    kind: "entry",
-    number: "13",
-    section: "Doctrine vs terrain",
-    summary: "A flatland ratio condemns the best mountain days; the assumption gets said out loud",
-    accent: "amber",
-  },
   {
     slug: "forecast-model-feeds",
     file: "forecast-model-feeds.md",
@@ -153,18 +34,40 @@ const DOC_FILES: DocDefinition[] = [
 ];
 
 function docUrl(d: { slug: string; kind: DocKind }): string {
-  return d.kind === "entry" ? `/research/${d.slug}/` : `/reference/${d.slug}/`;
+  return d.kind === "entry" ? `/research/${d.slug}/` : `/docs/reference/${d.slug}/`;
 }
 
-const SLUG_URL = new Map(DOC_FILES.map((d) => [d.slug, docUrl(d)]));
+const RESEARCH_ENTRIES = await getCollection("research");
+const DOCS_ENTRIES = await getCollection("docs");
+// Every site page a repository Markdown link may point at, keyed by document
+// basename (rewriteHref matches links by basename). Duplicate basenames would
+// make the rewrite ambiguous, so they fail the build rather than silently
+// resolving to whichever collection registered last.
+const SLUG_URL = new Map<string, string>();
+for (const [slug, url] of [
+  ...DOC_FILES.map((doc) => [doc.slug, docUrl(doc)] as const),
+  ...RESEARCH_ENTRIES.map(
+    (entry) => [entry.id.replace(/\/index$/, ""), `/research/${entry.id.replace(/\/index$/, "")}/`] as const,
+  ),
+  ...DOCS_ENTRIES.flatMap((entry) => {
+    const basename = entry.id.split("/").pop()!;
+    // An index page's basename is too generic to identify it in a link.
+    return basename === "index" ? [] : [[basename, `/${entry.id}/`] as const];
+  }),
+]) {
+  if (SLUG_URL.has(slug) && SLUG_URL.get(slug) !== url) {
+    throw new Error(
+      `[research] two site pages share the document basename "${slug}" (${SLUG_URL.get(slug)} and ${url}) — link rewriting by basename is ambiguous`,
+    );
+  }
+  SLUG_URL.set(slug, url);
+}
 
-// The docs link to each other by filename — bare ("ensemble-spread.md") within a
-// folder, or relative across the two folders ("../reference/forecast-model-feeds.md")
-// — and to source files by repo-relative path (e.g. "../windgram/windgram.py").
-// Both resolve fine on GitHub but not as site routes, so cross-doc links are
-// resolved by basename against the registry and everything else points at the
-// repository. Rewriting here beats editing the shared markdown, which GitHub
-// still renders directly.
+// The living reference links to research, docs, and other repository source
+// files by relative path. All of them resolve on GitHub, so the shared
+// Markdown stays honest read from the repository; here, basenames known to a
+// content collection resolve to their site routes and everything else points
+// at the repository.
 //
 // currentRepoBase is the rendering doc's directory relative to the repo root
 // ("" for research/ and reference/, whose own relative links are the cross-doc
@@ -174,7 +77,7 @@ let currentRepoBase = "";
 
 function rewriteHref(href: string): string {
   if (/^https?:\/\//.test(href)) return href;
-  const docMatch = href.match(/(?:^|\/)([a-z0-9-]+)\.md$/);
+  const docMatch = href.match(/(?:^|\/)([a-z0-9-]+)\.(?:md|mdx)$/);
   if (docMatch && SLUG_URL.has(docMatch[1])) return SLUG_URL.get(docMatch[1])!;
   let repoPath: string | null = null;
   if (href.startsWith("../")) repoPath = href.slice(3);
@@ -187,10 +90,9 @@ function rewriteHref(href: string): string {
 }
 
 // Marked (v16) no longer assigns heading ids itself — the extension that
-// used to do it was split out of core. Headings need stable ids for both
-// the in-page table of contents and for [slug].astro to splice a diagram
-// in right after a specific heading, so this renders headings by hand and
-// records `##` headings as it goes. Reset per-doc in loadDocs() below.
+// used to do it was split out of core. The remaining repository-authored
+// reference pages need stable ids for their in-page table of contents, so
+// this renders headings by hand and records `##` headings as it goes.
 let tocCollector: TocEntry[] = [];
 let slugSeen = new Map<string, number>();
 
@@ -227,7 +129,6 @@ marked.use({
   },
 });
 
-
 export interface TocEntry {
   id: string;
   text: string;
@@ -248,6 +149,15 @@ export interface DocPage {
   html: string;
   /** Every `##` heading in the doc, in order, with the id the renderer gave it. */
   toc: TocEntry[];
+  /** Collection metadata present only for research entries. */
+  researchKind?: "method" | "experiment" | "case-study";
+  published?: Date;
+  updated?: Date;
+  status?: "current" | "historical";
+  order?: number;
+  scenarios?: string[];
+  thumbnail?: CollectionEntry<"research">["data"]["thumbnail"];
+  entry?: CollectionEntry<"research">;
 }
 
 function firstHeading(raw: string, fallback: string): string {
@@ -284,8 +194,7 @@ function countWords(raw: string): number {
 
 export function loadDocs(): DocPage[] {
   return DOC_FILES.map(({ slug, file, kind, number, section, summary, accent }) => {
-    const dir = kind === "entry" ? RESEARCH_DIR : REFERENCE_DIR;
-    const raw = fs.readFileSync(path.join(dir, file), "utf-8");
+    const raw = fs.readFileSync(path.join(REFERENCE_DIR, file), "utf-8");
     tocCollector = [];
     slugSeen = new Map();
     currentRepoBase = "";
@@ -319,7 +228,7 @@ export interface IntegrationDoc {
 
 /**
  * packages/windgram/README.md, rendered from the repo at build time — the
- * same one-home pattern as the articles, so npm, GitHub, and the site all
+ * same single-source pattern as the articles, so npm, GitHub, and the site all
  * read the identical integration guide. Relative links resolve against the
  * package directory on GitHub.
  */
@@ -339,9 +248,65 @@ export function integrationDoc(): IntegrationDoc {
   };
 }
 
-/** The dated stories of work done, in reading order. */
+function researchAccent(
+  kind: CollectionEntry<"research">["data"]["kind"],
+): DocDefinition["accent"] {
+  if (kind === "experiment") return "amber";
+  if (kind === "case-study") return "green";
+  return "blue";
+}
+
+/** The dated stories of work done, derived entirely from collection entries. */
 export function researchArticles(): DocPage[] {
-  return loadDocs().filter((d) => d.kind === "entry");
+  return RESEARCH_ENTRIES.map((entry) => ({
+    slug: entry.id.replace(/\/index$/, ""),
+    kind: "entry" as const,
+    url: `/research/${entry.id.replace(/\/index$/, "")}/`,
+    title: entry.data.title,
+    dek: entry.data.summary,
+    number: String(entry.data.order).padStart(2, "0"),
+    section: entry.data.section,
+    summary: entry.data.summary,
+    accent: researchAccent(entry.data.kind),
+    readingMinutes: Math.max(2, Math.ceil(countWords(entry.body ?? "") / 220)),
+    html: "",
+    toc: [],
+    researchKind: entry.data.kind,
+    published: entry.data.published,
+    updated: entry.data.updated,
+    status: entry.data.status,
+    order: entry.data.order,
+    scenarios: entry.data.scenarios,
+    thumbnail: entry.data.thumbnail,
+    entry,
+  })).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+}
+
+/**
+ * Related entries are ranked from collection metadata: shared teaching
+ * scenarios first, then kind and section affinity, then reading-order
+ * proximity. There is no slug-maintained related-content registry.
+ */
+export function relatedResearchArticles(
+  current: DocPage,
+  entries: DocPage[] = researchArticles(),
+  limit = 3,
+): DocPage[] {
+  const scenarios = new Set(current.scenarios ?? []);
+  return entries
+    .filter((entry) => entry.slug !== current.slug)
+    .map((entry) => {
+      const sharedScenarios = (entry.scenarios ?? []).filter((scenario) => scenarios.has(scenario)).length;
+      const score =
+        sharedScenarios * 100 +
+        (entry.researchKind === current.researchKind ? 20 : 0) +
+        (entry.section === current.section ? 10 : 0) -
+        Math.abs((entry.order ?? 0) - (current.order ?? 0));
+      return { entry, score };
+    })
+    .sort((a, b) => b.score - a.score || (a.entry.order ?? 0) - (b.entry.order ?? 0))
+    .slice(0, limit)
+    .map(({ entry }) => entry);
 }
 
 /** Dated inventories checked against the providers. */

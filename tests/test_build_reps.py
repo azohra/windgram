@@ -16,10 +16,9 @@ from windgram.build_reps import (
     _forecast_hours,
     _sample_scalar_members,
     _sample_wind_members,
-    circular_median,
-    percentile,
 )
 from windgram.datamart import DownloadStats
+from windgram.ensemble import circular_median, percentile
 from windgram.grib import earth_wind, split_messages
 from windgram.moisture import dew_point_depression
 from windgram.publish import compact_json, round_document

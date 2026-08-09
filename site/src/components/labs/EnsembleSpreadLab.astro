@@ -1,0 +1,126 @@
+---
+import ControlGroup from "../figure/ControlGroup.astro";
+import Figure from "../figure/Figure.astro";
+import Legend from "../figure/Legend.astro";
+import {
+  ensembleSpreadSummary,
+  renderEnsembleSpreadChart,
+  type LabScenarioSource,
+} from "../../lib/labs";
+import { scenarioById } from "../../lib/scenarios";
+
+const tight = scenarioById("ensemble-tight");
+const wide = scenarioById("ensemble-wide");
+const censored = scenarioById("ensemble-column-censored");
+const initialKey = "tight";
+const sources: Record<"tight" | "wide" | "censored", LabScenarioSource> = {
+  tight: { profile: tight.profile, timeZone: tight.timeZone },
+  wide: { profile: wide.profile, timeZone: wide.timeZone },
+  censored: { profile: censored.profile, timeZone: censored.timeZone },
+};
+
+const initialSummary = ensembleSpreadSummary(tight.profile);
+const { scene: initialScene, svg: initialSvg } = renderEnsembleSpreadChart(
+  sources[initialKey],
+  initialKey,
+);
+---
+
+<Figure
+  id="ensemble-spread-lab"
+  title="Spread and censoring are different signals"
+  lesson="Switch among controlled ensembles that are tightly grouped, widely grouped, or capped by the published column."
+  description="An interactive ensemble windgram comparing narrow and wide percentile bands with a separately counted column-censored case."
+  caption="The reference scene draws the p25–p75 bands and p50 lines stored in each validated ensemble profile."
+  units="height m MSL · percentile positions p25, p50, p75 · members count"
+  scenario={tight}
+>
+  <ControlGroup slot="controls" label="Ensemble-spread laboratory controls">
+    <label for="ensemble-spread-scenario">
+      Ensemble construction
+      <select id="ensemble-spread-scenario" data-ensemble-scenario>
+        <option value="tight" selected>{tight.label}</option>
+        <option value="wide">{wide.label}</option>
+        <option value="censored">{censored.label}</option>
+      </select>
+    </label>
+  </ControlGroup>
+
+  <div class="wg-lab" data-ensemble-lab>
+    <script is:inline type="application/json" data-ensemble-source set:html={JSON.stringify(sources)} />
+    <div class="wg-lab__readout" aria-live="polite" aria-atomic="true">
+      <span>Declared members <strong data-ensemble-members>{initialSummary.members}</strong></span>
+      <span>Largest usable-top IQR <strong data-ensemble-iqr>{initialSummary.maxIqrM === null ? "none" : `${Math.round(initialSummary.maxIqrM)} m`}</strong></span>
+      <span>BL-top members at column ceiling <strong data-ensemble-ceiled>{initialSummary.ceiledMembers}</strong></span>
+    </div>
+    <div
+      class="wg-lab__chart-scroll"
+      tabindex="0"
+      role="region"
+      aria-label="Scrollable ensemble spread chart"
+    >
+      <div
+        class="wg-lab__mount"
+        data-ensemble-mount
+        style={`--wg-lab-scene-width: ${initialScene.width}px`}
+        set:html={initialSvg}
+      />
+    </div>
+    <p class="wg-lab__conclusion">
+      <strong>Conclusion.</strong> Percentile-band width describes the retained positions, while
+      column censoring is separate member-accounting metadata; a narrow line at the column ceiling
+      is not evidence of a resolved top.
+    </p>
+  </div>
+
+  <Legend
+    slot="legend"
+    label="Ensemble figure legend"
+    items={[
+      { label: "p50", description: "median position", color: "var(--chart-usable)", mark: "line" },
+      { label: "p25–p75", description: "interquartile band", color: "var(--chart-usable)", mark: "area" },
+      { label: "Ceiled members", description: "reported as a count, not encoded as band width", mark: "dot" },
+    ]}
+  />
+</Figure>
+
+<script>
+  import {
+    ensembleSpreadSummary,
+    renderEnsembleSpreadChart,
+    type LabScenarioSource,
+  } from "../../lib/labs";
+
+  type EnsembleKey = "tight" | "wide" | "censored";
+
+  for (const figure of document.querySelectorAll<HTMLElement>("#ensemble-spread-lab[data-figure]")) {
+    if (figure.dataset.ensembleReady === "true") continue;
+    figure.dataset.ensembleReady = "true";
+    const source = figure.querySelector<HTMLScriptElement>("[data-ensemble-source]");
+    const select = figure.querySelector<HTMLSelectElement>("[data-ensemble-scenario]");
+    const members = figure.querySelector<HTMLElement>("[data-ensemble-members]");
+    const iqr = figure.querySelector<HTMLElement>("[data-ensemble-iqr]");
+    const ceiled = figure.querySelector<HTMLElement>("[data-ensemble-ceiled]");
+    const mount = figure.querySelector<HTMLElement>("[data-ensemble-mount]");
+    if (!source?.textContent || !select || !members || !iqr || !ceiled || !mount) continue;
+
+    const scenarios = Object.freeze(
+      JSON.parse(source.textContent),
+    ) as Readonly<Record<EnsembleKey, LabScenarioSource>>;
+
+    const render = () => {
+      const key = select.value as EnsembleKey;
+      const scenario = scenarios[key];
+      const result = ensembleSpreadSummary(scenario.profile);
+      members.textContent = String(result.members);
+      iqr.textContent = result.maxIqrM === null ? "none" : `${Math.round(result.maxIqrM)} m`;
+      ceiled.textContent = String(result.ceiledMembers);
+      const { scene, svg } = renderEnsembleSpreadChart(scenario, key);
+      mount.innerHTML = svg;
+      mount.style.setProperty("--wg-lab-scene-width", `${scene.width}px`);
+    };
+
+    select.addEventListener("change", render);
+    figure.addEventListener("figure:reset", render);
+  }
+</script>

@@ -16,9 +16,12 @@ the verification date.
 
 ## ECCC Datamart transport — shared facts
 
-The five ECCC models below read whole-domain GRIB2 from the
+Five of the six ECCC models below — HRDPS continental 2.5 km, RDPS, GDPS,
+REPS, and GEPS — read whole-domain GRIB2 from the main
 [Datamart](https://eccc-msc.github.io/open-data/msc-datamart/readme_en/);
-the earlier GeoMet WCS transports of the first four are retired (GEPS was
+HRDPS West 1 km reads the same way from the separate alpha Datamart noted
+under retention. The earlier GeoMet WCS transports of HRDPS continental,
+RDPS, GDPS, and REPS are retired (GEPS was
 Datamart-only from the start). Verified 2026-08-08:
 
 - Everything lives under the date-rooted tree
@@ -227,7 +230,7 @@ Verified facts:
 - All **70 records the windgram needs live in a single `wrfprs` file per
   hour**, and its `.idx` sidecar lets a client fetch exactly those records
   by byte range. See
-  [How the static forecast pipeline works](../research/static-forecast-pipeline.md).
+  [Pipeline architecture](../site/src/content/docs/docs/python/pipeline-architecture.mdx).
 - **Omega is published at all nine curated levels**: `VVEL` (paramId 135,
   Pa/s, `stepType=instant`, no bitmap) at 925–600 hPa including 875,
   verified at f00/f24/f48 (2026-08-08).
@@ -404,7 +407,7 @@ complete ≈ T+3:40–3:45 (verified 2026-08-08). Every member is derived as
 its own atmosphere and the published file carries the percentile spread of
 the derived quantities — including per-level **ensemble soundings**.
 Read the product semantics in
-[What ensemble spread can—and cannot—tell you](../research/ensemble-spread.md).
+[Ensemble values](../site/src/content/docs/docs/data/ensemble-values.mdx).
 
 Transport is Datamart only, under
 `YYYYMMDD/WXO-DD/ensemble/reps/10km/grib2/HH/hhh/` (the legacy
@@ -429,7 +432,7 @@ hybrid is retired. Verified facts (2026-08-08):
   (`uvRelativeToGrid=1`) and are rotated to true east/north before the
   direction convention is applied; skipping the rotation produced a ~24°
   error in verification. See
-  [Seven forecast-data failures that passed parsing](../research/forecast-data-validation-failures.md).
+  [Seven forecast-data failures that passed parsing](../site/src/content/research/forecast-data-validation-failures.mdx).
 - Heat fluxes (`SHTFL_SFC`/`LHTFL_SFC`) are instantaneous W/m², per member.
   Precipitation is run-total accumulation, differenced at 3 h. Hour 000
   publishes no flux or precipitation files.
@@ -498,7 +501,7 @@ Verified facts (2026-08-08):
 - **Verify every download against Content-Length.** One GEPS fetch returned
   another model's bytes, correct on retry; the Datamart client now
   length-checks every download because of it. See
-  [Seven forecast-data failures that passed parsing](../research/forecast-data-validation-failures.md).
+  [Seven forecast-data failures that passed parsing](../site/src/content/research/forecast-data-validation-failures.mdx).
 - Retention matches REPS; the legacy `/ensemble/geps/` tree is likewise
   dead.
 - Cost: ~150 MB per step for the windgram field set (36 all-members files)

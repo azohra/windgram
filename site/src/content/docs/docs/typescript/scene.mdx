@@ -1,0 +1,116 @@
+---
+title: Build a scene graph
+description: Produce serializable geometry and hit-testing from one validated profile.
+---
+
+`buildScene(profile, options)` converts a validated document into pure data:
+scales, ticks, strips, sampled fields, line and band paths, wind barbs, labels,
+markers, and interaction readings. It touches no DOM and contains no functions,
+so it can cross a worker boundary or be serialized for inspection.
+
+```ts title="build-scene.ts"
+import type { WindgramProfile } from "windgram/contract";
+import { buildScene, cursorReading } from "windgram/scene";
+
+export function sceneAndFirstReading(profile: WindgramProfile, olderProfileTimeZone?: string) {
+  const timeZone = profile.site.timeZone ?? olderProfileTimeZone;
+  if (!timeZone) throw new Error("older profile needs an explicit IANA timezone");
+  const scene = buildScene(profile, {
+    timeZone,
+    hours: profile.hours.slice(0, 8),
+    overlays: { thermalIndex: true, windShear: true },
+    widthPx: 900,
+    plotHeightPx: 380,
+    hourLabel: "12h",
+    barbStride: "auto",
+    markerStride: {
+      cloudBase: { every: 2 },
+      usableLiftTop: { every: 2, offset: 1 },
+    },
+    stripLabels: { thermalStrength: "LIFT" },
+  });
+
+  const reading = cursorReading(
+    scene,
+    scene.scales.plotLeft + 5,
+    scene.scales.plotTop + 5,
+  );
+  return { scene, reading };
+}
+```
+
+## Select hours explicitly
+
+Options accept one of three equivalent forms:
+
+- `hourIndices`: indices into `profile.hours`; this wins when both forms exist;
+- `hours`: hour objects matched back by `validAt`; or
+- `hours: { timeZone, dateKey }`: one local calendar day.
+
+Absent a selection, the scene includes every profile hour. `buildScene`
+requires an explicit timezone for labels and accessible descriptions. Pass
+`profile.site.timeZone` when present or a caller-owned fallback for an older
+profile; the package does not infer a zone from a site name or coordinate.
+
+## Configure presentation
+
+`SceneOptions` controls overlays, 1-2-1 display smoothing, CAPE class
+thresholds, a parameterized sink rate, chart geometry, hour labels, barbs,
+line markers, and strip labels. Every drawn data layer except the axes and
+frame has an overlay toggle. The `surfaceTemperature` overlay defaults on and
+adds one rounded `<n>°` readout per hour below the hour labels. Unavailable
+fields add no marks; the scene never pads them with zero.
+
+## Render continuous field bands
+
+Sampled stability, thermal-index, shear, humidity, vertical-velocity, and
+dew-point-depression fields use interpolated iso-bands. Class boundaries cross
+each grid cell at the underlying threshold instead of following rectangular
+sample runs.
+
+`sampledFieldPaths({ banding, nodesByHour, ...geometry })` accepts ascending
+`breakpoints` and one `classNames` entry per interval. A `null` class remains
+unpainted. Each returned band path contains its outer and inner threshold
+outlines, so consumers fill `FieldLayer.paths` with `fill-rule="evenodd"`.
+`renderSvg` applies that rule.
+
+The optional `buoyancyShear` strip draws zero-shear, nonzero-buoyancy hours as
+`wg-bs-unopposed`. A blank cell remains reserved for a ratio that cannot be
+computed.
+
+## Fit and label the consuming surface
+
+| Option | Use it when | Behaviour |
+| --- | --- | --- |
+| `widthPx` | The chart must fill a known panel | Sets total scene width after hour windowing and wins over `columnWidthPx` |
+| `columnWidthPx` | The chart should scroll by a chosen hour pitch | Sets pixels per hour when `widthPx` is absent |
+| `hourLabel` | A surface needs 24-hour, 12-hour, or custom labels | Changes ticks and the scene aria label together |
+| `stripLabels` | A publisher has its own display voice | Changes visible labels only; strip keys and CSS classes remain stable |
+| `plotHeightPx` | The time-height panel needs a different vertical scale | Changes the panel height; strips retain fixed heights |
+
+Use `widthPx` instead of probe-building to discover package gutters. The
+package owns those gutters and derives `scene.scales.columnWidth`.
+
+## Control barb and marker density
+
+`barbStride: "auto"` is geometry-aware and is the default. An explicit number
+forces an hour stride. `barbMinGapPx` controls vertical clearance between
+level barbs, while `barbScale` pins glyph scale; absent those overrides, both
+follow the resolved column pitch. Gust labels use the same resolved hour
+stride. `scene.scales.surfaceWindY` exposes the surface row's placement; use it
+for hit-testing instead of assuming the plot floor.
+
+`markerStride` can draw cloud and wing marker trains along `cloudBase` and
+`usableLiftTop`. A number draws every n hours from the selected-hour anchor;
+`{ every, offset }` shifts one train so coincident cloud and wing markers can
+alternate. Each train follows its own overlay. With no stride, each line keeps
+one marker at the selected hour.
+
+The scene reads pipeline-authored `derived.*` values by default. `sinkRateMs`
+can recompute only the usable-lift series from published inputs for a
+deterministic document. Palette is not scene data; apply `--wg-*` tokens when
+rendering.
+
+Use `cursorReading`, `xForHour`, `hourIndexForX`, `yForAltitude`, and
+`altitudeForY` for interaction. They share the plotted scales, keeping
+tooltips and geometry aligned.

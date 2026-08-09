@@ -1,23 +1,15 @@
-/* transport/ — fetching published documents correctly, with the runtime's
-   own fetch injected. The dataset is static JSON behind a CDN whose cache
-   entries expire independently (raw.githubusercontent holds files ~5
-   minutes), so a manifest and a site profile fetched together can come from
-   two different runs — the "torn read" every naive pair fetch eventually
-   hits. This module owns the reference-time skew dance so consumers don't
-   reinvent it wrong; research/static-forecast-pipeline.md documents the
-   publication side of the same contract.
+/* transport/ — fetching published documents with the runtime's own fetch
+   injected. Independently cached manifest and profile objects can represent
+   different runs. This module detects that torn read and retries the pair.
 
    Deliberately I/O-shaped and nothing else:
    - fetch is INJECTED (any WHATWG-compatible fetch: browser, Node, workers,
      undici, a test stub), keeping the core packages I/O-free and this one
      runtime-agnostic;
-   - NO storage side effects. The site layers a sessionStorage last-known-
-     good fallback on top of this; the package does not, because no storage
-     API is portable across runtimes and cache doctrine — keys, quotas,
-     invalidation, whether a stale pair is better than none — is consumer
-     policy, not transport fact. `loadProfile` therefore reports staleness
-     honestly and returns the freshest complete pair it saw; what to do
-     with a stale pair is the caller's call. */
+   - NO storage side effects. No storage API is portable across runtimes;
+     callers own cache keys, quotas, invalidation, and stale-data policy.
+     `loadProfile` reports staleness and returns the freshest complete pair
+     it saw. */
 
 import {
   parseRunsIndexJson,

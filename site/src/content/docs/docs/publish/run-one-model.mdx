@@ -1,0 +1,140 @@
+---
+title: Run one model
+description: Preflight and execute one catalogued model through the supported publisher CLI.
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+The supported publisher interface is `windgram build`. Model-specific Python
+modules remain implementation entry points; downstream automation should use
+the CLI so external site and output paths are scoped consistently.
+
+<Steps>
+
+1. **Confirm the model declaration.** Read [Choose models](/docs/models/choosing/)
+   and [Model capabilities](/docs/reference/model-capabilities/). The slug in
+   `data/models.json` is its identity.
+2. **Preflight paths and selection.** This performs no network access or
+   writes:
+
+   ```sh title="Terminal"
+   uv run windgram build --model hrrr-conus --sites ./club-sites.json --output ./public/data --dry-run
+   ```
+
+3. **Use a short smoke cap when appropriate.** `--max-steps 2` selects the
+   first two scheduled steps. It limits forecast steps, not sites or fields.
+4. **Run the build.** Remove `--dry-run`; remove the cap for the full declared
+   horizon.
+5. **Inspect output before deploying it.** Confirm the model manifest and each
+   expected site profile validate and share the same `referenceTime`.
+
+</Steps>
+
+## Complete command surface
+
+```text
+windgram build (--model SLUG | --all)
+               [--sites PATH]
+               [--output PATH]
+               [--max-steps N]
+               [--dry-run]
+```
+
+Defaults are `./sites.json` and `./data`. `--model` and `--all` are mutually
+exclusive. Unknown model slugs, missing or unreadable site files, invalid site
+catalogues, and unusable output paths fail with an actionable error.
+
+<Aside type="caution" title="A full build is a data job">
+  Builders fetch real provider files. Whole-domain ECCC deterministic runs can
+  move several GiB; ensembles can move substantially more. NOAA builders use
+  indexed byte ranges but still fetch many records. Do not remove a smoke cap
+  casually or schedule a model more often than it publishes.
+</Aside>
+
+Each builder detects the latest complete provider run and exits without
+rewriting output when that `referenceTime` is already published. A successful
+new run writes current profiles, appends history, and writes the model
+manifest. [Schedule builds](/docs/publish/schedule-builds/) applies the
+catalogued publication cadence to recurring jobs.
+
+## Run the provider-free example
+
+The checked-in [`examples/club-project`](https://github.com/azohra/windgram/tree/main/examples/club-project)
+runs the static handoff without contacting a forecast provider. The CLI
+preflight selects and caps the HRRR builder. A separate generator passes fixed,
+model-shaped values through the Python derivation and serialization code. Run
+a provider build separately after the smoke test.
+
+Start from a clean source checkout with `uv sync` and the root `pnpm install`
+already complete. Use absolute paths so neither the CLI, generator, package
+build, nor renderer depends on the current working directory:
+
+```sh title="Terminal — exact commands exercised by CI"
+export WINDGRAM_SOURCE=/absolute/path/to/windgram
+export CLUB_PROJECT=/absolute/path/to/new/club-project
+
+cp -R "$WINDGRAM_SOURCE/examples/club-project" "$CLUB_PROJECT"
+
+uv run --offline --project "$WINDGRAM_SOURCE" windgram build \
+  --model hrrr-conus \
+  --sites "$CLUB_PROJECT/club-sites.json" \
+  --output "$CLUB_PROJECT/public/data" \
+  --max-steps 2 \
+  --dry-run
+
+uv run --offline --project "$WINDGRAM_SOURCE" python \
+  "$CLUB_PROJECT/generate_profile.py" \
+  --sites "$CLUB_PROJECT/club-sites.json" \
+  --source "$CLUB_PROJECT/fixtures/synthetic-source.json" \
+  --output "$CLUB_PROJECT/public/data"
+
+pnpm --dir "$WINDGRAM_SOURCE/packages/windgram" build
+pnpm --dir "$WINDGRAM_SOURCE/packages/windgram" pack \
+  --pack-destination "$CLUB_PROJECT"
+pnpm --dir "$CLUB_PROJECT" add --offline --save-exact \
+  "$CLUB_PROJECT"/windgram-*.tgz
+
+pnpm --dir "$CLUB_PROJECT" run render -- \
+  --sites "$CLUB_PROJECT/club-sites.json" \
+  --profile "$CLUB_PROJECT/public/data/synthetic-club-demo/sites/example-ridge.json" \
+  --manifest "$CLUB_PROJECT/public/data/synthetic-club-demo/manifest.json" \
+  --output "$CLUB_PROJECT/public"
+
+mkdir "$CLUB_PROJECT/deploy"
+cp -R "$CLUB_PROJECT/public/." "$CLUB_PROJECT/deploy/"
+```
+
+The local tarball installs the package bytes built by the preceding command;
+`--offline` forbids registry access. A released consumer installs the same API
+with `pnpm add windgram`. `render.mjs` validates the site catalogue,
+profile, and manifest, verifies publication identity and timezone propagation,
+then writes the SVG and HTML page.
+
+The command produces this deployable tree:
+
+```text
+deploy/
+  index.html
+  assets/example-ridge-key.svg
+  assets/example-ridge.svg
+  data/synthetic-club-demo/manifest.json
+  data/synthetic-club-demo/sites/example-ridge.json
+```
+
+The example selects one synthetic profile directly, so it needs no copied
+`models.json`. Its manifest/profile pair supplies publication identity without
+the cross-model `runs.json` freshness index. A publisher that adds model
+discovery or aggregate freshness must publish those contract documents in the
+same static handoff.
+
+`analyzeProfile()` from `windgram/analyze` can turn the validated profile into
+typed, evidence-carrying findings. Those findings are not publisher artifacts:
+their thresholds are reader conventions, and a publisher must supply their
+context and limitations.
+
+The [SVG guide](/docs/typescript/svg/) defines scene-derived key semantics.
+
+<Aside type="note" title="Offline fixture">
+  The source is fixed at the year 2000. Run the non-dry CLI command separately
+  to publish provider data.
+</Aside>

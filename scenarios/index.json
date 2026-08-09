@@ -1,0 +1,635 @@
+{
+  "schemaVersion": 1,
+  "scenarios": [
+    {
+      "id": "cape-under-cap",
+      "title": "CAPE builds beneath a weakening cap",
+      "lesson": "CAPE rises while strongly negative CIN still suppresses a simple instability reading, then the cap weakens.",
+      "kind": "deterministic",
+      "modelShape": "hourly-rich",
+      "timeZone": "Etc/UTC",
+      "site": {
+        "id": "synthetic-cape-ridge",
+        "name": "Synthetic CAPE Ridge",
+        "latitude": 49.091868,
+        "longitude": -117.820838,
+        "altitudeM": 1591,
+        "modelElevationM": 1217.3,
+        "timeZone": "Etc/UTC"
+      },
+      "capabilities": {
+        "levels": true,
+        "pressureLevels": [
+          875,
+          850,
+          800,
+          750,
+          700,
+          650,
+          600
+        ],
+        "verticalVelocity": false,
+        "heatFluxes": true,
+        "gust": "instant",
+        "cape": true,
+        "cin": true,
+        "pblHeight": true,
+        "cloudLayers": true,
+        "cloudProfile": false
+      },
+      "outputs": [
+        {
+          "path": "generated/cape-under-cap.profile.json",
+          "sha256": "86454272abef6e3162be6b90909acff9354ca9615ace0a1be33b4b6efad85d31"
+        }
+      ]
+    },
+    {
+      "id": "cloud-base-limits-lift",
+      "title": "Cloud base limits an otherwise deep climb",
+      "lesson": "A saturated layer pins usable lift at cloud base even while the heated boundary layer extends higher.",
+      "kind": "deterministic",
+      "modelShape": "hourly-core",
+      "timeZone": "Etc/UTC",
+      "site": {
+        "id": "synthetic-cloudy-ridge",
+        "name": "Synthetic Cloudy Ridge",
+        "latitude": 49,
+        "longitude": -123,
+        "altitudeM": 1050,
+        "modelElevationM": 900,
+        "timeZone": "Etc/UTC"
+      },
+      "capabilities": {
+        "levels": true,
+        "pressureLevels": [
+          925,
+          850,
+          800,
+          700,
+          600
+        ],
+        "verticalVelocity": false,
+        "heatFluxes": true,
+        "gust": false,
+        "cape": false,
+        "cin": false,
+        "pblHeight": false,
+        "cloudLayers": false,
+        "cloudProfile": false
+      },
+      "outputs": [
+        {
+          "path": "generated/cloud-base-limits-lift.profile.json",
+          "sha256": "f219c4a208d6555b204e48c03f73611ec4127fd440ff960016d8ab64b4da0e8a"
+        }
+      ]
+    },
+    {
+      "id": "convective-cycle",
+      "title": "A complete fair-weather convective cycle",
+      "lesson": "Morning stability gives way to a deep midday unstable column. The boundary layer, usable lift, and cloud base follow distinct arcs beneath wind that strengthens and veers with height.",
+      "kind": "deterministic",
+      "modelShape": "hourly-rich",
+      "timeZone": "Etc/UTC",
+      "site": {
+        "id": "synthetic-ridge",
+        "name": "Synthetic Ridge",
+        "latitude": 49,
+        "longitude": -123,
+        "altitudeM": 1050,
+        "modelElevationM": 900,
+        "timeZone": "Etc/UTC"
+      },
+      "capabilities": {
+        "levels": true,
+        "pressureLevels": [
+          925,
+          900,
+          850,
+          800,
+          750,
+          700,
+          650,
+          600
+        ],
+        "verticalVelocity": false,
+        "heatFluxes": true,
+        "gust": "hourMax",
+        "cape": true,
+        "cin": true,
+        "pblHeight": true,
+        "cloudLayers": true,
+        "cloudProfile": false
+      },
+      "outputs": [
+        {
+          "path": "generated/convective-cycle.profile.json",
+          "sha256": "afde5b07ae56d0d5e1dfa1b06ef61199f0f09ea7ed85779ee0ff66f87a3fbf4b"
+        }
+      ]
+    },
+    {
+      "id": "front-arrival",
+      "title": "A controlled frontal arrival sequence",
+      "lesson": "Pressure falls first, followed by increasing cloud, wind, and then precipitation as the synthetic front arrives.",
+      "kind": "deterministic",
+      "modelShape": "hourly-rich",
+      "timeZone": "Etc/UTC",
+      "site": {
+        "id": "synthetic-front-ridge",
+        "name": "Synthetic Front Ridge",
+        "latitude": 49.091868,
+        "longitude": -117.820838,
+        "altitudeM": 1591,
+        "modelElevationM": 1217.3,
+        "timeZone": "Etc/UTC"
+      },
+      "capabilities": {
+        "levels": true,
+        "pressureLevels": [
+          875,
+          850,
+          800,
+          750,
+          700,
+          650,
+          600
+        ],
+        "verticalVelocity": false,
+        "heatFluxes": true,
+        "gust": "instant",
+        "cape": true,
+        "cin": true,
+        "pblHeight": true,
+        "cloudLayers": true,
+        "cloudProfile": false
+      },
+      "outputs": [
+        {
+          "path": "generated/front-arrival.profile.json",
+          "sha256": "cefa257d10009c834af55e8c4ef3dc8c29e09cfd11ff3d02dbcb334aae03c5f5"
+        }
+      ]
+    },
+    {
+      "id": "gusts-after-heating",
+      "title": "Gusts remain after convective heating fades",
+      "lesson": "Thermal velocity decays with the surface heat flux while the explicitly transported gust field stays elevated.",
+      "kind": "deterministic",
+      "modelShape": "hourly-rich",
+      "timeZone": "Etc/UTC",
+      "site": {
+        "id": "synthetic-gust-ridge",
+        "name": "Synthetic Gust Ridge",
+        "latitude": 49.091868,
+        "longitude": -117.820838,
+        "altitudeM": 1591,
+        "modelElevationM": 1217.3,
+        "timeZone": "Etc/UTC"
+      },
+      "capabilities": {
+        "levels": true,
+        "pressureLevels": [
+          875,
+          850,
+          800,
+          750,
+          700,
+          650,
+          600
+        ],
+        "verticalVelocity": false,
+        "heatFluxes": true,
+        "gust": "instant",
+        "cape": true,
+        "cin": true,
+        "pblHeight": true,
+        "cloudLayers": true,
+        "cloudProfile": false
+      },
+      "outputs": [
+        {
+          "path": "generated/gusts-after-heating.profile.json",
+          "sha256": "feb6dac72943193ded4a0411410a564dcff98ee67aef35fa06a841c5c5d61fe8"
+        }
+      ]
+    },
+    {
+      "id": "minimal-valid",
+      "title": "A minimal synthetic warming column",
+      "lesson": "A fixed source column can be changed by a declared surface curve without authoring pipeline-derived values.",
+      "kind": "deterministic",
+      "modelShape": "hourly-core",
+      "timeZone": "Etc/UTC",
+      "site": {
+        "id": "synthetic-ridge",
+        "name": "Synthetic Ridge",
+        "latitude": 49,
+        "longitude": -123,
+        "altitudeM": 1050,
+        "modelElevationM": 900,
+        "timeZone": "Etc/UTC"
+      },
+      "capabilities": {
+        "levels": true,
+        "pressureLevels": [
+          925,
+          850,
+          700
+        ],
+        "verticalVelocity": false,
+        "heatFluxes": true,
+        "gust": false,
+        "cape": false,
+        "cin": false,
+        "pblHeight": false,
+        "cloudLayers": false,
+        "cloudProfile": false
+      },
+      "outputs": [
+        {
+          "path": "generated/minimal-valid.profile.json",
+          "sha256": "27d32e4826da1b1301c1b6128965dfb4c08d21f454cf660f2de2d69e93f702da"
+        }
+      ]
+    },
+    {
+      "id": "missing-versus-zero",
+      "title": "Missing capability is not measured zero",
+      "lesson": "An unsupported gust field is absent, while supported precipitation is present and explicitly zero.",
+      "kind": "deterministic",
+      "modelShape": "hourly-core",
+      "timeZone": "Etc/UTC",
+      "site": {
+        "id": "synthetic-dry-ridge",
+        "name": "Synthetic Dry Ridge",
+        "latitude": 49,
+        "longitude": -123,
+        "altitudeM": 1050,
+        "modelElevationM": 900,
+        "timeZone": "Etc/UTC"
+      },
+      "capabilities": {
+        "levels": true,
+        "pressureLevels": [
+          925,
+          850,
+          800,
+          700,
+          600
+        ],
+        "verticalVelocity": false,
+        "heatFluxes": true,
+        "gust": false,
+        "cape": false,
+        "cin": false,
+        "pblHeight": false,
+        "cloudLayers": false,
+        "cloudProfile": false
+      },
+      "outputs": [
+        {
+          "path": "generated/missing-versus-zero.profile.json",
+          "sha256": "9d39b59c38377fd96e67a66cae48988440f3e5a4f83dea48471e6d56d77c693c"
+        }
+      ]
+    },
+    {
+      "id": "morning-inversion-erodes",
+      "title": "A morning inversion erodes past launch",
+      "lesson": "The mixed layer starts below launch, then daytime warming deepens it through launch altitude.",
+      "kind": "deterministic",
+      "modelShape": "hourly-core",
+      "timeZone": "Etc/UTC",
+      "site": {
+        "id": "synthetic-high-launch",
+        "name": "Synthetic High Launch",
+        "latitude": 49,
+        "longitude": -123,
+        "altitudeM": 1500,
+        "modelElevationM": 900,
+        "timeZone": "Etc/UTC"
+      },
+      "capabilities": {
+        "levels": true,
+        "pressureLevels": [
+          925,
+          850,
+          800,
+          700,
+          600
+        ],
+        "verticalVelocity": false,
+        "heatFluxes": true,
+        "gust": false,
+        "cape": false,
+        "cin": false,
+        "pblHeight": false,
+        "cloudLayers": false,
+        "cloudProfile": false
+      },
+      "outputs": [
+        {
+          "path": "generated/morning-inversion-erodes.profile.json",
+          "sha256": "7ff6d25adbeafae5809a1c353b5dc6be26385a5f0fa428c57c4f6f735494414f"
+        }
+      ]
+    },
+    {
+      "id": "persistent-inversion",
+      "title": "A persistent inversion caps daytime heating",
+      "lesson": "Strong surface heating is not enough to erase a warm cap, leaving the boundary layer below launch.",
+      "kind": "deterministic",
+      "modelShape": "hourly-core",
+      "timeZone": "Etc/UTC",
+      "site": {
+        "id": "synthetic-capped-launch",
+        "name": "Synthetic Capped Launch",
+        "latitude": 49,
+        "longitude": -123,
+        "altitudeM": 1750,
+        "modelElevationM": 900,
+        "timeZone": "Etc/UTC"
+      },
+      "capabilities": {
+        "levels": true,
+        "pressureLevels": [
+          925,
+          850,
+          800,
+          700,
+          600
+        ],
+        "verticalVelocity": false,
+        "heatFluxes": true,
+        "gust": false,
+        "cape": false,
+        "cin": false,
+        "pblHeight": false,
+        "cloudLayers": false,
+        "cloudProfile": false
+      },
+      "outputs": [
+        {
+          "path": "generated/persistent-inversion.profile.json",
+          "sha256": "2f487c6fe937f9bc4d366d122fc1ca65a0ae6479b33745446e24f92afd03ee6d"
+        }
+      ]
+    },
+    {
+      "id": "shear-through-lift-band",
+      "title": "Wind shear crosses the usable-lift band",
+      "lesson": "Wind strengthens and turns materially from launch height toward the top of usable lift.",
+      "kind": "deterministic",
+      "modelShape": "hourly-core",
+      "timeZone": "Etc/UTC",
+      "site": {
+        "id": "synthetic-shear-ridge",
+        "name": "Synthetic Shear Ridge",
+        "latitude": 49,
+        "longitude": -123,
+        "altitudeM": 1050,
+        "modelElevationM": 900,
+        "timeZone": "Etc/UTC"
+      },
+      "capabilities": {
+        "levels": true,
+        "pressureLevels": [
+          925,
+          850,
+          800,
+          700,
+          600
+        ],
+        "verticalVelocity": false,
+        "heatFluxes": true,
+        "gust": false,
+        "cape": false,
+        "cin": false,
+        "pblHeight": false,
+        "cloudLayers": false,
+        "cloudProfile": false
+      },
+      "outputs": [
+        {
+          "path": "generated/shear-through-lift-band.profile.json",
+          "sha256": "ded7da44fa70a69a7a4654b19022dffe2a6c06631bfd960193ad575907d29fb0"
+        }
+      ]
+    },
+    {
+      "id": "three-hourly-sampling",
+      "title": "A genuinely three-hourly profile",
+      "lesson": "Sparse forecast samples retain their three-hour cadence and do not imply invented intermediate model hours.",
+      "kind": "deterministic",
+      "modelShape": "three-hourly-regional",
+      "timeZone": "Etc/UTC",
+      "site": {
+        "id": "synthetic-sparse-ridge",
+        "name": "Synthetic Sparse Ridge",
+        "latitude": 49,
+        "longitude": -123,
+        "altitudeM": 1050,
+        "modelElevationM": 900,
+        "timeZone": "Etc/UTC"
+      },
+      "capabilities": {
+        "levels": true,
+        "pressureLevels": [
+          925,
+          850,
+          800,
+          700,
+          600
+        ],
+        "verticalVelocity": false,
+        "heatFluxes": true,
+        "gust": false,
+        "cape": false,
+        "cin": false,
+        "pblHeight": false,
+        "cloudLayers": false,
+        "cloudProfile": false
+      },
+      "outputs": [
+        {
+          "path": "generated/three-hourly-sampling.profile.json",
+          "sha256": "b9a707a9b89891b6e6a3610add5fa5038e91c52d46a0ecc41e2cabec4b5d1c9e"
+        }
+      ]
+    },
+    {
+      "id": "ensemble-column-censored",
+      "title": "A synthetic ensemble capped by its column",
+      "lesson": "A deliberately shallow published column marks derived height members that reach the highest available level instead of presenting the ceiling as a resolved top.",
+      "kind": "ensemble",
+      "modelShape": "ensemble-five-level",
+      "timeZone": "Etc/UTC",
+      "site": {
+        "id": "synthetic-ridge",
+        "name": "Synthetic Ridge",
+        "latitude": 49,
+        "longitude": -123,
+        "altitudeM": 1050,
+        "modelElevationM": 900,
+        "timeZone": "Etc/UTC"
+      },
+      "capabilities": {
+        "levels": true,
+        "pressureLevels": [
+          925,
+          850,
+          800,
+          700,
+          600
+        ],
+        "verticalVelocity": false,
+        "heatFluxes": true,
+        "gust": false,
+        "cape": false,
+        "cin": false,
+        "pblHeight": false,
+        "cloudLayers": false,
+        "cloudProfile": false
+      },
+      "outputs": [
+        {
+          "path": "generated/ensemble-column-censored.profile.json",
+          "sha256": "df7104cf9f3b598909e6f084f2096e75f340782dbf2183b12b5577faa8d05f4f"
+        }
+      ]
+    },
+    {
+      "id": "ensemble-tight",
+      "title": "A tightly grouped synthetic ensemble",
+      "lesson": "Closely grouped member inputs produce narrow percentile bands while preserving circular wind direction across north.",
+      "kind": "ensemble",
+      "modelShape": "ensemble-five-level",
+      "timeZone": "Etc/UTC",
+      "site": {
+        "id": "synthetic-ridge",
+        "name": "Synthetic Ridge",
+        "latitude": 49,
+        "longitude": -123,
+        "altitudeM": 1050,
+        "modelElevationM": 900,
+        "timeZone": "Etc/UTC"
+      },
+      "capabilities": {
+        "levels": true,
+        "pressureLevels": [
+          925,
+          850,
+          800,
+          700,
+          600
+        ],
+        "verticalVelocity": false,
+        "heatFluxes": true,
+        "gust": false,
+        "cape": false,
+        "cin": false,
+        "pblHeight": false,
+        "cloudLayers": false,
+        "cloudProfile": false
+      },
+      "outputs": [
+        {
+          "path": "generated/ensemble-tight.profile.json",
+          "sha256": "daa120524a1d0dd69a64f83de8bf9aa11464c0d017aafb2da03e8bc3a65f4c5d"
+        }
+      ]
+    },
+    {
+      "id": "ensemble-wide",
+      "title": "A widely spread synthetic ensemble",
+      "lesson": "Broader source perturbations produce visibly wider percentile bands without changing member accounting or derivation authority.",
+      "kind": "ensemble",
+      "modelShape": "ensemble-five-level",
+      "timeZone": "Etc/UTC",
+      "site": {
+        "id": "synthetic-ridge",
+        "name": "Synthetic Ridge",
+        "latitude": 49,
+        "longitude": -123,
+        "altitudeM": 1050,
+        "modelElevationM": 900,
+        "timeZone": "Etc/UTC"
+      },
+      "capabilities": {
+        "levels": true,
+        "pressureLevels": [
+          925,
+          850,
+          800,
+          700,
+          600
+        ],
+        "verticalVelocity": false,
+        "heatFluxes": true,
+        "gust": "hourMax",
+        "cape": false,
+        "cin": false,
+        "pblHeight": false,
+        "cloudLayers": false,
+        "cloudProfile": false
+      },
+      "outputs": [
+        {
+          "path": "generated/ensemble-wide.profile.json",
+          "sha256": "cc7c8bcf81915350828570a80e5593b3aaeb8c0d67cc7643a1301deaeae8e342"
+        }
+      ]
+    },
+    {
+      "id": "model-timing-disagreement",
+      "title": "Two controlled development timings",
+      "lesson": "Two synthetic profiles can express the same daytime development at different teaching hours, making timing differences visible without treating either profile as correct.",
+      "kind": "comparison",
+      "modelShape": "hourly-core",
+      "timeZone": "Etc/UTC",
+      "site": {
+        "id": "synthetic-ridge",
+        "name": "Synthetic Ridge",
+        "latitude": 49,
+        "longitude": -123,
+        "altitudeM": 1050,
+        "modelElevationM": 900,
+        "timeZone": "Etc/UTC"
+      },
+      "capabilities": {
+        "levels": true,
+        "pressureLevels": [
+          925,
+          850,
+          800,
+          700,
+          600
+        ],
+        "verticalVelocity": false,
+        "heatFluxes": true,
+        "gust": false,
+        "cape": false,
+        "cin": false,
+        "pblHeight": false,
+        "cloudLayers": false,
+        "cloudProfile": false
+      },
+      "outputs": [
+        {
+          "variant": "earlier",
+          "title": "Earlier development",
+          "path": "generated/model-timing-disagreement.earlier.profile.json",
+          "sha256": "a4d2c9f7112a26dc1b00b45aebc129c2609ac011762465e5f5838b08c558d257"
+        },
+        {
+          "variant": "later",
+          "title": "Later development",
+          "path": "generated/model-timing-disagreement.later.profile.json",
+          "sha256": "74d614c2e3f13273334c9a05c721d12f489240bcdcc90e3fcf8b049aeacbd2e1"
+        }
+      ]
+    }
+  ]
+}

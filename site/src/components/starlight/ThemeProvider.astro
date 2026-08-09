@@ -1,0 +1,9 @@
+{/* Windgram has one light field-paper colour system. Keep Starlight and its
+    dual-theme syntax tokens on that same branch regardless of OS preference
+    or a stale Starlight theme value in local storage. */}
+<script is:inline>
+  document.documentElement.dataset.theme = "light";
+  window.StarlightThemeProvider = {
+    updatePickers() {},
+  };
+</script>

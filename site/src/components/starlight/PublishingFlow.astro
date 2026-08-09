@@ -1,0 +1,135 @@
+<figure class="figure-shell publishing-flow not-content" aria-labelledby="publishing-flow-title">
+  <div class="figure-kicker">Static publishing path</div>
+  <div class="flow" role="img" aria-labelledby="publishing-flow-title publishing-flow-description">
+    <div class="stage">
+      <span class="number">01</span>
+      <strong>Generate</strong>
+      <span>Python pipeline</span>
+    </div>
+    <span class="arrow" aria-hidden="true">→</span>
+    <div class="stage">
+      <span class="number">02</span>
+      <strong>Validate</strong>
+      <span>Versioned contract</span>
+    </div>
+    <span class="arrow" aria-hidden="true">→</span>
+    <div class="stage">
+      <span class="number">03</span>
+      <strong>Publish</strong>
+      <span>Static JSON</span>
+    </div>
+    <span class="arrow" aria-hidden="true">→</span>
+    <div class="stage">
+      <span class="number">04</span>
+      <strong>Render</strong>
+      <span>Your own surface</span>
+    </div>
+  </div>
+  <figcaption>
+    <strong id="publishing-flow-title">Static artifacts cross explicit boundaries.</strong>
+    <span id="publishing-flow-description">
+      Generation owns model-dependent quantities; the package validates and renders the published
+      profile document.
+    </span>
+  </figcaption>
+</figure>
+
+<style>
+  .publishing-flow {
+    --flow-gap: clamp(0.55rem, 1.5vw, 1rem);
+  }
+
+  .figure-kicker {
+    padding-bottom: 0.8rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--rule);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+  }
+
+  .flow {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr) auto) minmax(0, 1fr);
+    gap: var(--flow-gap);
+    align-items: center;
+  }
+
+  .stage {
+    display: grid;
+    align-content: center;
+    min-height: 8.5rem;
+    padding: 1rem;
+    border: 1px solid var(--rule);
+    background: var(--surface-raised);
+  }
+
+  .stage .number {
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+  }
+
+  .stage strong {
+    margin-top: 0.35rem;
+    color: var(--ink);
+    font-family: var(--display);
+    font-size: 1.5rem;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  .stage span:last-child {
+    margin-top: 0.5rem;
+    color: var(--ink-mute);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    line-height: 1.35;
+  }
+
+  .arrow {
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 1.25rem;
+  }
+
+  figcaption {
+    display: grid;
+    grid-template-columns: minmax(10rem, 0.55fr) minmax(14rem, 1fr);
+    gap: 0.6rem 1.5rem;
+    padding-top: 1rem;
+    margin-top: 1rem;
+    border-top: 1px solid var(--rule);
+    color: var(--ink-soft);
+    font-size: 0.88rem;
+    line-height: 1.5;
+  }
+
+  figcaption strong {
+    color: var(--ink);
+  }
+
+  @media (max-width: 48rem) {
+    .flow {
+      grid-template-columns: 1fr;
+    }
+
+    .stage {
+      min-height: 0;
+    }
+
+    .arrow {
+      justify-self: center;
+      transform: rotate(90deg);
+    }
+
+    figcaption {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

@@ -1,0 +1,12 @@
+cff-version: 1.2.0
+message: "If you use Windgram in software, research, or published teaching material, please cite this repository version."
+title: Windgram
+type: software
+authors:
+  - family-names: Watts
+    given-names: Justin
+version: 0.9.1
+date-released: 2026-08-09
+repository-code: "https://github.com/azohra/windgram"
+url: "https://windgram.azohra.com"
+license: MIT

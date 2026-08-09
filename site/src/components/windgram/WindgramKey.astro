@@ -1,0 +1,122 @@
+---
+import { buildKeySpec, type SceneGraph } from "windgram/scene";
+import { renderKeySvg } from "windgram/svg";
+
+interface Props {
+  scene: SceneGraph;
+  chartIdPrefix: string;
+  scrollLabel?: string;
+  class?: string;
+}
+
+const {
+  scene,
+  chartIdPrefix,
+  scrollLabel = "Scrollable key for the rendered windgram",
+  class: className,
+} = Astro.props;
+const keyIdPrefix = `${chartIdPrefix}-key`;
+const svg = renderKeySvg(buildKeySpec(scene), { idPrefix: keyIdPrefix });
+const keyWidth = Number(svg.match(/viewBox="0 0 ([\d.]+)/)?.[1]);
+if (!Number.isFinite(keyWidth)) throw new Error(`Unable to read the ${keyIdPrefix} key width`);
+---
+
+<div
+  class:list={["windgram-key", className]}
+  data-windgram-key
+  data-chart-id-prefix={chartIdPrefix}
+>
+  <div
+    class="windgram-key__scroll"
+    role="region"
+    tabindex="0"
+    aria-label={scrollLabel}
+  >
+    <div
+      class="windgram-key__mount"
+      data-windgram-key-mount
+      style={`--windgram-key-width: ${keyWidth}px`}
+      set:html={svg}
+    />
+  </div>
+  <span class="wg-visually-hidden" role="status" data-windgram-key-status></span>
+</div>
+
+<script>
+  import { buildKeySpec, type SceneGraph } from "windgram/scene";
+  import { renderKeySvg } from "windgram/svg";
+
+  interface SceneChangeDetail {
+    idPrefix: string;
+    scene: SceneGraph;
+  }
+
+  for (const key of document.querySelectorAll<HTMLElement>("[data-windgram-key]")) {
+    if (key.dataset.windgramKeyReady === "true") continue;
+    key.dataset.windgramKeyReady = "true";
+
+    const figure = key.closest<HTMLElement>("[data-figure]");
+    const mount = key.querySelector<HTMLElement>("[data-windgram-key-mount]");
+    const status = key.querySelector<HTMLElement>("[data-windgram-key-status]");
+    const chartIdPrefix = key.dataset.chartIdPrefix;
+    if (!figure || !mount || !chartIdPrefix) continue;
+    let hasSynchronized = false;
+    const syncWidth = () => {
+      const width = mount.querySelector<SVGSVGElement>("svg")?.viewBox.baseVal.width;
+      if (width) mount.style.setProperty("--windgram-key-width", `${width}px`);
+    };
+
+    figure.addEventListener("windgram:scenechange", (event) => {
+      const detail = (event as CustomEvent<SceneChangeDetail>).detail;
+      if (!detail || detail.idPrefix !== chartIdPrefix) return;
+      mount.innerHTML = renderKeySvg(buildKeySpec(detail.scene), {
+        idPrefix: `${chartIdPrefix}-key`,
+      });
+      syncWidth();
+      if (hasSynchronized && status) {
+        status.textContent = "Key updated to match the visible windgram layers.";
+      }
+      hasSynchronized = true;
+    });
+
+    // The chart also publishes its current scene after it attaches. This
+    // request makes synchronization independent of component script order.
+    key.dispatchEvent(new CustomEvent("windgram:keyrequest", {
+      bubbles: true,
+      detail: { idPrefix: chartIdPrefix },
+    }));
+  }
+</script>
+
+<style>
+  .windgram-key {
+    min-width: 0;
+  }
+
+  .windgram-key__scroll {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-color: var(--accent) var(--surface-raised);
+  }
+
+  .windgram-key__scroll:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .windgram-key__mount :global(svg) {
+    display: block;
+    width: var(--windgram-key-width);
+    max-width: none;
+    height: auto;
+    margin-inline: auto;
+  }
+
+  @media print {
+    .windgram-key__mount :global(svg) {
+      width: 100%;
+      min-width: 0;
+    }
+  }
+</style>

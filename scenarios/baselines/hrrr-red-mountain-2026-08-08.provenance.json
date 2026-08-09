@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "baselineType": "calibrated",
+  "purpose": "Offline calibration material for synthetic teaching scenarios; not a forecast and not a public site data source.",
+  "provider": {
+    "name": "National Oceanic and Atmospheric Administration",
+    "abbreviation": "NOAA",
+    "model": "High-Resolution Rapid Refresh CONUS 3 km",
+    "productionSlug": "hrrr-conus",
+    "providerFactsVerification": "[verified 2026-08-08]",
+    "verificationBasis": "reference/forecast-model-feeds.md and the archived wrfprs-derived profile named below"
+  },
+  "capture": {
+    "modelReferenceTime": "2026-08-08T18:00:00Z",
+    "generatedAt": "2026-08-08T20:26:15Z",
+    "captureDate": "2026-08-08",
+    "firstValidTime": "2026-08-08T19:00:00Z",
+    "lastValidTime": "2026-08-09T04:00:00Z",
+    "forecastHours": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "feed": {
+      "product": "wrfprs",
+      "bucket": "https://noaa-hrrr-bdp-pds.s3.amazonaws.com",
+      "objectPattern": "hrrr.20260808/conus/hrrr.t18z.wrfprsf{forecastHour:02d}.grib2",
+      "indexPattern": "hrrr.20260808/conus/hrrr.t18z.wrfprsf{forecastHour:02d}.grib2.idx"
+    }
+  },
+  "site": {
+    "id": "red-mountain",
+    "nameAtCapture": "Red Mtn",
+    "latitude": 49.091868,
+    "longitude": -117.820838,
+    "launchAltitudeM": 1591,
+    "sampledModelElevationM": 1217.3
+  },
+  "archivedFixture": {
+    "path": "site/src/components/research/forecast-example.json",
+    "introducedAtCommit": "4597c4abd075343b24aba2db33de356409b22e5c",
+    "gitBlobSha1": "1797fe33e45ac1f0dfbbdd924e07f32ebf746f9b"
+  },
+  "reconstruction": {
+    "sourcePath": "scenarios/baselines/hrrr-red-mountain-2026-08-08.source.json",
+    "method": [
+      "Copied run, site, valid-time, surface, and pressure-level values from the archived published profile.",
+      "Reconstructed every surface and pressure-level dewPointDepressionC as temperatureC minus dewPointC, rounded to 0.01 C because the archived inputs were already rounded to 0.01 C.",
+      "Renamed published precipitationMmHr to the derivation input precipitationMm; for this HRRR builder the source is instantaneous PRATE multiplied by 3600 and the published contract exposes that one-hour-equivalent rate.",
+      "Copied all archived optional surface capability inputs without substitution or imputation.",
+      "Removed every derived block. No derived quantity is authored by this baseline."
+    ],
+    "retainedFields": {
+      "surface": [
+        "pressurePa",
+        "temperatureC",
+        "dewPointDepressionC",
+        "windSpeedMs",
+        "windDirectionDeg",
+        "cloudCoverPercent",
+        "precipitationMm",
+        "sensibleHeatFluxWm2",
+        "latentHeatFluxWm2"
+      ],
+      "optionalSurfaceCapabilities": [
+        "windGustMs",
+        "capeJkg",
+        "cinJkg",
+        "pblHeightM",
+        "lowCloudPercent",
+        "midCloudPercent",
+        "highCloudPercent"
+      ],
+      "levels": [
+        "pressureHpa",
+        "heightM",
+        "temperatureC",
+        "dewPointDepressionC",
+        "windSpeedMs",
+        "windDirectionDeg"
+      ]
+    },
+    "omittedFields": [
+      "hours[].derived (recomputed only by windgram.windgram.derive_windgram_profile)",
+      "levels[].verticalVelocityPaS (not retained by the archived fixture, so it cannot be reconstructed honestly)",
+      "levels[].cloudFractionPercent (HRRR wrfprs does not publish per-pressure-level cloud fraction)"
+    ]
+  },
+  "numericTolerances": {
+    "reconstructedDewPointC": {
+      "absolute": 0.01,
+      "unit": "C",
+      "reason": "Temperature and dew point in the archived fixture are rounded to 0.01 C."
+    },
+    "derivedBoundaryLayerTopM": {
+      "absolute": 6,
+      "unit": "m",
+      "measuredMaximumDifference": 5.09
+    },
+    "derivedThermalVelocityMs": {
+      "absolute": 0.01,
+      "unit": "m/s",
+      "measuredMaximumDifference": 0.0064
+    },
+    "derivedCloudBaseM": {
+      "absolute": 52,
+      "unit": "m",
+      "measuredMaximumDifference": 51.04,
+      "reason": "The archived profile used the earlier 121 m/C cloud-base approximation; the current authority uses the Bolton LCL calculation."
+    },
+    "derivedUsableLiftTopM": {
+      "absolute": 52,
+      "unit": "m",
+      "measuredMaximumDifference": 50.21,
+      "reason": "Usable lift is cloud-limited in one archived hour and inherits the documented cloud-base method change."
+    }
+  },
+  "attribution": {
+    "sourceCredit": "NOAA/NCEP High-Resolution Rapid Refresh data, distributed through the NOAA Open Data Dissemination program.",
+    "terms": "U.S. government open data. Attribution is requested; use does not imply NOAA endorsement.",
+    "programUrl": "https://www.noaa.gov/information-technology/open-data-dissemination",
+    "datasetUrl": "https://registry.opendata.aws/noaa-hrrr-pds/"
+  },
+  "publicationBoundary": {
+    "discoverableAsPublicScenario": false,
+    "siteMayImportBaseline": false,
+    "networkUseDuringScenarioGeneration": false
+  }
+}

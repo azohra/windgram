@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "sites": [
+    {
+      "slug": "example-ridge",
+      "name": "Example Ridge",
+      "latitude": 49,
+      "longitude": -123,
+      "elevationM": 1050,
+      "timeZone": "Etc/UTC"
+    }
+  ]
+}

@@ -29,6 +29,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from .config import output_directory
 from .moisture import dew_point_depression
 from .noaa import (
     DownloadStats,
@@ -47,7 +48,6 @@ from .windgram import SCHEMA_VERSION, derive_windgram_profile
 
 SLUG = "gfs"
 BASE_URL = "https://noaa-gfs-bdp-pds.s3.amazonaws.com"
-OUT_DIR = Path("data") / SLUG
 RUN_HOURS = ("18", "12", "06", "00")
 STEP_HOURS = 3
 LAST_FORECAST_HOUR = 384
@@ -103,6 +103,10 @@ OMEGA_LEVELS = PRESSURE_LEVELS
 SEMANTICS = {"gust": "instant", "precipitation": "windowMeanRate"}
 
 
+def _out_dir() -> Path:
+    return output_directory(SLUG)
+
+
 def main() -> None:
     sites = load_sites()
     run = _latest_complete_run()
@@ -120,12 +124,12 @@ def main() -> None:
     stats = DownloadStats()
     result = _build_profiles(run, reference_time, sites, stats)
 
-    sites_dir = OUT_DIR / "sites"
+    sites_dir = _out_dir() / "sites"
     sites_dir.mkdir(parents=True, exist_ok=True)
     for profile in result["profiles"]:
         document = round_document(profile)
         write_json(sites_dir / f"{document['site']['id']}.json", document, compact=True)
-        append_history(document, OUT_DIR / "history")
+        append_history(document, _out_dir() / "history")
     manifest = {
         "firstForecastHour": result["firstForecastHour"],
         "forecastHours": result["forecastHours"],
@@ -137,7 +141,7 @@ def main() -> None:
         "sites": [{"name": site["name"], "slug": site["slug"]} for site in sites],
         "stats": manifest_stats(stats, started_at),
     }
-    write_json(OUT_DIR / "manifest.json", manifest, compact=False)
+    write_json(_out_dir() / "manifest.json", manifest, compact=False)
     print(
         f"Published {len(result['profiles'])} GFS profiles for {reference_time} "
         f"({stats.requests} requests, {stats.response_bytes // (1024 * 1024)} MiB)."
@@ -163,7 +167,7 @@ def _file_url(date: str, run_hour: str, forecast_hour: int) -> str:
 
 def _published_reference_time() -> str | None:
     try:
-        return json.loads((OUT_DIR / "manifest.json").read_text())["referenceTime"]
+        return json.loads((_out_dir() / "manifest.json").read_text())["referenceTime"]
     except (OSError, KeyError, ValueError):
         return None
 

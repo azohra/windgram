@@ -113,7 +113,7 @@ const description = PANELS.map(
     <span>metres of change per forecast hour, new − old, both committed real columns</span>
   </header>
 
-  <div class="graphic-scroll" tabindex="0" aria-label="Scrollable chart of per-hour cloud-base and usable-lift changes">
+  <div class="graphic-scroll" role="region" tabindex="0" aria-label="Scrollable chart of per-hour cloud-base and usable-lift changes">
     <svg viewBox={`0 0 ${WIDTH} 456`} role="img" aria-labelledby="cbd-svg-title cbd-svg-desc">
       <title id="cbd-svg-title">
         Per-hour change in published cloud base and usable-lift top after replacing the 121 m per degree

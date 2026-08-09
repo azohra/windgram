@@ -258,11 +258,9 @@ export const windgramLevelSchema = z.object({
 });
 export type WindgramLevel = z.infer<typeof windgramLevelSchema>;
 
-/* Pipeline-authoritative quantities, unsmoothed. The package never
-   recomputes these (the one-home rule); windgram/derive re-exposes only the
-   usable-lift derivation, parameterized, for other sink rates. Full
-   derivations with constants and citations: research/windgram-derivations.md
-   ("How a windgram is computed"). */
+/* Pipeline-authoritative published quantities, unsmoothed. windgram/derive
+   also exposes usableLiftTopM as a projection over published inputs for
+   another sink rate; it does not replace the stored 1.0 m/s value. */
 export const windgramDerivedSchema = z.object({
   /**
    * Parcel-derived boundary-layer top, metres MSL: the height where a
@@ -273,7 +271,7 @@ export const windgramDerivedSchema = z.object({
    * "no convective mixing", not a gap. When the parcel outclimbs the entire
    * published column the value is the column ceiling, not physics; ensemble
    * documents record that censoring in the position's `ceiledMembers`.
-   * Derivation: research/windgram-derivations.md ("Lift the surface parcel").
+   * Derivation: site/src/content/docs/docs/python/derivation-science.mdx ("Lift the surface parcel").
    */
   boundaryLayerTopM: scalarSchema
     .nullable()
@@ -289,11 +287,11 @@ export const windgramDerivedSchema = z.object({
    * moist air is buoyant air). Zero whenever the virtual heat flux or the
    * boundary-layer depth is non-positive — night, rain, heavily suppressed
    * heating — so zero means "no thermals", never "unknown". Derivation and
-   * constants: research/windgram-derivations.md ("Turn surface heating
+   * constants: site/src/content/docs/docs/python/derivation-science.mdx ("Turn surface heating
    * into w*").
    */
   thermalVelocityMs: scalarSchema.describe(
-    'Deardorff\'s convective velocity scale w*, m/s: cube root of (g/theta) x virtual kinematic heat flux x boundary-layer depth, from the published sensible and latent heat fluxes (latent enters via the virtual-temperature correction) and the parcel-derived depth. Zero when the virtual heat flux or depth is non-positive (night, rain) — "no thermals", never "unknown". Derivation: research/windgram-derivations.md.',
+    'Deardorff\'s convective velocity scale w*, m/s: cube root of (g/theta) x virtual kinematic heat flux x boundary-layer depth, from the published sensible and latent heat fluxes (latent enters via the virtual-temperature correction) and the parcel-derived depth. Zero when the virtual heat flux or depth is non-positive (night, rain) — "no thermals", never "unknown". Derivation: site/src/content/docs/docs/python/derivation-science.mdx.',
   ),
   /**
    * Effective cloud base, metres MSL — always present, never null. The
@@ -307,10 +305,10 @@ export const windgramDerivedSchema = z.object({
    * never sits below it. It CAN sit below boundaryLayerTopM — that is a
    * forecast of cloud forming inside the convective layer (overdevelopment
    * territory), not an inconsistency. Derivation:
-   * research/windgram-derivations.md ("Estimate cloud base").
+   * site/src/content/docs/docs/python/derivation-science.mdx ("Estimate cloud base").
    */
   cloudBaseM: scalarSchema.describe(
-    "Effective cloud base, metres MSL, always present. The LOWER of the surface parcel's condensation level (Bolton 1980, eq. 15) and the first level where the published column itself saturates (dew-point depression at the 0.5 degC hatch threshold, interpolated), clamped to model terrain (a saturated surface puts it at the ground). CAN sit below boundaryLayerTopM — cloud forming inside the convective layer, not an inconsistency. Derivation: research/windgram-derivations.md.",
+    "Effective cloud base, metres MSL, always present. The LOWER of the surface parcel's condensation level (Bolton 1980, eq. 15) and the first level where the published column itself saturates (dew-point depression at the 0.5 degC hatch threshold, interpolated), clamped to model terrain (a saturated surface puts it at the ground). CAN sit below boundaryLayerTopM — cloud forming inside the convective layer, not an inconsistency. Derivation: site/src/content/docs/docs/python/derivation-science.mdx.",
   ),
   /**
    * Usable-lift top ("hcrit"), metres MSL: the height where the STRONGEST

@@ -1,0 +1,105 @@
+---
+import { render } from "astro:content";
+import ArticleMeta from "../../components/research/ArticleMeta.astro";
+import ArticleNav from "../../components/research/ArticleNav.astro";
+import Base from "../../layouts/Base.astro";
+import {
+  relatedResearchArticles,
+  researchArticles,
+  type DocPage,
+} from "../../lib/research";
+
+export function getStaticPaths() {
+  return researchArticles().map((doc) => ({ params: { slug: doc.slug }, props: { doc } }));
+}
+
+interface Props {
+  doc: DocPage;
+}
+
+const { doc } = Astro.props;
+if (!doc.entry) throw new Error(`Research entry missing for ${doc.slug}`);
+
+const { Content } = await render(doc.entry);
+const entries = researchArticles();
+const related = relatedResearchArticles(doc, entries);
+---
+
+<Base title={`${doc.title} — Windgram`} description={doc.summary} activeNav="research">
+  <main class="shell prose">
+    <p class="back-link"><a href="/research/">&larr; Research</a></p>
+    <ArticleMeta doc={doc} />
+    <Content />
+
+    {
+      related.length > 0 && (
+        <aside class="related-research" aria-labelledby="related-research-title">
+          <p class="related-label" id="related-research-title">Related research</p>
+          <ul>
+            {related.map((entry) => (
+              <li>
+                <a href={entry.url}>{entry.title}</a>
+                <span>{entry.summary}</span>
+              </li>
+            ))}
+          </ul>
+        </aside>
+      )
+    }
+
+    <ArticleNav current={doc} entries={entries} />
+  </main>
+</Base>
+
+<style>
+  .related-research {
+    width: min(920px, calc(100vw - 48px));
+    margin: 64px 50% 0;
+    padding: 20px 0 4px;
+    transform: translateX(-50%);
+    border-top: 1px solid var(--rule-strong);
+    border-bottom: 1px solid var(--rule);
+  }
+  .related-label {
+    margin: 0 0 12px;
+    font: 600 12px/1.4 var(--mono);
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .related-research ul {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 22px;
+    margin: 0;
+    padding: 0 0 20px;
+    list-style: none;
+  }
+  .related-research li {
+    margin: 0;
+  }
+  .related-research a {
+    display: block;
+    font-family: var(--display);
+    font-size: 19px;
+    line-height: 1.15;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+  .related-research span {
+    display: block;
+    margin-top: 7px;
+    font-size: 14px;
+    line-height: 1.45;
+    color: var(--ink-mute);
+  }
+  @media (max-width: 680px) {
+    .related-research {
+      width: calc(100vw - 36px);
+    }
+    .related-research ul {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

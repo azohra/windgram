@@ -17,7 +17,7 @@ const rows = MODELS.map((m) => ({
   resolution: `${m.gridKm} km`,
   cycles: cycles(runIntervalHours(m.slug)),
   horizon: horizon(m.horizonHours),
-  status: m.experimental ? "Experimental feed" : m.kind === "ensemble" ? "Publication pending" : "",
+  status: m.experimental ? "Experimental feed" : "",
 }));
 ---
 

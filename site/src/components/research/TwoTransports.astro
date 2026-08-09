@@ -1,6 +1,7 @@
 ---
 import fs from "node:fs";
 import path from "node:path";
+import Figure from "../figure/Figure.astro";
 
 // Panel A's index rows are parsed from the repository's real HRRR `.idx`
 // fixture at build time, so the printed record numbers and byte offsets are
@@ -45,13 +46,16 @@ for (let i = 1; i < hits.length; i += 1) {
 }
 ---
 
-<figure class="two-transports" aria-labelledby="two-transports-title two-transports-caption">
-  <header>
-    <h3 id="two-transports-title">Two transports, one job</h3>
-    <span>NOAA prices selective reads; ECCC prices whole files. Each builder pays the price its provider sets.</span>
-  </header>
+<Figure
+  id="two-transports"
+  title="Two transports, one job"
+  lesson="NOAA exposes indexed byte ranges while ECCC publishes whole files, so each builder follows its provider's transport contract."
+  description={`A comparison of NOAA indexed byte ranges and ECCC whole-domain streaming. Four HRRR records are located at byte offsets read from the repository fixture for ${runLabel}; ECCC builders stream one file at a time, sample configured sites, and discard the file.`}
+  caption="Record numbers and offsets come from the committed HRRR index fixture; run-volume context comes from the project measurements recorded with the pipeline research."
+  units="byte offsets and transferred GiB where labelled"
+>
 
-  <div class="graphic-scroll" tabindex="0" aria-label="Scrollable diagram of the byte-range and whole-domain-stream transports">
+  <div class="graphic-scroll" role="region" tabindex="0" aria-label="Scrollable diagram of the byte-range and whole-domain-stream transports">
     <svg viewBox="0 0 980 540" role="img" aria-labelledby="two-transports-svg-title two-transports-svg-desc">
       <title id="two-transports-svg-title">Byte ranges versus whole-domain streams</title>
       <desc id="two-transports-svg-desc">
@@ -60,10 +64,10 @@ for (let i = 1; i < hits.length; i += 1) {
         {records[0].label}, at byte {bytes(records[0].offset)} of the {runLabel} run — so the
         builder issues one HTTP range request per needed record and the rest of the
         {fileFloorMb}-plus-megabyte file never leaves the bucket. Transport B, whole-domain stream,
-        ECCC HRDPS, RDPS, GDPS, and REPS: Datamart has no index and one message per file, so the
+        ECCC HRDPS, RDPS, GDPS, REPS, and GEPS: Datamart has no index and one message per file, so the
         builder fetches each whole-domain file, samples the catalogued launches in memory, and drops
-        it before the next fetch — 4 to 8 gibibytes moved per deterministic run and about 9 for
-        REPS, while only kilobytes of profile JSON per site are kept and published.
+        it before the next fetch — 4 to 8 gibibytes moved per deterministic run, about 9 for
+        REPS, and about 14 for GEPS, while only kilobytes of profile JSON per site are kept and published.
       </desc>
 
       <!-- ============ panel A · byte ranges ============ -->
@@ -110,7 +114,7 @@ for (let i = 1; i < hits.length; i += 1) {
       <rect x="24" y="252" width="24" height="24" class="tt-chip"/>
       <text x="36" y="269" class="tt-chip-letter">B</text>
       <text x="58" y="270" class="tt-panel-title">WHOLE-DOMAIN STREAM</text>
-      <text x="956" y="269" class="tt-panel-right tt-mono">ECCC · HRDPS, RDPS, GDPS, REPS — Datamart has no index</text>
+      <text x="956" y="269" class="tt-panel-right tt-mono">ECCC · HRDPS, RDPS, GDPS, REPS, GEPS — Datamart has no index</text>
       <line x1="24" y1="286" x2="956" y2="286" class="tt-panel-rule"/>
 
       <text x="150" y="312" class="tt-station">1 · FETCH</text>
@@ -145,7 +149,7 @@ for (let i = 1; i < hits.length; i += 1) {
       <line x1="490" y1="478" x2="490" y2="522" class="tt-divider"/>
       <text x="60" y="506" class="tt-stat">4–8 GiB</text>
       <text x="200" y="496" class="tt-stat-note">moved per deterministic run;</text>
-      <text x="200" y="511" class="tt-stat-note">≈ 9 GiB per REPS run</text>
+      <text x="200" y="511" class="tt-stat-note">≈ 9 GiB REPS · ≈ 14 GiB GEPS</text>
       <text x="530" y="506" class="tt-stat">kilobytes kept</text>
       <text x="756" y="496" class="tt-stat-note">per site and run — the profile JSON</text>
       <text x="756" y="511" class="tt-stat-note">is what actually gets published</text>
@@ -158,32 +162,12 @@ for (let i = 1; i < hits.length; i += 1) {
     </svg>
   </div>
 
-  <figcaption id="two-transports-caption">
-    Record numbers and byte offsets read at build time from the repository's HRRR index fixture
-    (<code>tests/fixtures/hrrr.t12z.wrfprsf24.excerpt.idx</code>); run volumes are the measured
-    build costs in the <a href="https://github.com/azohra/windgram#readme">README</a>.
-  </figcaption>
-</figure>
+  <p class="transport-source">
+    Fixture: <code>tests/fixtures/hrrr.t12z.wrfprsf24.excerpt.idx</code>
+  </p>
+</Figure>
 
 <style>
-  .two-transports {
-    display: block;
-    width: min(1000px, calc(100vw - 32px));
-    margin: 28px 50% 44px;
-    transform: translateX(-50%);
-    color: var(--ink);
-    border-top: 3px solid var(--accent);
-    border-bottom: 1px solid var(--rule-strong);
-  }
-  header {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-    gap: 6px 24px;
-    align-items: end;
-    padding: 18px 0 16px;
-  }
-  .two-transports h3 { margin: 0; font: 700 29px/1 var(--display); text-transform: uppercase; }
-  header > span { font: 13px/1.5 var(--mono); color: var(--ink-mute); }
   .graphic-scroll {
     overflow-x: auto;
     background: var(--surface);
@@ -225,12 +209,9 @@ for (let i = 1; i < hits.length; i += 1) {
   .tt-stat { fill: var(--ink); font-family: var(--display); font-size: 28px; font-weight: 800; letter-spacing: .01em; }
   .tt-stat-note { fill: var(--ink-mute); font-size: 11px; }
   .tt-divider { stroke: var(--rule); stroke-width: 1; }
-  figcaption { padding: 12px 0 14px; font: 12px/1.5 var(--mono); color: var(--ink-mute); }
-  figcaption a { color: var(--ink-mute); text-decoration: underline; }
+  .transport-source { margin: 0; padding: 9px 14px; color: var(--ink-mute); font: 11px/1.45 var(--mono); border-top: 1px solid var(--rule); }
+  .transport-source code { font-family: var(--mono); }
   @media (max-width: 720px) {
-    header { grid-template-columns: 1fr; }
-    .two-transports h3 { font-size: 25px; }
-    header > span { font-size: 12px; }
     .graphic-scroll { margin-inline: -8px; }
   }
 </style>

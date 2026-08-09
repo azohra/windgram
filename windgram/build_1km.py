@@ -11,12 +11,14 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from .config import output_directory
 from .datamart import DownloadStats, NotFoundError, exists, fetch_bytes
 from .grib import GribField
 from .publish import append_history, manifest_stats, round_document, write_json
@@ -29,7 +31,6 @@ SLUG = "hrdps-west"
 # tree, and is not mirrored on hpfx (probed 2026-08-08: 404) — so
 # WINDGRAM_DATAMART_BASE does not apply here and this feed is dd.alpha-only.
 BASE_URL = "https://dd.alpha.weather.gc.ca/model_hrdps/west/1km/grib2"
-OUT_DIR = Path("data") / SLUG
 RUN_HOURS = ("12", "00")
 FORECAST_HOURS = 48
 # Per-host Datamart budget; the documented-limit arithmetic and the
@@ -81,6 +82,10 @@ _GUST_MAX_SLACK_MS = 0.1  # packing noise between two independently packed files
 SEMANTICS = {"gust": "hourMax", "precipitation": "instantRate"}
 
 
+def _out_dir() -> Path:
+    return output_directory(SLUG)
+
+
 def main() -> None:
     sites = load_sites()
     run = _latest_complete_run()
@@ -98,12 +103,12 @@ def main() -> None:
     stats = DownloadStats()
     result = _build_profiles(run, reference_time, sites, stats)
 
-    sites_dir = OUT_DIR / "sites"
+    sites_dir = _out_dir() / "sites"
     sites_dir.mkdir(parents=True, exist_ok=True)
     for profile in result["profiles"]:
         document = round_document(profile)
         write_json(sites_dir / f"{document['site']['id']}.json", document, compact=True)
-        append_history(document, OUT_DIR / "history")
+        append_history(document, _out_dir() / "history")
     manifest = {
         "firstForecastHour": result["firstForecastHour"],
         "forecastHours": result["forecastHours"],
@@ -115,7 +120,7 @@ def main() -> None:
         "sites": [{"name": site["name"], "slug": site["slug"]} for site in sites],
         "stats": manifest_stats(stats, started_at),
     }
-    write_json(OUT_DIR / "manifest.json", manifest, compact=False)
+    write_json(_out_dir() / "manifest.json", manifest, compact=False)
     print(
         f"Published {len(result['profiles'])} 1 km profiles for {reference_time} "
         f"({stats.requests} downloads, {stats.response_bytes // (1024 * 1024)} MiB)."
@@ -144,7 +149,7 @@ def _file_url(variable: str, date: str, run_hour: str, forecast_hour: int) -> st
 
 def _published_reference_time() -> str | None:
     try:
-        return json.loads((OUT_DIR / "manifest.json").read_text())["referenceTime"]
+        return json.loads((_out_dir() / "manifest.json").read_text())["referenceTime"]
     except (OSError, KeyError, ValueError):
         return None
 
@@ -152,7 +157,7 @@ def _published_reference_time() -> str | None:
 def _build_profiles(run: dict, reference_time: str, sites: list[dict], stats: DownloadStats):
     forecast_slots = [
         {"forecastHour": hour, "validAt": _valid_time(reference_time, hour)}
-        for hour in range(1, FORECAST_HOURS + 1)
+        for hour in _forecast_hours()
     ]
 
     first_forecast_hour = forecast_slots[0]["forecastHour"]
@@ -342,6 +347,17 @@ def _required_value(value: float | None, field_name: str, site: dict) -> float:
     if value is None or not math.isfinite(value):
         raise RuntimeError(f"Datamart returned no {field_name} for {site['name']}")
     return value
+
+
+def _forecast_hours() -> tuple[int, ...]:
+    hours = tuple(range(1, FORECAST_HOURS + 1))
+    maximum = _max_steps()
+    return hours if maximum is None else hours[:maximum]
+
+
+def _max_steps() -> int | None:
+    raw = os.environ.get("WINDGRAM_MAX_STEPS")
+    return int(raw) if raw else None
 
 
 def _valid_time(reference_time: str, forecast_hour: int) -> str:

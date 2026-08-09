@@ -1,0 +1,233 @@
+---
+import { buildScene } from "windgram/scene";
+import { renderSvg } from "windgram/svg";
+import ControlGroup from "../figure/ControlGroup.astro";
+import Figure from "../figure/Figure.astro";
+import Legend from "../figure/Legend.astro";
+import {
+  formatHeightM,
+  formatThermalMs,
+  timingHourValues,
+  TIMING_OVERLAYS,
+  utcHourLabel,
+} from "../../lib/labs";
+import { scenarioById } from "../../lib/scenarios";
+
+const earlier = scenarioById("model-timing-disagreement", "earlier");
+const later = scenarioById("model-timing-disagreement", "later");
+const initialHourIndex = 3;
+
+// Both panels render once here; only the hour-lens readouts rebuild
+// client-side, so this scene recipe has a single (frontmatter) home.
+function renderProfile(profile: typeof earlier.profile, timeZone: string, idPrefix: string) {
+  const scene = buildScene(profile, {
+    timeZone,
+    overlays: TIMING_OVERLAYS,
+    smooth: false,
+    columnWidthPx: 58,
+    plotHeightPx: 310,
+  });
+  return renderSvg(scene, { idPrefix });
+}
+
+const earlierSvg = renderProfile(earlier.profile, earlier.timeZone, "model-disagreement-earlier");
+const laterSvg = renderProfile(later.profile, later.timeZone, "model-disagreement-later");
+const earlierInitial = timingHourValues(earlier.profile, initialHourIndex);
+const laterInitial = timingHourValues(later.profile, initialHourIndex);
+---
+
+<Figure
+  id="model-disagreement-lab"
+  title="The same development, shifted in time"
+  lesson="Scrub one shared teaching hour across two controlled profiles whose daytime development starts at different times."
+  description="An interactive comparison of two profiles with matching daytime-development shapes shifted to earlier and later teaching hours."
+  caption="Both complete profiles stay visible. The hour lens reads the same valid time from each immutable document."
+  units="time UTC · thermal velocity m/s · height m MSL"
+  scenario={earlier}
+>
+  <ControlGroup slot="controls" label="Timing-comparison laboratory controls">
+    <label for="model-disagreement-hour">
+      Shared hour lens
+      <span class="wg-lab__range-row">
+        <input
+          id="model-disagreement-hour"
+          data-timing-hour
+          type="range"
+          min="0"
+          max={earlier.profile.hours.length - 1}
+          value={initialHourIndex}
+          step="1"
+        />
+        <output for="model-disagreement-hour" data-timing-hour-output>
+          {utcHourLabel(earlier.profile.hours[initialHourIndex].validAt)}
+        </output>
+      </span>
+    </label>
+  </ControlGroup>
+
+  <div class="wg-lab" data-timing-lab>
+    <script
+      is:inline
+      type="application/json"
+      data-timing-source
+      set:html={JSON.stringify({ earlier: earlier.profile, later: later.profile })}
+    />
+    <div class="wg-lab__readout wg-lab__readout--pair" aria-live="polite" aria-atomic="true">
+      <section aria-label="Earlier development values">
+        <strong>{earlier.label}</strong>
+        <span>w* <b data-timing-earlier-thermal>{formatThermalMs(earlierInitial.thermalVelocityMs)}</b></span>
+        <span>Parcel top <b data-timing-earlier-boundary>{formatHeightM(earlierInitial.boundaryLayerTopM)}</b></span>
+        <span>Usable top <b data-timing-earlier-usable>{formatHeightM(earlierInitial.usableLiftTopM)}</b></span>
+      </section>
+      <section aria-label="Later development values">
+        <strong>{later.label}</strong>
+        <span>w* <b data-timing-later-thermal>{formatThermalMs(laterInitial.thermalVelocityMs)}</b></span>
+        <span>Parcel top <b data-timing-later-boundary>{formatHeightM(laterInitial.boundaryLayerTopM)}</b></span>
+        <span>Usable top <b data-timing-later-usable>{formatHeightM(laterInitial.usableLiftTopM)}</b></span>
+      </section>
+    </div>
+    <div
+      class="wg-lab__chart-scroll"
+      tabindex="0"
+      role="region"
+      aria-label="Scrollable paired timing comparison"
+    >
+      <div class="wg-lab__comparison">
+        <section class="wg-lab__panel" aria-labelledby="model-disagreement-earlier-label">
+          <h4 id="model-disagreement-earlier-label">{earlier.label}</h4>
+          <div class="wg-lab__mount" style="--wg-lab-scene-width: 100%" set:html={earlierSvg} />
+        </section>
+        <section class="wg-lab__panel" aria-labelledby="model-disagreement-later-label">
+          <h4 id="model-disagreement-later-label">{later.label}</h4>
+          <div class="wg-lab__mount" style="--wg-lab-scene-width: 100%" set:html={laterSvg} />
+        </section>
+      </div>
+    </div>
+    <p class="wg-lab__conclusion">
+      <strong>Conclusion.</strong> Matching development shapes can occupy different teaching hours;
+      reading only one instant hides that timing displacement.
+    </p>
+  </div>
+
+  <Legend
+    slot="legend"
+    label="Timing figure legend"
+    items={[
+      { label: "Thermal velocity", color: "var(--chart-lift)", mark: "line" },
+      { label: "Parcel boundary-layer top", color: "var(--chart-lift)", mark: "line" },
+      { label: "Usable-lift top", color: "var(--chart-usable)", mark: "line" },
+    ]}
+  />
+</Figure>
+
+<script>
+  import type { WindgramProfile } from "windgram/contract";
+  import {
+    formatHeightM,
+    formatThermalMs,
+    timingHourValues,
+    utcHourLabel,
+  } from "../../lib/labs";
+
+  type TimingKey = "earlier" | "later";
+  type TimingValues = {
+    thermal: HTMLElement;
+    boundary: HTMLElement;
+    usable: HTMLElement;
+  };
+
+  for (const figure of document.querySelectorAll<HTMLElement>("#model-disagreement-lab[data-figure]")) {
+    if (figure.dataset.timingReady === "true") continue;
+    figure.dataset.timingReady = "true";
+    const source = figure.querySelector<HTMLScriptElement>("[data-timing-source]");
+    const hourControl = figure.querySelector<HTMLInputElement>("[data-timing-hour]");
+    const hourOutput = figure.querySelector<HTMLOutputElement>("[data-timing-hour-output]");
+    if (!source?.textContent || !hourControl || !hourOutput) continue;
+
+    const profiles = Object.freeze(JSON.parse(source.textContent)) as Readonly<Record<TimingKey, WindgramProfile>>;
+    const values = Object.fromEntries((["earlier", "later"] as TimingKey[]).map((key) => [
+      key,
+      {
+        thermal: figure.querySelector<HTMLElement>(`[data-timing-${key}-thermal]`),
+        boundary: figure.querySelector<HTMLElement>(`[data-timing-${key}-boundary]`),
+        usable: figure.querySelector<HTMLElement>(`[data-timing-${key}-usable]`),
+      },
+    ])) as Record<TimingKey, Record<keyof TimingValues, HTMLElement | null>>;
+    if (Object.values(values).some((group) => Object.values(group).some((item) => item === null))) continue;
+
+    const render = () => {
+      const index = Number(hourControl.value);
+      hourOutput.value = utcHourLabel(profiles.earlier.hours[index].validAt);
+      for (const key of ["earlier", "later"] as TimingKey[]) {
+        const hour = timingHourValues(profiles[key], index);
+        values[key].thermal!.textContent = formatThermalMs(hour.thermalVelocityMs);
+        values[key].boundary!.textContent = formatHeightM(hour.boundaryLayerTopM);
+        values[key].usable!.textContent = formatHeightM(hour.usableLiftTopM);
+      }
+    };
+
+    hourControl.addEventListener("input", render);
+    figure.addEventListener("figure:reset", render);
+  }
+</script>
+
+<style>
+  /* Only the paired-panel geometry is local; the shared laboratory frame
+     (.wg-lab, readout, chart scroll, range row, conclusion) lives in
+     src/styles/figures.css. */
+  .wg-lab__readout section {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem 0.75rem;
+    padding: 0.7rem;
+    background: var(--surface-raised);
+    border-inline-start: 3px solid var(--accent);
+    color: var(--ink-soft);
+    font: 0.72rem/1.4 var(--mono);
+  }
+
+  .wg-lab__readout section > strong {
+    grid-column: 1 / -1;
+    color: var(--ink);
+    font-size: 0.8rem;
+  }
+
+  .wg-lab__readout section span,
+  .wg-lab__readout section b {
+    display: block;
+  }
+
+  .wg-lab__readout section b {
+    color: var(--ink);
+  }
+
+  .wg-lab__comparison {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(30rem, 1fr));
+    gap: 0.8rem;
+    min-width: 61rem;
+  }
+
+  .wg-lab__panel {
+    min-width: 0;
+    padding: 0.65rem;
+    background: color-mix(in srgb, var(--surface-raised) 58%, var(--surface));
+    border: 1px solid var(--rule);
+  }
+
+  .wg-lab__panel h4 {
+    margin: 0 0 0.5rem;
+    color: var(--ink);
+    font: 700 0.78rem/1.35 var(--mono);
+  }
+
+  .wg-lab__panel :global(svg) {
+    min-width: 29rem;
+  }
+
+  @media (max-width: 34rem) {
+    .wg-lab__readout section {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

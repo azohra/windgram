@@ -1,0 +1,46 @@
+---
+title: Provider transports
+description: Understand whole-file ECCC sampling, indexed NOAA byte ranges, and the shared publication boundary.
+---
+
+The repository uses two broad transport strategies. They share
+download accounting, site sampling guards, builder invariants, and the profile
+contract while preserving each provider's storage semantics.
+
+| Strategy | Current home | Data movement | Important boundary |
+| --- | --- | --- | --- |
+| ECCC Datamart GRIB | `datamart.py`, `grib.py`, ECCC builders | Fetch one whole-domain field file, sample all sites, release bytes | Paths, field tokens, accumulations, sentinels, and schedules are model declarations |
+| NOAA Open Data indexed GRIB | `noaa.py`, NOAA builders | Read `.idx`, fetch only byte ranges for needed records, sample sites | Record names, level strings, grid rotation, and accumulation windows are model-specific |
+
+## Preserve provider semantics
+
+Two fields with the same output unit can describe different windows. For
+example, a precipitation rate can be an instantaneous diagnostic or a mean
+over the publishing step. A gust can be an instantaneous diagnostic or an
+hour maximum. Transport code recovers the provider quantity; the builder's
+verified semantics declaration keeps its meaning attached to the profile.
+
+## Sampling and domains
+
+Grid readers sample the nearest model point for every configured site and
+check distance. A distant result usually means a library clamped an
+out-of-domain coordinate to the grid edge. The builder must reject that
+sample. Model terrain elevation is sampled separately and remains distinct
+from surveyed launch elevation.
+
+Projected grids may publish winds relative to grid north. Where provider
+metadata requires it, builders rotate components to true north before
+computing speed and meteorological FROM-direction. Regular latitude/longitude
+earth-relative grids require no such correction. These are verified feed
+facts, not global transport assumptions.
+
+## Failure and accounting
+
+The shared manifest core records downloads, bytes, retries, and duration.
+Transport-specific numeric counters may be added, but consumers cannot build
+logic on those unstable extension keys. Missing required records fail a build;
+optional capability records may remain absent only when catalogue and builder
+behaviour agree.
+
+Live-provider evidence belongs in the dated
+[forecast feed reference](/docs/reference/forecast-model-feeds/).

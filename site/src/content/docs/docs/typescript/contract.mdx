@@ -1,0 +1,92 @@
+---
+title: Contract validation
+description: Accept profile, manifest, model, site, and run-index documents at an explicit trust boundary.
+---
+
+The `windgram/contract` export is the executable authority for published JSON.
+Its zod schemas, inferred TypeScript types, nullable parse guards, and generated
+JSON Schemas describe the same five document families.
+
+| Document | Parser | Published location |
+| --- | --- | --- |
+| Profile | `parseWindgramProfileJson` | `data/<model>/sites/<site>.json` and each history line |
+| Manifest | `parseWindgramManifestJson` | `data/<model>/manifest.json` |
+| Models | `parseModelCatalogueJson` | `data/models.json` |
+| Sites | `parseSitesCatalogueJson` | `sites.json` |
+| Run index | `parseRunsIndexJson` | `data/runs.json` |
+
+Each parser also has an already-parsed counterpart without the `Json` suffix.
+All return the typed document or `null`; rejected input is not patched into
+shape.
+
+```ts title="validate-profile.ts"
+import {
+  parseWindgramProfileJson,
+  type WindgramProfile,
+} from "windgram/contract";
+
+export function requireProfile(text: string): WindgramProfile {
+  const profile = parseWindgramProfileJson(text);
+  if (!profile) throw new Error("unsupported or invalid windgram profile");
+  return profile;
+}
+```
+
+## Site timezone propagation
+
+Every v0.4 site catalogue entry requires an IANA `timeZone`. Builders copy
+that value into new profiles as `site.timeZone`, making a stored document's
+local clock interpretable without a catalogue join.
+
+The profile field remains optional so pre-v0.4 profiles continue to validate.
+Its absence means “this document predates the timezone echo,” not “the launch
+uses UTC.” Consumers either supply a known fallback or use an API's documented
+fallback behaviour:
+
+| API | Timezone behaviour |
+| --- | --- |
+| `analyzeProfile` | Override, then `profile.site.timeZone`, then UTC with a `timesAreUtc` caveat |
+| `projectProfile({ day })` | Override, then `profile.site.timeZone`; throws if neither exists |
+| `buildScene` | Requires an explicit `timeZone` option |
+| `groupByLocalDay` / `windgramDisplayHours` | Require the caller's explicit timezone |
+
+## Scalar values
+
+Every numeric position under `surface`, `levels`, and `derived` is either a
+number or an ensemble percentile object. Switch on shape, not a model slug:
+
+```ts title="read-scalar.ts"
+import { isEnsembleDropout, isEnsembleValue, type WindgramProfile } from "windgram/contract";
+
+export function firstWindSpeed(profile: WindgramProfile): number | null | undefined {
+  const speed = profile.hours[0]?.surface.windSpeedMs;
+  return speed === undefined
+    ? undefined
+    : isEnsembleValue(speed)
+      ? isEnsembleDropout(speed) ? null : speed.p50
+      : speed;
+}
+```
+
+Full ensemble dropout is `members: 0` with every percentile `null`.
+`isEnsembleDropout` distinguishes it from a populated percentile block.
+
+For a consumer that supports only deterministic documents,
+`isDeterministicProfile(profile)` narrows every scalar position to `number`
+after one checked guard. Run it once per document.
+
+## Compatibility rules
+
+- Check `schemaVersion`; do not infer compatibility from filenames.
+- Model identity is an open slug discovered from the catalogue, not a package
+  enum.
+- An absent optional field means not published there, never zero.
+- A stored profile's own `semantics` keeps gust and precipitation meaning with
+  the document; absence of that v0.3-era tag does not imply a default.
+- A stored profile's optional `site.timeZone` keeps local-time interpretation
+  with the document; absence of that v0.4-era echo does not imply UTC.
+- The zod contract is behavioural authority. Generated JSON Schema files ship
+  under `windgram/schema` for other languages.
+
+See [Data and package versioning](/docs/data/versioning/) for the independent
+dataset, npm, and Python version axes.

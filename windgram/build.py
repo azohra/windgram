@@ -40,6 +40,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from .config import output_directory
 from .datamart import DownloadStats, NotFoundError, datamart_base, exists, fetch_bytes
 from .grib import GribField
 from .publish import append_history, manifest_stats, round_document, write_json
@@ -183,7 +184,7 @@ class DatamartModel:
 
     @property
     def out_dir(self) -> Path:
-        return Path("data") / self.slug
+        return output_directory(self.slug)
 
 
 def model_semantics(model: DatamartModel) -> dict[str, str]:

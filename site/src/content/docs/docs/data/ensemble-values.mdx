@@ -1,0 +1,74 @@
+---
+title: Ensemble values
+description: Interpret percentile blocks, contributor counts, censoring, and circular wind by value shape and membership.
+---
+
+import EnsembleSpreadLab from "../../../../components/labs/EnsembleSpreadLab.astro";
+import MemberAccounting from "../../../../components/research/MemberAccounting.astro";
+
+Any numeric profile position can be a deterministic number or an ensemble
+object:
+
+```json title="ensemble scalar"
+{
+  "members": 21,
+  "p10": 1.2,
+  "p25": 1.8,
+  "p50": 2.4,
+  "p75": 3.1,
+  "p90": 3.8
+}
+```
+
+`run.members` declares total run membership. A position's own `members`
+counts contributors at that position and can be lower when null or censored
+member values were excluded. Do not rank an absent value at zero.
+
+A full-dropout position has exactly this shape:
+
+```json title="full ensemble dropout"
+{
+  "members": 0,
+  "p10": null,
+  "p25": null,
+  "p50": null,
+  "p75": null,
+  "p90": null
+}
+```
+
+Full dropout means no member contributed at that position. It differs from an
+absent optional field and from a scalar `null` forecast position.
+
+## Reading the block
+
+- `p50` is the median, not the preferred or most likely member.
+- `p25–p75` and `p10–p90` describe member spread at one position; they are not
+  calibrated event-probability intervals.
+- Percentiles remain ordered even when several collapse to the same value.
+- `ceiledMembers`, when present on a supported height position, counts members
+  capped at the published column ceiling rather than resolving a physical top.
+
+Wind direction is aggregated circularly. A cluster around 350° and 10° belongs
+near north, not near the arithmetic mean of 180°. Consumers use the published
+percentile object and package scene rather than recomputing it linearly.
+
+<MemberAccounting />
+
+<EnsembleSpreadLab />
+
+## Narrow safely in TypeScript
+
+Use `isEnsembleValue` when the band matters, `isEnsembleDropout` for the
+zero-member shape, and `p50` from `windgram/derive` when a numeric derivation
+explicitly chooses the median. `p50` returns `number | null`. Use
+`isDeterministicProfile` only when an integration genuinely rejects ensemble
+documents.
+
+The scene graph builds median lines and percentile band geometry wherever the
+document supplies populated values. Dropout positions render as gaps; a level
+or hour whose required positions all dropped out contributes no scene element.
+
+The [column-ceiling study](/research/ensemble-spread/) records how a 700 hPa
+source ceiling concealed spread that appeared when the same member derivation
+extended to 500 hPa.

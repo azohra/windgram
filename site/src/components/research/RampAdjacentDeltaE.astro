@@ -6,6 +6,7 @@ import {
   CLASS_NAMES,
   DEFAULT_RAMP,
 } from "./ramp-math";
+import Figure from "../figure/Figure.astro";
 
 /* Adjacent-pair colour difference for the shipped default and canadarasp,
    computed at build time from the imported hexes: ΔE is Euclidean distance
@@ -62,16 +63,19 @@ const description = series
   .join(" ");
 ---
 
-<figure class="ramp-delta-e" aria-labelledby="ramp-delta-e-title ramp-delta-e-caption">
-  <header>
-    <h3 id="ramp-delta-e-title">What adjacency costs each philosophy</h3>
-    <span>OKLab ΔE ×100 per adjacent class pair; dots are the same pair under simulated deuteranopia.</span>
-  </header>
+<Figure
+  id="ramp-delta-e"
+  title="Adjacent boundaries in the pale register"
+  lesson="The shipped field stays pale behind chart content while each adjacent class clears the colour-vision floor."
+  {description}
+  caption="The shipped default repairs its ancestor's deuteranopia-blind purple boundary while staying in a pale background register. Bars show normal-vision ΔE; dots show simulated deuteranopia."
+  units="OKLab ΔE ×100"
+>
 
-  <div class="graphic-scroll" tabindex="0" aria-label="Scrollable chart of adjacent-pair colour difference for the two palettes">
+  <div class="graphic-scroll" role="region" tabindex="0" aria-label="Scrollable chart of adjacent-pair colour difference for both palettes">
     <svg viewBox="0 0 1040 452" role="img" aria-labelledby="ramp-delta-e-svg-title ramp-delta-e-svg-desc">
       <title id="ramp-delta-e-svg-title">
-        Adjacent-pair colour difference of the default stability ramp and the canadarasp preset,
+        Adjacent-pair colour difference of the default stability ramp and the historical canadarasp palette,
         under normal vision and simulated deuteranopia
       </title>
       <desc id="ramp-delta-e-svg-desc">
@@ -141,34 +145,9 @@ const description = series
     </svg>
   </div>
 
-  <figcaption id="ramp-delta-e-caption">
-    Each bar pair sits between the two classes it separates. The shipped default keeps every pair
-    above the colour-vision floor while staying inside the pale register a background field needs —
-    including the purple pair its ancestor lost to deuteranopia, repaired from ΔE 2.8 to 7.0.
-    canadarasp buys far taller bars — identity at maximum volume — and pays with that same pair
-    near zero. Default values computed at build time from the package export.
-  </figcaption>
-</figure>
+</Figure>
 
 <style>
-  .ramp-delta-e {
-    display: block;
-    width: min(1040px, calc(100vw - 32px));
-    margin: 28px 50% 44px;
-    transform: translateX(-50%);
-    color: var(--ink);
-    border-top: 3px solid var(--accent);
-    border-bottom: 1px solid var(--rule-strong);
-  }
-  header {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 6px 24px;
-    align-items: end;
-    padding: 18px 0 16px;
-  }
-  .ramp-delta-e h3 { margin: 0; font: 700 29px/1 var(--display); text-transform: uppercase; }
-  header > span { font: 13px/1.4 var(--mono); color: var(--ink-mute); }
   .graphic-scroll {
     overflow-x: auto;
     background: var(--surface);
@@ -190,11 +169,7 @@ const description = series
   .de-value { fill: var(--ink); font-size: 11px; font-weight: 700; text-anchor: middle; paint-order: stroke; stroke: var(--surface); stroke-width: 2.4px; }
   .de-value-left { text-anchor: start; }
   .de-colhead { fill: var(--ink-soft); font-size: 10px; font-weight: 700; text-anchor: middle; }
-  figcaption { padding: 12px 0 14px; font: 12px/1.5 var(--mono); color: var(--ink-mute); }
   @media (max-width: 720px) {
-    header { grid-template-columns: 1fr; }
-    .ramp-delta-e h3 { font-size: 25px; }
-    header > span { font-size: 12px; }
     .graphic-scroll { margin-inline: -8px; }
   }
 </style>
