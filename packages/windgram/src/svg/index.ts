@@ -42,6 +42,16 @@ export interface RenderSvgOptions {
  * the field's spatial adjacency, legend, and cursor readouts as secondary
  * encoding), light end 2.02:1 against the surface. Restyle via the
  * --wg-stab-* tokens.
+ *
+ * A trade-off this ordering buys, named so choosing differently is a
+ * choice and not a fix: monotone lightness puts the deepest ink on the
+ * stable side — usually the majority of the field and its least
+ * interesting answer — and pales the most energetic class. The default
+ * optimizes for "no reader is excluded"; palettes in the canadarasp
+ * lineage optimize for "the important thing is loudest" (stable air
+ * recedes toward the page, the eye lands on instability). Both are
+ * defensible conventions: consumers wanting instability-forward salience
+ * retheme the stable-side tokens, or start from CANADARASP_PRESET.
  */
 export const STABILITY_TOKEN_DEFAULTS = {
   "very-unstable": "#fe9996",
