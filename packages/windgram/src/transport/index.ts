@@ -53,6 +53,26 @@ export class TransportHttpError extends Error {
 }
 
 /**
+ * Why a load had nothing to return — the discriminated miss (previously a
+ * bare null that conflated two very different situations):
+ *
+ * - `"absent"`: HTTP 404 — the model or site simply is not published
+ *   here. A site outside a model's domain reads this way; it is routine
+ *   and usually not worth a log line.
+ * - `"invalid"`: the document EXISTS but failed the contract guard — a
+ *   contract break, or a model still publishing pre-release prototype
+ *   data. This is never routine; log it loudly, because rendering-wise it
+ *   presents exactly like "absent" and would otherwise hide.
+ *
+ * `url` names the offending document. Discriminate with `"miss" in
+ * result`.
+ */
+export interface DocumentMiss {
+  miss: "absent" | "invalid";
+  url: string;
+}
+
+/**
  * The pure pair check at the heart of the skew dance: true when the
  * manifest and profile describe the same model AND the same run
  * (referenceTime equality). A pair failing this check is a torn read —
@@ -104,15 +124,18 @@ export interface LoadedProfile {
  * - `{ manifest, profile, stale: false }` — a consistent pair;
  * - `{ manifest, profile, stale: true }` — the freshest complete pair seen,
  *   still torn after the retry (see `LoadedProfile.stale`);
- * - `null` — the model or site is not published here: a 404, or a body
- *   that fails the contract guards (a model still publishing pre-release
- *   prototype data reads as unavailable, exactly like a 404, rather than
- *   rendering garbage).
+ * - a `DocumentMiss` — nothing to render, saying WHY: `"absent"` (404 —
+ *   the model or site is not published here) or `"invalid"` (the document
+ *   exists but failed the contract guard — a contract break or prototype
+ *   data, which must not render as garbage and must not hide as a 404).
+ *   Discriminate with `"miss" in result`.
  *
  * Non-404 HTTP errors throw `TransportHttpError`. No caching, no storage —
  * see the module docblock for why that stays consumer-side.
  */
-export async function loadProfile(options: LoadProfileOptions): Promise<LoadedProfile | null> {
+export async function loadProfile(
+  options: LoadProfileOptions,
+): Promise<LoadedProfile | DocumentMiss> {
   const { fetch, modelSlug, siteSlug } = options;
   const base = trimTrailingSlash(options.baseUrl);
   const manifestUrl = `${base}/${modelSlug}/manifest.json`;
@@ -129,14 +152,17 @@ export async function loadProfile(options: LoadProfileOptions): Promise<LoadedPr
   };
 
   const first = await fetchPair();
-  if (first.manifest === null || first.profile === null) return null;
+  // The manifest miss wins when both missed: the model not publishing at
+  // all is the root cause of its site documents missing too.
+  if (isMiss(first.manifest)) return first.manifest;
+  if (isMiss(first.profile)) return first.profile;
   if (runsConsistent(first.manifest, first.profile)) {
     return { manifest: first.manifest, profile: first.profile, stale: false };
   }
 
   await sleep(delayMs);
   const second = await fetchPair();
-  if (second.manifest !== null && second.profile !== null) {
+  if (!isMiss(second.manifest) && !isMiss(second.profile)) {
     return {
       manifest: second.manifest,
       profile: second.profile,
@@ -158,24 +184,31 @@ export interface LoadRunsOptions {
  * Fetches data/runs.json — the cross-model run index: per published model,
  * its current run's (referenceTime, generatedAt), keyed by slug. A single
  * document, so there is no pair to tear and no dance; this exists so
- * consumers get the same 404/guard semantics as `loadProfile` (null when
- * absent or failing the contract, `TransportHttpError` on other HTTP
- * failures).
+ * consumers get the same miss semantics as `loadProfile` (a
+ * `DocumentMiss` saying "absent" or "invalid", `TransportHttpError` on
+ * other HTTP failures).
  */
-export async function loadRuns(options: LoadRunsOptions): Promise<RunsIndex | null> {
+export async function loadRuns(options: LoadRunsOptions): Promise<RunsIndex | DocumentMiss> {
   const base = trimTrailingSlash(options.baseUrl);
   return fetchDocument(options.fetch, `${base}/runs.json`, parseRunsIndexJson);
 }
 
-async function fetchDocument<T>(
+/* Documents from the contract guards never carry a "miss" key, so the
+   union discriminates on its presence. */
+function isMiss<T extends object>(value: T | DocumentMiss): value is DocumentMiss {
+  return "miss" in value;
+}
+
+async function fetchDocument<T extends object>(
   fetch: TransportFetch,
   url: string,
   guard: (text: string) => T | null,
-): Promise<T | null> {
+): Promise<T | DocumentMiss> {
   const response = await fetch(url);
-  if (response.status === 404) return null;
+  if (response.status === 404) return { miss: "absent", url };
   if (!response.ok) throw new TransportHttpError(response.status, url);
-  return guard(await response.text());
+  const parsed = guard(await response.text());
+  return parsed === null ? { miss: "invalid", url } : parsed;
 }
 
 function trimTrailingSlash(url: string): string {

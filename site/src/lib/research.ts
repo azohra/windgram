@@ -110,8 +110,8 @@ const DOC_FILES: DocDefinition[] = [
     file: "stability-ramp.md",
     kind: "entry",
     number: "10",
-    section: "Palette derivation",
-    summary: "A measured palette defect, and the annealed boundary between contrast and order",
+    section: "Palette design",
+    summary: "The field is background: a pale register, measured floors, and a lineage credit",
     accent: "amber",
   },
   {

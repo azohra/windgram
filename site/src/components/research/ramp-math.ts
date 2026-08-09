@@ -1,11 +1,13 @@
 import { STABILITY_TOKEN_DEFAULTS, TOKEN_DEFAULTS } from "windgram/svg";
-import { CANADARASP_PRESET } from "windgram/presets";
 
-/* Build-time colour math for the stability-ramp figures. The two subject
-   palettes are imported from the package — never restated — so the figures
-   cannot drift from the shipped values. The math mirrors the palette
-   validator the ramp was derived with: ΔE is Euclidean distance in OKLab
-   scaled by 100, and colour-vision deficiency is simulated with the
+/* Build-time colour math for the stability-ramp figures. The shipped ramp
+   is imported from the package — never restated — so the figures cannot
+   drift from the shipped values; the canadarasp palette is a HISTORICAL
+   subject (the 0.5.x-era CANADARASP_PRESET departed with the preset
+   catalogue), restated here as cited history that can no longer drift
+   because it no longer ships. The math mirrors the palette validator the
+   ramp was derived with: ΔE is Euclidean distance in OKLab scaled by 100,
+   and colour-vision deficiency is simulated with the
    Machado–Oliveira–Fernandes (2009) matrices at severity 1.0, the same
    conventions the derivation JSDoc on STABILITY_TOKEN_DEFAULTS cites. */
 
@@ -98,7 +100,21 @@ export const CLASS_LABELS: Record<string, string> = {
   "strong-inversion": "Strong inversion",
 };
 
-const canadaraspTokens = CANADARASP_PRESET.tokens ?? {};
+/* canadarasp's stability palette and background, verified 2026-08-08
+   against windgram-continental.ncl / windgram-continental-colormap.ncl in
+   github.com/ajberkley/canadarasp (the citations lived in the departed
+   preset's JSDoc; values unchanged since). */
+const canadaraspTokens: Record<string, string> = {
+  "stab-very-unstable": "#ff3d3d",
+  "stab-unstable": "#ff7800",
+  "stab-conditional-strong": "#ff96ff",
+  "stab-conditional": "#ccbfff",
+  "stab-near-neutral": "#facab1",
+  "stab-stable": "#8080e6",
+  "stab-inverted": "#cccccc",
+  "stab-strong-inversion": "#999999",
+  surface: "#8080e6",
+};
 
 export interface SubjectRamp {
   name: string;
@@ -114,10 +130,11 @@ export const DEFAULT_RAMP: SubjectRamp = {
 };
 
 export const CANADARASP_RAMP: SubjectRamp = {
-  name: "canadarasp preset",
+  name: "canadarasp",
   hexes: CLASS_NAMES.map((name) => canadaraspTokens[`stab-${name}`] ?? "#000000"),
   surface: canadaraspTokens.surface ?? "#000000",
 };
+
 
 /** Adjacent-pair ΔE values for a ramp: seven pairs, normal + CVD. */
 export function adjacentPairs(ramp: SubjectRamp) {

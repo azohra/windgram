@@ -29,7 +29,6 @@ import MoistureSignals from "../../components/research/MoistureSignals.astro";
 import MoisturePrecipCase from "../../components/research/MoisturePrecipCase.astro";
 import StabilityRampStrips from "../../components/research/StabilityRampStrips.astro";
 import CloudBaseDeltas from "../../components/research/CloudBaseDeltas.astro";
-import RampLightnessSteps from "../../components/research/RampLightnessSteps.astro";
 import RampAdjacentDeltaE from "../../components/research/RampAdjacentDeltaE.astro";
 
 export function getStaticPaths() {
@@ -65,7 +64,6 @@ type Part =
   | { type: "moisture-precip" }
   | { type: "ramp-strips" }
   | { type: "cloud-base-deltas" }
-  | { type: "ramp-lightness" }
   | { type: "ramp-delta-e" };
 
 function buildParts(doc: DocPage): Part[] {
@@ -223,23 +221,15 @@ function buildParts(doc: DocPage): Part[] {
 
   if (doc.slug === "stability-ramp") {
     // Each figure closes the section that argues it: the swatch strips end
-    // the ordinal-philosophy section, the lightness staircase ends the
-    // annealing section, and the ΔE bars end the negative-result section.
-    const [throughOrdinal, fromAnnealing] = splitBeforeHeading(
-      doc.html,
-      "annealing-toward-the-boundary",
-    );
-    const [annealing, fromNegative] = splitBeforeHeading(fromAnnealing, "contrast-without-order");
-    const [negative, remainder] = splitBeforeHeading(
-      fromNegative,
-      "defaults-are-argued-familiarity-is-a-preset",
-    );
+    // the lineage section (both palettes on their own surfaces, grayscale
+    // rows showing what each design keeps), and the ΔE bars end the
+    // measurement section (the repaired pair against the floors).
+    const [throughLineage, fromMeasured] = splitBeforeHeading(doc.html, "measured-not-eyeballed");
+    const [measured, remainder] = splitBeforeHeading(fromMeasured, "one-look");
     return [
-      { type: "html", value: throughOrdinal },
+      { type: "html", value: throughLineage },
       { type: "ramp-strips" },
-      { type: "html", value: annealing },
-      { type: "ramp-lightness" },
-      { type: "html", value: negative },
+      { type: "html", value: measured },
       { type: "ramp-delta-e" },
       { type: "html", value: remainder },
     ];
@@ -326,8 +316,6 @@ const parts = buildParts(doc);
           <StabilityRampStrips />
         ) : part.type === "cloud-base-deltas" ? (
           <CloudBaseDeltas />
-        ) : part.type === "ramp-lightness" ? (
-          <RampLightnessSteps />
         ) : part.type === "ramp-delta-e" ? (
           <RampAdjacentDeltaE />
         ) : null,

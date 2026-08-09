@@ -7,12 +7,12 @@ import {
   DEFAULT_RAMP,
 } from "./ramp-math";
 
-/* Adjacent-pair colour difference for both palettes, computed at build time
-   from the imported hexes: ΔE is Euclidean distance in OKLab scaled by 100,
-   deuteranopia simulated with the Machado 2009 matrices at severity 1.0 —
-   the same math the ramp was derived and validated with. Bars are the
-   normal-vision pair difference; the dot on each bar is the same pair under
-   simulated deuteranopia. */
+/* Adjacent-pair colour difference for the shipped default and canadarasp,
+   computed at build time from the imported hexes: ΔE is Euclidean distance
+   in OKLab scaled by 100, deuteranopia simulated with the Machado 2009
+   matrices at severity 1.0 — the same math the ramp was validated with.
+   Bars are the normal-vision pair difference; the dot on each bar is the
+   same pair under simulated deuteranopia. */
 
 const LEFT = 96;
 const RIGHT = 992;
@@ -68,7 +68,7 @@ const description = series
     <span>OKLab ΔE ×100 per adjacent class pair; dots are the same pair under simulated deuteranopia.</span>
   </header>
 
-  <div class="graphic-scroll" tabindex="0" aria-label="Scrollable chart of adjacent-pair colour difference for both palettes">
+  <div class="graphic-scroll" tabindex="0" aria-label="Scrollable chart of adjacent-pair colour difference for the two palettes">
     <svg viewBox="0 0 1040 452" role="img" aria-labelledby="ramp-delta-e-svg-title ramp-delta-e-svg-desc">
       <title id="ramp-delta-e-svg-title">
         Adjacent-pair colour difference of the default stability ramp and the canadarasp preset,
@@ -142,10 +142,11 @@ const description = series
   </div>
 
   <figcaption id="ramp-delta-e-caption">
-    Each bar pair sits between the two classes it separates. The default ramp holds every pair in a
-    narrow band above the target in every channel; the canadarasp preset buys far taller bars —
-    identity at maximum volume — and pays where a categorical palette is designed to pay, with one
-    pair near zero under deuteranopia. All values computed at build time from the package exports.
+    Each bar pair sits between the two classes it separates. The shipped default keeps every pair
+    above the colour-vision floor while staying inside the pale register a background field needs —
+    including the purple pair its ancestor lost to deuteranopia, repaired from ΔE 2.8 to 7.0.
+    canadarasp buys far taller bars — identity at maximum volume — and pays with that same pair
+    near zero. Default values computed at build time from the package export.
   </figcaption>
 </figure>
 

@@ -32,36 +32,39 @@ export interface RenderSvgOptions {
  * export instead of restating hex values. Keys are the `wg-stab-*`
  * class/token suffixes in threshold order (most unstable first).
  *
- * Derived with the dataviz palette validator (OKLab/OKLCH, Machado 2009
- * CVD simulation) against the default surface #fffdf8: lightness is
- * strictly monotone across the whole ramp (OKLCH L 0.79 → 0.33, so
- * grayscale and CVD readers keep the unstable→inverted ordering), the warm
- * arm carries the unstable half and the cool arm the stable half with a
- * neutral pivot at near-neutral, minimum adjacent-pair ΔE 11.0 (normal
- * vision), 7.7 protan / 8.9 deutan (above the validator's 6.0 floor, with
- * the field's spatial adjacency, legend, and cursor readouts as secondary
- * encoding), light end 2.02:1 against the surface. Restyle via the
- * --wg-stab-* tokens.
+ * The field is BACKGROUND, and the ramp is designed for that layer's job:
+ * the whole ramp lives in a pale register so the content drawn over it —
+ * series lines, barbs, markers, labels, the actual flight decision —
+ * keeps figure-ground contrast for every reader. Salience is relative:
+ * with the field quiet, the warm unstable classes are the loudest thing
+ * on the chart without spending ink mass. Hues follow the aerogram
+ * convention this renderer descends from (warm = unstable, pink/lavender
+ * = conditional, tan pivot, blue = stable, greys = inverted); an earlier
+ * default that ordered the whole ramp by monotone lightness optimized
+ * the wrong layer — it bought class-boundary ΔE with the figure-ground
+ * contrast of everything drawn on top.
  *
- * A trade-off this ordering buys, named so choosing differently is a
- * choice and not a fix: monotone lightness puts the deepest ink on the
- * stable side — usually the majority of the field and its least
- * interesting answer — and pales the most energetic class. The default
- * optimizes for "no reader is excluded"; palettes in the canadarasp
- * lineage optimize for "the important thing is loudest" (stable air
- * recedes toward the page, the eye lands on instability). Both are
- * defensible conventions: consumers wanting instability-forward salience
- * retheme the stable-side tokens, or start from CANADARASP_PRESET.
+ * What the pale register can and cannot promise, measured with the
+ * dataviz palette validator (OKLab, Machado 2009 CVD simulation) against
+ * the default surface #fffdf8: every adjacent pair clears the 6.0 CVD
+ * floor on every axis (worst 7.0 deutan, 6.8 tritan); global
+ * grayscale ordering is NOT achievable in ~30 L* points across eight
+ * classes and is not claimed — class identity rides hue plus the
+ * chart's non-colour channels (the key's plain-words cells, cursor
+ * readouts, spatial structure); the cool tail is internally light-
+ * ordered (stable → inverted → strong-inversion); palest cells sit
+ * near 2:1 against the surface — receding toward the page is the
+ * design, not an accident. Restyle via the --wg-stab-* tokens.
  */
 export const STABILITY_TOKEN_DEFAULTS = {
-  "very-unstable": "#fe9996",
-  unstable: "#da934a",
-  "conditional-strong": "#a68300",
-  conditional: "#6a753f",
-  "near-neutral": "#5b5f6b",
-  stable: "#04548d",
-  inverted: "#004f4a",
-  "strong-inversion": "#1b3071",
+  "very-unstable": "#d95f52",
+  unstable: "#de8f3a",
+  "conditional-strong": "#c67eb6",
+  conditional: "#aeaad9",
+  "near-neutral": "#d7b29b",
+  stable: "#768bb9",
+  inverted: "#9aa19d",
+  "strong-inversion": "#b3b9b6",
 } as const;
 
 const STABILITY_RULES = Object.entries(STABILITY_TOKEN_DEFAULTS)
@@ -85,11 +88,17 @@ const STABILITY_RULES = Object.entries(STABILITY_TOKEN_DEFAULTS)
  * sets, as `--wg-text-<role>` tokens, so a page-scale consumer retypes
  * the chart without forking the renderer. Weights stay in the rules.
  *
- * The halo tokens are per-element: `--wg-halo-series`, `--wg-halo-barb`,
- * `--wg-halo-marker` and `--wg-halo-text` each fall back to the shared
- * `--wg-halo`, so one override still retints everything while any
- * element can be tuned — or switched off with `transparent` — alone.
- * They carry no entries here because their default IS `halo`.
+ * The halo tokens are per-element. `--wg-halo-marker` and
+ * `--wg-halo-text` fall back to the shared `--wg-halo` (paper, so glyphs
+ * and labels punch out of the field). `--wg-halo-series` defaults
+ * `transparent`: series lines are bare ink — a halo repeated dash-by-dash
+ * reads as fuzz, the production verdict from the first consumer port.
+ * `--wg-halo-barb` defaults to the old barb slate: the barbs themselves
+ * are white (`wind`), the convention that survived every saturated field
+ * the reference ramp lost slate barbs on, and the fine dark rim is what
+ * keeps a white glyph legible on a chart with no field to sit on (models
+ * without levels draw barbs straight on the paper). Set it `transparent`
+ * for the bare-white club look, or any colour to re-halo an element.
  */
 export const TOKEN_DEFAULTS = {
   font: '"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif',
@@ -118,6 +127,8 @@ export const TOKEN_DEFAULTS = {
   "ink-soft": "#2f454a",
   "ink-mute": "#40565a",
   halo: "#fffdf8",
+  "halo-series": "transparent",
+  "halo-barb": "#355963",
   accent: "#913b0c",
   // The surface-temperature row's ink: its own slot (theme it apart from
   // the highlight), shipping at the accent's warm default.
@@ -154,7 +165,9 @@ export const TOKEN_DEFAULTS = {
   usable: "#2179ad",
   freezing: "#2b748f",
   dewpoint: "#3a7d4f",
-  wind: "#355963",
+  // White barbs, rimmed by halo-barb: legible on every field cell and on
+  // bare paper alike (see the halo notes above).
+  wind: "#ffffff",
 } as const;
 
 /** `var(--wg-<name>, <default>)` with the fallback read from TOKEN_DEFAULTS. */
@@ -162,8 +175,10 @@ function v(name: keyof typeof TOKEN_DEFAULTS): string {
   return `var(--wg-${name}, ${TOKEN_DEFAULTS[name]})`;
 }
 
-/** Per-element halo slot falling back to the shared `--wg-halo`. */
-function haloVar(element: "series" | "barb" | "marker" | "text"): string {
+/** Per-element halo slot falling back to the shared `--wg-halo` (marker
+ * and text only; series and barb halos have their own TOKEN_DEFAULTS
+ * entries — transparent and the barb rim slate respectively). */
+function haloVar(element: "marker" | "text"): string {
   return `var(--wg-halo-${element}, ${v("halo")})`;
 }
 
@@ -190,7 +205,7 @@ export const DEFAULT_STYLESHEET = `
 .wg-launch-label { fill: ${v("ink")}; font-size: ${v("text-launch")}; font-weight: 600; }
 .wg-surface-temp { fill: ${v("temp")}; font-size: ${v("text-surface-temp")}; font-weight: 700; }
 .wg-haloed-text { stroke: ${haloVar("text")}; paint-order: stroke; }
-.wg-halo { stroke: ${haloVar("series")}; }
+.wg-halo { stroke: ${v("halo-series")}; }
 .wg-selected-column { fill: ${v("accent")}; opacity: 0.05; }
 .wg-selected-line { stroke: ${v("accent")}; }
 .wg-launch-line { stroke: ${v("ink")}; }
@@ -248,8 +263,8 @@ ${STABILITY_RULES}
 .wg-dewpoint-label { fill: ${v("dewpoint")}; }
 .wg-barb { stroke: ${v("wind")}; }
 .wg-barb-fill { fill: ${v("wind")}; stroke: ${v("wind")}; }
-.wg-barb-halo { stroke: ${haloVar("barb")}; }
-.wg-barb-fill-halo { fill: ${haloVar("barb")}; stroke: ${haloVar("barb")}; }
+.wg-barb-halo { stroke: ${v("halo-barb")}; }
+.wg-barb-fill-halo { fill: ${v("halo-barb")}; stroke: ${v("halo-barb")}; }
 .wg-marker-wing { fill: ${v("usable")}; stroke: ${v("usable")}; }
 .wg-marker-cloud { fill: ${v("cloud-marker")}; stroke: ${v("cloud-base")}; }
 .wg-marker-halo { fill: ${haloVar("marker")}; stroke: ${haloVar("marker")}; }

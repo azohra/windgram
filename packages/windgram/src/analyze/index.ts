@@ -78,7 +78,11 @@ import { localDateKey } from "../derive/day-window.js";
  * a kind is a contract event — bump this, and document the evidence that
  * justified the change (see the module charter above).
  */
-export const ANALYZE_VOCABULARY_VERSION = 1;
+export const ANALYZE_VOCABULARY_VERSION = 2;
+/* v2 (2026-08-08): adds `quietDay` — production consumer evidence: a day
+   with no flyable window was expressible only by absence, so headlines
+   could say "no window" but never why. The negative now carries the
+   numbers that failed, per the statements-with-evidence charter. */
 
 /* ------------------------------------------------------------- vocabulary */
 
@@ -87,8 +91,25 @@ export const ANALYZE_VOCABULARY_VERSION = 1;
  * ("2026-08-08T11:00") in the analysis timezone. */
 export interface CitedInstant {
   validAt: string;
+  /**
+   * The FULL local timestamp, ISO-shaped, h23, minute precision — a data
+   * value, not display copy. Voice formatting (12-hour clocks, "1 p.m.",
+   * dropping the date) is deliberately downstream: format from this or
+   * from `validAt` in your own presentation layer; this field never
+   * follows the scene's `hourLabel` convention.
+   */
   local: string;
 }
+
+/**
+ * Local calendar date key ("2026-08-09") in the analysis `timeZone` —
+ * derive/'s `localDateKey` of the hour's `validAt`. Pairing findings with
+ * a consumer's own day tabs (`groupByLocalDay`, `windgramDisplayHours`)
+ * works only when both sides compute the key in the SAME zone: pass the
+ * same timeZone to `analyzeProfile` as to the windowing, or the days
+ * around midnight will land in different tabs.
+ */
+export type LocalDayKey = string;
 
 /**
  * The model's grid terrain sits far from the surveyed launch, so every
@@ -202,7 +223,7 @@ export interface EnsembleMembershipFinding {
  */
 export interface CapTimingFinding {
   kind: "capTiming";
-  day: string;
+  day: LocalDayKey;
   verdict: "capBreaks" | "cappedAllDay" | "noInstability";
   peakCapeJkg: number;
   peakCapeAt: CitedInstant | null;
@@ -239,7 +260,7 @@ export interface CapTimingFinding {
  */
 export interface FlyableWindowFinding {
   kind: "flyableWindow";
-  day: string;
+  day: LocalDayKey;
   start: CitedInstant;
   end: CitedInstant;
   durationHours: number;
@@ -268,7 +289,7 @@ export interface FlyableWindowFinding {
  */
 export interface LiftCeilingFinding {
   kind: "liftCeiling";
-  day: string;
+  day: LocalDayKey;
   segments: Array<{
     cause: "cloudCapped" | "sinkLimited";
     start: CitedInstant;
@@ -303,7 +324,7 @@ export interface LiftCeilingFinding {
  */
 export interface WindSummaryFinding {
   kind: "windSummary";
-  day: string;
+  day: LocalDayKey;
   maxGust?: {
     gustMs: number;
     meanWindMs: number | null;
@@ -323,12 +344,40 @@ export interface WindSummaryFinding {
   thresholds: { bandMarginM: number; persistenceFractionOfMax: number };
 }
 
+/**
+ * A local day that produced NO flyable window — the negative stated with
+ * its evidence instead of by absence, so a consumer's headline can say WHY
+ * ("peak W* 0.4 m/s, below the 0.9 floor") rather than only "no window".
+ * Emitted once per local day that has forecast hours and no flyableWindow
+ * finding; a day with a window emits nothing here (the window IS the
+ * statement). `failed` names the floors the day's best hours missed —
+ * including the honest edge case `"coincidence"`, where each threshold is
+ * met at SOME hour but never both in the same hour.
+ */
+export interface QuietDayFinding {
+  kind: "quietDay";
+  day: LocalDayKey;
+  /** The day's best W*; null when no hour published the series. */
+  peakThermalVelocityMs: number | null;
+  peakThermalVelocityAt: CitedInstant | null;
+  /**
+   * The day's best usable-lift depth above the launch reference
+   * (site.altitudeM, or modelElevationM when the launch is unsurveyed —
+   * the same arithmetic the window test runs); null when unpublished.
+   */
+  peakLiftDepthM: number | null;
+  peakLiftDepthAt: CitedInstant | null;
+  failed: Array<"wstar" | "depth" | "coincidence">;
+  thresholds: { wstarMinMs: number; depthMinM: number };
+}
+
 export type WindgramFinding =
   | TerrainMismatchFinding
   | DataCaveatsFinding
   | EnsembleMembershipFinding
   | CapTimingFinding
   | FlyableWindowFinding
+  | QuietDayFinding
   | LiftCeilingFinding
   | WindSummaryFinding;
 
@@ -399,7 +448,7 @@ export interface WindgramAnalysis {
 /* ------------------------------------------------------------ entry point */
 
 /**
- * Extracts version-1 vocabulary findings from one profile document.
+ * Extracts the versioned vocabulary's findings from one profile document.
  * Deterministic and ensemble documents both work: ensemble positions are
  * read at p50, band and membership information surfaces through the
  * `ensembleMembership` kind and the evidence blocks, and `capTiming`
@@ -430,6 +479,7 @@ export function analyzeProfile(
   const findings: WindgramFinding[] = [
     ...findTerrainMismatch(context),
     ...windows,
+    ...findQuietDays(context, windows),
     ...findLiftCeilings(context, windows),
     ...findCapTiming(context, windows),
     ...findWindSummaries(context),
@@ -624,6 +674,69 @@ function findFlyableWindows(context: Context): FlyableWindowFinding[] {
     }
     findings.push(finding);
     index = last + 1;
+  }
+  return findings;
+}
+
+/* The negative statement: local days that produced no flyable window,
+   carrying the numbers that failed. Days covered by any window hour are
+   excluded via the windows' own evidence (a window that crosses midnight
+   covers both its days). */
+function findQuietDays(
+  context: Context,
+  windows: FlyableWindowFinding[],
+): QuietDayFinding[] {
+  const { profile, launchReferenceM, thresholds } = context;
+  const { wstarMinMs, depthMinM } = thresholds.flyableWindow;
+  const windowDays = new Set(
+    windows.flatMap((window) =>
+      window.evidence.hours.map((validAt) => localDateKey(validAt, context.timeZone)),
+    ),
+  );
+  const byDay = new Map<string, WindgramHour[]>();
+  for (const hour of profile.hours) {
+    const day = localDateKey(hour.validAt, context.timeZone);
+    const group = byDay.get(day) ?? [];
+    group.push(hour);
+    byDay.set(day, group);
+  }
+
+  const findings: QuietDayFinding[] = [];
+  for (const [day, hours] of byDay) {
+    if (windowDays.has(day)) continue;
+    let peakWstar: number | null = null;
+    let peakWstarAt: string | null = null;
+    let peakDepth: number | null = null;
+    let peakDepthAt: string | null = null;
+    for (const hour of hours) {
+      const wstar = median(hour.derived.thermalVelocityMs);
+      const top = median(hour.derived.usableLiftTopM);
+      const depth = top === null ? null : top - launchReferenceM;
+      if (wstar !== null && (peakWstar === null || wstar > peakWstar)) {
+        peakWstar = wstar;
+        peakWstarAt = hour.validAt;
+      }
+      if (depth !== null && (peakDepth === null || depth > peakDepth)) {
+        peakDepth = depth;
+        peakDepthAt = hour.validAt;
+      }
+    }
+    const failed: QuietDayFinding["failed"] = [];
+    if (peakWstar === null || peakWstar < wstarMinMs) failed.push("wstar");
+    if (peakDepth === null || peakDepth < depthMinM) failed.push("depth");
+    // Each floor met at SOME hour, never both in the same hour — a real
+    // (if rare) shape: morning depth under a dying W*, or the reverse.
+    if (failed.length === 0) failed.push("coincidence");
+    findings.push({
+      kind: "quietDay",
+      day,
+      peakThermalVelocityMs: peakWstar === null ? null : round1(peakWstar),
+      peakThermalVelocityAt: peakWstarAt === null ? null : context.cite(peakWstarAt),
+      peakLiftDepthM: peakDepth === null ? null : round1(peakDepth),
+      peakLiftDepthAt: peakDepthAt === null ? null : context.cite(peakDepthAt),
+      failed,
+      thresholds: { wstarMinMs, depthMinM },
+    });
   }
   return findings;
 }

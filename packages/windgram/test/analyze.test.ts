@@ -10,6 +10,7 @@ import {
   type EnsembleMembershipFinding,
   type FlyableWindowFinding,
   type LiftCeilingFinding,
+  type QuietDayFinding,
   type TerrainMismatchFinding,
   type WindSummaryFinding,
 } from "../src/analyze/index.js";
@@ -79,7 +80,7 @@ describe("the analysis envelope", () => {
     expect(caveats.caveats).toContainEqual({ caveat: "timesAreUtc" });
   });
 
-  it("emits only the version-1 vocabulary — kinds are a closed, versioned set", () => {
+  it("emits only the version-2 vocabulary — kinds are a closed, versioned set", () => {
     const kinds = new Set(
       [hrrr(), geps(), reps()].flatMap((profile) =>
         analyzeProfile(profile).findings.map((finding) => finding.kind),
@@ -92,6 +93,7 @@ describe("the analysis envelope", () => {
         "ensembleMembership",
         "capTiming",
         "flyableWindow",
+        "quietDay",
         "liftCeiling",
         "windSummary",
       ]).toContain(kind);
@@ -132,6 +134,32 @@ describe("flyableWindow", () => {
     expect(findings[0].durationHours).toBe(1);
     expect(findings[0].start.validAt).toBe("2026-08-08T22:00:00Z");
     expect(findings[0].thresholds).toEqual({ wstarMinMs: 2.1, depthMinM: 1500 });
+  });
+
+  it("states the negative: a day with no window emits quietDay with the numbers that failed", () => {
+    // Impossible W* floor: every day is quiet, and the finding says why.
+    const strict = analyzeProfile(hrrr(), {
+      thresholds: { flyableWindow: { wstarMinMs: 99, depthMinM: 300 } },
+    });
+    expect(ofKind<FlyableWindowFinding>(strict.findings, "flyableWindow")).toHaveLength(0);
+    const quiet = ofKind<QuietDayFinding>(strict.findings, "quietDay");
+    const saturday = quiet.find((finding) => finding.day === "2026-08-08")!;
+    expect(saturday.failed).toEqual(["wstar"]);
+    // The evidence is the day's best hour against each floor.
+    expect(saturday.peakThermalVelocityMs).toBe(2.2);
+    expect(saturday.peakLiftDepthM).toBe(1658.6);
+    expect(saturday.peakLiftDepthAt?.validAt).toBe("2026-08-08T23:00:00Z");
+    expect(saturday.thresholds).toEqual({ wstarMinMs: 99, depthMinM: 300 });
+  });
+
+  it("emits no quietDay for a day any window hour touches", () => {
+    const findings = analyzeProfile(hrrr()).findings;
+    const windowDays = new Set(
+      ofKind<FlyableWindowFinding>(findings, "flyableWindow").map((finding) => finding.day),
+    );
+    for (const quiet of ofKind<QuietDayFinding>(findings, "quietDay")) {
+      expect(windowDays.has(quiet.day)).toBe(false);
+    }
   });
 
   it("reads ensembles at p50 and carries the p10-p90 lift-top band as evidence", () => {

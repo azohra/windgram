@@ -18,7 +18,7 @@
 .wg-launch-label { fill: var(--wg-ink, #152529); font-size: var(--wg-text-launch, 10.5px); font-weight: 600; }
 .wg-surface-temp { fill: var(--wg-temp, #913b0c); font-size: var(--wg-text-surface-temp, 9.5px); font-weight: 700; }
 .wg-haloed-text { stroke: var(--wg-halo-text, var(--wg-halo, #fffdf8)); paint-order: stroke; }
-.wg-halo { stroke: var(--wg-halo-series, var(--wg-halo, #fffdf8)); }
+.wg-halo { stroke: var(--wg-halo-series, transparent); }
 .wg-selected-column { fill: var(--wg-accent, #913b0c); opacity: 0.05; }
 .wg-selected-line { stroke: var(--wg-accent, #913b0c); }
 .wg-launch-line { stroke: var(--wg-ink, #152529); }
@@ -44,14 +44,14 @@
 .wg-gust { fill: var(--wg-gust, #355963); font-size: var(--wg-text-gust, 9.5px); font-weight: 700; }
 .wg-series-pbl { stroke: var(--wg-pbl, #56609b); }
 .wg-series-pbl-band { fill: var(--wg-pbl, #56609b); opacity: 0.16; }
-.wg-stab-very-unstable { fill: var(--wg-stab-very-unstable, #fe9996); }
-.wg-stab-unstable { fill: var(--wg-stab-unstable, #da934a); }
-.wg-stab-conditional-strong { fill: var(--wg-stab-conditional-strong, #a68300); }
-.wg-stab-conditional { fill: var(--wg-stab-conditional, #6a753f); }
-.wg-stab-near-neutral { fill: var(--wg-stab-near-neutral, #5b5f6b); }
-.wg-stab-stable { fill: var(--wg-stab-stable, #04548d); }
-.wg-stab-inverted { fill: var(--wg-stab-inverted, #004f4a); }
-.wg-stab-strong-inversion { fill: var(--wg-stab-strong-inversion, #1b3071); }
+.wg-stab-very-unstable { fill: var(--wg-stab-very-unstable, #d95f52); }
+.wg-stab-unstable { fill: var(--wg-stab-unstable, #de8f3a); }
+.wg-stab-conditional-strong { fill: var(--wg-stab-conditional-strong, #c67eb6); }
+.wg-stab-conditional { fill: var(--wg-stab-conditional, #aeaad9); }
+.wg-stab-near-neutral { fill: var(--wg-stab-near-neutral, #d7b29b); }
+.wg-stab-stable { fill: var(--wg-stab-stable, #768bb9); }
+.wg-stab-inverted { fill: var(--wg-stab-inverted, #9aa19d); }
+.wg-stab-strong-inversion { fill: var(--wg-stab-strong-inversion, #b3b9b6); }
 .wg-cloud-hatch-line { stroke: var(--wg-ink-soft, #2f454a); }
 .wg-cloud-medium { fill: var(--wg-cloud, #5b6969); opacity: 0.22; }
 .wg-cloud-light { fill: var(--wg-cloud, #5b6969); opacity: 0.1; }
@@ -81,10 +81,10 @@
 .wg-isotherm-label-freezing { fill: var(--wg-freezing, #2b748f); }
 .wg-dewpoint-isoline { stroke: var(--wg-dewpoint, #3a7d4f); }
 .wg-dewpoint-label { fill: var(--wg-dewpoint, #3a7d4f); }
-.wg-barb { stroke: var(--wg-wind, #355963); }
-.wg-barb-fill { fill: var(--wg-wind, #355963); stroke: var(--wg-wind, #355963); }
-.wg-barb-halo { stroke: var(--wg-halo-barb, var(--wg-halo, #fffdf8)); }
-.wg-barb-fill-halo { fill: var(--wg-halo-barb, var(--wg-halo, #fffdf8)); stroke: var(--wg-halo-barb, var(--wg-halo, #fffdf8)); }
+.wg-barb { stroke: var(--wg-wind, #ffffff); }
+.wg-barb-fill { fill: var(--wg-wind, #ffffff); stroke: var(--wg-wind, #ffffff); }
+.wg-barb-halo { stroke: var(--wg-halo-barb, #355963); }
+.wg-barb-fill-halo { fill: var(--wg-halo-barb, #355963); stroke: var(--wg-halo-barb, #355963); }
 .wg-marker-wing { fill: var(--wg-usable, #2179ad); stroke: var(--wg-usable, #2179ad); }
 .wg-marker-cloud { fill: var(--wg-cloud-marker, #f8f3d8); stroke: var(--wg-cloud-base, #355963); }
 .wg-marker-halo { fill: var(--wg-halo-marker, var(--wg-halo, #fffdf8)); stroke: var(--wg-halo-marker, var(--wg-halo, #fffdf8)); }

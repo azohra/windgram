@@ -5,9 +5,16 @@ import {
   loadRuns,
   runsConsistent,
   TransportHttpError,
+  type DocumentMiss,
   type TransportResponse,
 } from "../src/transport/index.js";
 import { deterministicProfile, manifest, runsIndex } from "./fixtures.js";
+
+/** Narrow a load result to its hit; a miss fails the test loudly. */
+function hit<T extends object>(result: T | DocumentMiss): T {
+  if ("miss" in result) throw new Error(`unexpected miss: ${JSON.stringify(result)}`);
+  return result;
+}
 
 const BASE = "https://example.test/data";
 const MANIFEST_URL = `${BASE}/hrdps-continental/manifest.json`;
@@ -69,9 +76,9 @@ describe("loadProfile", () => {
       modelSlug: "hrdps-continental",
       siteSlug: "dundee",
     });
-    expect(loaded).not.toBeNull();
-    expect(loaded!.stale).toBe(false);
-    expect(loaded!.manifest.referenceTime).toBe("2026-08-08T00:00:00Z");
+    const pairLoaded = hit(loaded);
+    expect(pairLoaded.stale).toBe(false);
+    expect(pairLoaded.manifest.referenceTime).toBe("2026-08-08T00:00:00Z");
     expect(calls).toHaveLength(2); // no retry on a clean pair
   });
 
@@ -89,8 +96,9 @@ describe("loadProfile", () => {
       siteSlug: "dundee",
       retry: noWait,
     });
-    expect(loaded!.stale).toBe(false);
-    expect(loaded!.profile.run.referenceTime).toBe("2026-08-08T06:00:00Z");
+    const pairLoaded = hit(loaded);
+    expect(pairLoaded.stale).toBe(false);
+    expect(pairLoaded.profile.run.referenceTime).toBe("2026-08-08T06:00:00Z");
     expect(calls).toHaveLength(4); // pair + one retried pair, never more
   });
 
@@ -108,11 +116,11 @@ describe("loadProfile", () => {
       siteSlug: "dundee",
       retry: noWait,
     });
-    expect(loaded).not.toBeNull();
-    expect(loaded!.stale).toBe(true);
+    const pairLoaded = hit(loaded);
+    expect(pairLoaded.stale).toBe(true);
     // The freshest complete pair is returned for the caller to judge.
-    expect(loaded!.manifest.referenceTime).toBe("2026-08-08T06:00:00Z");
-    expect(loaded!.profile.run.referenceTime).toBe("2026-08-08T00:00:00Z");
+    expect(pairLoaded.manifest.referenceTime).toBe("2026-08-08T06:00:00Z");
+    expect(pairLoaded.profile.run.referenceTime).toBe("2026-08-08T00:00:00Z");
     expect(calls).toHaveLength(4);
   });
 
@@ -130,9 +138,9 @@ describe("loadProfile", () => {
       siteSlug: "dundee",
       retry: noWait,
     });
-    expect(loaded).not.toBeNull();
-    expect(loaded!.stale).toBe(true);
-    expect(loaded!.profile.run.referenceTime).toBe("2026-08-08T00:00:00Z");
+    const pairLoaded = hit(loaded);
+    expect(pairLoaded.stale).toBe(true);
+    expect(pairLoaded.profile.run.referenceTime).toBe("2026-08-08T00:00:00Z");
   });
 
   it("waits the configured delay (and only on a torn read)", async () => {
@@ -158,7 +166,7 @@ describe("loadProfile", () => {
     expect(waits).toEqual([250]);
   });
 
-  it("returns null on a 404 for either document", async () => {
+  it("reports a 404 as an 'absent' miss naming the missing document", async () => {
     const run = pair("2026-08-08T00:00:00Z");
     const noManifest = stubFetch({ [PROFILE_URL]: [ok(run.profile)] });
     expect(
@@ -168,7 +176,7 @@ describe("loadProfile", () => {
         modelSlug: "hrdps-continental",
         siteSlug: "dundee",
       }),
-    ).toBeNull();
+    ).toEqual({ miss: "absent", url: MANIFEST_URL });
     const noProfile = stubFetch({ [MANIFEST_URL]: [ok(run.manifest)] });
     expect(
       await loadProfile({
@@ -177,10 +185,10 @@ describe("loadProfile", () => {
         modelSlug: "hrdps-continental",
         siteSlug: "dundee",
       }),
-    ).toBeNull();
+    ).toEqual({ miss: "absent", url: PROFILE_URL });
   });
 
-  it("returns null when a 200 body fails the contract guard — pre-schema data reads as unavailable", async () => {
+  it("reports a guard failure as an 'invalid' miss — a contract break must not hide as a 404", async () => {
     const run = pair("2026-08-08T00:00:00Z");
     const { fetch } = stubFetch({
       [MANIFEST_URL]: [ok(run.manifest)],
@@ -193,7 +201,7 @@ describe("loadProfile", () => {
         modelSlug: "hrdps-continental",
         siteSlug: "dundee",
       }),
-    ).toBeNull();
+    ).toEqual({ miss: "invalid", url: PROFILE_URL });
   });
 
   it("throws TransportHttpError on non-404 failures instead of masking them", async () => {
@@ -228,15 +236,21 @@ describe("loadRuns", () => {
   it("loads and guards the run index", async () => {
     const { fetch } = stubFetch({ [`${BASE}/runs.json`]: [ok(runsIndex())] });
     const runs = await loadRuns({ fetch, baseUrl: BASE });
-    expect(runs).not.toBeNull();
-    expect(runs!.runs["reps"]!.referenceTime).toBe("2026-08-07T12:00:00Z");
+    const index = hit(runs);
+    expect(index.runs["reps"]!.referenceTime).toBe("2026-08-07T12:00:00Z");
   });
 
-  it("returns null on 404 and on contract failure, throws on other HTTP errors", async () => {
+  it("misses discriminate absent from invalid, and other HTTP errors still throw", async () => {
     const missing = stubFetch({});
-    expect(await loadRuns({ fetch: missing.fetch, baseUrl: BASE })).toBeNull();
+    expect(await loadRuns({ fetch: missing.fetch, baseUrl: BASE })).toEqual({
+      miss: "absent",
+      url: `${BASE}/runs.json`,
+    });
     const invalid = stubFetch({ [`${BASE}/runs.json`]: [ok({ runs: [] })] });
-    expect(await loadRuns({ fetch: invalid.fetch, baseUrl: BASE })).toBeNull();
+    expect(await loadRuns({ fetch: invalid.fetch, baseUrl: BASE })).toEqual({
+      miss: "invalid",
+      url: `${BASE}/runs.json`,
+    });
     const failing = stubFetch({ [`${BASE}/runs.json`]: [status(500)] });
     await expect(loadRuns({ fetch: failing.fetch, baseUrl: BASE })).rejects.toThrow(
       TransportHttpError,

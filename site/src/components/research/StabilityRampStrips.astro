@@ -8,8 +8,9 @@ import {
   oklabLightness,
 } from "./ramp-math";
 
-/* Both palettes arrive from the package exports at build time (the same
-   one-home pattern as Base.astro's --stab-* generation), each drawn as a
+/* The shipped palette arrives from the package export at build time (the
+   same one-home pattern as Base.astro's --stab-* generation); the
+   canadarasp palette is the article's cited lineage. Each is drawn as a
    contiguous swatch strip on the surface it was designed against, with a
    luminance-matched grayscale row beneath — what a grayscale print or a
    fully desaturated display keeps of each design. */
@@ -133,10 +134,12 @@ const description = ramps
   </div>
 
   <figcaption id="ramp-strips-caption">
-    Each strip sits on the surface its palette was designed against, from the same export. The
-    grayscale rows are computed at build time as the gray of equal relative luminance (sRGB
-    linearized). The default's grays darken strictly left to right; the canadarasp preset's do not —
-    and its stable swatch disappears into its background by design.
+    Each strip sits on the surface its palette was designed against. The grayscale rows are
+    computed at build time as the gray of equal relative luminance (sRGB linearized) — and neither
+    design's grays keep the class order, on purpose: a background field spends its lightness budget
+    on staying pale under the chart's content, and hands the ordering to the key, the cursor
+    readouts, and the field's own geometry. canadarasp's stable swatch disappears into its
+    background by design — the pivot that does not transfer to a chart whose surface is paper.
   </figcaption>
 </figure>
 

@@ -38,6 +38,7 @@ export {
   type SceneOptions,
   type SceneScales,
   type SeriesElement,
+  type MarkerTrainStride,
   type StripCell,
   type StripRow,
   type SurfaceTemperatureMark,

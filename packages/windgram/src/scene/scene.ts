@@ -48,10 +48,8 @@ const METRIC_BAND_GAP = 5;
 const PROFILE_GAP = 8;
 const MARGIN_LEFT = 60;
 const MARGIN_RIGHT = 60;
-/* Exported (not via scene/'s public index) so presets/ can name the
-   defaults without restating the numbers — the one-home rule. */
-export const DEFAULT_COLUMN_WIDTH = 44;
-export const DEFAULT_PLOT_HEIGHT = 340;
+const DEFAULT_COLUMN_WIDTH = 44;
+const DEFAULT_PLOT_HEIGHT = 340;
 const HOUR_LABEL_DY = 18;
 const BOTTOM_PADDING = 14;
 /* The surfaceTemperature row sits one line under the hour labels; the
@@ -621,22 +619,39 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
       const fraction = Math.min(1, Math.max(0, (value - spec.minimum) / range));
       return bottom - fraction * METRIC_BAND_HEIGHT;
     };
-    const points: Array<PlotPoint | null> = spec.values.map((value, index) =>
+    const centred: Array<PlotPoint | null> = spec.values.map((value, index) =>
       value == null || !Number.isFinite(value) ? null : { x: xCenter(index), y: yOf(value) },
     );
+    /* The strip holds its terminal values flat out to the plot edges —
+       the field's classified cells already paint full columns edge to
+       edge, and centre-to-centre strips left a data-less half-column at
+       both ends. Centre-anchored points stay; only the ends extend, and
+       only when the terminal hour actually has a value. */
+    const first = centred[0];
+    const last = centred[centred.length - 1];
+    const points: Array<PlotPoint | null> = [
+      ...(first ? [{ x: MARGIN_LEFT, y: first.y }] : []),
+      ...centred,
+      ...(last ? [{ x: MARGIN_LEFT + plotWidth, y: last.y }] : []),
+    ];
     const linePath = pointPath(points);
-    const complete = points.every((point) => point !== null);
+    const complete = centred.every((point) => point !== null);
     const areaPath =
-      complete && points.length > 0
-        ? `${linePath} L${xCenter(spec.values.length - 1).toFixed(2)},${bottom} L${xCenter(0).toFixed(2)},${bottom} Z`
+      complete && centred.length > 0
+        ? `${linePath} L${(MARGIN_LEFT + plotWidth).toFixed(2)},${bottom} L${MARGIN_LEFT.toFixed(2)},${bottom} Z`
         : "";
-    const band = bandPath(
-      spec.bands.map((entry, index) =>
-        entry === null
-          ? null
-          : { x: xCenter(index), yLow: yOf(entry.p25), yHigh: yOf(entry.p75) },
-      ),
+    const bandPoints = spec.bands.map((entry, index) =>
+      entry === null
+        ? null
+        : { x: xCenter(index), yLow: yOf(entry.p25), yHigh: yOf(entry.p75) },
     );
+    const firstBand = bandPoints[0];
+    const lastBand = bandPoints[bandPoints.length - 1];
+    const band = bandPath([
+      ...(firstBand ? [{ ...firstBand, x: MARGIN_LEFT }] : []),
+      ...bandPoints,
+      ...(lastBand ? [{ ...lastBand, x: MARGIN_LEFT + plotWidth }] : []),
+    ]);
     const strip: MetricStrip = {
       key: spec.key,
       className: `wg-strip-${spec.key}`,
@@ -1131,13 +1146,17 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
      hour is always marked — making the line self-identifying without a
      legend. Each glyph rides its line's own overlay toggle. */
   const markers: SceneMarker[] = [];
-  const markerIndices = (stride: number | undefined): number[] => {
+  const markerIndices = (
+    stride: number | { every: number; offset?: number } | undefined,
+  ): number[] => {
     if (hours.length === 0) return [];
     if (stride === undefined) return [selectedHourIndex];
-    const step = Math.max(1, Math.floor(stride));
+    const step = Math.max(1, Math.floor(typeof stride === "number" ? stride : stride.every));
+    const offset = typeof stride === "number" ? 0 : Math.floor(stride.offset ?? 0);
+    const anchor = selectedHourIndex + offset;
     return hours
       .map((_, index) => index)
-      .filter((index) => (((index - selectedHourIndex) % step) + step) % step === 0);
+      .filter((index) => (((index - anchor) % step) + step) % step === 0);
   };
   if (overlays.usableLiftTop) {
     for (const index of markerIndices(options.markerStride?.usableLiftTop)) {

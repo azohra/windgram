@@ -70,8 +70,9 @@ function cacheSet(key: string, value: CachedPair): void {
  * Fetches a model's manifest and one site's profile as a consistent pair via
  * the package transport (`loadProfile` runs the skew retry itself), falling
  * back to this session's last known-good pair when the CDN is still torn
- * after the retry. Null when the model or site is not published (404, or a
- * body failing the contract guards).
+ * after the retry. Null when the model or site is not published — and a
+ * contract-guard failure gets the loud console line the transport's
+ * discriminated miss exists for, because it must not hide as a 404.
  */
 export async function fetchProfile(
   model: ModelEntry,
@@ -84,7 +85,12 @@ export async function fetchProfile(
     modelSlug: model.slug,
     siteSlug: slug,
   });
-  if (!loaded) return null;
+  if ("miss" in loaded) {
+    if (loaded.miss === "invalid") {
+      console.error(`contract break: ${loaded.url} exists but failed validation`);
+    }
+    return null;
+  }
   if (!loaded.stale) {
     cacheSet(key, { manifest: loaded.manifest, profile: loaded.profile });
     return loaded;

@@ -18,7 +18,7 @@
 .wg-launch-label { fill: var(--wg-ink, #152529); font-size: var(--wg-text-launch, 10.5px); font-weight: 600; }
 .wg-surface-temp { fill: var(--wg-temp, #913b0c); font-size: var(--wg-text-surface-temp, 9.5px); font-weight: 700; }
 .wg-haloed-text { stroke: var(--wg-halo-text, var(--wg-halo, #fffdf8)); paint-order: stroke; }
-.wg-halo { stroke: var(--wg-halo-series, var(--wg-halo, #fffdf8)); }
+.wg-halo { stroke: var(--wg-halo-series, transparent); }
 .wg-selected-column { fill: var(--wg-accent, #913b0c); opacity: 0.05; }
 .wg-selected-line { stroke: var(--wg-accent, #913b0c); }
 .wg-launch-line { stroke: var(--wg-ink, #152529); }
@@ -44,14 +44,14 @@
 .wg-gust { fill: var(--wg-gust, #355963); font-size: var(--wg-text-gust, 9.5px); font-weight: 700; }
 .wg-series-pbl { stroke: var(--wg-pbl, #56609b); }
 .wg-series-pbl-band { fill: var(--wg-pbl, #56609b); opacity: 0.16; }
-.wg-stab-very-unstable { fill: var(--wg-stab-very-unstable, #fe9996); }
-.wg-stab-unstable { fill: var(--wg-stab-unstable, #da934a); }
-.wg-stab-conditional-strong { fill: var(--wg-stab-conditional-strong, #a68300); }
-.wg-stab-conditional { fill: var(--wg-stab-conditional, #6a753f); }
-.wg-stab-near-neutral { fill: var(--wg-stab-near-neutral, #5b5f6b); }
-.wg-stab-stable { fill: var(--wg-stab-stable, #04548d); }
-.wg-stab-inverted { fill: var(--wg-stab-inverted, #004f4a); }
-.wg-stab-strong-inversion { fill: var(--wg-stab-strong-inversion, #1b3071); }
+.wg-stab-very-unstable { fill: var(--wg-stab-very-unstable, #d95f52); }
+.wg-stab-unstable { fill: var(--wg-stab-unstable, #de8f3a); }
+.wg-stab-conditional-strong { fill: var(--wg-stab-conditional-strong, #c67eb6); }
+.wg-stab-conditional { fill: var(--wg-stab-conditional, #aeaad9); }
+.wg-stab-near-neutral { fill: var(--wg-stab-near-neutral, #d7b29b); }
+.wg-stab-stable { fill: var(--wg-stab-stable, #768bb9); }
+.wg-stab-inverted { fill: var(--wg-stab-inverted, #9aa19d); }
+.wg-stab-strong-inversion { fill: var(--wg-stab-strong-inversion, #b3b9b6); }
 .wg-cloud-hatch-line { stroke: var(--wg-ink-soft, #2f454a); }
 .wg-cloud-medium { fill: var(--wg-cloud, #5b6969); opacity: 0.22; }
 .wg-cloud-light { fill: var(--wg-cloud, #5b6969); opacity: 0.1; }
@@ -81,10 +81,10 @@
 .wg-isotherm-label-freezing { fill: var(--wg-freezing, #2b748f); }
 .wg-dewpoint-isoline { stroke: var(--wg-dewpoint, #3a7d4f); }
 .wg-dewpoint-label { fill: var(--wg-dewpoint, #3a7d4f); }
-.wg-barb { stroke: var(--wg-wind, #355963); }
-.wg-barb-fill { fill: var(--wg-wind, #355963); stroke: var(--wg-wind, #355963); }
-.wg-barb-halo { stroke: var(--wg-halo-barb, var(--wg-halo, #fffdf8)); }
-.wg-barb-fill-halo { fill: var(--wg-halo-barb, var(--wg-halo, #fffdf8)); stroke: var(--wg-halo-barb, var(--wg-halo, #fffdf8)); }
+.wg-barb { stroke: var(--wg-wind, #ffffff); }
+.wg-barb-fill { fill: var(--wg-wind, #ffffff); stroke: var(--wg-wind, #ffffff); }
+.wg-barb-halo { stroke: var(--wg-halo-barb, #355963); }
+.wg-barb-fill-halo { fill: var(--wg-halo-barb, #355963); stroke: var(--wg-halo-barb, #355963); }
 .wg-marker-wing { fill: var(--wg-usable, #2179ad); stroke: var(--wg-usable, #2179ad); }
 .wg-marker-cloud { fill: var(--wg-cloud-marker, #f8f3d8); stroke: var(--wg-cloud-base, #355963); }
 .wg-marker-halo { fill: var(--wg-halo-marker, var(--wg-halo, #fffdf8)); stroke: var(--wg-halo-marker, var(--wg-halo, #fffdf8)); }
@@ -98,39 +98,39 @@
 <defs><pattern id="wg-cloud-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" class="wg-cloud-hatch-line" stroke-width="1.2"/></pattern></defs>
 <rect x="60" y="20" width="352" height="25" class="wg-strip-frame" stroke-width="0.7"/>
 <line x1="60" y1="32.5" x2="412" y2="32.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
-<path d="M82,20 C89.33,20.56 111.33,22.22 126,23.33 C140.67,24.44 155.33,25.56 170,26.67 C184.67,27.78 199.33,28.89 214,30 C228.67,31.11 243.33,32.22 258,33.33 C272.67,34.44 287.33,35.56 302,36.67 C316.67,37.78 331.33,38.89 346,40 C360.67,41.11 382.67,42.78 390,43.33 L390.00,45 L82.00,45 Z" class="wg-strip-pressure-area" opacity="0.3"/>
-<path d="M82,20 C89.33,20.56 111.33,22.22 126,23.33 C140.67,24.44 155.33,25.56 170,26.67 C184.67,27.78 199.33,28.89 214,30 C228.67,31.11 243.33,32.22 258,33.33 C272.67,34.44 287.33,35.56 302,36.67 C316.67,37.78 331.33,38.89 346,40 C360.67,41.11 382.67,42.78 390,43.33" class="wg-strip-pressure" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M60,20 C63.67,20 71,19.44 82,20 C93,20.56 111.33,22.22 126,23.33 C140.67,24.44 155.33,25.56 170,26.67 C184.67,27.78 199.33,28.89 214,30 C228.67,31.11 243.33,32.22 258,33.33 C272.67,34.44 287.33,35.56 302,36.67 C316.67,37.78 331.33,38.89 346,40 C360.67,41.11 379,42.78 390,43.33 C401,43.89 408.33,43.33 412,43.33 L412.00,45 L60.00,45 Z" class="wg-strip-pressure-area" opacity="0.3"/>
+<path d="M60,20 C63.67,20 71,19.44 82,20 C93,20.56 111.33,22.22 126,23.33 C140.67,24.44 155.33,25.56 170,26.67 C184.67,27.78 199.33,28.89 214,30 C228.67,31.11 243.33,32.22 258,33.33 C272.67,34.44 287.33,35.56 302,36.67 C316.67,37.78 331.33,38.89 346,40 C360.67,41.11 379,42.78 390,43.33 C401,43.89 408.33,43.33 412,43.33" class="wg-strip-pressure" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
 <text x="52" y="31" text-anchor="end" class="wg-strip-name">Pressure</text>
 <text x="52" y="42" text-anchor="end" class="wg-strip-unit">kPa</text>
 <text x="420" y="28" class="wg-strip-scale wg-mono">101.3</text>
 <text x="420" y="45" class="wg-strip-scale wg-mono">101</text>
 <rect x="60" y="50" width="352" height="25" class="wg-strip-frame" stroke-width="0.7"/>
 <line x1="60" y1="62.5" x2="412" y2="62.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
-<path d="M82,75 C89.33,75 111.33,75 126,75 C140.67,75 155.33,75 170,75 C184.67,75 199.33,75 214,75 C228.67,75 243.33,75 258,75 C272.67,75 287.33,76.67 302,75 C316.67,73.33 331.33,66.67 346,65 C360.67,63.33 382.67,65 390,65 L390.00,75 L82.00,75 Z" class="wg-strip-precipitation-area" opacity="0.3"/>
-<path d="M82,75 C89.33,75 111.33,75 126,75 C140.67,75 155.33,75 170,75 C184.67,75 199.33,75 214,75 C228.67,75 243.33,75 258,75 C272.67,75 287.33,76.67 302,75 C316.67,73.33 331.33,66.67 346,65 C360.67,63.33 382.67,65 390,65" class="wg-strip-precipitation" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M60,75 C63.67,75 71,75 82,75 C93,75 111.33,75 126,75 C140.67,75 155.33,75 170,75 C184.67,75 199.33,75 214,75 C228.67,75 243.33,75 258,75 C272.67,75 287.33,76.67 302,75 C316.67,73.33 331.33,66.67 346,65 C360.67,63.33 379,65 390,65 C401,65 408.33,65 412,65 L412.00,75 L60.00,75 Z" class="wg-strip-precipitation-area" opacity="0.3"/>
+<path d="M60,75 C63.67,75 71,75 82,75 C93,75 111.33,75 126,75 C140.67,75 155.33,75 170,75 C184.67,75 199.33,75 214,75 C228.67,75 243.33,75 258,75 C272.67,75 287.33,76.67 302,75 C316.67,73.33 331.33,66.67 346,65 C360.67,63.33 379,65 390,65 C401,65 408.33,65 412,65" class="wg-strip-precipitation" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
 <text x="52" y="61" text-anchor="end" class="wg-strip-name">Precip</text>
 <text x="52" y="72" text-anchor="end" class="wg-strip-unit">mm/h</text>
 <text x="420" y="58" class="wg-strip-scale wg-mono">0.5</text>
 <text x="420" y="75" class="wg-strip-scale wg-mono">0</text>
 <rect x="60" y="80" width="352" height="25" class="wg-strip-frame" stroke-width="0.7"/>
 <line x1="60" y1="92.5" x2="412" y2="92.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
-<path d="M82,102.5 C89.33,102.29 111.33,101.67 126,101.25 C140.67,100.83 155.33,100.42 170,100 C184.67,99.58 199.33,99.17 214,98.75 C228.67,98.33 243.33,97.92 258,97.5 C272.67,97.08 287.33,96.67 302,96.25 C316.67,95.83 331.33,95.42 346,95 C360.67,94.58 382.67,93.96 390,93.75 L390.00,105 L82.00,105 Z" class="wg-strip-cloudCover-area" opacity="0.3"/>
-<path d="M82,102.5 C89.33,102.29 111.33,101.67 126,101.25 C140.67,100.83 155.33,100.42 170,100 C184.67,99.58 199.33,99.17 214,98.75 C228.67,98.33 243.33,97.92 258,97.5 C272.67,97.08 287.33,96.67 302,96.25 C316.67,95.83 331.33,95.42 346,95 C360.67,94.58 382.67,93.96 390,93.75" class="wg-strip-cloudCover" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M60,102.5 C63.67,102.5 71,102.71 82,102.5 C93,102.29 111.33,101.67 126,101.25 C140.67,100.83 155.33,100.42 170,100 C184.67,99.58 199.33,99.17 214,98.75 C228.67,98.33 243.33,97.92 258,97.5 C272.67,97.08 287.33,96.67 302,96.25 C316.67,95.83 331.33,95.42 346,95 C360.67,94.58 379,93.96 390,93.75 C401,93.54 408.33,93.75 412,93.75 L412.00,105 L60.00,105 Z" class="wg-strip-cloudCover-area" opacity="0.3"/>
+<path d="M60,102.5 C63.67,102.5 71,102.71 82,102.5 C93,102.29 111.33,101.67 126,101.25 C140.67,100.83 155.33,100.42 170,100 C184.67,99.58 199.33,99.17 214,98.75 C228.67,98.33 243.33,97.92 258,97.5 C272.67,97.08 287.33,96.67 302,96.25 C316.67,95.83 331.33,95.42 346,95 C360.67,94.58 379,93.96 390,93.75 C401,93.54 408.33,93.75 412,93.75" class="wg-strip-cloudCover" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
 <text x="52" y="91" text-anchor="end" class="wg-strip-name">Cloud</text>
 <text x="52" y="102" text-anchor="end" class="wg-strip-unit">%</text>
 <text x="420" y="88" class="wg-strip-scale wg-mono">100</text>
 <text x="420" y="105" class="wg-strip-scale wg-mono">0</text>
 <rect x="60" y="110" width="352" height="25" class="wg-strip-frame" stroke-width="0.7"/>
 <line x1="60" y1="122.5" x2="412" y2="122.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
-<path d="M82,135 C89.33,134.44 111.33,132.92 126,131.67 C140.67,130.42 155.33,129.03 170,127.5 C184.67,125.97 199.33,124.03 214,122.5 C228.67,120.97 243.33,119.58 258,118.33 C272.67,117.08 287.33,115.28 302,115 C316.67,114.72 331.33,115.83 346,116.67 C360.67,117.5 382.67,119.44 390,120 L390.00,135 L82.00,135 Z" class="wg-strip-thermalStrength-area" opacity="0.3"/>
-<path d="M82,135 C89.33,134.44 111.33,132.92 126,131.67 C140.67,130.42 155.33,129.03 170,127.5 C184.67,125.97 199.33,124.03 214,122.5 C228.67,120.97 243.33,119.58 258,118.33 C272.67,117.08 287.33,115.28 302,115 C316.67,114.72 331.33,115.83 346,116.67 C360.67,117.5 382.67,119.44 390,120" class="wg-strip-thermalStrength" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M60,135 C63.67,135 71,135.56 82,135 C93,134.44 111.33,132.92 126,131.67 C140.67,130.42 155.33,129.03 170,127.5 C184.67,125.97 199.33,124.03 214,122.5 C228.67,120.97 243.33,119.58 258,118.33 C272.67,117.08 287.33,115.28 302,115 C316.67,114.72 331.33,115.83 346,116.67 C360.67,117.5 379,119.44 390,120 C401,120.56 408.33,120 412,120 L412.00,135 L60.00,135 Z" class="wg-strip-thermalStrength-area" opacity="0.3"/>
+<path d="M60,135 C63.67,135 71,135.56 82,135 C93,134.44 111.33,132.92 126,131.67 C140.67,130.42 155.33,129.03 170,127.5 C184.67,125.97 199.33,124.03 214,122.5 C228.67,120.97 243.33,119.58 258,118.33 C272.67,117.08 287.33,115.28 302,115 C316.67,114.72 331.33,115.83 346,116.67 C360.67,117.5 379,119.44 390,120 C401,120.56 408.33,120 412,120" class="wg-strip-thermalStrength" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
 <text x="52" y="121" text-anchor="end" class="wg-strip-name">w*</text>
 <text x="52" y="132" text-anchor="end" class="wg-strip-unit">m/s</text>
 <text x="420" y="118" class="wg-strip-scale wg-mono">3</text>
 <text x="420" y="135" class="wg-strip-scale wg-mono">0</text>
 <rect x="60" y="140" width="352" height="25" class="wg-strip-frame" stroke-width="0.7"/>
 <line x1="60" y1="152.5" x2="412" y2="152.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
-<path d="M126,164.08 C133.33,164.01 155.33,163.72 170,163.62 C184.67,163.53 199.33,163.56 214,163.49 C228.67,163.43 243.33,163.3 258,163.21 C272.67,163.13 287.33,163.02 302,163.01 C316.67,162.99 331.33,163.07 346,163.14 C360.67,163.21 382.67,163.4 390,163.46" class="wg-strip-buoyancyShear" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M126,164.08 C133.33,164.01 155.33,163.72 170,163.62 C184.67,163.53 199.33,163.56 214,163.49 C228.67,163.43 243.33,163.3 258,163.21 C272.67,163.13 287.33,163.02 302,163.01 C316.67,162.99 331.33,163.07 346,163.14 C360.67,163.21 379,163.4 390,163.46 C401,163.51 408.33,163.46 412,163.46" class="wg-strip-buoyancyShear" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
 <text x="52" y="151" text-anchor="end" class="wg-strip-name">B/S</text>
 <text x="52" y="162" text-anchor="end" class="wg-strip-unit">ratio</text>
 <text x="420" y="148" class="wg-strip-scale wg-mono">5</text>

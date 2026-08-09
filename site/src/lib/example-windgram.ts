@@ -83,5 +83,6 @@ export function exampleOverlayAvailability(): Record<OverlayName, boolean> {
     usableLiftTop: series.has("usableLiftTop"),
     launch: scene.launch !== null,
     selectedHour: scene.scales.hourCount > 0,
+    surfaceTemperature: scene.surfaceTemperatures.length > 0,
   };
 }

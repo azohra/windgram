@@ -51,17 +51,22 @@ const loaded = await loadProfile({
   modelSlug: model.slug,
   siteSlug: "dundee",
 });
-if (!loaded) throw new Error(`${model.label} does not publish dundee`);
+if ("miss" in loaded) {
+  // "absent" is routine (site outside the model's domain); "invalid" is a
+  // contract break and should be loud — that's why they're discriminated.
+  throw new Error(`${model.label}/dundee ${loaded.miss}: ${loaded.url}`);
+}
 const { manifest, profile, stale } = loaded;
 if (stale) console.warn("run still syncing across the CDN — pair may span two runs");
 
 console.log(`${model.label} at ${profile.site.name}, run ${profile.run.referenceTime}`);
 ```
 
-Everything arrives contract-validated: the `parse…Json` guards (and the
-transport, which uses them) return the typed document or `null`. A `null`
-from a URL that served 200 means publisher and consumer disagree about the
-contract; fail loudly rather than patching around it.
+Everything arrives contract-validated: the `parse…Json` guards return the
+typed document or `null`, and the transport turns that into a
+discriminated miss — `{ miss: "invalid" }` from a URL that served 200
+means publisher and consumer disagree about the contract; fail loudly
+rather than patching around it, and never confuse it with `"absent"`.
 (`parseWindgramProfile` and friends do the same for values you have already
 `JSON.parse`d — history lines, for instance, are one profile document per
 line.)
@@ -80,9 +85,14 @@ short delay (default 1500 ms). It resolves to:
 - `{ manifest, profile, stale: true }` — still torn after the retry: a
   publish is mid-sync. Show a "still syncing" note or fall back to a pair
   you kept from earlier; never render the two documents as one forecast;
-- `null` — the model or site is not published here (404), **or** a body
-  failed the contract guards: a model still publishing pre-release
-  prototype data reads as unavailable rather than rendering garbage.
+- `{ miss: "absent", url }` — a 404: the model or site is simply not
+  published here (a site outside a model's domain reads this way; routine,
+  rarely worth a log line);
+- `{ miss: "invalid", url }` — the document exists but failed the contract
+  guards: a contract break or pre-release prototype data. It must not
+  render as garbage, and — the reason the two are discriminated — it must
+  not hide as a 404 either: log it loudly. Discriminate with
+  `"miss" in result`.
 
 Non-404 HTTP failures throw `TransportHttpError` instead of masking
 themselves as absence. The pure pair check is exported too:
@@ -157,9 +167,9 @@ declaration; never fill a gap with zero.
 findings over one profile document, each carrying the thresholds that
 produced it and an evidence block scoped to the hours it cites. The
 vocabulary is deliberately small and versioned
-(`ANALYZE_VOCABULARY_VERSION`) — adding a kind is a contract event, and
-version 1 ships exactly the kinds that survived the 2026-08 evidence
-spikes:
+(`ANALYZE_VOCABULARY_VERSION`) — adding a kind is a contract event.
+Version 1 shipped exactly the kinds that survived the 2026-08 evidence
+spikes; version 2 adds `quietDay` on production consumer evidence:
 
 - `flyableWindow` / `liftCeiling` — the compression anchors. They restate
   the published derived series on purpose: their value is compressing a
@@ -167,6 +177,10 @@ spikes:
   the timing anchor the other findings reference. Window thresholds
   (W\* ≥ 0.9 m/s, ≥ 300 m over launch) are embedded in every finding and
   caller-movable; the spike's sensitivity sweep measured them low-impact.
+- `quietDay` — the negative stated with evidence: a local day with no
+  flyable window carries the numbers that failed (the day's best W\* and
+  lift depth against the embedded floors, plus which floors failed), so a
+  consumer's headline can say *why* instead of only "no window".
 - `capTiming` — CAPE build vs CIN erosion vs the window's close, gated to
   hourly deterministic documents with CIN (ensemble-median CIN is bimodal;
   3-hourly cap timing is interpolation).
@@ -397,48 +411,20 @@ const scene = buildScene(profile, { timeZone });
 const key = renderKeySvg(buildKeySpec(scene)); // place it under the chart
 ```
 
-## Presets
+## One look, no themes
 
-`windgram/presets` bundles the option and token surface into named
-conventions, applied in one move. A `Preset` is
-`{ sceneOptions?, tokens? }`; `applyPreset(preset, options)` merges it under
-your own options, and your fields win — presets are starting points, not
-modes:
-
-```ts
-import { CANADARASP_PRESET, REFERENCE_PRESET, applyPreset } from "windgram/presets";
-
-const scene = buildScene(profile, applyPreset(CANADARASP_PRESET, { timeZone }));
-// Disagreeing with a preset is spelling out the field:
-buildScene(profile, applyPreset(CANADARASP_PRESET, { timeZone, smooth: false }));
-```
-
-`REFERENCE_PRESET` is today's defaults, named: applying it is exactly
-equivalent to passing no options (asserted in the tests), and its `tokens`
-map is the complete reference palette — `TOKEN_DEFAULTS` plus the stability
-ramp under its `stab-` prefix — so the default conventions are a documented
-citizen rather than a privileged silence.
-
-Presets follow an honesty rule: they claim only conventions verified in the
-source they are named for, with a dated note in their JSDoc listing what was
-checked and what is deliberately excluded. `CANADARASP_PRESET` names what
-this project verifiably inherits from
-[canadarasp](https://github.com/ajberkley/canadarasp), the project this
-pipeline gratefully descends from. Its `sceneOptions` — the 1.0 m/s hcrit
-sink threshold and the 1-2-1 smoothing of the cloud-base and usable-lift
-lines — coincide with this package's defaults, so the geometry is unchanged;
-the recognizable face is in its `tokens`. canadarasp's lapse-rate bands
-correspond exactly to the eight `WINDGRAM_STABILITY_CLASSES` (its extra
-−0.5 °C/1000 ft contour is fill-invisible), so the preset carries its full
-stability palette, together with the design that palette pivots on — stable
-air matches the page background — plus its strip inks and the marker
-colours of its height conventions, every value extracted from cited lines
-of canadarasp's source rather than remembered. (This reproduces lineage,
-not this package's accessibility validation: the default ramp is
-CVD-checked, canadarasp's palette is symbolic.) Its text scheme, wind-barb
-colour, and per-strip axis labelling are deliberately excluded — checked,
-and either colliding two conventions into one token slot or resting on
-library defaults the JSDoc declines to guess.
+The package ships one look — the reference defaults — and consumers who
+want a different one override the `--wg-*` tokens and scene options
+directly; there is no theme catalogue and no preset concept (the
+`windgram/presets` subpath departed in 0.6.0 — its one real job, naming
+the defaults, is done by the exports that ARE the defaults:
+`DEFAULT_OVERLAYS`, `DEFAULT_CAPE_CLASSES`, `TOKEN_DEFAULTS`,
+`STABILITY_TOKEN_DEFAULTS`). The reference look's stability hues follow
+the aerogram convention this pipeline gratefully inherits from
+[canadarasp](https://github.com/ajberkley/canadarasp) — warm instability
+over a receding stable field — hardened for colour-vision deficiency
+(see `STABILITY_TOKEN_DEFAULTS`' JSDoc for exactly what is and is not
+promised).
 
 ## Ensemble documents
 
@@ -634,14 +620,6 @@ maps (`TOKEN_DEFAULTS`, `STABILITY_TOKEN_DEFAULTS`), and the
 deterministic — stable element ordering, two-decimal rounding — and golden
 fixtures in `test/golden/` lock it down.
 
-### `windgram/presets`
-
-Named convention bundles (see [Presets](#presets)): the `Preset` type,
-`applyPreset`, `REFERENCE_PRESET` (today's defaults plus the complete token
-palette, named), and `CANADARASP_PRESET` (the verified canadarasp
-inheritances — options and palette — dated and cited line-by-line in its
-JSDoc).
-
 ## The one-home rule
 
 Every quantity has exactly one implementation. The pipeline (Python) owns
@@ -656,6 +634,46 @@ stability, windowing, smoothing — and the pipeline never publishes those.
 The document `schemaVersion` stays 1 across these releases: profile
 additions are additive-optional, and consumers discover the rest from the
 catalogue.
+
+**0.6.0** — the reference look, re-founded on the field-is-background
+principle; one look, no themes.
+
+- The stability ramp is replaced: the pale-register palette proven in
+  production by the first consumer, hardened where the validator found
+  real hazards (the deutan-blind conditional pair separated, the cool
+  tail internally light-ordered) — five of eight values are the
+  production palette's exactly. The old monotone-lightness ramp
+  optimized the wrong layer: it bought class-boundary ΔE with the
+  figure-ground contrast of everything drawn on top.
+  `STABILITY_TOKEN_DEFAULTS`' JSDoc states precisely what the pale
+  register does and does not promise.
+- Barbs are white (`--wg-wind`) with a fine slate rim (`--wg-halo-barb`)
+  — legible on every field cell and, unlike bare white, on the plain
+  paper of models that publish no levels; set the rim `transparent` for
+  the bare look. Series halos default off (`--wg-halo-series:
+  transparent`) — the dash-by-dash halo read as fuzz in production.
+- **Breaking**: the `windgram/presets` subpath is removed. The package
+  ships one look; the defaults' one-home exports (`DEFAULT_OVERLAYS`,
+  `DEFAULT_CAPE_CLASSES`, `TOKEN_DEFAULTS`, `STABILITY_TOKEN_DEFAULTS`)
+  replace `REFERENCE_PRESET`, and the canadarasp lineage stays credited
+  where it is inherited.
+- Marker trains take a phase (`markerStride: { usableLiftTop: { every: 2,
+  offset: 1 } }`) so trains on lines that can coincide alternate hours —
+  lift is capped at cloud base by contract, so a cloud with no wing means
+  "lift to base"; strips hold their terminal values flat to the plot
+  edges, closing the data-less half-column at each end; the surface barb
+  row sits clear of the plot floor instead of being bisected by it, with
+  `scales.surfaceWindY` exposed for hit-testing.
+- **Breaking**: `loadProfile` and `loadRuns` return a discriminated
+  `DocumentMiss` (`{ miss: "absent" | "invalid", url }`) instead of bare
+  `null`, so a site outside a model's domain and a contract break stop
+  presenting identically to logging pipelines.
+- `analyze` vocabulary v2: the new `quietDay` finding states a windowless
+  day's evidence (the day's best numbers against the embedded floors)
+  instead of leaving the negative to absence; `day` fields are typed
+  `LocalDayKey` with the zone-pairing contract documented, and
+  `CitedInstant.local` documents that voice formatting is deliberately
+  downstream.
 
 **0.5.0** — the presentation wave: the second consumer feedback list, plus
 the key.

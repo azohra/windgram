@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { BARB_GLYPH_RADIUS, buildScene, windBarbPaths } from "../src/scene/index.js";
 import { renderSvg } from "../src/svg/index.js";
-import { deterministicSceneProfile, scienceSceneProfile } from "./scene-fixtures.js";
+import {
+  deterministicSceneProfile,
+  ensembleSceneProfile,
+  scienceSceneProfile,
+} from "./scene-fixtures.js";
 
 const TZ = { timeZone: "America/Vancouver" };
 
@@ -188,6 +192,33 @@ describe("markerStride", () => {
     expect(clouds.some((marker) => marker.x === selectedX)).toBe(true);
   });
 
+  it("a phase offset shifts a train off the selected-hour anchor so coincident lines alternate", () => {
+    // Lift is capped at cloud base by contract, so same-phase trains can
+    // stack glyphs; offset phases take alternating hours.
+    const scene = buildScene(deterministicSceneProfile(), {
+      ...TZ,
+      markerStride: { cloudBase: 2, usableLiftTop: { every: 2, offset: 1 } },
+    });
+    const cloudXs = new Set(
+      scene.markers.filter((marker) => marker.kind === "cloud").map((marker) => marker.x),
+    );
+    const wingXs = scene.markers
+      .filter((marker) => marker.kind === "wing")
+      .map((marker) => marker.x);
+    expect(wingXs.length).toBeGreaterThan(0);
+    for (const x of wingXs) expect(cloudXs.has(x)).toBe(false);
+    // The bare-number form still anchors on the selected hour.
+    const anchored = buildScene(deterministicSceneProfile(), {
+      ...TZ,
+      markerStride: { usableLiftTop: { every: 2, offset: 0 } },
+    });
+    const bare = buildScene(deterministicSceneProfile(), {
+      ...TZ,
+      markerStride: { usableLiftTop: 2 },
+    });
+    expect(JSON.stringify(anchored.markers)).toBe(JSON.stringify(bare.markers));
+  });
+
   it("each train rides its own line's overlay toggle", () => {
     const scene = buildScene(deterministicSceneProfile(), {
       ...TZ,
@@ -236,6 +267,37 @@ describe("stripLabels", () => {
     expect(strip.className).toBe("wg-strip-thermalStrength");
     // Untouched strips keep the reference voice.
     expect(scene.strips.find((entry) => entry.key === "pressure")!.label).toBe("Pressure");
+  });
+});
+
+describe("strip edge extension", () => {
+  it("holds terminal values flat to the plot edges, matching the field's full-bleed cells", () => {
+    const scene = buildScene(deterministicSceneProfile(), TZ);
+    const { plotLeft, plotWidth } = scene.scales;
+    for (const strip of scene.strips) {
+      expect(strip.linePath.startsWith(`M${plotLeft},`)).toBe(true);
+      const lastPair = strip.linePath.trim().split(" ").at(-1)!;
+      expect(Number(lastPair.split(",")[0])).toBe(plotLeft + plotWidth);
+      expect(strip.areaPath).toContain(`L${plotLeft.toFixed(2)},`);
+    }
+  });
+
+  it("extends ensemble bands the same way", () => {
+    const scene = buildScene(ensembleSceneProfile(), TZ);
+    const { plotLeft, plotWidth } = scene.scales;
+    for (const strip of scene.strips) {
+      expect(strip.bandPath!.startsWith(`M${plotLeft},`)).toBe(true);
+      expect(strip.bandPath).toContain(`L${plotLeft + plotWidth},`);
+    }
+  });
+
+  it("does not invent data across a terminal gap", () => {
+    // B/S has no ratio at hour 0 (no boundary layer): the line must start
+    // at that hour's centre-side neighbour, not at the plot edge.
+    const scene = buildScene(deterministicSceneProfile(), { ...TZ, overlays: { buoyancyShear: true } });
+    const strip = scene.strips.find((entry) => entry.key === "buoyancyShear")!;
+    expect(strip.values[0]).toBeNull();
+    expect(strip.linePath.startsWith(`M${scene.scales.plotLeft},`)).toBe(false);
   });
 });
 
