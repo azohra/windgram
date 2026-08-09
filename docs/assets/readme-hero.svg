@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-labelledby="title description">
+  <title id="title">Windgram — forecast profiles for soaring</title>
+  <desc id="description">A miniature windgram beside a four-stage flow from model feeds through a Python pipeline and static JSON to the TypeScript toolkit.</desc>
+
+  <defs>
+    <pattern id="paper-grid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <path d="M24 0H0V24" fill="none" stroke="#776956" stroke-opacity=".06" stroke-width="1"/>
+    </pattern>
+    <clipPath id="profile-clip">
+      <rect x="709" y="165" width="406" height="159" rx="2"/>
+    </clipPath>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M0 0l10 5-10 5z" fill="#913b0c"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="520" rx="20" fill="#f4efe4"/>
+  <rect width="1200" height="520" rx="20" fill="url(#paper-grid)"/>
+  <rect x="1" y="1" width="1198" height="518" rx="19" fill="none" stroke="#776956" stroke-opacity=".75" stroke-width="2"/>
+
+  <!-- Wordmark and project statement -->
+  <g transform="translate(70 62)">
+    <rect width="104" height="32" rx="2" fill="#152529"/>
+    <path d="M7 27V7l53 16 15 2 22-14v16z" fill="#da934a"/>
+    <text x="122" y="13" fill="#913b0c" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="13" font-weight="700" letter-spacing="2.2">FORECAST PROFILES FOR SOARING</text>
+
+    <text x="0" y="126" fill="#152529" font-family="Arial Narrow, Impact, sans-serif" font-size="82" font-weight="800" letter-spacing="3">WINDGRAM</text>
+    <path d="M2 144h510" stroke="#776956" stroke-width="1.5"/>
+    <text x="0" y="184" fill="#2f454a" font-family="ui-sans-serif, system-ui, sans-serif" font-size="21">Weather-model runs become inspectable, versioned</text>
+    <text x="0" y="215" fill="#2f454a" font-family="ui-sans-serif, system-ui, sans-serif" font-size="21">profiles — and charts any frontend can draw.</text>
+  </g>
+
+  <!-- Compact reference-windgram motif -->
+  <g>
+    <rect x="685" y="48" width="454" height="302" rx="8" fill="#fffdf8" stroke="#51483e" stroke-width="1.5"/>
+    <rect x="685" y="48" width="454" height="31" rx="8" fill="#152529"/>
+    <path d="M685 71h454" stroke="#152529" stroke-width="16"/>
+    <circle cx="705" cy="64" r="4" fill="#da934a"/>
+    <text x="718" y="69" fill="#fffdf8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" font-weight="700" letter-spacing="1.2">DUNDEE · PROFILE</text>
+    <text x="1117" y="69" fill="#f2dcc1" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10">07—14 PDT</text>
+
+    <!-- Surface metric strips -->
+    <g stroke="#776956" stroke-width=".8">
+      <rect x="709" y="94" width="406" height="22" fill="#f2f4f1"/>
+      <rect x="709" y="116" width="406" height="22" fill="#f2f4f1"/>
+      <rect x="709" y="138" width="406" height="22" fill="#f2f4f1"/>
+    </g>
+    <text x="697" y="108" fill="#40565a" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8">P</text>
+    <text x="697" y="130" fill="#40565a" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8">RAIN</text>
+    <text x="697" y="152" fill="#40565a" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8">W*</text>
+    <path d="M709 108C752 101 775 110 818 104s75-8 116-1 75-4 107 1 45-2 74-7v19H709z" fill="#963f36" fill-opacity=".22"/>
+    <path d="M709 108C752 101 775 110 818 104s75-8 116-1 75-4 107 1 45-2 74-7" fill="none" stroke="#963f36" stroke-width="2"/>
+    <path d="M709 138h52l8-10 9 10h93l10-15 9 15h225" fill="none" stroke="#207a83" stroke-width="2"/>
+    <path d="M709 157c50-1 78-11 116-10s72-10 112-6 59-9 96-4 47-3 82-8v9H709z" fill="#9a7500" fill-opacity=".24"/>
+    <path d="M709 157c50-1 78-11 116-10s72-10 112-6 59-9 96-4 47-3 82-8" fill="none" stroke="#9a7500" stroke-width="2"/>
+
+    <!-- Time-height field -->
+    <g clip-path="url(#profile-clip)">
+      <rect x="709" y="165" width="58" height="159" fill="#fe9996" fill-opacity=".72"/>
+      <rect x="767" y="165" width="58" height="159" fill="#da934a" fill-opacity=".7"/>
+      <rect x="825" y="165" width="58" height="159" fill="#a68300" fill-opacity=".66"/>
+      <rect x="883" y="165" width="58" height="159" fill="#6a753f" fill-opacity=".59"/>
+      <rect x="941" y="165" width="58" height="159" fill="#5b5f6b" fill-opacity=".57"/>
+      <rect x="999" y="165" width="58" height="159" fill="#04548d" fill-opacity=".58"/>
+      <rect x="1057" y="165" width="58" height="159" fill="#004f4a" fill-opacity=".62"/>
+
+      <path d="M709 197c78 13 100-6 176 4 76 9 119-18 230-1v35H709z" fill="#fffdf8" fill-opacity=".58"/>
+      <path d="M709 276c61-36 116-9 169-34 73-35 142 11 237-30" fill="none" stroke="#2179ad" stroke-width="3.5"/>
+      <path d="M709 296c62-25 111-2 174-24 70-25 133 5 232-16" fill="none" stroke="#a46b10" stroke-width="3" stroke-dasharray="8 5"/>
+      <path d="M709 214c57 8 102-8 163-2 82 8 149-19 243-8" fill="none" stroke="#355963" stroke-width="3"/>
+      <path d="M710 313c93-4 147-8 223-3 70 5 119-9 182-5" fill="none" stroke="#152529" stroke-width="2"/>
+
+      <!-- Wind barbs -->
+      <g stroke="#152529" stroke-width="1.5" fill="none">
+        <path d="M744 251l19-14m-13 9-1-8m8 3-1-8"/>
+        <path d="M801 232l21-10m-14 7 1-8m6 5 1-8"/>
+        <path d="M860 252l20-12m-14 9v-8m7 4v-8"/>
+        <path d="M917 228l22-6m-15 4 2-8m5 6 2-8"/>
+        <path d="M976 250l18-15m-12 10-2-8m8 3-2-8"/>
+        <path d="M1035 226l21-9m-14 6 1-8m6 5 1-8"/>
+        <path d="M1092 248l18-14m-12 9-1-8m7 3-1-8"/>
+      </g>
+    </g>
+    <g stroke="#776956" stroke-opacity=".45" stroke-width=".7">
+      <path d="M709 165v159M767 165v159M825 165v159M883 165v159M941 165v159M999 165v159M1057 165v159M1115 165v159"/>
+      <path d="M709 205h406M709 245h406M709 285h406"/>
+    </g>
+    <rect x="709" y="165" width="406" height="159" fill="none" stroke="#776956" stroke-width="1"/>
+    <g fill="#40565a" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="8" text-anchor="middle">
+      <text x="738" y="339">07</text><text x="796" y="339">08</text><text x="854" y="339">09</text>
+      <text x="912" y="339">10</text><text x="970" y="339">11</text><text x="1028" y="339">12</text>
+      <text x="1086" y="339">13</text>
+    </g>
+  </g>
+
+  <!-- Repository architecture -->
+  <g transform="translate(70 392)">
+    <path d="M218 42h43M483 42h43M748 42h43" stroke="#913b0c" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <g>
+      <text x="0" y="0" fill="#913b0c" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" font-weight="700" letter-spacing="1.5">01 · SOURCE</text>
+      <text x="0" y="31" fill="#152529" font-family="ui-sans-serif, system-ui, sans-serif" font-size="19" font-weight="700">Model feeds</text>
+      <text x="0" y="56" fill="#40565a" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">ECCC · NOAA</text>
+    </g>
+    <g transform="translate(265)">
+      <text x="0" y="0" fill="#913b0c" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" font-weight="700" letter-spacing="1.5">02 · BUILD</text>
+      <text x="0" y="31" fill="#152529" font-family="ui-sans-serif, system-ui, sans-serif" font-size="19" font-weight="700">Python pipeline</text>
+      <text x="0" y="56" fill="#40565a" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">ingest · derive · publish</text>
+    </g>
+    <g transform="translate(530)">
+      <text x="0" y="0" fill="#913b0c" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" font-weight="700" letter-spacing="1.5">03 · OPEN</text>
+      <text x="0" y="31" fill="#152529" font-family="ui-sans-serif, system-ui, sans-serif" font-size="19" font-weight="700">Static JSON</text>
+      <text x="0" y="56" fill="#40565a" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">catalogue · profiles · history</text>
+    </g>
+    <g transform="translate(795)">
+      <text x="0" y="0" fill="#913b0c" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" font-weight="700" letter-spacing="1.5">04 · USE</text>
+      <text x="0" y="31" fill="#152529" font-family="ui-sans-serif, system-ui, sans-serif" font-size="19" font-weight="700">TypeScript toolkit</text>
+      <text x="0" y="56" fill="#40565a" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="12">contract · derive · scene · SVG</text>
+    </g>
+  </g>
+</svg>

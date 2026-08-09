@@ -1,8 +1,61 @@
 # Windgram
 
-Windgram publishes pilot-oriented soaring profiles as static JSON after each supported weather-model run. Profiles include surface conditions, winds and temperatures aloft, thermal velocity, boundary-layer top, cloud base, and usable-lift top.
+![Windgram — forecast profiles for soaring](docs/assets/readme-hero.svg)
 
-[Research articles](research/README.md) · [Forecast model feed reference](reference/forecast-model-feeds.md) · [Site catalogue](sites.json)
+<p align="center">
+  <strong>Forecast profiles for soaring, published as data and built to render anywhere.</strong><br>
+  A Python publication pipeline, a static JSON contract, and a headless TypeScript toolkit in one repository.
+</p>
+
+<p align="center">
+  <a href="https://windgram.azohra.com">Live windgrams</a> ·
+  <a href="packages/windgram/README.md">Integration guide</a> ·
+  <a href="research/README.md">Research</a> ·
+  <a href="reference/forecast-model-feeds.md">Feed reference</a> ·
+  <a href="sites.json">Site catalogue</a>
+</p>
+
+## The whole path, in one repository
+
+Windgram carries a forecast from provider files to an inspectable chart. The layers are independent: use the published profiles without running a builder, bring the typed data into a custom UI, or use the reference renderer end to end.
+
+| Layer | Home | What it provides |
+| --- | --- | --- |
+| **Python publication pipeline** | [`windgram/`](windgram/) | Fetches ECCC and NOAA model fields, samples each catalogued launch, derives soaring quantities, and publishes current runs plus history. |
+| **Static data contract** | [`data/`](data/) | A discoverable model catalogue, manifests, versioned site profiles, and append-only archives. No API key or service dependency. |
+| **TypeScript toolkit** | [`packages/windgram`](packages/windgram/) | Zod schemas and types, pure derivations, a serializable scene graph, hit-testing, presets, and the reference SVG renderer. |
+| **Reference site** | [`site/`](site/) | A working frontend built from the same public documents and npm package available to every other consumer. |
+
+Profiles include surface conditions, winds and temperatures aloft, thermal velocity, boundary-layer top, cloud base, and usable-lift top. Each model declares its own capabilities; missing fields remain honest absences.
+
+### Use the data directly
+
+```sh
+curl -sS https://raw.githubusercontent.com/azohra/windgram/main/data/hrdps-continental/sites/dundee.json \
+  | jq '.hours[] | {validAt} + .derived'
+```
+
+### Build with TypeScript
+
+```sh
+npm install windgram
+```
+
+```ts
+import { parseWindgramProfileJson } from "windgram/contract";
+import { buildScene } from "windgram/scene";
+import { renderSvg } from "windgram/svg";
+
+const profileUrl =
+  "https://raw.githubusercontent.com/azohra/windgram/main/data/hrdps-continental/sites/dundee.json";
+const response = await fetch(profileUrl);
+const profile = parseWindgramProfileJson(await response.text());
+if (!profile) throw new Error("profile failed contract validation");
+
+const svg = renderSvg(buildScene(profile, { timeZone: "America/Vancouver" }));
+```
+
+The [package guide](packages/windgram/README.md) covers the contract, pure derivations, scene graph, theming, presets, ensemble documents, and every export.
 
 ## Published data
 
@@ -31,11 +84,6 @@ https://raw.githubusercontent.com/azohra/windgram/main/data/<model>/sites/<slug>
 
 REPS and GEPS are the ensembles: 21 members each, derived independently and published as percentile objects, including per-level ensemble soundings at 1000/925/850/700/500 hPa. The 1 km HRDPS feed is experimental and occasionally unavailable. Both NAM entries carry a `sunset` declaration in the catalogue — NAM retires 2026-10-06 with `rrfs` as its successor. Sites outside a model’s domain have no profile for that model.
 
-```sh
-curl -sS https://raw.githubusercontent.com/azohra/windgram/main/data/hrdps-continental/sites/dundee.json \
-  | jq '.hours[] | {validAt} + .derived'
-```
-
 ## Data contract
 
 `manifest.json` identifies the published model run and its available sites. Each site profile carries `schemaVersion: 1`, run and site metadata (launch coordinates, altitude, model elevation), and every forecast hour in chronological order — day windowing is a renderer concern. Each hour nests three blocks:
@@ -60,7 +108,7 @@ zcat data/hrdps-continental/history/dundee/2026.jsonl.gz | jq -r .run.referenceT
 
 The [forecast model feed reference](reference/forecast-model-feeds.md) records provider paths, schedules, field semantics, and verification dates.
 
-## Renderer
+## TypeScript package
 
 [`packages/windgram`](packages/windgram/) is the TypeScript companion, published to npm as `windgram` with subpath exports: `windgram/contract` (zod schemas and types for the documents above), `windgram/derive` (pure functions of published state), and `windgram/scene` + `windgram/svg` (the reference renderer; its golden SVG fixtures are the reference look). The site consumes it; other frontends can too.
 
@@ -76,7 +124,7 @@ The [forecast model feed reference](reference/forecast-model-feeds.md) records p
 | [`reference/`](reference/) | Dated provider reference |
 | [`site/`](site/) | Astro site rendering the articles and live windgrams |
 
-## Build
+## Run the Python publishers
 
 Python 3.12 and [uv](https://docs.astral.sh/uv/) are required.
 
