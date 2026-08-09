@@ -1,0 +1,34 @@
+{
+  "firstForecastHour": 3,
+  "forecastHours": 24,
+  "generatedAt": "2026-08-09T01:13:24.818Z",
+  "lastForecastHour": 72,
+  "memberCount": 21,
+  "model": "reps",
+  "referenceTime": "2026-08-08T18:00:00Z",
+  "schemaVersion": 1,
+  "sites": [
+    {
+      "name": "Dundee",
+      "slug": "dundee"
+    },
+    {
+      "name": "Erie",
+      "slug": "erie"
+    },
+    {
+      "name": "Flagpole",
+      "slug": "flagpole"
+    },
+    {
+      "name": "Red Mtn",
+      "slug": "red-mountain"
+    }
+  ],
+  "stats": {
+    "downloadBytes": 9183105214,
+    "downloadRetries": 51,
+    "downloads": 868,
+    "durationMs": 1708741
+  }
+}
