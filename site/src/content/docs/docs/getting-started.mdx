@@ -20,14 +20,14 @@ documentation + research ← committed teaching profiles
 
 <Steps>
 
-1. Clone the repository and run `uv sync` with Python 3.12 or later.
+1. Clone the repository and run `uv sync --project pipeline` with Python 3.12 or later.
 2. Create a versioned [launch catalogue](/docs/publish/configure-launches/).
 3. [Choose a catalogued model](/docs/models/choosing/) whose declared domain,
    cadence, levels, and capabilities fit the publication.
 4. Preflight one model without network access or writes:
 
    ```sh title="Terminal"
-   uv run windgram build --model hrrr-conus --sites ./club-sites.json --output ./public/data --max-steps 2 --dry-run
+   uv run --project pipeline windgram build --model hrrr-conus --sites ./club-sites.json --output ./public/data --max-steps 2 --dry-run
    ```
 
 5. Remove `--dry-run` and the temporary `--max-steps` cap only when ready for

@@ -3,7 +3,7 @@ title: Pipeline architecture
 description: Follow provider bytes through sampling, derivation, rounding, current publication, and append-only history.
 ---
 
-import PipelineDiagram from '../../../../components/research/PipelineDiagram.astro';
+import PipelineDiagram from '../../../../components/docs/PipelineDiagram.astro';
 
 The Python publication pipeline exposes the `windgram` CLI and the versioned
 documents it writes as its supported interface.
@@ -31,10 +31,10 @@ provider transport ──→ gridpoint sampling ──→ source-shaped hours
 
 | Area | Repository home | Responsibility |
 | --- | --- | --- |
-| CLI and scoped paths | `windgram/cli.py`, `windgram/config.py` | Select model(s), validate site/output paths, cap smoke steps, dispatch safely |
+| CLI and scoped paths | `pipeline/src/windgram/cli.py`, `pipeline/src/windgram/config.py` | Select model(s), validate site/output paths, cap smoke steps, dispatch safely |
 | Provider clients | `datamart.py`, `noaa.py`, `grib.py`, `geotiff.py` | Fetch, range-read, decode, sample, and account for transport work |
-| Builders | `build*.py` | Verify run completeness, request declared fields, preserve absence, assemble source hours |
-| Derivation | `windgram.py` | Produce published profile blocks and model-dependent derived values |
+| Builders | `builders/*.py` | Verify run completeness, request declared fields, preserve absence, assemble source hours |
+| Derivation | `derive.py` | Produce published profile blocks and model-dependent derived values |
 | Ensemble aggregation | `ensemble.py` | Aggregate member profiles, including circular wind and censored counts |
 | Publication | `publish.py` | Round contract fields, write JSON, append gzip history, build run index |
 | Teaching scenarios | `scenarios.py` | Generate fixed inputs through the same derivation authority |

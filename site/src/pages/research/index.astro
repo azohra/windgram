@@ -11,7 +11,7 @@ const dateFormat = new Intl.DateTimeFormat("en-CA", {
   timeZone: "UTC",
 });
 
-function kindLabel(kind: (typeof entries)[number]["researchKind"]): string {
+function kindLabel(kind: (typeof entries)[number]["kind"]): string {
   if (kind === "case-study") return "Case study";
   if (kind === "experiment") return "Experiment";
   return "Method";
@@ -41,9 +41,9 @@ function kindLabel(kind: (typeof entries)[number]["researchKind"]): string {
               <span class="entry-number">{entry.number}</span>
               <div class="entry-copy">
                 <div class="entry-meta">
-                  <span>{kindLabel(entry.researchKind)}</span>
+                  <span>{kindLabel(entry.kind)}</span>
                   <span>{entry.section}</span>
-                  {entry.published && <time datetime={entry.published.toISOString()}>{dateFormat.format(entry.published)}</time>}
+                  <time datetime={entry.published.toISOString()}>{dateFormat.format(entry.published)}</time>
                   <span>{entry.readingMinutes} min</span>
                   {entry.status === "historical" && <span>Historical</span>}
                 </div>

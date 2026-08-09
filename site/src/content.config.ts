@@ -6,7 +6,7 @@ import { z } from "astro/zod";
 
 const requiredText = z.string().trim().min(1);
 
-export const researchThumbnailKinds = [
+const researchThumbnailKinds = [
   "lift-limits",
   "validation-witnesses",
   "ensemble-ceiling",
@@ -16,7 +16,7 @@ export const researchThumbnailKinds = [
   "terrain-shear",
 ] as const;
 
-export const researchSchema = z
+const researchSchema = z
   .object({
     title: requiredText,
     summary: requiredText,

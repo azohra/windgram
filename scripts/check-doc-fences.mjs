@@ -2,14 +2,14 @@
  *
  * Extracts every ```ts / ```typescript fence from the docs portal MDX
  * (site/src/content/docs/docs/**\/*.mdx) and the repository README files
- * (README.md, packages/*\/README.md), writes each fence to a temporary
+ * (README.md, toolkit/README.md), writes each fence to a temporary
  * project whose tsconfig maps the `windgram/*` import specifiers onto the
- * built package's type declarations (packages/windgram/dist/*\/index.d.ts),
+ * built package's type declarations (toolkit/dist/*\/index.d.ts),
  * and runs a single `tsc --noEmit` over all of them. A documented example
  * that no longer compiles against the released surface is a red build.
  *
- * Requires the package to be built first: `pnpm --dir packages/windgram build`
- * (the root `doc-fences:check` script does both).
+ * Requires the package to be built first: `pnpm --dir toolkit build`
+ * (the scripts workspace's `doc-fences:check` entry does both).
  *
  * Opting a fence out: fences are complete, self-contained examples by
  * convention. A deliberately partial ts fence is skipped by placing an HTML
@@ -46,7 +46,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const packageDir = join(repoRoot, "packages", "windgram");
+const packageDir = join(repoRoot, "toolkit");
 const IGNORE_MARKER = "windgram-doc-fence: ignore";
 
 function fail(message) {
@@ -70,13 +70,8 @@ function defaultDocFiles() {
   walk(join(repoRoot, "site", "src", "content", "docs", "docs"), files);
   const rootReadme = join(repoRoot, "README.md");
   if (existsSync(rootReadme)) files.push(rootReadme);
-  const packagesDir = join(repoRoot, "packages");
-  if (existsSync(packagesDir)) {
-    for (const entry of readdirSync(packagesDir, { withFileTypes: true })) {
-      const readme = join(packagesDir, entry.name, "README.md");
-      if (entry.isDirectory() && existsSync(readme)) files.push(readme);
-    }
-  }
+  const toolkitReadme = join(repoRoot, "toolkit", "README.md");
+  if (existsSync(toolkitReadme)) files.push(toolkitReadme);
   return files;
 }
 
@@ -133,11 +128,11 @@ if (docFiles.length === 0) fail("no documentation files to scan");
 
 const distMarker = join(packageDir, "dist", "contract", "index.d.ts");
 if (!existsSync(distMarker)) {
-  fail(`built package types not found at ${distMarker} — run: pnpm --dir packages/windgram build`);
+  fail(`built package types not found at ${distMarker} — run: pnpm --dir toolkit build`);
 }
 
 // The temp project lives under the package's node_modules so tsc's upward
-// walk finds packages/windgram/node_modules/@types (for `types: ["node"]`).
+// walk finds toolkit/node_modules/@types (for `types: ["node"]`).
 const tempDir = join(packageDir, "node_modules", ".cache", "windgram-doc-fences");
 rmSync(tempDir, { recursive: true, force: true });
 mkdirSync(tempDir, { recursive: true });

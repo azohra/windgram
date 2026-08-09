@@ -28,7 +28,7 @@ absolute path for that dispatch.
 ```
 
 The catalogue must satisfy `sitesCatalogueSchema` from `windgram/contract` or
-the generated `packages/windgram/schema/sites.schema.json` artifact.
+the generated `toolkit/schema/sites.schema.json` artifact.
 
 | Field | Meaning |
 | --- | --- |
@@ -58,7 +58,7 @@ the generated `packages/windgram/schema/sites.schema.json` artifact.
 4. Validate the whole file without fetching provider data:
 
    ```sh title="Terminal"
-   uv run windgram build --model hrrr-conus --sites ./club-sites.json --output ./public/data --dry-run
+   uv run --project pipeline windgram build --model hrrr-conus --sites ./club-sites.json --output ./public/data --dry-run
    ```
 
 5. Run the chosen model. If any configured site falls outside that model's

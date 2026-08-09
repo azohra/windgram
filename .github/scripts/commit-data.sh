@@ -15,7 +15,7 @@ set -eu
 # newer runs — so the last lane to push publishes an index covering every
 # lane's runs.
 regenerate_runs_index() {
-  python3 -c "from windgram.publish import write_runs_index; write_runs_index()"
+  uv run --project pipeline python -c "from windgram.publish import write_runs_index; write_runs_index()"
   git add data/runs.json
 }
 

@@ -1,9 +1,9 @@
 ---
-import type { DocPage } from "../../lib/research";
+import type { ResearchArticle } from "../../lib/research";
 import ResearchThumbnail from "../research/ResearchThumbnail.astro";
 
 interface Props {
-  entries: DocPage[];
+  entries: ResearchArticle[];
 }
 
 const { entries } = Astro.props;
@@ -28,14 +28,14 @@ const dateFormat = new Intl.DateTimeFormat("en-CA", {
     <ol class="research-grid">
       {entries.map((entry) => (
         <li>
-          <article class:list={["research-card", `research-card--${entry.researchKind ?? "method"}`]}>
+          <article class:list={["research-card", `research-card--${entry.kind}`]}>
             <a class="research-card__visual" href={entry.url} aria-label={`Read ${entry.title}`}>
               <ResearchThumbnail entry={entry} />
             </a>
             <div class="research-card__copy">
               <p class="research-card__meta">
                 <span>{entry.section}</span>
-                {entry.published && <time datetime={entry.published.toISOString()}>{dateFormat.format(entry.published)}</time>}
+                <time datetime={entry.published.toISOString()}>{dateFormat.format(entry.published)}</time>
                 <span>{entry.readingMinutes} min</span>
               </p>
               <h3><a href={entry.url}>{entry.title}</a></h3>

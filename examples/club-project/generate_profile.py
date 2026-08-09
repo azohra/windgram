@@ -7,9 +7,9 @@ import json
 from datetime import datetime
 from pathlib import Path
 
+from windgram.derive import derive_windgram_profile
 from windgram.publish import round_document, write_json
 from windgram.sites import load_sites
-from windgram.windgram import derive_windgram_profile
 
 
 MODEL = "synthetic-club-demo"

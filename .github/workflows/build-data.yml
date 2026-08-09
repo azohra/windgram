@@ -1,0 +1,153 @@
+# Checks providers every 15 minutes for new model runs and publishes derived
+# windgram profiles to data/. A no-new-run check costs one listing or
+# capabilities request per model and exits; commits happen only when a run
+# advances, so repository history stays one commit per model run.
+#
+# Builds group by provider rate-limit domain, one job per provider host, so
+# the per-host connection rule holds by construction: builders inside a job
+# run sequentially, each opening at most its FETCH_CONCURRENCY connections
+# (5 per ECCC Datamart host, 10 per NOAA S3 bucket — the arithmetic against
+# MSC's documented 86,400 requests/day budget lives in
+# pipeline/src/windgram/builders/eccc.py).
+# The two ECCC jobs point at different hosts — dd.weather.gc.ca and MSC's
+# sanctioned hpfx.collab.science.gc.ca mirror (identical dated tree, ten-fold
+# peak bandwidth, best-effort link), selected via WINDGRAM_DATAMART_BASE —
+# and are balanced by per-run bytes: GEPS, the heaviest stream, pairs with
+# HRDPS (~22 GiB) while RDPS + GDPS + REPS + the 1 km alpha feed total
+# ~22 GiB on the dd side. The 1 km feed lives on dd.alpha.weather.gc.ca
+# (its own host, not mirrored on hpfx), so it rides in the dd job.
+name: Build windgram
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  # The NOAA builders pull GRIB records by byte range (~1.3 GB HRRR, ~2 GB
+  # GFS, ~0.3 GB NAM 12 km, ~1.7 GB NAM nest per fresh run) — far lighter
+  # than the ECCC streams, so this job gets its own concurrency group: a
+  # slow ECCC stream must never block the next tick's NOAA pickup. Each
+  # bucket is its own host (noaa-nam-pds serves both NAM products) and the
+  # builders run sequentially, so no NOAA host ever sees more than one
+  # builder's FETCH_CONCURRENCY connections.
+  noaa:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: build-noaa
+      cancel-in-progress: false
+    # Worst case is every model landing a fresh run in one check: ~5.3 GB of
+    # ranged GETs (3.3 NOAA legacy + ~2 NAM: the nest is HRRR-weight × 60/48
+    # hours ≈ 1.7 GB, the 12 km grid is ~7× smaller ≈ 0.3 GB) plus
+    # decode-once sampling — the old 30-minute budget scaled by 5.3/3.3.
+    timeout-minutes: 45
+    steps:
+      # Check out the branch tip at job start, not the SHA pinned when the
+      # scheduled run was created: after a concurrency-queue wait that
+      # pinned tree can predate the previous job's data pushes, and the
+      # builder would rebuild and re-publish a run already on main.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+      # Each model commits as soon as it finishes: a fresh checkout after the
+      # wipe rebuilds everything, and an end-of-job commit would lose all of
+      # it to the timeout.
+      - name: Build HRRR 3 km (failure must not block the others)
+        run: uv run --no-dev --project pipeline windgram build --model hrrr-conus || echo "::warning::HRRR build failed"
+      - name: Publish HRRR
+        run: .github/scripts/commit-data.sh
+      - name: Build GFS 25 km (failure must not block the others)
+        run: uv run --no-dev --project pipeline windgram build --model gfs || echo "::warning::GFS build failed"
+      - name: Publish GFS
+        run: .github/scripts/commit-data.sh
+      - name: Build NAM 12 km (failure must not block the others)
+        run: uv run --no-dev --project pipeline windgram build --model nam || echo "::warning::NAM 12 km build failed"
+      - name: Publish NAM 12 km
+        run: .github/scripts/commit-data.sh
+      # The nest moves the most NOAA bytes, so it goes last — a timeout here
+      # costs only this model's run, and the others have already committed.
+      - name: Build NAM CONUS nest 3 km (failure must not block the others)
+        run: uv run --no-dev --project pipeline windgram build --model nam-conus-nest || echo "::warning::NAM nest build failed"
+      - name: Publish NAM CONUS nest
+        run: .github/scripts/commit-data.sh
+
+  # The dd.weather.gc.ca half of the ECCC split (plus the 1 km alpha host):
+  # whole-domain Datamart GRIB2 streams of roughly 4 GiB RDPS, 8 GiB GDPS,
+  # 9 GiB REPS, and 1.2 GiB for the 1 km alpha feed per fresh run — ~22 GiB
+  # worst case, sampled in memory and released.
+  eccc-dd:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: build-eccc-dd
+      cancel-in-progress: false
+    # The ceiling covers the worst case of every model in this job landing a
+    # new run in one check (~22 GiB; the old single job budgeted 120 minutes
+    # for ~44 GiB plus NOAA).
+    timeout-minutes: 90
+    steps:
+      # Branch tip at job start, not the run-creation SHA (see the noaa job).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+      # Lightest first so data appears early; each model commits as soon as
+      # it finishes (see the noaa job).
+      - name: Build HRDPS 1 km (experimental feed; dd.alpha-only)
+        run: uv run --no-dev --project pipeline windgram build --model hrdps-west || echo "::warning::1 km build failed"
+      - name: Publish HRDPS 1 km
+        run: .github/scripts/commit-data.sh
+      - name: Build RDPS 10 km (failure must not block the others)
+        run: uv run --no-dev --project pipeline windgram build --model rdps || echo "::warning::RDPS build failed"
+      - name: Publish RDPS
+        run: .github/scripts/commit-data.sh
+      - name: Build GDPS 15 km (failure must not block the others)
+        run: uv run --no-dev --project pipeline windgram build --model gdps || echo "::warning::GDPS build failed"
+      - name: Publish GDPS
+        run: .github/scripts/commit-data.sh
+      - name: Build REPS 10 km ensemble (failure must not block the others)
+        run: uv run --no-dev --project pipeline windgram build --model reps || echo "::warning::REPS build failed"
+      - name: Publish REPS
+        run: .github/scripts/commit-data.sh
+
+  # The hpfx half of the ECCC split: HRDPS (~8 GiB) and GEPS (~14 GiB), the
+  # two heaviest single streams, on the mirror's fatter pipe. Verified
+  # 2026-08-08 that hpfx serves the identical dated tree for both.
+  eccc-hpfx:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: build-eccc-hpfx
+      cancel-in-progress: false
+    # Worst case ~22 GiB, matching the dd job's budget.
+    timeout-minutes: 90
+    env:
+      WINDGRAM_DATAMART_BASE: https://hpfx.collab.science.gc.ca
+    steps:
+      # Branch tip at job start, not the run-creation SHA (see the noaa job).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+      - name: Build HRDPS 2.5 km (failure must not block the others)
+        run: uv run --no-dev --project pipeline windgram build --model hrdps-continental || echo "::warning::HRDPS build failed"
+      - name: Publish HRDPS 2.5 km
+        run: .github/scripts/commit-data.sh
+      # GEPS moves the most bytes over the longest horizon, so it goes last:
+      # a timeout here costs only this model's run, and HRDPS has already
+      # committed.
+      - name: Build GEPS 0.5° ensemble (failure must not block the others)
+        run: uv run --no-dev --project pipeline windgram build --model geps || echo "::warning::GEPS build failed"
+      - name: Publish GEPS
+        run: .github/scripts/commit-data.sh
+
+  test:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+      - run: uv run --project pipeline pytest pipeline/tests

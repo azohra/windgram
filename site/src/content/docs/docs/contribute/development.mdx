@@ -12,12 +12,12 @@ before changing any layer.
 ```sh title="Terminal"
 corepack enable
 pnpm install --frozen-lockfile
-uv sync
+uv sync --project pipeline
 ```
 
 The root `packageManager` pin selects pnpm; the root lockfile governs both
-`site/` and `packages/*`. `uv.lock` governs Python. Do not hand-edit either
-lockfile.
+`site/` and `toolkit/`. `pipeline/uv.lock` governs Python. Do not hand-edit
+either lockfile.
 
 ## Run the repository gates
 

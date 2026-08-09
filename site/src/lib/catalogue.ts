@@ -25,9 +25,3 @@ export function omegaLevels(slug: string): number[] {
 export function runIntervalHours(slug: string): number {
   return modelBySlug(slug)?.runIntervalHours ?? 12;
 }
-
-/* Catalogue labels are resolution-free (resolution is data, `gridKm`);
-   composing the two for display is this consumer's choice, made here once. */
-export function modelDisplayName(model: ModelEntry): string {
-  return `${model.label} · ${model.gridKm} km`;
-}

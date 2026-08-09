@@ -18,7 +18,7 @@ the CLI so external site and output paths are scoped consistently.
    writes:
 
    ```sh title="Terminal"
-   uv run windgram build --model hrrr-conus --sites ./club-sites.json --output ./public/data --dry-run
+   uv run --project pipeline windgram build --model hrrr-conus --sites ./club-sites.json --output ./public/data --dry-run
    ```
 
 3. **Use a short smoke cap when appropriate.** `--max-steps 2` selects the
@@ -68,7 +68,7 @@ preflight selects and caps the HRRR builder. A separate generator passes fixed,
 model-shaped values through the Python derivation and serialization code. Run
 a provider build separately after the smoke test.
 
-Start from a clean source checkout with `uv sync` and the root `pnpm install`
+Start from a clean source checkout with `uv sync --project pipeline` and the root `pnpm install`
 already complete. Use absolute paths so neither the CLI, generator, package
 build, nor renderer depends on the current working directory:
 
@@ -78,21 +78,21 @@ export CLUB_PROJECT=/absolute/path/to/new/club-project
 
 cp -R "$WINDGRAM_SOURCE/examples/club-project" "$CLUB_PROJECT"
 
-uv run --offline --project "$WINDGRAM_SOURCE" windgram build \
+uv run --offline --project "$WINDGRAM_SOURCE/pipeline" windgram build \
   --model hrrr-conus \
   --sites "$CLUB_PROJECT/club-sites.json" \
   --output "$CLUB_PROJECT/public/data" \
   --max-steps 2 \
   --dry-run
 
-uv run --offline --project "$WINDGRAM_SOURCE" python \
+uv run --offline --project "$WINDGRAM_SOURCE/pipeline" python \
   "$CLUB_PROJECT/generate_profile.py" \
   --sites "$CLUB_PROJECT/club-sites.json" \
   --source "$CLUB_PROJECT/fixtures/synthetic-source.json" \
   --output "$CLUB_PROJECT/public/data"
 
-(cd "$WINDGRAM_SOURCE" && pnpm --dir packages/windgram build)
-(cd "$WINDGRAM_SOURCE" && pnpm --dir packages/windgram pack \
+(cd "$WINDGRAM_SOURCE" && pnpm --dir toolkit build)
+(cd "$WINDGRAM_SOURCE" && pnpm --dir toolkit pack \
   --pack-destination "$CLUB_PROJECT")
 pnpm --dir "$CLUB_PROJECT" add --offline --save-exact \
   "$CLUB_PROJECT"/windgram-*.tgz

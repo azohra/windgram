@@ -2,6 +2,7 @@
 import { STABILITY_TOKEN_DEFAULTS, TOKEN_DEFAULTS } from "windgram/svg";
 import AttributionLine from "../components/AttributionLine.astro";
 import SkylineMark from "../components/SkylineMark.astro";
+import { SOCIAL_CARD } from "../lib/social-card.mjs";
 import "@fontsource/big-shoulders/700.css";
 import "@fontsource/big-shoulders/800.css";
 import "@fontsource/big-shoulders/900.css";
@@ -22,8 +23,13 @@ interface Props {
 
 const { title, description, activeNav } = Astro.props;
 
+// Same link-preview card the docs pages emit via the Starlight head (see
+// astro.config.mjs) — non-docs pages render through this layout. Facts come
+// from src/lib/social-card.mjs; the origin from the config's `site`.
+const socialCard = new URL(SOCIAL_CARD.path, Astro.site).href;
+
 // The package export is the stability ramp authority; the site's --stab-*
-// custom properties (figure legends, StabilityGuide, HomeWindgram) are
+// custom properties (figure legends, StabilityGuide, ResearchThumbnail) are
 // generated from it at build time instead of hand-mirroring hexes in CSS.
 // The same pattern serves the package hues theme.css takes no position on
 // but site chrome consumes (the switchboard's Model-PBL chip, the figures'
@@ -45,19 +51,14 @@ const stabilityStyle = `:root { ${stabilityTokens} ${packageTokens} }`;
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    {/* Same link-preview card the docs pages emit via the Starlight head
-        (see astro.config.mjs) — non-docs pages render through this layout. */}
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:image" content="https://windgram.azohra.com/social-card.png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta
-      property="og:image:alt"
-      content="Windgram — forecast profiles for soaring: the project wordmark beside a package-rendered windgram chart."
-    />
+    <meta property="og:image" content={socialCard} />
+    <meta property="og:image:width" content={SOCIAL_CARD.width} />
+    <meta property="og:image:height" content={SOCIAL_CARD.height} />
+    <meta property="og:image:alt" content={SOCIAL_CARD.alt} />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="https://windgram.azohra.com/social-card.png" />
+    <meta name="twitter:image" content={socialCard} />
     <style set:html={stabilityStyle}></style>
   </head>
   <body>

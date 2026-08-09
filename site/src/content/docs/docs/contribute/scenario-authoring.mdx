@@ -39,7 +39,7 @@ The inputs are:
 - `scenarios/definitions/*.json`: one discoverable recipe per top-level file;
 - source files named by each definition's `baseline.path`: input values, never
   `derived.*`; and
-- `windgram/scenarios.py`: validation, transform, generation, assertion, and
+- `pipeline/src/windgram/scenarios.py`: validation, transform, generation, assertion, and
   deterministic serialization behaviour.
 
 The outputs are `scenarios/generated/*.profile.json` and
@@ -203,11 +203,11 @@ method.
 From the repository root:
 
 ```sh title="Terminal"
-uv run python -m windgram.scenarios generate
-uv run python -m windgram.scenarios check
-uv run pytest tests/test_scenarios.py tests/test_scenario_ensembles.py
-uv run pytest tests/test_scenario_calibration.py
-pnpm --dir packages/windgram test
+uv run --project pipeline windgram scenarios generate
+uv run --project pipeline windgram scenarios check
+uv run --project pipeline pytest pipeline/tests/test_scenarios.py pipeline/tests/test_scenario_ensembles.py
+uv run --project pipeline pytest pipeline/tests/test_scenario_calibration.py
+pnpm --dir toolkit test
 pnpm --dir site check
 pnpm --dir site build
 ```

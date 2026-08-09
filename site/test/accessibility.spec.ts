@@ -1,54 +1,5 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
-import { readdirSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import path from "node:path";
-
-const siteDirectory = fileURLToPath(new URL("../", import.meta.url));
-const distDirectory = path.join(siteDirectory, "dist");
-
-const redirectRoutes = new Set([
-  "/chart/",
-  "/reference/forecast-model-feeds/",
-  "/research/choosing-forecast-models/",
-  "/research/model-capabilities/",
-  "/research/reading-a-windgram/",
-  "/research/why-this-project-exists/",
-]);
-
-function filesBelow(directory: string): string[] {
-  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    const absolute = path.join(directory, entry.name);
-    return entry.isDirectory() ? filesBelow(absolute) : [absolute];
-  });
-}
-
-function routeForBuiltPage(file: string): string {
-  const relative = path.relative(distDirectory, file).replaceAll(path.sep, "/");
-  if (relative === "index.html") return "/";
-  if (relative.endsWith("/index.html")) return `/${relative.slice(0, -"index.html".length)}`;
-  return `/${relative.replace(/\.html$/, "")}`;
-}
-
-const publicRoutes = filesBelow(distDirectory)
-  .filter((file) => file.endsWith(".html") && path.basename(file) !== "404.html")
-  .map(routeForBuiltPage)
-  .sort();
-const canonicalRoutes = publicRoutes.filter((route) => !redirectRoutes.has(route));
-
-async function guardStaticBrowsing(page: Page, baseURL: string) {
-  const origin = new URL(baseURL).origin;
-  const externalRequests: string[] = [];
-  await page.route("**/*", async (route) => {
-    const url = new URL(route.request().url());
-    if ((url.protocol === "http:" || url.protocol === "https:") && url.origin !== origin) {
-      externalRequests.push(url.href);
-      await route.abort("blockedbyclient");
-      return;
-    }
-    await route.continue();
-  });
-  return externalRequests;
-}
+import { expect, test, type Locator } from "@playwright/test";
+import { canonicalRoutes, guardStaticBrowsing } from "./helpers";
 
 async function expectReadableCode(pre: Locator, minimumSamples: number) {
   const contrast = await pre.evaluate((element) => {
@@ -101,8 +52,8 @@ test.describe("static route and accessibility contract", () => {
     });
     const externalRequests = await guardStaticBrowsing(page, baseURL!);
 
-    expect(publicRoutes.length, "the built route inventory is unexpectedly small").toBeGreaterThan(40);
-    for (const route of publicRoutes) {
+    expect(canonicalRoutes.length, "the built route inventory is unexpectedly small").toBeGreaterThan(40);
+    for (const route of canonicalRoutes) {
       await test.step(route, async () => {
         currentRoute = route;
         const response = await page.goto(route, { waitUntil: "networkidle" });

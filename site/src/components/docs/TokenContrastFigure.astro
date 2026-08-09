@@ -36,7 +36,7 @@ const { svg: overriddenSvg } = renderSyntheticWindgram(scenario, options, "ts-to
     <section class="token-panel" aria-label="Default package tokens">
       <p class="token-panel__title">package defaults</p>
       <div
-        class="token-panel__scroll"
+        class="wg-scroll"
         role="region"
         tabindex="0"
         aria-label="Scrollable windgram with default tokens"
@@ -47,7 +47,7 @@ const { svg: overriddenSvg } = renderSyntheticWindgram(scenario, options, "ts-to
     <section class="token-panel" aria-label="Downstream token overrides">
       <p class="token-panel__title">ancestor overrides <code>--wg-*</code></p>
       <div
-        class="token-panel__scroll"
+        class="wg-scroll"
         role="region"
         tabindex="0"
         aria-label="Scrollable windgram with overridden tokens"
@@ -78,18 +78,6 @@ const { svg: overriddenSvg } = renderSyntheticWindgram(scenario, options, "ts-to
     color: var(--ink-soft);
     font: 600 0.74rem/1.4 var(--mono);
     border-block-end: 1px solid var(--rule);
-  }
-
-  .token-panel__scroll {
-    max-width: 100%;
-    overflow-x: auto;
-    overscroll-behavior-inline: contain;
-    scrollbar-color: var(--accent) var(--surface-raised);
-  }
-
-  .token-panel__scroll:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: -2px;
   }
 
   .token-panel__mount :global(svg) {

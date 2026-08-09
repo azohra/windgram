@@ -1,7 +1,7 @@
 /**
  * Brand text engine for generated doc figures.
  *
- * Committed assets under docs/assets/ render on surfaces that load no
+ * Committed assets under assets/ render on surfaces that load no
  * webfonts (GitHub's camo proxy, npm, link unfurlers), so every <text>
  * element is converted to path outlines before an asset is written. The
  * outlines come from the site's own brand fonts — the @fontsource

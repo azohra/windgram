@@ -46,8 +46,14 @@
   --status-serious: #913b0c;
   --status-critical: #8f302a;
 
+  /* research accents — the collection derives an accent name per article
+     kind (method → blue, experiment → amber, case-study → green); this is
+     the one translation from that name to a hue. Every consumer (article
+     meta, thumbnails) reads --doc-accent through these classes. */
+  --doc-accent: var(--accent);
+
   /* stability palette — the discrete 8-class lapse-rate ramp has ONE home:
-     STABILITY_TOKEN_DEFAULTS in packages/windgram (windgram/svg). Base.astro
+     STABILITY_TOKEN_DEFAULTS in toolkit/ (windgram/svg). Base.astro
      generates the --stab-* custom properties from that export at build time,
      so figures and legends here read the same hexes the package renders
      without restating them. Consumers that want a different look override
@@ -81,6 +87,16 @@
   --display: "Big Shoulders", "Arial Narrow", sans-serif;
   --sans: "IBM Plex Sans", -apple-system, "Segoe UI", system-ui, sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+.accent-amber {
+  --doc-accent: var(--accent);
+}
+.accent-blue {
+  --doc-accent: var(--chart-wind);
+}
+.accent-green {
+  --doc-accent: var(--chart-usable);
 }
 
 * {
@@ -238,17 +254,6 @@ a:hover {
 .prose p {
   margin: 0 0 20px;
 }
-/* Lede: the paragraph right after the H1 gets read first and sets the
-   register for the whole page, so it earns brighter ink and more air than
-   the body copy that follows — pure typography, no content change. Tagged
-   explicitly in docs.ts rather than matched by position, since a table of
-   contents or comparison grid can land between the H1 and this paragraph. */
-.prose .doc-lede {
-  font-size: 22px;
-  line-height: 1.58;
-  color: var(--ink);
-  margin: 4px 0 30px;
-}
 .prose ul,
 .prose ol {
   margin: 0 0 20px;
@@ -337,14 +342,6 @@ a:hover {
   border: 0;
   border-top: 1px solid var(--rule);
 }
-/* Figures without their own breakout rule use the same wider visual measure
-   as the other research diagrams instead of inheriting the prose column. */
-.prose > figure.home-windgram.view-full,
-.prose > figure.sp-diagram {
-  width: min(920px, calc(100vw - 48px));
-  margin: 28px 50% 44px;
-  transform: translateX(-50%);
-}
 @media (max-width: 560px) {
   .site-header {
     align-items: flex-start;
@@ -364,13 +361,5 @@ a:hover {
   .prose {
     font-size: 17px;
     line-height: 1.64;
-  }
-  .prose .doc-lede {
-    font-size: 19px;
-    line-height: 1.58;
-  }
-  .prose > figure.home-windgram.view-full,
-  .prose > figure.sp-diagram {
-    width: calc(100vw - 32px);
   }
 }

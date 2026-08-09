@@ -1,16 +1,15 @@
 ---
-import type { DocPage } from "../../lib/research";
+import type { ResearchArticle } from "../../lib/research";
 
 interface Props {
-  doc: DocPage;
+  doc: ResearchArticle;
 }
 
 const { doc } = Astro.props;
-const kindLabel = doc.kind === "reference" ? "Reference" : "Entry";
 ---
 
 <div class={`article-meta accent-${doc.accent}`}>
-  <span class="article-number">{kindLabel} {doc.number}</span>
+  <span class="article-number">Entry {doc.number}</span>
   <span>{doc.section}</span>
   <span>{doc.readingMinutes} min read</span>
 </div>
@@ -32,13 +31,10 @@ const kindLabel = doc.kind === "reference" ? "Reference" : "Entry";
     margin-right: 10px;
     color: var(--rule-strong);
   }
+  /* .accent-* → --doc-accent is the one accent translation, in theme.css. */
   .article-number {
-    color: var(--entry-accent, var(--accent));
+    color: var(--doc-accent);
   }
-  .accent-amber { --entry-accent: var(--accent); }
-  .accent-blue { --entry-accent: var(--model-1); }
-  .accent-green { --entry-accent: var(--model-3); }
-  .accent-red { --entry-accent: var(--lapse-hot); }
   @media (max-width: 520px) {
     .article-meta {
       flex-wrap: wrap;

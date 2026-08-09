@@ -96,7 +96,7 @@ const initialOverlays = JSON.stringify(overlays ?? {});
     />
   )}
   <div
-    class="synthetic-windgram__scroll"
+    class="wg-scroll"
     role="region"
     tabindex="0"
     aria-label={scrollLabel}
@@ -184,18 +184,6 @@ const initialOverlays = JSON.stringify(overlays ?? {});
   .synthetic-windgram {
     min-width: 0;
     background: var(--surface);
-  }
-
-  .synthetic-windgram__scroll {
-    max-width: 100%;
-    overflow-x: auto;
-    overscroll-behavior-inline: contain;
-    scrollbar-color: var(--accent) var(--surface-raised);
-  }
-
-  .synthetic-windgram__scroll:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: -2px;
   }
 
   .synthetic-windgram__mount :global(svg) {

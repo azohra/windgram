@@ -243,10 +243,8 @@ function buildRegistry(): Map<string, TeachingScenario[]> {
 // failure even before a particular figure requests it.
 const REGISTRY = buildRegistry();
 
-export const SCENARIO_IDS = Object.freeze([...REGISTRY.keys()]);
-
 /** Return every output for an id (one normally, multiple for comparisons). */
-export function scenariosById(id: string): readonly TeachingScenario[] {
+function scenariosById(id: string): readonly TeachingScenario[] {
   const scenarios = REGISTRY.get(id);
   if (!scenarios) fail(`unknown scenario id ${JSON.stringify(id)}`);
   return scenarios;

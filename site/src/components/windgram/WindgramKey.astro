@@ -27,7 +27,7 @@ if (!Number.isFinite(keyWidth)) throw new Error(`Unable to read the ${keyIdPrefi
   data-chart-id-prefix={chartIdPrefix}
 >
   <div
-    class="windgram-key__scroll"
+    class="wg-scroll windgram-key__scroll"
     role="region"
     tabindex="0"
     aria-label={scrollLabel}
@@ -93,15 +93,8 @@ if (!Number.isFinite(keyWidth)) throw new Error(`Unable to read the ${keyIdPrefi
     min-width: 0;
   }
 
-  .windgram-key__scroll {
-    max-width: 100%;
-    overflow-x: auto;
-    overscroll-behavior-inline: contain;
-    scrollbar-color: var(--accent) var(--surface-raised);
-  }
-
-  .windgram-key__scroll:focus-visible {
-    outline: 2px solid var(--accent);
+  /* Shared wg-scroll contract; the key keeps its outside focus ring. */
+  .wg-scroll.windgram-key__scroll:focus-visible {
     outline-offset: 2px;
   }
 

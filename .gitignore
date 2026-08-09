@@ -5,7 +5,7 @@ __pycache__/
 .venv/
 *.egg-info/
 site/dist/
-packages/windgram/dist/
+toolkit/dist/
 site/.astro/
 site/playwright-report/
 site/test-results/

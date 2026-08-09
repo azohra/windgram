@@ -72,7 +72,7 @@ const description = series
   units="OKLab ΔE ×100"
 >
 
-  <div class="graphic-scroll" role="region" tabindex="0" aria-label="Scrollable chart of adjacent-pair colour difference for both palettes">
+  <div class="wg-scroll wg-scroll--plate graphic-scroll" role="region" tabindex="0" aria-label="Scrollable chart of adjacent-pair colour difference for both palettes">
     <svg viewBox="0 0 1040 452" role="img" aria-labelledby="ramp-delta-e-svg-title ramp-delta-e-svg-desc">
       <title id="ramp-delta-e-svg-title">
         Adjacent-pair colour difference of the default stability ramp and the historical canadarasp palette,
@@ -148,14 +148,10 @@ const description = series
 </Figure>
 
 <style>
+  /* wg-scroll / wg-scroll--plate carry the scroll-region contract. */
   .graphic-scroll {
-    overflow-x: auto;
-    background: var(--surface);
-    border: 1px solid var(--rule);
     padding: 10px 10px 4px;
-    scrollbar-color: var(--accent) var(--surface-raised);
   }
-  .graphic-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   svg { display: block; width: 100%; min-width: 880px; height: auto; font-family: var(--mono); }
   .de-grid line { stroke: var(--rule); stroke-width: 1; opacity: .45; }
   .de-grid text { fill: var(--ink-mute); font-size: 11px; text-anchor: end; }

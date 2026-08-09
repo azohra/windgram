@@ -1,0 +1,211 @@
+---
+import fs from "node:fs";
+import path from "node:path";
+import Figure from "../figure/Figure.astro";
+
+// Panel A's index rows are parsed from the repository's real HRRR `.idx`
+// fixture at build time, so the printed record numbers and byte offsets are
+// actual NOAA index facts, never hand-typed. Panel B's volumes are the
+// measured build costs recorded in the README and feed reference.
+const idxPath = path.resolve(process.cwd(), "../pipeline/tests/fixtures/hrrr.t12z.wrfprsf24.excerpt.idx");
+const idxLines = fs
+  .readFileSync(idxPath, "utf-8")
+  .trim()
+  .split("\n")
+  .map((line) => line.split(":"));
+
+const wanted: Array<{ varName: string; level: string; label: string }> = [
+  { varName: "HGT", level: "850 mb", label: "HGT:850 mb" },
+  { varName: "UGRD", level: "850 mb", label: "UGRD:850 mb" },
+  { varName: "TMP", level: "2 m above ground", label: "TMP:2 m" },
+  { varName: "DPT", level: "2 m above ground", label: "DPT:2 m" },
+];
+const records = wanted.map(({ varName, level, label }) => {
+  const line = idxLines.find((fields) => fields[3] === varName && fields[4] === level);
+  if (!line) throw new Error(`record ${varName}:${level} missing from ${idxPath}`);
+  return { label, record: Number(line[0]), offset: Number(line[1]) };
+});
+const runStamp = idxLines[0][2].replace("d=", ""); // YYYYMMDDHH
+const runLabel = `${runStamp.slice(0, 4)}-${runStamp.slice(4, 6)}-${runStamp.slice(6, 8)} ${runStamp.slice(8, 10)}Z`;
+const maxOffset = Math.max(...idxLines.map((fields) => Number(fields[1])));
+const fileFloorMb = Math.round(maxOffset / 1e6);
+const bytes = (offset: number) => offset.toLocaleString("en-CA");
+
+// File-strip geometry: hit ticks sit at each record's true fractional byte
+// offset; the numbered chips above keep a minimum gap so adjacent records
+// (TMP and DPT at 2 m are neighbours) stay legible.
+const BAR_LEFT = 340;
+const BAR_RIGHT = 936;
+const hits = records.map((record, index) => ({
+  ...record,
+  n: index + 1,
+  x: BAR_LEFT + (record.offset / maxOffset) * (BAR_RIGHT - BAR_LEFT),
+}));
+for (let i = 1; i < hits.length; i += 1) {
+  if (hits[i].x - hits[i - 1].x < 26) hits[i] = { ...hits[i], x: hits[i - 1].x + 26 };
+}
+---
+
+<Figure
+  id="two-transports"
+  title="Two transports, one job"
+  lesson="NOAA exposes indexed byte ranges while ECCC publishes whole files, so each builder follows its provider's transport contract."
+  description={`A comparison of NOAA indexed byte ranges and ECCC whole-domain streaming. Four HRRR records are located at byte offsets read from the repository fixture for ${runLabel}; ECCC builders stream one file at a time, sample configured sites, and discard the file.`}
+  caption="Record numbers and offsets come from the committed HRRR index fixture; run-volume context comes from the project measurements recorded with the pipeline research."
+  units="byte offsets and transferred GiB where labelled"
+>
+
+  <div class="wg-scroll wg-scroll--plate graphic-scroll" role="region" tabindex="0" aria-label="Scrollable diagram of the byte-range and whole-domain-stream transports">
+    <svg viewBox="0 0 980 540" role="img" aria-labelledby="two-transports-svg-title two-transports-svg-desc">
+      <title id="two-transports-svg-title">Byte ranges versus whole-domain streams</title>
+      <desc id="two-transports-svg-desc">
+        Transport A, indexed byte ranges, NOAA HRRR and GFS: a plain-text .idx sidecar names each
+        record's byte offset inside the GRIB2 object — for example record {records[0].record},
+        {records[0].label}, at byte {bytes(records[0].offset)} of the {runLabel} run — so the
+        builder issues one HTTP range request per needed record and the rest of the
+        {fileFloorMb}-plus-megabyte file never leaves the bucket. Transport B, whole-domain stream,
+        ECCC HRDPS, RDPS, GDPS, REPS, and GEPS: Datamart has no index and one message per file, so the
+        builder fetches each whole-domain file, samples the catalogued launches in memory, and drops
+        it before the next fetch — 4 to 8 gibibytes moved per deterministic run, about 9 for
+        REPS, and about 14 for GEPS, while only kilobytes of profile JSON per site are kept and published.
+      </desc>
+
+      <!-- ============ panel A · byte ranges ============ -->
+      <rect x="24" y="8" width="24" height="24" class="tt-chip"/>
+      <text x="36" y="25" class="tt-chip-letter">A</text>
+      <text x="58" y="26" class="tt-panel-title">INDEXED BYTE RANGES</text>
+      <text x="956" y="25" class="tt-panel-right tt-mono">NOAA · HRRR, GFS</text>
+      <line x1="24" y1="42" x2="956" y2="42" class="tt-panel-rule"/>
+
+      <rect x="40" y="58" width="280" height="122" class="tt-card"/>
+      <text x="54" y="78" class="tt-card-title tt-mono">.idx SIDECAR — PLAIN TEXT, FREE</text>
+      {hits.map((hit, index) => (
+        <g>
+          <circle cx="62" cy={96 + index * 20} r="7" class="tt-num"/>
+          <text x="62" y={99.5 + index * 20} class="tt-num-text tt-mono">{hit.n}</text>
+          <text x="76" y={100 + index * 20} class="tt-idx-row tt-mono">{hit.label}
+            <tspan class="tt-idx-byte" x="176">byte {bytes(hit.offset)}</tspan>
+          </text>
+        </g>
+      ))}
+
+      <text x="340" y="82" class="tt-file-label tt-mono">hrrr.t12z.wrfprsf24.grib2 · run {runLabel} · one record per field and level</text>
+      <rect x={BAR_LEFT} y="100" width={BAR_RIGHT - BAR_LEFT} height="36" class="tt-seg"/>
+      {hits.map((hit) => (
+        <g>
+          <circle cx={hit.x} cy="90" r="7" class="tt-num"/>
+          <text x={hit.x} y="93.5" class="tt-num-text tt-mono">{hit.n}</text>
+          <rect x={hit.x - 4.5} y="100" width="9" height="36" class="tt-seg-hit"/>
+        </g>
+      ))}
+      <text x="340" y="156" class="tt-note tt-mono">unshaded bytes never leave NOAA's bucket</text>
+      <text x="40" y="204" class="tt-note tt-mono">the index alone places records</text>
+      <text x="40" y="218" class="tt-note tt-mono">beyond byte {bytes(maxOffset)} — ≥ {fileFloorMb} MB</text>
+
+      {hits.map((hit) => (
+        <path d={`M${hit.x} 136 C${hit.x} 154 ${(hit.x + 640) / 2} 158 ${640 + (hit.x - 640) / 6} 168`} class="tt-flow" marker-end="url(#tt-head)"/>
+      ))}
+
+      <rect x="470" y="172" width="340" height="52" class="tt-box"/>
+      <text x="640" y="193" class="tt-box-title">ONE RANGE REQUEST PER NEEDED RECORD</text>
+      <text x="640" y="211" class="tt-box-note">megabytes cross the network; the file stays on the shelf</text>
+
+      <!-- ============ panel B · whole-domain stream ============ -->
+      <rect x="24" y="252" width="24" height="24" class="tt-chip"/>
+      <text x="36" y="269" class="tt-chip-letter">B</text>
+      <text x="58" y="270" class="tt-panel-title">WHOLE-DOMAIN STREAM</text>
+      <text x="956" y="269" class="tt-panel-right tt-mono">ECCC · HRDPS, RDPS, GDPS, REPS, GEPS — Datamart has no index</text>
+      <line x1="24" y1="286" x2="956" y2="286" class="tt-panel-rule"/>
+
+      <text x="150" y="312" class="tt-station">1 · FETCH</text>
+      <rect x="108" y="324" width="84" height="80" class="tt-grib"/>
+      <line x1="116" y1="340" x2="184" y2="340" class="tt-grib-line"/>
+      <line x1="116" y1="354" x2="184" y2="354" class="tt-grib-line"/>
+      <line x1="116" y1="368" x2="184" y2="368" class="tt-grib-line"/>
+      <line x1="116" y1="382" x2="184" y2="382" class="tt-grib-line"/>
+      <text x="150" y="424" class="tt-station-note">the whole domain,</text>
+      <text x="150" y="438" class="tt-station-note">one message per file</text>
+
+      <path d="M200 364 H396" class="tt-flow" marker-end="url(#tt-head)"/>
+
+      <text x="450" y="312" class="tt-station">2 · SAMPLE IN MEMORY</text>
+      <rect x="408" y="324" width="84" height="80" class="tt-grib"/>
+      <circle cx="430" cy="346" r="3.4" class="tt-site"/><circle cx="430" cy="346" r="7" class="tt-site-ring"/>
+      <circle cx="462" cy="358" r="3.4" class="tt-site"/><circle cx="462" cy="358" r="7" class="tt-site-ring"/>
+      <circle cx="440" cy="380" r="3.4" class="tt-site"/><circle cx="440" cy="380" r="7" class="tt-site-ring"/>
+      <circle cx="474" cy="388" r="3.4" class="tt-site"/><circle cx="474" cy="388" r="7" class="tt-site-ring"/>
+      <text x="450" y="424" class="tt-station-note">read once; keep only the</text>
+      <text x="450" y="438" class="tt-station-note">catalogued launch cells</text>
+
+      <path d="M500 364 H696" class="tt-flow" marker-end="url(#tt-head)"/>
+
+      <text x="750" y="312" class="tt-station">3 · DROP</text>
+      <rect x="708" y="324" width="84" height="80" class="tt-grib-dropped"/>
+      <text x="750" y="424" class="tt-station-note">released before the</text>
+      <text x="750" y="438" class="tt-station-note">next fetch begins</text>
+
+      <text x="490" y="464" class="tt-repeat tt-mono">↺ repeat, file after file, through the run — memory never holds more than a handful of files</text>
+
+      <line x1="490" y1="478" x2="490" y2="522" class="tt-divider"/>
+      <text x="60" y="506" class="tt-stat">4–8 GiB</text>
+      <text x="200" y="496" class="tt-stat-note">moved per deterministic run;</text>
+      <text x="200" y="511" class="tt-stat-note">≈ 9 GiB REPS · ≈ 14 GiB GEPS</text>
+      <text x="530" y="506" class="tt-stat">kilobytes kept</text>
+      <text x="756" y="496" class="tt-stat-note">per site and run — the profile JSON</text>
+      <text x="756" y="511" class="tt-stat-note">is what actually gets published</text>
+
+      <defs>
+        <marker id="tt-head" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0 0 L10 5 L0 10 Z" class="tt-arrow"/>
+        </marker>
+      </defs>
+    </svg>
+  </div>
+
+  <p class="transport-source">
+    Fixture: <code>tests/fixtures/hrrr.t12z.wrfprsf24.excerpt.idx</code>
+  </p>
+</Figure>
+
+<style>
+  /* wg-scroll / wg-scroll--plate carry the scroll-region contract. */
+  svg { display: block; width: 100%; min-width: 880px; height: auto; }
+  svg text { font-family: var(--sans); }
+  svg text.tt-mono, svg tspan.tt-mono { font-family: var(--mono); }
+  .tt-chip { fill: var(--accent); }
+  .tt-chip-letter { fill: var(--accent-ink); font-size: 13px; font-weight: 800; text-anchor: middle; }
+  .tt-panel-title { fill: var(--ink); font-family: var(--display); font-size: 18px; font-weight: 800; letter-spacing: .02em; }
+  .tt-panel-right { fill: var(--ink-mute); font-size: 11px; text-anchor: end; }
+  .tt-panel-rule { stroke: var(--rule-strong); stroke-width: 1.2; }
+  .tt-card { fill: var(--wg-strip-bg); stroke: var(--rule); }
+  .tt-card-title { fill: var(--ink); font-size: 11px; font-weight: 700; letter-spacing: .05em; }
+  .tt-idx-row { fill: var(--ink-soft); font-size: 10px; }
+  .tt-idx-byte { fill: var(--ink-mute); }
+  .tt-seg { fill: var(--surface-sunken); stroke: var(--rule); stroke-width: .7; }
+  .tt-seg-hit { fill: var(--accent); stroke: var(--accent-strong); stroke-width: .8; }
+  .tt-file-label { fill: var(--ink-soft); font-size: 11px; font-weight: 600; }
+  .tt-num { fill: var(--surface); stroke: var(--accent); stroke-width: 1.4; }
+  .tt-num-text { fill: var(--accent-strong); font-size: 10px; font-weight: 700; text-anchor: middle; }
+  .tt-note { fill: var(--ink-mute); font-size: 10.5px; }
+  .tt-flow { stroke: var(--ink-soft); stroke-width: 1.5; fill: none; }
+  .tt-arrow { fill: var(--ink-soft); }
+  .tt-box { fill: var(--surface); stroke: var(--rule-strong); stroke-width: 1.2; }
+  .tt-box-title { fill: var(--ink); font-family: var(--display); font-size: 15px; font-weight: 800; letter-spacing: .03em; text-anchor: middle; text-transform: uppercase; }
+  .tt-box-note { fill: var(--ink-soft); font-size: 10.5px; text-anchor: middle; }
+  .tt-grib { fill: var(--surface); stroke: var(--rule-strong); stroke-width: 1.4; }
+  .tt-grib-line { stroke: var(--rule); stroke-width: .8; opacity: .8; }
+  .tt-grib-dropped { fill: var(--surface); stroke: var(--rule); stroke-width: 1.2; stroke-dasharray: 4 4; opacity: .55; }
+  .tt-site { fill: var(--accent); }
+  .tt-site-ring { fill: none; stroke: var(--accent); stroke-width: 1; opacity: .5; }
+  .tt-station { fill: var(--ink); font-family: var(--display); font-size: 14px; font-weight: 800; letter-spacing: .04em; text-anchor: middle; }
+  .tt-station-note { fill: var(--ink-mute); font-size: 10.5px; text-anchor: middle; }
+  .tt-repeat { fill: var(--ink-soft); font-size: 11.5px; font-weight: 600; text-anchor: middle; }
+  .tt-stat { fill: var(--ink); font-family: var(--display); font-size: 28px; font-weight: 800; letter-spacing: .01em; }
+  .tt-stat-note { fill: var(--ink-mute); font-size: 11px; }
+  .tt-divider { stroke: var(--rule); stroke-width: 1; }
+  .transport-source { margin: 0; padding: 9px 14px; color: var(--ink-mute); font: 11px/1.45 var(--mono); border-top: 1px solid var(--rule); }
+  .transport-source code { font-family: var(--mono); }
+  @media (max-width: 720px) {
+    .graphic-scroll { margin-inline: -8px; }
+  }
+</style>

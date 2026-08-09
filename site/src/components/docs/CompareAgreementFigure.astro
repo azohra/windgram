@@ -68,7 +68,7 @@ const panels = [
           <span>{panel.scenario.label}</span>
         </p>
         <div
-          class="compare-panel__scroll"
+          class="wg-scroll"
           role="region"
           tabindex="0"
           aria-label={`Scrollable windgram for ${panel.scenario.label}`}
@@ -140,18 +140,6 @@ const panels = [
 
   .compare-panel__title span {
     color: var(--ink-soft);
-  }
-
-  .compare-panel__scroll {
-    max-width: 100%;
-    overflow-x: auto;
-    overscroll-behavior-inline: contain;
-    scrollbar-color: var(--accent) var(--surface-raised);
-  }
-
-  .compare-panel__scroll:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: -2px;
   }
 
   .compare-panel__mount :global(svg) {

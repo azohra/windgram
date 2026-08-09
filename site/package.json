@@ -3,15 +3,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm --dir ../packages/windgram build && astro dev",
-    "build": "pnpm --dir ../packages/windgram build && astro build",
+    "dev": "pnpm --dir ../toolkit build && astro dev",
+    "build": "pnpm --dir ../toolkit build && astro build",
     "preview": "astro preview",
-    "check": "pnpm --dir ../packages/windgram build && astro check",
+    "check": "pnpm --dir ../toolkit build && astro check",
     "test:boundary": "pnpm run build && pnpm run test:boundary:built",
     "test:boundary:built": "playwright test no-live-data.spec.ts routes.spec.ts",
     "test:qa": "pnpm run build && pnpm run test:qa:built",
     "test:qa:built": "playwright test accessibility.spec.ts interactions.spec.ts visuals.spec.ts",
-    "test:ci:built": "playwright test no-live-data.spec.ts routes.spec.ts accessibility.spec.ts interactions.spec.ts v05-presentation.spec.ts",
+    "test:ci:built": "playwright test no-live-data.spec.ts routes.spec.ts accessibility.spec.ts interactions.spec.ts visuals.spec.ts presentation.spec.ts",
     "test:built": "playwright test"
   },
   "dependencies": {
@@ -21,7 +21,6 @@
     "@fontsource/ibm-plex-mono": "^5.3.0",
     "@fontsource/ibm-plex-sans": "^5.3.0",
     "astro": "^7.2.0",
-    "marked": "^16.0.0",
     "windgram": "workspace:*"
   },
   "devDependencies": {

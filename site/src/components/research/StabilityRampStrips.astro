@@ -63,7 +63,7 @@ const description = ramps
   units="sRGB colours and luminance-matched grayscale"
 >
 
-  <div class="graphic-scroll" role="region" tabindex="0" aria-label="Scrollable comparison of the two stability palettes with grayscale rows">
+  <div class="wg-scroll wg-scroll--plate graphic-scroll" role="region" tabindex="0" aria-label="Scrollable comparison of the two stability palettes with grayscale rows">
     <svg
       viewBox={`0 0 1040 ${svgHeight}`}
       role="img"
@@ -140,14 +140,10 @@ const description = ramps
 </Figure>
 
 <style>
+  /* wg-scroll / wg-scroll--plate carry the scroll-region contract. */
   .graphic-scroll {
-    overflow-x: auto;
-    background: var(--surface);
-    border: 1px solid var(--rule);
     padding: 14px 10px;
-    scrollbar-color: var(--accent) var(--surface-raised);
   }
-  .graphic-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   svg { display: block; width: 100%; min-width: 880px; height: auto; font-family: var(--mono); }
   .rs-colhead { fill: var(--ink-soft); font-size: 10px; font-weight: 700; letter-spacing: .02em; text-anchor: middle; }
   .rs-name { fill: var(--ink); font-family: var(--display); font-size: 17px; font-weight: 700; text-transform: uppercase; }

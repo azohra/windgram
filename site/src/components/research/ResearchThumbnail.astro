@@ -1,12 +1,12 @@
 ---
 import { STABILITY_TOKEN_DEFAULTS } from "windgram/svg";
-import type { DocPage } from "../../lib/research";
+import type { ResearchArticle } from "../../lib/research";
 import { researchThumbnailFor, type ResearchThumbnailKind } from "../../lib/research-thumbnails";
 
 interface Props {
   entry: Pick<
-    DocPage,
-    "number" | "title" | "section" | "researchKind" | "status" | "accent" | "thumbnail"
+    ResearchArticle,
+    "number" | "title" | "section" | "kind" | "status" | "accent" | "thumbnail"
   >;
 }
 
@@ -34,7 +34,7 @@ const descriptions: Record<ResearchThumbnailKind, string> = {
 ---
 
 <div
-  class:list={["research-thumbnail", `research-thumbnail--${thumbnail.accent}`]}
+  class:list={["research-thumbnail", `accent-${thumbnail.accent}`]}
   role="img"
   aria-label={`${thumbnail.title}. ${descriptions[thumbnail.visual]}`}
   data-thumbnail-visual={thumbnail.visual}
@@ -167,11 +167,8 @@ const descriptions: Record<ResearchThumbnailKind, string> = {
 </div>
 
 <style>
-  .research-thumbnail { position: relative; min-height: 148px; overflow: hidden; color: var(--ink); background: var(--surface); border: 1px solid var(--rule); border-top: 3px solid var(--thumb-accent, var(--accent)); }
-  .research-thumbnail--amber { --thumb-accent: var(--accent); }
-  .research-thumbnail--blue { --thumb-accent: var(--chart-wind); }
-  .research-thumbnail--green { --thumb-accent: var(--chart-usable); }
-  .research-thumbnail--red { --thumb-accent: var(--status-serious); }
+  /* .accent-* → --doc-accent is the one accent translation, in theme.css. */
+  .research-thumbnail { position: relative; min-height: 148px; overflow: hidden; color: var(--ink); background: var(--surface); border: 1px solid var(--rule); border-top: 3px solid var(--doc-accent); }
   svg { display: block; width: 100%; height: auto; font-family: var(--mono); }
   .visual-title { fill: var(--ink-soft); font-size: 9px; font-weight: 700; letter-spacing: .08em; }
   .visual-title.end { text-anchor: end; }
@@ -225,7 +222,7 @@ const descriptions: Record<ResearchThumbnailKind, string> = {
   .surface-dot { fill: var(--accent); }
   .on-terrain { fill: var(--ink); paint-order: stroke; stroke: var(--surface-accent); stroke-width: 3px; }
   .thumbnail-meta { position: absolute; right: 0; bottom: 0; left: 0; display: flex; justify-content: space-between; gap: 10px; padding: 6px 8px; color: var(--ink); background: color-mix(in srgb, var(--surface) 90%, transparent); border-top: 1px solid var(--rule); font: 9px/1.2 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
-  .thumbnail-meta span:last-child { color: var(--thumb-accent); font-weight: 700; }
+  .thumbnail-meta span:last-child { color: var(--doc-accent); font-weight: 700; }
   @media (prefers-reduced-motion: reduce) {
     .research-thumbnail * { transition: none !important; animation: none !important; }
   }

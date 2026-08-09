@@ -1,13 +1,4 @@
 {
-  "name": "windgram-repo",
   "private": true,
-  "scripts": {
-    "figures": "pnpm --dir packages/windgram build && node scripts/generate-doc-figures.mjs",
-    "figures:check": "pnpm --dir packages/windgram build && node scripts/generate-doc-figures.mjs --check",
-    "doc-fences:check": "pnpm --dir packages/windgram build && node scripts/check-doc-fences.mjs"
-  },
-  "devDependencies": {
-    "opentype.js": "^1.3.5"
-  },
   "packageManager": "pnpm@11.20.0"
 }

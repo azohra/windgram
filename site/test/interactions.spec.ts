@@ -1,4 +1,5 @@
-import { expect, test, type BrowserContext, type Locator, type Page } from "@playwright/test";
+import { expect, test, type BrowserContext, type Locator } from "@playwright/test";
+import { guardStaticBrowsing } from "./helpers";
 
 type Mutation = { selector: string; key: "ArrowDown" | "End" | "Home" | "Space" };
 
@@ -62,21 +63,6 @@ const homeContract = {
   figure: "#home-convective-cycle",
   scrollName: /Scrollable windgram with layer toggles/,
 };
-
-async function guardStaticBrowsing(page: Page, baseURL: string) {
-  const origin = new URL(baseURL).origin;
-  const externalRequests: string[] = [];
-  await page.route("**/*", async (route) => {
-    const url = new URL(route.request().url());
-    if ((url.protocol === "http:" || url.protocol === "https:") && url.origin !== origin) {
-      externalRequests.push(url.href);
-      await route.abort("blockedbyclient");
-      return;
-    }
-    await route.continue();
-  });
-  return externalRequests;
-}
 
 async function captureFigureState(figure: Locator) {
   return figure.evaluate((element) => ({

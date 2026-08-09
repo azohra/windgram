@@ -201,6 +201,31 @@
   color: var(--ink-mute);
 }
 
+/* Labelled, keyboard-scrollable figure regions. Every scrollable chart
+   canvas shares this behavioural contract — the interactions suite audits
+   it generically — and adds only its local skin (background, padding). */
+.wg-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-color: var(--accent) var(--surface-raised);
+}
+
+.wg-scroll:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* The bordered plate variant used by build-time SVG graphics. */
+.wg-scroll--plate {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+}
+
+.wg-scroll--plate:focus-visible {
+  outline-offset: 2px;
+}
+
 /* Interactive laboratory bodies. One deliberate set of values for the five
    labs (they had drifted apart): conclusions measure 66ch, range inputs
    min(18rem, 62vw) with a 6rem output slot, readouts use the bordered grid

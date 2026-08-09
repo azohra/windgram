@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "windgram"
+version = "0.1.0"
+description = "Open pipeline for publishing model-derived soaring profiles as static JSON."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+]
+dependencies = [
+    "eccodes>=2.47.0",
+    "eccodeslib>=2.48.0.26",
+    "jsonschema>=4.25",
+    "requests>=2.32",
+]
+
+[project.urls]
+Homepage = "https://windgram.azohra.com"
+Repository = "https://github.com/azohra/windgram"
+Documentation = "https://windgram.azohra.com/docs/"
+
+[project.scripts]
+windgram = "windgram.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+packages = ["windgram", "windgram.builders"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

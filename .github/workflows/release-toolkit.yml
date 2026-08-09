@@ -1,0 +1,70 @@
+# Publishes the windgram package to npm and JSR when a version tag is
+# pushed — one tag, both JavaScript registries, in lockstep. Publishing
+# stays a deliberate act — someone cuts the tag — but the mechanics are
+# automated and both registries authenticate via GitHub OIDC (trusted
+# publishing; no token secret lives in this repo).
+#
+# One-time setup on npmjs.com: package settings → Trusted publisher →
+# GitHub Actions, repository azohra/windgram, workflow release-toolkit.yml.
+# The trusted publisher currently registered on npmjs.com still names the
+# old release.yml — the author must update the registered workflow
+# filename to release-toolkit.yml before the next release, or the publish
+# step will be refused.
+# One-time setup on jsr.io: create the @azohra/windgram package, then
+# package settings → GitHub Actions → link repository azohra/windgram
+# for tokenless publishing.
+#
+# Release flow: bump toolkit/package.json and toolkit/jsr.json versions
+# together on main, then `git tag toolkit-v<version> && git push origin
+# toolkit-v<version>`. The guard below refuses to publish a tag that
+# disagrees with either file. Tags before the toolkit-v prefix (v0.9.1
+# and earlier) remain as history.
+name: Release windgram
+
+on:
+  push:
+    tags:
+      - "toolkit-v*"
+
+permissions:
+  contents: read
+  id-token: write # OIDC for npm trusted publishing / provenance
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Enable pnpm from the workspace pin
+        run: corepack enable
+      - name: Install
+        run: pnpm install --frozen-lockfile
+      - name: Tag must match the package version
+        run: |
+          version=$(python3 -c "import json; print(json.load(open('toolkit/package.json'))['version'])")
+          if [ "toolkit-v${version}" != "${GITHUB_REF_NAME}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match package version toolkit-v${version}"
+            exit 1
+          fi
+          jsr_version=$(python3 -c "import json; print(json.load(open('toolkit/jsr.json'))['version'])")
+          if [ "toolkit-v${jsr_version}" != "${GITHUB_REF_NAME}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match jsr.json version toolkit-v${jsr_version}"
+            exit 1
+          fi
+      - name: Test
+        run: pnpm --dir toolkit test
+      - name: Build
+        run: pnpm --dir toolkit build
+      - name: Update npm (trusted publishing needs >= 11.5)
+        run: npm install -g npm@latest && npm --version
+      - name: Publish with provenance
+        working-directory: toolkit
+        run: npm publish --provenance --access public
+      # --allow-slow-types is a recorded decision, not debt: the exported
+      # zod schemas are the contract's single source of truth, and explicit
+      # annotations would restate the contract in a second home. Slower JSR
+      # type-checking is the accepted cost of keeping one home.
+      - name: Publish to JSR
+        working-directory: toolkit
+        run: npx jsr publish --allow-slow-types

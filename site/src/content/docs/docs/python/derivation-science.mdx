@@ -5,7 +5,7 @@ description: "Equations, constants, fallbacks, and ownership behind each publish
 
 import ParcelLab from "../../../../components/labs/ParcelLab.astro";
 import UsableLiftLab from "../../../../components/labs/UsableLiftLab.astro";
-import DerivationFlow from "../../../../components/research/DerivationFlow.astro";
+import DerivationFlow from "../../../../components/docs/DerivationFlow.astro";
 
 Each weather model publishes atmospheric fields; one shared derivation turns an hourly vertical
 column into stability, cloud base, thermal velocity,
@@ -147,5 +147,5 @@ Changing a constant creates a different metric. Name it separately and test it a
 The 121 m/°C LCL approximation inherited from the original charts is retired; Bolton's fit replaced
 it once the published column could confirm the parcel against the model's own moisture.
 
-Executable authority: [`windgram/windgram.py`](https://github.com/azohra/windgram/blob/main/windgram/windgram.py), with exact assertions in
+Executable authority: [`pipeline/src/windgram/derive.py`](https://github.com/azohra/windgram/blob/main/pipeline/src/windgram/derive.py), with exact assertions in
 [`tests/`](https://github.com/azohra/windgram/tree/main/tests).

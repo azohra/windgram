@@ -1,6 +1,7 @@
 packages:
+  - scripts
   - site
-  - packages/*
+  - toolkit
 
 allowBuilds:
   esbuild: true

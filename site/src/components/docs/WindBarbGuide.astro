@@ -1,0 +1,154 @@
+---
+import {
+  altitudeForY,
+  windBarbParts,
+  xForHour,
+} from "windgram/scene";
+import Figure from "../figure/Figure.astro";
+import SyntheticWindgram from "../windgram/SyntheticWindgram.astro";
+import WindgramAnnotations from "../windgram/WindgramAnnotations.astro";
+import {
+  onlyOverlays,
+  renderSyntheticWindgram,
+} from "../../lib/example-windgram";
+import { scenarioById } from "../../lib/scenarios";
+
+const scenario = scenarioById("shear-through-lift-band");
+const idPrefix = "wind-barb-shear-through-lift-band";
+const overlays = onlyOverlays(
+  "wind",
+  "windShear",
+  "usableLiftTop",
+  "launch",
+  "selectedHour",
+);
+const { scene } = renderSyntheticWindgram(
+  scenario,
+  { overlays, columnWidthPx: 105, plotHeightPx: 430 },
+  idPrefix,
+);
+const selectedX = xForHour(scene, scene.selectedHourIndex);
+const selectedColumn = scene.barbs
+  .filter((barb) => Math.abs(barb.x - selectedX) < 0.01)
+  .map((barb) => ({
+    altitudeM: altitudeForY(scene, barb.y),
+    directionDeg: barb.directionDeg,
+    speedKmh: barb.speedKmh,
+    roundedSpeedKmh: windBarbParts(barb.speedKmh).roundedSpeedKmh,
+  }))
+  .sort((left, right) => left.altitudeM - right.altitudeM);
+const sampleIndexes = [...new Set([
+  0,
+  Math.floor((selectedColumn.length - 1) / 2),
+  selectedColumn.length - 1,
+])];
+const samples = sampleIndexes.map((index) => selectedColumn[index]).filter(Boolean);
+---
+
+<Figure
+  id="wind-barb-guide"
+  title="Read wind from launch through usable lift"
+  lesson={scenario.lesson}
+  description={scenario.accessibilityDescription}
+  caption="The shaft points toward the direction the air comes from. The npm serializer draws every shaft, feather, pennant, placement, and rotation; the table samples its selected-hour scene graph."
+  units="wind speed km/h · direction degrees from true north · altitude m ASL"
+  {scenario}
+>
+  <WindgramAnnotations {scenario} {scene} mode="wind" />
+  <SyntheticWindgram
+    {scenario}
+    {idPrefix}
+    {overlays}
+    columnWidthPx={105}
+    plotHeightPx={430}
+    scrollLabel="Scrollable wind-shear profile with package-rendered wind barbs"
+  />
+
+  <div
+    class="barb-reading"
+    slot="legend"
+    role="region"
+    tabindex="0"
+    aria-label="Scrollable wind-barb reading table"
+  >
+    <div class="barb-key">
+      <strong>Read the printed unit</strong>
+      <span>half feather 5 · full feather 10 · pennant 50 km/h</span>
+      <span>The same shapes often count knots on other aviation charts.</span>
+    </div>
+    <table>
+      <caption>Selected hour, sampled from the rendered scene</caption>
+      <thead>
+        <tr><th>Altitude</th><th>Wind from</th><th>Speed</th><th>Barb rounds to</th></tr>
+      </thead>
+      <tbody>
+        {samples.map((sample) => (
+          <tr>
+            <td>{Math.round(sample.altitudeM).toLocaleString("en-CA")} m</td>
+            <td>{sample.directionDeg.toFixed(0)}°</td>
+            <td>{sample.speedKmh.toFixed(1)} km/h</td>
+            <td>{sample.roundedSpeedKmh} km/h</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
+</Figure>
+
+<style>
+  .barb-reading {
+    display: grid;
+    grid-template-columns: minmax(12rem, 0.7fr) minmax(30rem, 1.3fr);
+    gap: 1rem 1.5rem;
+    align-items: start;
+    color: var(--ink-soft);
+    font: 0.73rem/1.45 var(--mono);
+  }
+
+  .barb-key {
+    display: grid;
+    gap: 0.25rem;
+  }
+
+  .barb-key strong {
+    color: var(--chart-wind);
+    font-size: 0.78rem;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font: inherit;
+  }
+
+  caption {
+    padding-block-end: 0.3rem;
+    color: var(--ink-mute);
+    text-align: start;
+  }
+
+  th,
+  td {
+    padding: 0.28rem 0.45rem;
+    text-align: start;
+    border-block-end: 1px solid var(--rule);
+  }
+
+  th {
+    color: var(--ink);
+    font-size: 0.65rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 48rem) {
+    .barb-reading {
+      grid-template-columns: 1fr;
+      overflow-x: auto;
+    }
+
+    table {
+      min-width: 34rem;
+    }
+  }
+</style>

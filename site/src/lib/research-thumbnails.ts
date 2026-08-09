@@ -1,20 +1,20 @@
-import type { DocPage } from "./research";
+import type { ResearchArticle } from "./research";
 
-export type ResearchThumbnailKind = NonNullable<DocPage["thumbnail"]>;
+export type ResearchThumbnailKind = ResearchArticle["thumbnail"];
 
 export interface ResearchThumbnailModel {
   number: string;
   title: string;
   section: string;
-  kind: NonNullable<DocPage["researchKind"]>;
-  status: NonNullable<DocPage["status"]>;
-  accent: DocPage["accent"];
+  kind: ResearchArticle["kind"];
+  status: ResearchArticle["status"];
+  accent: ResearchArticle["accent"];
   visual: ResearchThumbnailKind;
 }
 
 type ThumbnailEntry = Pick<
-  DocPage,
-  "number" | "title" | "section" | "researchKind" | "status" | "accent" | "thumbnail"
+  ResearchArticle,
+  "number" | "title" | "section" | "kind" | "status" | "accent" | "thumbnail"
 >;
 
 /**
@@ -23,13 +23,12 @@ type ThumbnailEntry = Pick<
  * changes because a slug, title, or teaching scenario changes.
  */
 export function researchThumbnailFor(entry: ThumbnailEntry): ResearchThumbnailModel {
-  if (!entry.thumbnail) throw new Error(`Research entry ${entry.number} has no thumbnail declaration`);
   return {
     number: entry.number,
     title: entry.title,
     section: entry.section,
-    kind: entry.researchKind ?? "method",
-    status: entry.status ?? "current",
+    kind: entry.kind,
+    status: entry.status,
     accent: entry.accent,
     visual: entry.thumbnail,
   };

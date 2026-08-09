@@ -5,7 +5,7 @@ description: The independent dataset, npm package, and Python pipeline versions,
 
 import { Aside } from '@astrojs/starlight/components';
 import { SCHEMA_VERSION } from 'windgram/contract';
-import { WINDGRAM_PACKAGE_VERSION } from '../../../../components/docs/package-info';
+import { PIPELINE_VERSION, WINDGRAM_PACKAGE_VERSION } from '../../../../components/docs/package-info';
 
 Windgram has three public version axes. They describe different boundaries and
 do not advance in lockstep. The two package values in this table are imported
@@ -13,17 +13,17 @@ from their authorities when the site builds, so they cannot go stale here.
 
 | Axis | Current value | Authority | What it versions |
 | --- | ---: | --- | --- |
-| Published JSON schema | <code>{SCHEMA_VERSION}</code> | `SCHEMA_VERSION` and the zod contract in `packages/windgram/src/contract/index.ts` | Profiles, manifests, and the model, site, and run-index document families |
-| npm package | <code>{WINDGRAM_PACKAGE_VERSION}</code> | `packages/windgram/package.json` | Contract guards, derivations, single-profile analysis, cross-model comparison, transport, scene graph, SVG renderer, tokens, and scene-derived key |
-| Python pipeline | `2.0.0` | `pyproject.toml` | The repository's provider ingestion, derivation, and publication implementation |
+| Published JSON schema | <code>{SCHEMA_VERSION}</code> | `SCHEMA_VERSION` and the zod contract in `toolkit/src/contract/index.ts` | Profiles, manifests, and the model, site, and run-index document families |
+| npm package | <code>{WINDGRAM_PACKAGE_VERSION}</code> | `toolkit/package.json` | Contract guards, derivations, single-profile analysis, cross-model comparison, transport, scene graph, SVG renderer, tokens, and scene-derived key |
+| Python pipeline | <code>{PIPELINE_VERSION}</code> | `pipeline/pyproject.toml` | The repository's provider ingestion, derivation, and publication implementation |
 
 The scenario-definition contract also carries `schemaVersion: 1`. That
 internal authoring format belongs to `scenarios/scenario.schema.json` and is
 independent of the published dataset schema.
 
 <Aside type="caution" title="Do not compare the numbers">
-  Python `2.0.0` does not mean profile schema 2, and an npm `0.x` release does
-  not mean profile schema `0.x`. A consumer checks the document's
+  A Python or npm `0.x` release does not mean profile schema `0.x`, and
+  neither package version ever names the schema. A consumer checks the document's
   `schemaVersion` with the parser from the package version it has chosen.
 </Aside>
 
@@ -31,7 +31,7 @@ independent of the published dataset schema.
 
 Every current profile, manifest, model catalogue, site catalogue, and run index
 uses `schemaVersion: 1`. The generated JSON Schemas under
-`packages/windgram/schema/` describe the inputs accepted by the released
+`toolkit/schema/` describe the inputs accepted by the released
 package (npm <code>{WINDGRAM_PACKAGE_VERSION}</code>); the zod schemas and
 their parse guards are the behavioural authority.
 
@@ -119,7 +119,7 @@ boundaries:
 - 0.9 changes `sampledFieldPaths` to accept ordered banding and emit
   interpolated iso-band paths filled with the even-odd rule.
 
-Treat the release tag (currently <code>v{WINDGRAM_PACKAGE_VERSION}</code>) as
+Treat the release tag (currently <code>toolkit-v{WINDGRAM_PACKAGE_VERSION}</code>) as
 an API and SVG snapshot boundary while validating each
 document's independent `schemaVersion`. The
 [scene guide](/docs/typescript/scene/) defines the current presentation
@@ -147,10 +147,11 @@ records release comparisons.
 
 ## Python pipeline compatibility
 
-`pyproject.toml` records Python project version `2.0.0` and requires
+`pipeline/pyproject.toml` records the Python project version
+(<code>{PIPELINE_VERSION}</code>) and requires
 Python 3.12 or later. The supported operational boundary is the repository's
 document output and documented builder invocations. Internal modules under
-`windgram/` are not a separately promised Python library API.
+`pipeline/src/windgram/` are not a separately promised Python library API.
 
 When pipeline code changes a derived value without changing its JSON shape,
 record the scientific or correctness change and update tests and affected
@@ -182,7 +183,7 @@ Run the complete repository gate from the root; the command list is
 maintained in
 [`CONTRIBUTING.md`](https://github.com/azohra/windgram/blob/main/CONTRIBUTING.md#set-up-and-run-the-full-check).
 
-For a contract edit, run `pnpm --dir packages/windgram schemas` first and
+For a contract edit, run `pnpm --dir toolkit schemas` first and
 inspect every emitted schema diff. The package contract test deep-compares
 those artifacts with the zod authority.
 

@@ -6,7 +6,7 @@ import Base from "../../layouts/Base.astro";
 import {
   relatedResearchArticles,
   researchArticles,
-  type DocPage,
+  type ResearchArticle,
 } from "../../lib/research";
 
 export function getStaticPaths() {
@@ -14,11 +14,10 @@ export function getStaticPaths() {
 }
 
 interface Props {
-  doc: DocPage;
+  doc: ResearchArticle;
 }
 
 const { doc } = Astro.props;
-if (!doc.entry) throw new Error(`Research entry missing for ${doc.slug}`);
 
 const { Content } = await render(doc.entry);
 const entries = researchArticles();

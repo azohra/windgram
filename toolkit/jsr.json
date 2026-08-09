@@ -1,0 +1,18 @@
+{
+  "name": "@azohra/windgram",
+  "version": "0.9.1",
+  "license": "MIT",
+  "exports": {
+    "./contract": "./src/contract/index.ts",
+    "./derive": "./src/derive/index.ts",
+    "./analyze": "./src/analyze/index.ts",
+    "./compare": "./src/compare/index.ts",
+    "./transport": "./src/transport/index.ts",
+    "./scene": "./src/scene/index.ts",
+    "./svg": "./src/svg/index.ts"
+  },
+  "publish": {
+    "include": ["src", "schema", "README.md", "jsr.json"],
+    "exclude": ["dist", "test", "node_modules"]
+  }
+}

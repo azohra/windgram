@@ -89,7 +89,7 @@ const round = (value: number) => Math.round(value).toLocaleString("en-CA");
   {scenario}
 >
   <div
-    class="sink-scroll"
+    class="wg-scroll sink-scroll"
     role="region"
     tabindex="0"
     aria-label="Scrollable windgram with a projected sink-rate line overlaid"
@@ -126,17 +126,9 @@ const round = (value: number) => Math.round(value).toLocaleString("en-CA");
 </Figure>
 
 <style>
+  /* Shared wg-scroll contract plus the local canvas ground. */
   .sink-scroll {
-    max-width: 100%;
-    overflow-x: auto;
-    overscroll-behavior-inline: contain;
     background: var(--surface);
-    scrollbar-color: var(--accent) var(--surface-raised);
-  }
-
-  .sink-scroll:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: -2px;
   }
 
   .sink-canvas {

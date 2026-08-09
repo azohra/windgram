@@ -1,5 +1,5 @@
 /**
- * Regenerate the committed doc figures under docs/assets/ (and their
+ * Regenerate the committed doc figures under assets/ (and their
  * raster derivatives) from the target registry in doc-figures/targets.mjs.
  *
  * Every figure is composed from committed scenario profiles through the
@@ -29,11 +29,11 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
 async function importPackage(subpath) {
   try {
-    return await import(join(root, "packages/windgram/dist", subpath, "index.js"));
+    return await import(join(root, "toolkit/dist", subpath, "index.js"));
   } catch (error) {
     throw new Error(
-      `Cannot load packages/windgram/dist/${subpath} — build the package first ` +
-        `(pnpm --dir packages/windgram build, or run via pnpm figures). ${error.message}`,
+      `Cannot load toolkit/dist/${subpath} — build the package first ` +
+        `(pnpm --dir toolkit build, or run via pnpm --dir scripts figures). ${error.message}`,
     );
   }
 }
@@ -146,7 +146,7 @@ if (check) {
   }
   if (drift.length > 0) {
     console.error(`\nDoc figures drifted from the renderer: ${drift.join(", ")}`);
-    console.error("Regenerate with: pnpm figures");
+    console.error("Regenerate with: pnpm --dir scripts figures");
     process.exit(1);
   }
 } else {

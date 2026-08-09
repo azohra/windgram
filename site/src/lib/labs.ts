@@ -42,7 +42,7 @@ const USABLE_LIFT_OVERLAYS = onlyOverlays(
   "selectedHour",
 );
 
-export function usableLiftTops(
+function usableLiftTops(
   profile: WindgramProfile,
   sinkRateMs: number,
 ): Array<number | null> {

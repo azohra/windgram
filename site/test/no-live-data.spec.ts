@@ -1,29 +1,7 @@
 import { expect, test } from "@playwright/test";
-import { readdirSync, readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { readFileSync } from "node:fs";
 import path from "node:path";
-
-const siteDirectory = fileURLToPath(new URL("../", import.meta.url));
-const distDirectory = path.join(siteDirectory, "dist");
-
-function filesBelow(directory: string): string[] {
-  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
-    const absolute = path.join(directory, entry.name);
-    return entry.isDirectory() ? filesBelow(absolute) : [absolute];
-  });
-}
-
-function routeForBuiltPage(file: string): string {
-  const relative = path.relative(distDirectory, file).replaceAll(path.sep, "/");
-  if (relative === "index.html") return "/";
-  if (relative.endsWith("/index.html")) return `/${relative.slice(0, -"index.html".length)}`;
-  return `/${relative.replace(/\.html$/, "")}`;
-}
-
-const boundaryRoutes = filesBelow(distDirectory)
-  .filter((file) => file.endsWith(".html") && path.basename(file) !== "404.html")
-  .map(routeForBuiltPage)
-  .sort();
+import { canonicalRoutes, distDirectory, filesBelow } from "./helpers";
 
 function liveDataResource(rawUrl: string): string | null {
   const pathname = new URL(rawUrl).pathname.replace(/\/{2,}/g, "/");
@@ -66,7 +44,7 @@ test("normal browsing never requests forecast publication data", async ({ browse
   });
 
   const page = await context.newPage();
-  for (const route of boundaryRoutes) {
+  for (const route of canonicalRoutes) {
     await page.goto(route, { waitUntil: "networkidle" });
   }
 
@@ -96,7 +74,7 @@ test("normal routes contain no live-result picker or freshness UI", async ({ pag
     "[data-default-compare]",
   ].join(",");
 
-  for (const route of boundaryRoutes) {
+  for (const route of canonicalRoutes) {
     await page.goto(route, { waitUntil: "networkidle" });
     await expect(page.locator(retiredSelectors), `${route} contains retired live-browser UI`).toHaveCount(0);
     await expect(

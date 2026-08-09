@@ -1,0 +1,14 @@
+{
+  "name": "windgram-doc-harness",
+  "private": true,
+  "description": "Cross-layer documentation harness: regenerates the committed doc figures and typechecks documentation code fences against the built toolkit.",
+  "type": "module",
+  "scripts": {
+    "figures": "pnpm --dir ../toolkit build && node generate-doc-figures.mjs",
+    "figures:check": "pnpm --dir ../toolkit build && node generate-doc-figures.mjs --check",
+    "doc-fences:check": "pnpm --dir ../toolkit build && node check-doc-fences.mjs"
+  },
+  "devDependencies": {
+    "opentype.js": "^1.3.5"
+  }
+}

@@ -1,0 +1,57 @@
+# Publishes the windgram Python package to PyPI when a pipeline-v tag is
+# pushed. Publishing stays a deliberate act — someone cuts the tag —
+# but the mechanics are automated and the release authenticates via
+# GitHub OIDC (trusted publishing; no token secret lives in this repo).
+#
+# The prefix is pipeline-v (not toolkit-v) because the Python pipeline is
+# versioned independently of the npm/JSR package: a toolkit-v* tag
+# releases the JavaScript package, a pipeline-v* tag releases the Python
+# one, and neither bumps the other.
+#
+# One-time setup on pypi.org before the first release: account →
+# Publishing → add a pending trusted publisher for project windgram,
+# owner azohra, repository windgram, workflow release-pipeline.yml.
+#
+# Release flow: bump [project] version in pipeline/pyproject.toml on
+# main, then `git tag pipeline-v<version> && git push origin
+# pipeline-v<version>`. The guard below refuses to publish a tag that
+# disagrees with pipeline/pyproject.toml.
+name: Release windgram (PyPI)
+
+on:
+  push:
+    tags:
+      - "pipeline-v*"
+
+permissions:
+  contents: read
+  id-token: write # OIDC for PyPI trusted publishing
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Tag must match the package version
+        run: |
+          version=$(python3 -c "import tomllib; print(tomllib.load(open('pipeline/pyproject.toml','rb'))['project']['version'])")
+          if [ "pipeline-v${version}" != "${GITHUB_REF_NAME}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match package version pipeline-v${version}"
+            exit 1
+          fi
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+      - name: Enable pnpm from the workspace pin
+        run: corepack enable
+      - name: Install locked dependencies
+        run: |
+          uv sync --frozen --project pipeline
+          pnpm install --frozen-lockfile
+      - name: Test
+        run: uv run --project pipeline pytest pipeline/tests
+      - name: Build
+        run: uv build --project pipeline
+      - name: Publish via trusted publishing
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          packages-dir: pipeline/dist

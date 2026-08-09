@@ -2,20 +2,18 @@ import mdx from "@astrojs/mdx";
 import starlight from "@astrojs/starlight";
 import { defineConfig } from "astro/config";
 import { fileURLToPath } from "node:url";
+import { SOCIAL_CARD } from "./src/lib/social-card.mjs";
 
-const contentInputDirectories = ["../research", "../reference", "../scenarios"].map((directory) =>
+const contentInputDirectories = ["../scenarios"].map((directory) =>
   fileURLToPath(new URL(directory, import.meta.url)),
 );
 
 const siteUrl = "https://windgram.azohra.com";
 
-// Link-preview card for every docs page. The PNG in site/public/ is
-// rasterized by scripts/generate-doc-figures.mjs from its drift-checked
-// SVG source (docs/assets/social-card.svg); Starlight already emits
-// og:title/og:description and twitter:card, so only the image is added.
-const socialCard = new URL("/social-card.png", siteUrl).href;
-const socialCardAlt =
-  "Windgram — forecast profiles for soaring: the project wordmark beside a package-rendered windgram chart.";
+// Link-preview card for every docs page — facts live in src/lib/social-card.mjs;
+// Starlight already emits og:title/og:description and twitter:card, so only
+// the image is added here.
+const socialCard = new URL(SOCIAL_CARD.path, siteUrl).href;
 
 const watchRepositoryContent = {
   name: "watch-repository-content",
@@ -43,9 +41,9 @@ export default defineConfig({
       favicon: "/favicon.svg",
       head: [
         { tag: "meta", attrs: { property: "og:image", content: socialCard } },
-        { tag: "meta", attrs: { property: "og:image:width", content: "1200" } },
-        { tag: "meta", attrs: { property: "og:image:height", content: "630" } },
-        { tag: "meta", attrs: { property: "og:image:alt", content: socialCardAlt } },
+        { tag: "meta", attrs: { property: "og:image:width", content: SOCIAL_CARD.width } },
+        { tag: "meta", attrs: { property: "og:image:height", content: SOCIAL_CARD.height } },
+        { tag: "meta", attrs: { property: "og:image:alt", content: SOCIAL_CARD.alt } },
         { tag: "meta", attrs: { name: "twitter:image", content: socialCard } },
       ],
       customCss: [
@@ -138,7 +136,7 @@ export default defineConfig({
           label: "Reference",
           items: [
             { slug: "docs/reference/model-capabilities", label: "Model capabilities" },
-            { label: "Forecast model feeds", link: "/docs/reference/forecast-model-feeds/" },
+            { slug: "docs/reference/forecast-model-feeds", label: "Forecast model feeds" },
             { slug: "docs/reference/schemas-and-units", label: "Schemas and units" },
           ],
         },
@@ -159,33 +157,5 @@ export default defineConfig({
   vite: {
     plugins: [watchRepositoryContent],
     server: { fs: { allow: [".."] } },
-  },
-  redirects: {
-    "/chart/": { status: 301, destination: "/docs/models/choosing/" },
-    "/research/reading-a-windgram/": {
-      status: 301,
-      destination: "/docs/learn/reading-a-windgram/",
-    },
-    "/research/choosing-forecast-models/": {
-      status: 301,
-      destination: "/docs/models/choosing/",
-    },
-    "/research/model-capabilities/": {
-      status: 301,
-      destination: "/docs/reference/model-capabilities/",
-    },
-    "/reference/forecast-model-feeds/": {
-      status: 301,
-      destination: "/docs/reference/forecast-model-feeds/",
-    },
-    "/research/why-this-project-exists/": { status: 301, destination: "/about/" },
-    "/docs/publishing/static-output/": {
-      status: 301,
-      destination: "/docs/publish/static-output/",
-    },
-    "/docs/typescript/presets/": {
-      status: 301,
-      destination: "/docs/typescript/defaults-and-tokens/",
-    },
   },
 });

@@ -25,23 +25,23 @@ jobs:
         run: corepack enable
       - name: Install locked dependencies
         run: |
-          uv sync --frozen
+          uv sync --frozen --project pipeline
           pnpm install --frozen-lockfile
       - name: Check generated scenario drift
-        run: uv run python -m windgram.scenarios check
-      # Committed doc figures (docs/assets/*.svg) are regenerated from the
+        run: uv run --project pipeline windgram scenarios check
+      # Committed doc figures (assets/*.svg) are regenerated from the
       # package renderer and compared byte-for-byte — the same contract that
       # keeps generated scenarios honest. The social-card raster is checked
       # for presence and dimensions only: its text is already path outlines,
       # but PNG bytes still vary across chromium builds and platforms.
       - name: Check generated doc-figure drift
-        run: pnpm figures:check
+        run: pnpm --dir scripts figures:check
       - name: Test Python pipeline
-        run: uv run pytest
+        run: uv run --project pipeline pytest pipeline/tests
       - name: Test TypeScript package and scenario SVG goldens
-        run: pnpm --dir packages/windgram test
+        run: pnpm --dir toolkit test
       - name: Type-check TypeScript package
-        run: pnpm --dir packages/windgram typecheck
+        run: pnpm --dir toolkit typecheck
       # Every ts fence in the portal MDX and the README files is extracted
       # and compiled against the built package's type declarations — a doc
       # example that no longer compiles is a red build. Hand-written stated
@@ -50,15 +50,16 @@ jobs:
       # opt out with a `windgram-doc-fence: ignore` comment; see the header
       # of scripts/check-doc-fences.mjs. The script builds the package first.
       - name: Typecheck documentation code fences
-        run: pnpm doc-fences:check
+        run: pnpm --dir scripts doc-fences:check
       - name: Check site
         run: pnpm --dir site check
       - name: Build site without live forecast data
         run: pnpm --dir site build
       - name: Install browser for static site QA
         run: pnpm --dir site exec playwright install --with-deps chromium
-      # Visual snapshots are a local review gate, not a CI comparison:
-      # text rasterization differs across operating systems, so committed
-      # baselines only match the platform they were reviewed on.
+      # Every visual assertion here is platform-independent — stable-frame
+      # self-comparison, overflow containment, reduced-motion audits — so
+      # the full QA suite runs in CI. Pixel-exact chart output is fenced
+      # where it is deterministic: the toolkit's golden SVGs.
       - name: Test static site boundary, accessibility, interaction, and presentation
         run: pnpm --dir site test:ci:built

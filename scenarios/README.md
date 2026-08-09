@@ -16,7 +16,7 @@ The distinction is structural as well as editorial:
 - baselines are repository-local JSON files, so generation performs no network
   access;
 - definitions and baselines contain source values only;
-- `windgram.windgram.derive_windgram_profile()` remains the authority for
+- `windgram.derive.derive_windgram_profile()` remains the authority for
   `derived.*` values;
 - generated profiles are committed for reproducible rendering, but they are
   never edited by hand.
@@ -169,5 +169,5 @@ The fixtures below `definitions/invalid/` each isolate a required rejection:
 Run the schema, fixture, generated-output, and registry checks together:
 
 ```sh
-uv run python -m windgram.scenarios check
+uv run --project pipeline windgram scenarios check
 ```

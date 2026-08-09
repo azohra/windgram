@@ -3,14 +3,14 @@ title: "Reading a windgram"
 description: "Strips, stability, gusts, CAPE classes, derived heights, and wind barbs"
 ---
 
-import ExampleWindgram from "../../../../components/research/ExampleWindgram.astro";
-import HomeWindgram from "../../../../components/research/HomeWindgram.astro";
+import ExampleWindgram from "../../../../components/docs/ExampleWindgram.astro";
+import HeightLinesFigure from "../../../../components/docs/HeightLinesFigure.astro";
 import WindShearLab from "../../../../components/labs/WindShearLab.astro";
-import MoisturePrecipCase from "../../../../components/research/MoisturePrecipCase.astro";
-import MoistureSignals from "../../../../components/research/MoistureSignals.astro";
-import PressureTendency from "../../../../components/research/PressureTendency.astro";
-import StabilityGuide from "../../../../components/research/StabilityGuide.astro";
-import WindBarbGuide from "../../../../components/research/WindBarbGuide.astro";
+import MoisturePrecipCase from "../../../../components/docs/MoisturePrecipCase.astro";
+import MoistureSignals from "../../../../components/docs/MoistureSignals.astro";
+import PressureTendency from "../../../../components/docs/PressureTendency.astro";
+import StabilityGuide from "../../../../components/docs/StabilityGuide.astro";
+import WindBarbGuide from "../../../../components/docs/WindBarbGuide.astro";
 
 A windgram aligns surface forcing with the atmosphere above one model grid cell. Each vertical slice
 is a forecast sounding; the horizontal axis connects those soundings through the day. Read the chart
@@ -191,7 +191,7 @@ updraft coefficient and sink threshold behind the solid line. On the ensemble mo
 series carries a p25–p75 band — member spread, not a confidence interval;
 [Ensemble values](/docs/data/ensemble-values/) defines how to read it.
 
-<HomeWindgram view="lines" />
+<HeightLinesFigure />
 
 ## Wind barbs: read the flight band
 

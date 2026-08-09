@@ -1,0 +1,51 @@
+---
+import Figure from "../figure/Figure.astro";
+import Legend from "../figure/Legend.astro";
+import SyntheticWindgram from "../windgram/SyntheticWindgram.astro";
+import WindgramAnnotations from "../windgram/WindgramAnnotations.astro";
+import {
+  onlyOverlays,
+  renderSyntheticWindgram,
+} from "../../lib/example-windgram";
+import { scenarioById } from "../../lib/scenarios";
+
+/* The three derived height lines of the convective-cycle scenario, isolated
+   for the reading guide: usable lift, the parcel boundary-layer top, and
+   cloud base follow different paths because each encodes a different limit. */
+const scenario = scenarioById("convective-cycle");
+const overlays = onlyOverlays("boundaryLayerTop", "cloudBase", "usableLiftTop", "launch", "selectedHour");
+const idPrefix = "reading-height-lines";
+const { scene } = renderSyntheticWindgram(
+  scenario,
+  { overlays, columnWidthPx: 72, plotHeightPx: 390 },
+  idPrefix,
+);
+---
+
+<Figure
+  id="reading-height-lines"
+  title="Three heights answer three different questions"
+  lesson="Usable lift, the parcel-derived boundary-layer top, and cloud base can separate or meet because they encode different limits."
+  description={scenario.accessibilityDescription}
+  caption="The line geometry is serialized directly from the npm scene; this focused view changes visibility, not the scenario values."
+  units="altitude m and ft · height lines m ASL · time UTC"
+  {scenario}
+>
+  <WindgramAnnotations {scenario} {scene} mode="lines" />
+  <SyntheticWindgram
+    {scenario}
+    {idPrefix}
+    {overlays}
+    columnWidthPx={72}
+    plotHeightPx={390}
+  />
+  <Legend
+    slot="legend"
+    label="Height lines"
+    items={[
+      { label: "Usable lift", description: "Climb limit", color: "var(--chart-usable)" },
+      { label: "Boundary layer", description: "Thermodynamic depth", color: "var(--chart-boundary)" },
+      { label: "Cloud base", description: "Moisture limit", color: "var(--wg-cloud-base)" },
+    ]}
+  />
+</Figure>

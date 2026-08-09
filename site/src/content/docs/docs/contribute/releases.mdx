@@ -7,21 +7,26 @@ Windgram has several independent version and publication boundaries. Read the
 full compatibility policy in [Data and package versioning](/docs/data/versioning/);
 use this contributor checklist for intentional releases.
 
-## npm package
+## npm and JSR package
 
-The package version in `packages/windgram/package.json` governs exported
-TypeScript/JavaScript APIs. Before publishing:
+The package version in `toolkit/package.json` governs exported
+TypeScript/JavaScript APIs. The same package publishes to JSR as
+`@azohra/windgram` from `toolkit/jsr.json`, which must carry the
+identical version. Before publishing:
 
 1. update code, tests, the package README, and affected website docs together;
 2. regenerate JSON Schemas when the zod contract changed;
 3. run package tests, typecheck, and build;
 4. choose a version consistent with the documented pre-1.0 compatibility
-   policy; and
-5. create a `v<version>` tag only after main contains that exact version.
+   policy;
+5. bump `package.json` and `jsr.json` to that version together; and
+6. create a `toolkit-v<version>` tag only after main contains that exact
+   version.
 
-The repository release workflow checks tag/package agreement, tests, builds,
-and publishes to npm with provenance. A package tag does not bump Python or
-the dataset schema automatically.
+The repository release workflow (`release-toolkit.yml`) checks tag agreement
+with both files, tests, builds, publishes to npm with provenance, and
+publishes to JSR — one tag, both JavaScript registries, in lockstep. A
+package tag does not bump Python or the dataset schema automatically.
 
 ## Dataset schema
 
@@ -32,11 +37,18 @@ and parser support, regenerated schemas, fixtures, and updated documentation.
 
 ## Python pipeline
 
-The Python version in `pyproject.toml` describes the provider ingestion and
+The Python version in `pipeline/pyproject.toml` describes the provider ingestion and
 publication implementation. It advances for deliberate pipeline distribution
 changes; it does not mirror npm numbers. Scientific changes to a derived value
 must update tests and affected research prose even when the profile shape is
 unchanged.
+
+The package publishes to PyPI as `windgram` on a `pipeline-v<version>` tag —
+the distinct prefix keeps Python releases independent of `toolkit-v*` package
+tags. The repository release workflow (`release-pipeline.yml`) checks
+tag/pyproject agreement, runs the test suite, builds, and publishes via
+trusted publishing. Create the tag only after main contains that exact
+version.
 
 ## Data publication
 

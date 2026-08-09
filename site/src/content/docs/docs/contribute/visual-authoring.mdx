@@ -184,9 +184,9 @@ the same across layouts.
 Run from the repository root:
 
 ```sh title="Terminal"
-uv run python -m windgram.scenarios check
-pnpm --dir packages/windgram test
-pnpm --dir packages/windgram typecheck
+uv run --project pipeline windgram scenarios check
+pnpm --dir toolkit test
+pnpm --dir toolkit typecheck
 pnpm --dir site check
 pnpm --dir site build
 ```

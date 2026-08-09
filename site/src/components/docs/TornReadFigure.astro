@@ -17,7 +17,7 @@ import Figure from "../figure/Figure.astro";
   units="one publish cycle; no numeric scale"
 >
   <div
-    class="torn-scroll"
+    class="wg-scroll wg-scroll--plate torn-scroll"
     role="region"
     tabindex="0"
     aria-label="Scrollable diagram of the torn read and its retry"
@@ -107,13 +107,7 @@ import Figure from "../figure/Figure.astro";
 </Figure>
 
 <style>
-  .torn-scroll {
-    overflow-x: auto;
-    background: var(--surface);
-    border: 1px solid var(--rule);
-    scrollbar-color: var(--accent) var(--surface-raised);
-  }
-  .torn-scroll:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  /* wg-scroll / wg-scroll--plate carry the scroll-region contract. */
   svg { display: block; width: 100%; min-width: 880px; height: auto; }
   svg text { font-family: var(--sans); }
   svg text.tr-mono, svg tspan.tr-mono { font-family: var(--mono); }

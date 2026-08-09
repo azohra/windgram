@@ -1,5 +1,5 @@
 /**
- * The doc-figure registry: every committed asset under docs/assets/ is a
+ * The doc-figure registry: every committed asset under assets/ is a
  * target here — an id, a composition built from committed scenario
  * profiles through the package's real buildScene/renderSvg, and an
  * output path. Compositions write ordinary <text>; the generator
@@ -353,10 +353,10 @@ async function composeSocialCard(ctx) {
 
 /** Every committed doc figure. Paths are repo-relative. */
 export const TARGETS = [
-  { id: "readme-hero", file: "docs/assets/readme-hero.svg", compose: composeReadmeHero },
-  { id: "package-hero", file: "docs/assets/package-hero.svg", compose: composePackageHero },
-  { id: "scenario-gallery", file: "docs/assets/scenario-gallery.svg", compose: composeScenarioGallery },
-  { id: "social-card", file: "docs/assets/social-card.svg", compose: composeSocialCard },
+  { id: "readme-hero", file: "assets/readme-hero.svg", compose: composeReadmeHero },
+  { id: "package-hero", file: "assets/package-hero.svg", compose: composePackageHero },
+  { id: "scenario-gallery", file: "assets/scenario-gallery.svg", compose: composeScenarioGallery },
+  { id: "social-card", file: "assets/social-card.svg", compose: composeSocialCard },
 ];
 
 /** Raster derivatives: rasterized after their SVG source regenerates,

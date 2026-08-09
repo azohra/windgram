@@ -19,7 +19,7 @@ behaviour, fixtures, and published documentation agree.
 <Steps>
 
 1. **Record the provider evidence.** Update
-   `reference/forecast-model-feeds.md` with source paths, exact field/level
+   `site/src/content/docs/docs/reference/forecast-model-feeds.mdx` with source paths, exact field/level
    identifiers, timing, semantics, sentinels, packing, domain, limits, and
    licence or attribution obligations. Propose substantive prose rewrites to
    the author; add only the verified facts your model needs.
@@ -35,7 +35,7 @@ behaviour, fixtures, and published documentation agree.
 5. **Publish through shared utilities.** Use shared rounding, current profile,
    manifest, history, and run-index conventions rather than custom output.
 6. **Register the supported command.** Add the slug and dispatch to
-   `windgram/cli.py`; its registry test requires exact catalogue order. Add a
+   `pipeline/src/windgram/cli.py`; its registry test requires exact catalogue order. Add a
    scheduled invocation only when the model is ready to publish.
 7. **Prove the declaration.** Add focused fixture-based tests for run
    selection, URLs/records, conversion, sentinels, domain guards, optional

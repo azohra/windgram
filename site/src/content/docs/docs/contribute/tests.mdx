@@ -8,7 +8,7 @@ change ships with the prose and generated artifacts it makes stale.
 
 | Change class | Focused checks | Complete relevant gate |
 | --- | --- | --- |
-| Python builder or publisher | matching `tests/test_build_*.py`, `test_cli.py`, publication/history tests | `uv run pytest` |
+| Python builder or publisher | matching `pipeline/tests/builders/test_*.py`, `test_cli.py`, publication/history tests | `uv run --project pipeline pytest pipeline/tests` |
 | Scenario definition or generator | scenario and calibration/ensemble tests | scenario `generate`, `check`, Python suite, package scenario tests |
 | Contract/schema | package contract tests and schema generation | package test + typecheck; Python suite when publisher shape changes |
 | Pure derivation | matching package test | package test + typecheck |
@@ -18,14 +18,14 @@ change ships with the prose and generated artifacts it makes stale.
 
 ## Scenario checks are two different operations
 
-`uv run windgram scenarios generate` writes committed outputs.
-`uv run windgram scenarios check` is read-only and fails when definitions,
+`uv run --project pipeline windgram scenarios generate` writes committed outputs.
+`uv run --project pipeline windgram scenarios check` is read-only and fails when definitions,
 generated profiles, hashes, or registry drift. Never regenerate merely to make
 a diff disappear; inspect whether the lesson and assertions still hold.
 
 ## Golden SVG changes require review
 
-Golden files under `packages/windgram/test/golden/` protect the reference
+Golden files under `toolkit/test/golden/` protect the reference
 renderer and selected scenario output. A mismatch is a review request asking
 whether geometry, labels, units, IDs, accessibility, or tokens changed
 intentionally — not an instruction to accept new pixels.
@@ -36,7 +36,7 @@ intentionally — not an instruction to accept new pixels.
 4. Only then update snapshots deliberately:
 
    ```sh
-   pnpm --dir packages/windgram exec vitest run --update
+   pnpm --dir toolkit exec vitest run --update
    ```
 
 5. Review every changed SVG in the diff and rerun the package tests, site

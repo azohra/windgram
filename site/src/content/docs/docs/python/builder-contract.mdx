@@ -23,7 +23,7 @@ public JSON shape or renderer behaviour.
 6. **Semantics are supplied, not inferred.** The verified builder passes gust
    and precipitation semantics into `derive_windgram_profile`.
 7. **Derived values have one authority.** Builders supply source fields;
-   `windgram/windgram.py` supplies `derived.*`.
+   `pipeline/src/windgram/derive.py` supplies `derived.*`.
 8. **Publication is deterministic at the edge.** Shared rounding and JSON
    writers own precision and serialized shape.
 

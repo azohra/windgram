@@ -8,7 +8,6 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   retries: 0,
   reporter: process.env.CI ? "github" : "list",
-  snapshotPathTemplate: "{testDir}/{testFileDir}/{testFileName}-snapshots/{arg}{ext}",
   timeout: 30_000,
   workers: process.env.CI ? 2 : undefined,
   use: {
