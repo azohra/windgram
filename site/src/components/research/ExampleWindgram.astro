@@ -5,7 +5,7 @@ import { p50 } from "windgram/derive";
 /* This component reads the fixed deterministic example document: every
    Scalar is a plain number, so its median is never null (full dropout is
    an ensemble-only shape). */
-const med = (value: Parameters<typeof p50>[0]): number => med(value)!;
+const med = (value: Parameters<typeof p50>[0]): number => p50(value)!;
 
 import { DEFAULT_OVERLAYS, type OverlayName } from "windgram/scene";
 import rawExample from "./forecast-example.json";

@@ -159,6 +159,23 @@ describe("strips", () => {
     expect(strip!.values[0]).toBeNull(); // hour 0 has no boundary layer
     expect(strip!.values[4]).not.toBeNull();
     expect(strip!.areaPath).toBe(""); // gapped series: line only, no area fill
+    expect(strip!.cells).toBeUndefined(); // sheared fixture: nothing unopposed
+  });
+
+  it("marks an unopposed-buoyancy hour with a cell — the best reading is not a gap", () => {
+    // Zero shear: identical wind at the surface and every level, with a
+    // boundary layer and positive W*, makes the ratio unbounded.
+    const profile = deterministicSceneProfile();
+    const hour = profile.hours[4];
+    const wind = { windSpeedMs: 3, windDirectionDeg: 200 };
+    Object.assign(hour.surface, wind);
+    hour.levels = hour.levels.map((level) => ({ ...level, ...wind }));
+    const scene = buildScene(profile, { ...TZ, overlays: { buoyancyShear: true } });
+    const strip = scene.strips.find((entry) => entry.key === "buoyancyShear")!;
+    expect(strip.values[4]).toBeNull(); // no point: infinity has no y
+    expect(strip.cells![4]).toMatchObject({ className: "wg-bs-unopposed" });
+    expect(strip.cells![0]).toBeNull(); // no-BL hour stays a plain gap
+    expect(strip.cells![3]).toBeNull(); // sheared hours carry no cell
   });
 
   it("carries p25-p75 envelopes for ensemble strips", () => {

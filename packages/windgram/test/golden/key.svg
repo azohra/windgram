@@ -39,6 +39,7 @@
 .wg-cape-risk { fill: var(--wg-cape-risk, #d98243); opacity: 0.6; }
 .wg-cape-severe { fill: var(--wg-cape-severe, #c04f3a); opacity: 0.6; }
 .wg-cape-capped { opacity: 0.28; }
+.wg-bs-unopposed { fill: var(--wg-bs, #6d597a); opacity: 0.18; }
 .wg-cloud-cell { fill: var(--wg-cloud, #5b6969); }
 .wg-strip-row-label { fill: var(--wg-ink-mute, #40565a); font-size: var(--wg-text-row-tag, 7.5px); }
 .wg-gust { fill: var(--wg-gust, #355963); font-size: var(--wg-text-gust, 9.5px); font-weight: 700; }

@@ -226,6 +226,7 @@ export const DEFAULT_STYLESHEET = `
 .wg-cape-risk { fill: ${v("cape-risk")}; opacity: 0.6; }
 .wg-cape-severe { fill: ${v("cape-severe")}; opacity: 0.6; }
 .wg-cape-capped { opacity: 0.28; }
+.wg-bs-unopposed { fill: ${v("bs")}; opacity: 0.18; }
 .wg-cloud-cell { fill: ${v("cloud")}; }
 .wg-strip-row-label { fill: ${v("ink-mute")}; font-size: ${v("text-row-tag")}; }
 .wg-gust { fill: ${v("gust")}; font-size: ${v("text-gust")}; font-weight: 700; }
@@ -491,7 +492,13 @@ export function renderSvg(scene: SceneGraph, options: RenderSvgOptions = {}): st
   );
   for (const layer of scene.fields) {
     for (const { className, path } of layer.paths) {
-      const attrs: Record<string, AttrValue> = { d: path, class: className };
+      // Field paths are iso-band outlines: the region between two
+      // thresholds is the pair of threshold outlines under even-odd fill.
+      const attrs: Record<string, AttrValue> = {
+        d: path,
+        class: className,
+        "fill-rule": "evenodd",
+      };
       // The dense-cloud class fills with the hatch pattern; the pattern id
       // is prefix-dependent, so it rides as an attribute, not in the sheet.
       if (className === "wg-cloud-dense") attrs["fill"] = `url(#${hatchId})`;

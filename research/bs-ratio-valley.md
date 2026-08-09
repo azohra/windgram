@@ -1,0 +1,64 @@
+# B/S does not transfer to the valley
+
+The buoyancy/shear ratio is flatland doctrine with a long pedigree: divide the boundary layer's
+convective velocity scale W* by the vector wind difference between the surface and the boundary-
+layer top, and low values warn that organized shear will tear thermals apart before a glider can
+work them. This project computes it exactly as its predecessors plot it, so pilots can compare
+numbers directly. This entry records the day the ratio's hidden assumption surfaced at a mountain
+site, what the assumption is, and what the package now says about it.
+
+## The trace
+
+A production consumer's real reading — hrdps-continental at a 1,537 m Kootenays valley site, run
+2026-08-09T00Z, for a classic light-wind summer Sunday (flyable nine to six, cloud base near
+4,000 m, gusts under 22 km/h):
+
+| hour    | W*  | BL top  | 10 m wind     | BL-top wind    | vector shear | B/S  |
+|---------|-----|---------|---------------|----------------|--------------|------|
+| 11 a.m. | 2.6 | 3,716 m | 6 km/h @ 134° | 16 km/h @ 235° | 4.9 m/s      | 0.53 |
+| 1 p.m.  | 2.9 | 3,964 m | 9 km/h @ 178° | 16 km/h @ 255° | 5.1 m/s      | 0.56 |
+| 3 p.m.  | 2.7 | 4,001 m | 9 km/h @ 190° | 14 km/h @ 272° | 4.7 m/s      | 0.57 |
+
+Every wind in that table is light. The 5 m/s of "shear" is almost entirely direction. By the
+flatland reading — where the strip's 0–5 axis puts anything under 1 deep in the broken zone — this
+stellar day is condemned three times over, and so is essentially every good summer day at sites
+like it.
+
+## The assumption
+
+The ratio's shear term subtracts two wind vectors and calls the magnitude "shear", which measures
+something dynamical only when both vectors sample the same flow. On flat ground they do: the 10 m
+wind is the bottom of the boundary layer's own profile, and a large vector difference across the
+layer is a real gradient a thermal must climb through. In a mountain valley the model's 10 m wind
+is something else — thermally driven circulation, anabatic flow that rotates with the sun and is
+decoupled from the flow at boundary-layer top. Subtracting a valley breeze from a ridge-top wind
+does not measure a gradient any parcel experiences; it measures the angle between two different
+wind systems, and on the best days that angle is large by construction, because the valley wind
+follows the heating while the flow aloft follows the synoptics. The ratio is not noisy at such
+sites. It is structurally pinned to 0.3–0.7 precisely when conditions are best — a doctrine
+answering the wrong question with full confidence.
+
+## What the package now says
+
+Three dispositions, in the order the evidence supports them:
+
+1. **The assumption is documented at the quantity's home.** `surfaceToBoundaryLayerShearMs` and
+   `buoyancyShearRatio` in [`derive/shear.ts`](../packages/windgram/src/derive/shear.ts) now state
+   the same-air-mass assumption, carry this trace, and point terrain-driven consumers at the
+   height-resolved `windShear` field — which measures shear layer by layer *within* the column
+   and never straddles the decoupling, so it survives terrain the way launch-relative heights
+   survive elevation bias. No classed-cell treatment ("good/broken" doctrine) ships on B/S.
+2. **Unbounded is not missing.** Zero shear makes the ratio infinite — buoyancy fully unopposed,
+   the best possible reading — and the strip used to render it as the same gap as "no ratio
+   computable", which read as missing data. An unopposed hour now draws its own classed cell
+   (`wg-bs-unopposed`); the gap again means only what a gap should.
+3. **The tempting repair stays unproven.** Re-anchoring the shear vector's lower end above the
+   valley circulation (the first published level, or launch height) might restore the ratio's
+   meaning at mountain sites — and might not, and would quietly make the number model-dependent,
+   since models publish different lowest levels. That variant ships nothing until it is
+   prototyped against days pilots actually rated, the same bar every threshold in `analyze`
+   had to clear.
+
+The general lesson is the same one the stability ramp taught from a different direction: a
+quantity inherited from a flatland lineage carries its terrain assumptions silently, and the fix
+starts with saying the assumption out loud at the quantity's one home.

@@ -133,6 +133,15 @@ const DOC_FILES: DocDefinition[] = [
     accent: "blue",
   },
   {
+    slug: "bs-ratio-valley",
+    file: "bs-ratio-valley.md",
+    kind: "entry",
+    number: "13",
+    section: "Doctrine vs terrain",
+    summary: "A flatland ratio condemns the best mountain days; the assumption gets said out loud",
+    accent: "amber",
+  },
+  {
     slug: "forecast-model-feeds",
     file: "forecast-model-feeds.md",
     kind: "reference",

@@ -703,6 +703,39 @@ The document `schemaVersion` stays 1 across these releases: profile
 additions are additive-optional, and consumers discover the rest from the
 catalogue.
 
+**0.9.0** — field patches are contours: the classes were always continuous
+underneath.
+
+- `sampledFieldPaths` emits iso-bands instead of run-length rects:
+  boundary vertices sit on the exact threshold crossing by linear
+  interpolation within each grid cell, so curved class boundaries render
+  as curves instead of 3–4 px staircases at page-scale column pitches.
+  Same grid, same null-region and clamp-above-top semantics, same class
+  names and tokens — only the geometry changed.
+- **Breaking (helper signature)**: the engine takes the banding itself —
+  `{ breakpoints, classNames }`, ascending, `null` = unpainted — instead
+  of an opaque `classify` closure: exact crossings need the thresholds.
+  The stability banding now derives from `WINDGRAM_STABILITY_CLASSES`
+  directly (one home). `buildScene` output shape is unchanged apart from
+  the paths; `FieldLayer` paths MUST be filled with fill-rule "evenodd"
+  (a band is its two threshold outlines in one path), as the reference
+  serializer now does.
+- Goldens regenerated; output size is at parity (collinear runs collapse
+  under a sub-rounding tolerance).
+
+**0.8.1** — the B/S ratio's terrain assumption, said out loud.
+
+- `surfaceToBoundaryLayerShearMs` and `buoyancyShearRatio` document the
+  same-air-mass assumption their construction rests on and its structural
+  failure at mountain sites (valley circulation pins the ratio to 0.3–0.7
+  on the best days — a verified production trace), pointing terrain-driven
+  consumers at the height-resolved `windShear` field. No classed-cell
+  doctrine ships on B/S.
+- An unopposed-buoyancy hour (zero shear, unbounded ratio) draws a
+  `wg-bs-unopposed` cell in the strip instead of hiding in the same gap
+  as "no ratio computable" — the best possible reading is not missing
+  data.
+
 **0.8.0** — `windgram/compare`: agreement with evidence.
 
 - New subpath, occupying the name analyze's charter reserved, on the

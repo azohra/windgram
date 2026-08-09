@@ -10,12 +10,12 @@ import { dewPointDepressionC, relativeHumidityPercent } from "../derive/moisture
 import { buoyancyShearRatio, surfaceToBoundaryLayerShearMs, vectorShearMs } from "../derive/shear.js";
 import { localDateKey } from "../derive/day-window.js";
 import { smooth121 } from "../derive/smoothing.js";
-import { stabilityClass } from "../derive/stability.js";
+import { WINDGRAM_STABILITY_CLASSES } from "../derive/stability.js";
 import { thermalIndexC } from "../derive/thermal-index.js";
 import { usableLiftTopM } from "../derive/usable-lift.js";
 import { msToKmh, windToComponents } from "../derive/wind.js";
 import { BARB_GLYPH_HEIGHT, BARB_GLYPH_RADIUS, windBarbParts, windBarbPaths } from "./barbs.js";
-import { sampledFieldPaths, type FieldNode } from "./field.js";
+import { sampledFieldPaths, type FieldBanding, type FieldNode } from "./field.js";
 import { bandPath, pointPath, type PlotPoint } from "./path.js";
 import {
   DEFAULT_CAPE_CLASSES,
@@ -621,21 +621,25 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
     }
     if (overlays.buoyancyShear) {
       /* B/S per hour: derive/'s W* / surface-to-BL-top vector shear. Hours
-         without a boundary layer or without levels have no ratio (gap); an
-         unbounded ratio (zero shear) is stored as null too, since a strip
-         cannot place infinity honestly. */
-      const ratios = hours.map((hour) => {
+         without a boundary layer or without levels have no ratio (a plain
+         gap). An unbounded ratio (zero shear, buoyancy fully unopposed)
+         cannot be placed as a point — but it is the best possible reading,
+         not missing data, so it draws a classed cell instead of hiding in
+         the same gap. */
+      const perHour = hours.map((hour) => {
         const shear = surfaceToBoundaryLayerShearMs({
           surfaceWind: hour.surface,
           modelElevationM: floorM,
           boundaryLayerTopM: hour.derived.boundaryLayerTopM,
           levels: hour.levels,
         });
-        if (shear === null) return null;
+        if (shear === null) return { ratio: null, unopposed: false };
         const ratio = buoyancyShearRatio(hour.derived.thermalVelocityMs, shear);
-        return ratio !== null && Number.isFinite(ratio) ? ratio : null;
+        if (ratio === Number.POSITIVE_INFINITY) return { ratio: null, unopposed: true };
+        return { ratio: ratio !== null && Number.isFinite(ratio) ? ratio : null, unopposed: false };
       });
-      stripSpecs.push({
+      const ratios = perHour.map((entry) => entry.ratio);
+      const spec: StripSpec = {
         key: "buoyancyShear",
         label: "B/S",
         unit: "ratio",
@@ -643,7 +647,19 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
         bands: hours.map(() => null),
         minimum: 0,
         maximum: Math.max(5, ...finite(ratios)),
-      });
+      };
+      if (perHour.some((entry) => entry.unopposed)) {
+        spec.cells = perHour.map((entry, index) =>
+          entry.unopposed
+            ? {
+                x: MARGIN_LEFT + index * columnWidth,
+                width: columnWidth,
+                className: "wg-bs-unopposed",
+              }
+            : null,
+        );
+      }
+      stripSpecs.push(spec);
     }
   }
 
@@ -736,36 +752,31 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
 
   const fieldArgs = { floorM, topM, plotLeft: MARGIN_LEFT, plotTop, plotBottom, plotWidth };
   const fields: FieldLayer[] = [];
+  /* Each field is an ordered banding of one continuous scalar; the engine
+     takes the banding itself so iso-band vertices land on the exact
+     threshold crossings (see field.ts). Paths require even-odd fill. */
   const pushField = (
     key: FieldLayer["key"],
     nodesByHour: FieldNode[][],
-    classify: (value: number) => string | null,
-    classOrder: string[],
+    banding: FieldBanding,
   ) => {
-    const paths = sampledFieldPaths({ ...fieldArgs, nodesByHour, classify });
-    const ordered = classOrder
-      .filter((className) => paths[className])
-      .map((className) => ({ className, path: paths[className] }));
+    const paths = sampledFieldPaths({ ...fieldArgs, nodesByHour, banding });
+    const ordered: Array<{ className: string; path: string }> = [];
+    for (const className of banding.classNames) {
+      if (className !== null && paths[className]) {
+        ordered.push({ className, path: paths[className] });
+      }
+    }
     if (ordered.length > 0) fields.push({ key, paths: ordered });
   };
 
   const lapseNodesByHour = hours.map((hour) => lapseNodes(hour, floorM));
   if (overlays.stability) {
-    pushField(
-      "stability",
-      lapseNodesByHour,
-      (value) => `wg-stab-${stabilityClass(value)}`,
-      [
-        "wg-stab-very-unstable",
-        "wg-stab-unstable",
-        "wg-stab-conditional-strong",
-        "wg-stab-conditional",
-        "wg-stab-near-neutral",
-        "wg-stab-stable",
-        "wg-stab-inverted",
-        "wg-stab-strong-inversion",
-      ],
-    );
+    // One home: the class table's own boundaries are the breakpoints.
+    pushField("stability", lapseNodesByHour, {
+      breakpoints: WINDGRAM_STABILITY_CLASSES.slice(0, -1).map((entry) => entry.maxLapse),
+      classNames: WINDGRAM_STABILITY_CLASSES.map((entry) => `wg-stab-${entry.className}`),
+    });
   }
   if (overlays.clouds) {
     /* Cloud shading precedence (documented on the overlay in types.ts):
@@ -782,90 +793,64 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
         })),
     );
     const hasModelCloud = modelCloudNodesByHour.map((nodes) => nodes.length >= 2);
-    const cloudClassOrder = ["wg-cloud-light", "wg-cloud-medium", "wg-cloud-dense"];
     pushField(
       "clouds",
       hours.map((hour, index) => (hasModelCloud[index] ? [] : depressionNodes(hour, floorM))),
-      (value) =>
-        value < 0.5
-          ? "wg-cloud-dense"
-          : value < 1.5
-            ? "wg-cloud-medium"
-            : value < 3
-              ? "wg-cloud-light"
-              : null,
-      cloudClassOrder,
+      {
+        breakpoints: [0.5, 1.5, 3],
+        classNames: ["wg-cloud-dense", "wg-cloud-medium", "wg-cloud-light", null],
+      },
     );
     pushField(
       "clouds",
       modelCloudNodesByHour.map((nodes, index) => (hasModelCloud[index] ? nodes : [])),
-      (value) =>
-        value >= 85
-          ? "wg-cloud-dense"
-          : value >= 60
-            ? "wg-cloud-medium"
-            : value >= 30
-              ? "wg-cloud-light"
-              : null,
-      cloudClassOrder,
+      {
+        breakpoints: [30, 60, 85],
+        classNames: [null, "wg-cloud-light", "wg-cloud-medium", "wg-cloud-dense"],
+      },
     );
   }
   if (overlays.thermalIndex) {
     pushField(
       "thermalIndex",
       hours.map((hour) => thermalIndexNodes(hour, floorM)),
-      (value) =>
-        value <= -8
-          ? "wg-ti-strong"
-          : value <= -4
-            ? "wg-ti-good"
-            : value <= -1
-              ? "wg-ti-fair"
-              : value <= 0
-                ? "wg-ti-weak"
-                : null,
-      ["wg-ti-weak", "wg-ti-fair", "wg-ti-good", "wg-ti-strong"],
+      {
+        breakpoints: [-8, -4, -1, 0],
+        classNames: ["wg-ti-strong", "wg-ti-good", "wg-ti-fair", "wg-ti-weak", null],
+      },
     );
   }
   if (overlays.relativeHumidity) {
     pushField(
       "relativeHumidity",
       hours.map((hour) => relativeHumidityNodes(hour, floorM)),
-      (value) => (value >= 95 ? "wg-rh-95" : value >= 80 ? "wg-rh-80" : value >= 60 ? "wg-rh-60" : null),
-      ["wg-rh-60", "wg-rh-80", "wg-rh-95"],
+      {
+        breakpoints: [60, 80, 95],
+        classNames: [null, "wg-rh-60", "wg-rh-80", "wg-rh-95"],
+      },
     );
   }
   if (overlays.windShear) {
     pushField(
       "windShear",
       hours.map((hour) => shearRateNodes(hour, floorM)),
-      (value) =>
-        value >= 8
-          ? "wg-shear-strong"
-          : value >= 4
-            ? "wg-shear-moderate"
-            : value >= 2
-              ? "wg-shear-light"
-              : null,
-      ["wg-shear-light", "wg-shear-moderate", "wg-shear-strong"],
+      {
+        breakpoints: [2, 4, 8],
+        classNames: [null, "wg-shear-light", "wg-shear-moderate", "wg-shear-strong"],
+      },
     );
   }
   if (overlays.verticalVelocity) {
-    pushField(
-      "verticalVelocity",
-      hours.map(omegaNodes),
-      (value) =>
-        value <= -0.5
-          ? "wg-omega-lift-strong"
-          : value <= -0.1
-            ? "wg-omega-lift"
-            : value >= 0.5
-              ? "wg-omega-sink-strong"
-              : value >= 0.1
-                ? "wg-omega-sink"
-                : null,
-      ["wg-omega-sink", "wg-omega-sink-strong", "wg-omega-lift", "wg-omega-lift-strong"],
-    );
+    pushField("verticalVelocity", hours.map(omegaNodes), {
+      breakpoints: [-0.5, -0.1, 0.1, 0.5],
+      classNames: [
+        "wg-omega-lift-strong",
+        "wg-omega-lift",
+        null,
+        "wg-omega-sink",
+        "wg-omega-sink-strong",
+      ],
+    });
   }
 
   /* --------------------------------------------------------------- series */

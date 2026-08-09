@@ -21,7 +21,13 @@ import type { FieldNode } from "./field.js";
  *   good <= -4, fair <= -1, weak <= 0 degC; positive TI is unshaded;
  * - `windShear`: layer shear-rate field patches in m/s per km, light >= 2,
  *   moderate >= 4, strong >= 8;
- * - `buoyancyShear`: B/S ratio surface strip (W* / surface-to-BL-top shear);
+ * - `buoyancyShear`: B/S ratio surface strip (W* / surface-to-BL-top
+ *   shear). Inherits the shear term's same-air-mass assumption, which
+ *   fails structurally at mountain sites — valley circulation pins the
+ *   ratio low on the best days; see derive/'s buoyancyShearRatio JSDoc.
+ *   Hours where buoyancy is fully unopposed (zero shear, unbounded ratio)
+ *   draw a `wg-bs-unopposed` cell rather than a gap: a gap means "no
+ *   ratio computable", not "the best possible reading";
  * - `dewPoint`: isodrosotherm lines at 0/10 degC dew point;
  * - `relativeHumidity`: RH field patches at >= 60 / >= 80 / >= 95 %;
  * - `verticalVelocity`: omega field patches (lift <= -0.1, strong <= -0.5;
@@ -405,6 +411,13 @@ export interface MetricStrip {
   rows?: ReadonlyArray<StripRow>;
 }
 
+/**
+ * One classified field's iso-band paths, in banding order. Each path is
+ * the outline pair of the band's two thresholds and MUST be filled with
+ * fill-rule "evenodd" (the reference serializer does): the even-odd rule
+ * is what turns the two outlines into the area between them, holes
+ * included.
+ */
 export interface FieldLayer {
   key: "stability" | "clouds" | "thermalIndex" | "windShear" | "relativeHumidity" | "verticalVelocity";
   /** Class name -> path data, in stable class order. */

@@ -26,6 +26,18 @@ export function vectorShearMs(lower: WindSample, upper: WindSample): number {
  * - a BL top above the highest level uses the highest level's wind (column
  *   ceiling semantics — the published top is itself capped there);
  * - a BL top at or below model elevation shears the surface against itself: 0.
+ *
+ * SAME-AIR-MASS ASSUMPTION (load-bearing at mountain sites): this quantity
+ * measures organized shear only when the 10 m wind and the BL-top wind
+ * sample the same flow. In a mountain valley the model's 10 m wind is
+ * thermally driven circulation — it rotates with the sun and is decoupled
+ * from the flow at BL top — so on a classic light-wind summer day the two
+ * vector ends sit 80–90° apart and this "shear" is direction difference
+ * between two light winds, not a force tearing thermals. A verified trace
+ * (hrdps-continental at a 1,537 m valley site, 2026-08-09): 6–9 km/h at
+ * both ends, "shear" ~5 m/s, all day. Consumers at terrain-driven sites
+ * should read the height-resolved windShear field instead, which measures
+ * layer-by-layer within the column and does not straddle the decoupling.
  */
 export function surfaceToBoundaryLayerShearMs(args: {
   surfaceWind: WindSample;
@@ -62,6 +74,14 @@ export function surfaceToBoundaryLayerShearMs(args: {
  * mean buoyancy dominates. With zero shear the ratio is unbounded and
  * returns Infinity, except 0/0 (no thermals, no shear) which has no defined
  * ratio and returns null.
+ *
+ * The flatland reading ("higher = thermals survive") inherits the shear
+ * term's same-air-mass assumption and FAILS STRUCTURALLY at mountain sites
+ * — see surfaceToBoundaryLayerShearMs: valley thermal circulation pins the
+ * ratio to ~0.3–0.7 on stellar days, so the number condemns exactly the
+ * days pilots rate best. Do not build classed-cell doctrine on this
+ * quantity for terrain-driven sites; the height-resolved windShear field
+ * is the measurement that survives terrain.
  */
 export function buoyancyShearRatio(
   thermalVelocityMs: number,
