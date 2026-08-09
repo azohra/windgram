@@ -1,11 +1,11 @@
 {
   "firstForecastHour": 3,
   "forecastHours": 24,
-  "generatedAt": "2026-08-09T01:13:24.818Z",
+  "generatedAt": "2026-08-09T04:57:44.756Z",
   "lastForecastHour": 72,
   "memberCount": 21,
   "model": "reps",
-  "referenceTime": "2026-08-08T18:00:00Z",
+  "referenceTime": "2026-08-09T00:00:00Z",
   "schemaVersion": 1,
   "sites": [
     {
@@ -26,9 +26,9 @@
     }
   ],
   "stats": {
-    "downloadBytes": 9183105214,
-    "downloadRetries": 51,
-    "downloads": 868,
-    "durationMs": 1708741
+    "downloadBytes": 9195701488,
+    "downloads": 848,
+    "durationMs": 1396876,
+    "retries": 31
   }
 }
