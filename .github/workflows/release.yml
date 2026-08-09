@@ -41,6 +41,8 @@ jobs:
         run: pnpm --dir packages/windgram test
       - name: Build
         run: pnpm --dir packages/windgram build
+      - name: Update npm (trusted publishing needs >= 11.5)
+        run: npm install -g npm@latest && npm --version
       - name: Publish with provenance
         working-directory: packages/windgram
         run: npm publish --provenance --access public
