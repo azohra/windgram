@@ -1,0 +1,154 @@
+---
+import Figure from "../figure/Figure.astro";
+
+/* The preview/pin state machine as a figure: three states, and every
+   transition labelled with the event and the policy it encodes. This is
+   the machine the package deliberately does NOT ship — the recipe page
+   walks it in prose, and each label here is a consumer decision. */
+---
+
+<Figure
+  id="ts-pointer-states"
+  title="Preview, pin, and the touch policy"
+  lesson="The state machine is small and consumer-owned; the package supplies the pure queries its transitions call."
+  description="A three-state diagram: Resting, Previewing, and Pinned. Pointer movement with a non-touch pointer previews; leaving the chart clears the preview; a click or tap pins from any state; clicking the pinned target again, or Escape, unpins; a model or day swap exits the machine entirely, where the consumer chooses reset or carry."
+  caption="Touch pointers skip the Previewing state — a finger cannot hover, so a tap pins directly. The swap edge is the carry-or-reset decision: key the stored selection by validAt and re-resolve it with hourIndexForValidAt, or reset, as the measured first consumer does."
+  headingLevel="h3"
+>
+  <div class="wg-scroll wg-scroll--plate states-scroll" role="region" tabindex="0" aria-label="Scrollable pointer state diagram">
+    <svg viewBox="0 0 880 320" role="img" aria-labelledby="ts-pointer-states-svg-title">
+      <title id="ts-pointer-states-svg-title">Resting, Previewing, and Pinned states with their transitions</title>
+      <defs>
+        <marker id="ps-head" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0 0 L10 5 L0 10 Z" class="ps-arrow" />
+        </marker>
+      </defs>
+
+      <!-- States -->
+      <rect x="40" y="110" width="180" height="76" rx="10" class="ps-state" />
+      <text x="130" y="142" class="ps-state-title">Resting</text>
+      <text x="130" y="162" class="ps-state-note">selection shown is the</text>
+      <text x="130" y="175" class="ps-state-note">stored (or initial) one</text>
+
+      <rect x="350" y="110" width="180" height="76" rx="10" class="ps-state" />
+      <text x="440" y="142" class="ps-state-title">Previewing</text>
+      <text x="440" y="162" class="ps-state-note">consumer overlay tracks</text>
+      <text x="440" y="175" class="ps-state-note">the pointer, nothing stored</text>
+
+      <rect x="660" y="110" width="180" height="76" rx="10" class="ps-state ps-state--pinned" />
+      <text x="750" y="142" class="ps-state-title">Pinned</text>
+      <text x="750" y="162" class="ps-state-note">selection stored; rebuild</text>
+      <text x="750" y="175" class="ps-state-note">with the selection option</text>
+
+      <!-- Resting <-> Previewing -->
+      <path d="M220 132 H346" class="ps-flow" marker-end="url(#ps-head)" />
+      <text x="283" y="122" class="ps-label">pointermove · not touch</text>
+      <path d="M346 164 H224" class="ps-flow" marker-end="url(#ps-head)" />
+      <text x="283" y="182" class="ps-label">pointerleave</text>
+
+      <!-- Previewing -> Pinned -->
+      <path d="M530 148 H656" class="ps-flow" marker-end="url(#ps-head)" />
+      <text x="593" y="138" class="ps-label">click / tap</text>
+
+      <!-- Resting -> Pinned (touch path, arcs under) -->
+      <path d="M130 186 C130 262 750 262 750 190" class="ps-flow" marker-end="url(#ps-head)" />
+      <text x="440" y="248" class="ps-label">click / tap — a touch pointer pins without previewing</text>
+
+      <!-- Pinned -> Resting (arcs over) -->
+      <path d="M750 110 C750 44 130 44 130 106" class="ps-flow" marker-end="url(#ps-head)" />
+      <text x="440" y="58" class="ps-label">click the pinned target again · Escape</text>
+
+      <!-- Pinned self-loop -->
+      <path d="M840 132 C866 132 866 164 840 164" class="ps-flow" marker-end="url(#ps-head)" />
+      <text x="862" y="152" class="ps-label ps-label--start">re-pin</text>
+
+      <!-- Swap edge -->
+      <rect x="620" y="272" width="260" height="38" rx="8" class="ps-swap" />
+      <path d="M750 190 V268" class="ps-flow ps-flow--swap" marker-end="url(#ps-head)" />
+      <text x="750" y="288" class="ps-swap-title">model / day swap</text>
+      <text x="750" y="302" class="ps-swap-note">reset, or carry by validAt — consumer decides</text>
+    </svg>
+  </div>
+</Figure>
+
+<style>
+  svg {
+    display: block;
+    width: 100%;
+    min-width: 760px;
+    height: auto;
+  }
+
+  svg text {
+    font-family: var(--sans);
+  }
+
+  .ps-state {
+    fill: var(--surface);
+    stroke: var(--rule-strong);
+    stroke-width: 1.4;
+  }
+
+  .ps-state--pinned {
+    stroke: var(--accent);
+    stroke-width: 2;
+  }
+
+  .ps-state-title {
+    fill: var(--ink);
+    font-family: var(--display);
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-anchor: middle;
+  }
+
+  .ps-state-note {
+    fill: var(--ink-mute);
+    font-size: 10.5px;
+    text-anchor: middle;
+  }
+
+  .ps-flow {
+    stroke: var(--ink-soft);
+    stroke-width: 1.5;
+    fill: none;
+  }
+
+  .ps-flow--swap {
+    stroke-dasharray: 5 4;
+  }
+
+  .ps-arrow {
+    fill: var(--ink-soft);
+  }
+
+  .ps-label {
+    fill: var(--ink-soft);
+    font-size: 11px;
+    font-weight: 600;
+    text-anchor: middle;
+  }
+
+  .ps-label--start {
+    text-anchor: start;
+  }
+
+  .ps-swap {
+    fill: var(--wg-strip-bg, var(--surface-sunken));
+    stroke: var(--rule);
+  }
+
+  .ps-swap-title {
+    fill: var(--ink);
+    font-size: 11.5px;
+    font-weight: 700;
+    text-anchor: middle;
+  }
+
+  .ps-swap-note {
+    fill: var(--ink-mute);
+    font-size: 10.5px;
+    text-anchor: middle;
+  }
+</style>

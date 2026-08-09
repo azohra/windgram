@@ -254,6 +254,69 @@ describe("widthPx container fit", () => {
     expect(scene.width).toBe(900);
     expect(scene.scales.columnWidth).toBe(260);
   });
+
+  it("clamps the resolved pitch — the density policy without a probe build", () => {
+    // 900px over 8 hours fits 97.5px columns; the ceiling narrows the chart.
+    const capped = buildScene(deterministicSceneProfile(), {
+      ...TZ,
+      widthPx: 900,
+      maxColumnWidthPx: 60,
+    });
+    expect(capped.scales.columnWidth).toBe(60);
+    expect(capped.width).toBe(120 + 8 * 60);
+    // A floor above the fit makes the chart scroll instead of squinting.
+    const floored = buildScene(deterministicSceneProfile(), {
+      ...TZ,
+      widthPx: 300,
+      minColumnWidthPx: 32,
+    });
+    expect(floored.scales.columnWidth).toBe(32);
+    expect(floored.width).toBeGreaterThan(300);
+    // The minimum wins a conflict: legibility floor beats fit ceiling.
+    const conflicted = buildScene(deterministicSceneProfile(), {
+      ...TZ,
+      widthPx: 900,
+      minColumnWidthPx: 50,
+      maxColumnWidthPx: 40,
+    });
+    expect(conflicted.scales.columnWidth).toBe(50);
+    // Bounds that the fit already satisfies change nothing.
+    const bare = buildScene(deterministicSceneProfile(), { ...TZ, widthPx: 900 });
+    const bounded = buildScene(deterministicSceneProfile(), {
+      ...TZ,
+      widthPx: 900,
+      minColumnWidthPx: 22,
+      maxColumnWidthPx: 120,
+    });
+    expect(JSON.stringify(bounded)).toBe(JSON.stringify(bare));
+  });
+
+  it("fitMinColumns keeps a short window from stretching, and only affects the fit", () => {
+    // Three windowed hours over 900px would fit 260px columns; dividing by
+    // at least ten instead sizes them as a tenth of the plot.
+    const short = buildScene(deterministicSceneProfile(), {
+      ...TZ,
+      widthPx: 900,
+      hourIndices: [2, 3, 4],
+      fitMinColumns: 10,
+    });
+    expect(short.scales.columnWidth).toBe(78);
+    // A window at or past the floor is untouched.
+    const long = buildScene(deterministicSceneProfile(), {
+      ...TZ,
+      widthPx: 900,
+      fitMinColumns: 8,
+    });
+    expect(long.scales.columnWidth).toBeCloseTo((900 - 120) / 8, 9);
+    // Explicit pitch is already a statement of pitch: the option is inert.
+    const explicit = buildScene(deterministicSceneProfile(), {
+      ...TZ,
+      columnWidthPx: 44,
+      hourIndices: [2, 3, 4],
+      fitMinColumns: 10,
+    });
+    expect(explicit.scales.columnWidth).toBe(44);
+  });
 });
 
 describe("stripLabels", () => {
@@ -267,6 +330,61 @@ describe("stripLabels", () => {
     expect(strip.className).toBe("wg-strip-thermalStrength");
     // Untouched strips keep the reference voice.
     expect(scene.strips.find((entry) => entry.key === "pressure")!.label).toBe("Pressure");
+  });
+});
+
+describe("selection option", () => {
+  it("defaults to none — identical to passing nothing", () => {
+    const bare = buildScene(deterministicSceneProfile(), TZ);
+    expect(bare.selection).toBeNull();
+    expect(JSON.stringify(buildScene(deterministicSceneProfile(), { ...TZ, selection: null }))).toBe(
+      JSON.stringify(bare),
+    );
+  });
+
+  it("resolves the column from the scene's own scales, spanning strips to plot floor", () => {
+    const scene = buildScene(deterministicSceneProfile(), { ...TZ, selection: { hourIndex: 3 } });
+    const selection = scene.selection!;
+    const { plotLeft, plotTop, plotHeight, columnWidth, stripTop } = scene.scales;
+    expect(selection.hourIndex).toBe(3);
+    expect(selection.x).toBeCloseTo(plotLeft + 3 * columnWidth, 6);
+    expect(selection.width).toBe(columnWidth);
+    expect(selection.centerX).toBeCloseTo(selection.x + columnWidth / 2, 6);
+    expect(selection.top).toBe(stripTop);
+    expect(selection.bottom).toBeCloseTo(plotTop + plotHeight, 6);
+    // Hour-only selection: no ring.
+    expect(selection.barb).toBeNull();
+    // Distinct from the computed best-hour highlight.
+    expect(scene.selectedHourIndex).not.toBe(3);
+  });
+
+  it("snaps a requested altitude to the hour's nearest DRAWN barb", () => {
+    const profile = deterministicSceneProfile();
+    const scene = buildScene(profile, { ...TZ, selection: { hourIndex: 2, altitudeM: 1500 } });
+    const barb = scene.selection!.barb!;
+    const drawn = scene.barbs.filter((candidate) => candidate.hourIndex === 2);
+    expect(drawn.map((candidate) => candidate.altitudeM)).toContain(barb.altitudeM);
+    // The surface barb resolves at its drawn y — the lifted row, not y(floor).
+    const surface = buildScene(profile, {
+      ...TZ,
+      selection: { hourIndex: 2, altitudeM: scene.scales.floorM },
+    });
+    expect(surface.selection!.barb!.surface).toBe(true);
+    expect(surface.selection!.barb!.y).toBe(surface.scales.surfaceWindY);
+  });
+
+  it("clamps the hour into the window and drops the ring when nothing drew", () => {
+    const clamped = buildScene(deterministicSceneProfile(), {
+      ...TZ,
+      selection: { hourIndex: 99, altitudeM: 2000 },
+    });
+    expect(clamped.selection!.hourIndex).toBe(clamped.scales.hourCount - 1);
+    const windless = buildScene(deterministicSceneProfile(), {
+      ...TZ,
+      overlays: { wind: false },
+      selection: { hourIndex: 2, altitudeM: 2000 },
+    });
+    expect(windless.selection!.barb).toBeNull();
   });
 });
 

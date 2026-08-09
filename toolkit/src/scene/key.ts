@@ -1,5 +1,5 @@
 import { WINDGRAM_STABILITY_CLASSES } from "../derive/stability.js";
-import type { SceneGraph, SeriesElement } from "./types.js";
+import type { FieldLayer, SceneGraph, SeriesElement } from "./types.js";
 
 /* The key: a windgram is not readable without one — the chart encodes
    meaning in line STYLE, and nothing on the plot says which is which.
@@ -29,6 +29,23 @@ export interface KeySeriesEntry {
   strokeWidth: number;
 }
 
+/**
+ * One field overlay's colour ramp — the classed patches the plot shades
+ * with. `classes` are the classes the scene actually drew, in the key's
+ * weak-to-strong reading order: the chips' REAL identities, so an SVG key
+ * inherits fill and opacity from the same rules that painted the chart,
+ * and an HTML legend reads the same facts from svg/'s
+ * `FIELD_STYLE_DEFAULTS` instead of restating tokens and opacities.
+ */
+export interface KeyRampEntry {
+  key: FieldLayer["key"];
+  /** Label-override id ("ramp-thermalIndex"). */
+  id: string;
+  /** Reference prose, direction included ("Thermal index, weak → strong"). */
+  label: string;
+  classes: ReadonlyArray<string>;
+}
+
 export interface KeyStabilityClass {
   className: string;
   /** Upper bound of the class in °C per 1000 ft (from derive/'s table). */
@@ -52,6 +69,13 @@ export interface KeySpec {
    * plot (the 10°/20° isotherms, the Td isolines) stay out of the key.
    */
   series: ReadonlyArray<KeySeriesEntry>;
+  /**
+   * Field-overlay ramps for what this scene shaded, in the reference
+   * order (thermal index, shear, humidity, vertical motion). The clouds
+   * field stays out: its dense class speaks through the hatch chip, and
+   * the stability field has its own bar below.
+   */
+  ramps: ReadonlyArray<KeyRampEntry>;
   /** The condensation hatch chip; null when the clouds overlay drew none. */
   hatch: { id: string; label: string } | null;
   /** The eight-class lapse ramp; null when the stability field is absent. */
@@ -67,13 +91,23 @@ export interface KeySpec {
 export interface KeySpecOptions {
   /**
    * Prose overrides keyed by entry id — series class tokens
-   * ("wg-series-usable"), "wg-cloud-dense" for the hatch, "band" for the
+   * ("wg-series-usable"), "ramp-<field>" for the overlay ramps,
+   * "wg-cloud-dense" for the hatch, "band" for the
    * envelope, "stability-title" for the bar's row title,
    * "wg-stab-<class>" for stability cell names and "stab-group-<name>"
    * for the group words. The reference words are the defaults; the style
    * facts are not overridable, they are the scene's.
    */
   labels?: Readonly<Record<string, string>>;
+  /**
+   * Line families that label themselves on the plot ("Td 0°", "10°") stay
+   * out of the key by default; a consumer whose look keys them anyway —
+   * the first integration keys its always-on dew-point lines — opts a
+   * family in here and receives the entry with its REAL style facts
+   * (ids "wg-dewpoint-isoline" / "wg-isotherm") instead of restating dash
+   * and width. Families the scene did not draw stay out either way.
+   */
+  selfLabeled?: ReadonlyArray<"dewPointIsoline" | "isotherm">;
 }
 
 /* The reference reading order and prose — the only place key words live;
@@ -85,6 +119,48 @@ const KEY_SERIES_ORDER: ReadonlyArray<{ id: string; label: string }> = [
   { id: "wg-series-boundary", label: "Boundary layer" },
   { id: "wg-series-pbl", label: "Model boundary layer" },
   { id: "wg-isotherm-freezing", label: "0 °C" },
+];
+
+/* Self-labeling families a consumer can opt in (KeySpecOptions.selfLabeled),
+   appended after the keyed lines. Ids are the families' real class tokens;
+   dash and width still arrive from the drawn series. */
+const SELF_LABELED_ORDER: ReadonlyArray<{
+  key: "dewPointIsoline" | "isotherm";
+  id: string;
+  label: string;
+}> = [
+  { key: "dewPointIsoline", id: "wg-dewpoint-isoline", label: "Dew point" },
+  { key: "isotherm", id: "wg-isotherm", label: "Isotherms" },
+];
+
+/* Ramp reading order and prose — like KEY_SERIES_ORDER, a reference-look
+   decision (weak first, the direction the words state); the classes
+   themselves arrive from what the scene drew. */
+const KEY_RAMP_ORDER: ReadonlyArray<{
+  key: KeyRampEntry["key"];
+  label: string;
+  classOrder: ReadonlyArray<string>;
+}> = [
+  {
+    key: "thermalIndex",
+    label: "Thermal index, weak → strong",
+    classOrder: ["wg-ti-weak", "wg-ti-fair", "wg-ti-good", "wg-ti-strong"],
+  },
+  {
+    key: "windShear",
+    label: "Wind shear, light → strong",
+    classOrder: ["wg-shear-light", "wg-shear-moderate", "wg-shear-strong"],
+  },
+  {
+    key: "relativeHumidity",
+    label: "Humidity, 60 → 95%",
+    classOrder: ["wg-rh-60", "wg-rh-80", "wg-rh-95"],
+  },
+  {
+    key: "verticalVelocity",
+    label: "Vertical motion, sink → lift",
+    classOrder: ["wg-omega-sink-strong", "wg-omega-sink", "wg-omega-lift", "wg-omega-lift-strong"],
+  },
 ];
 
 /* Group words over the eight classes, most unstable first: 2 + 3 + 1 + 2. */
@@ -127,6 +203,32 @@ export function buildKeySpec(scene: SceneGraph, options: KeySpecOptions = {}): K
       strokeWidth: entry.strokeWidth,
     });
   }
+  for (const { key, id, label } of SELF_LABELED_ORDER) {
+    if (!options.selfLabeled?.includes(key)) continue;
+    const entry = drawn.get(id);
+    if (!entry) continue;
+    series.push({
+      key: entry.key,
+      id,
+      label: labels[id] ?? label,
+      className: entry.className,
+      dash: entry.dash,
+      strokeWidth: entry.strokeWidth,
+    });
+  }
+
+  const ramps: KeyRampEntry[] = [];
+  for (const { key, label, classOrder } of KEY_RAMP_ORDER) {
+    const drawnClasses = new Set(
+      scene.fields
+        .filter((field) => field.key === key)
+        .flatMap((field) => field.paths.map((path) => path.className)),
+    );
+    const classes = classOrder.filter((className) => drawnClasses.has(className));
+    if (classes.length === 0) continue;
+    const id = `ramp-${key}`;
+    ramps.push({ key, id, label: labels[id] ?? label, classes });
+  }
 
   const hasDenseCloud = scene.fields.some(
     (field) =>
@@ -138,6 +240,7 @@ export function buildKeySpec(scene: SceneGraph, options: KeySpecOptions = {}): K
 
   return {
     series,
+    ramps,
     hatch: hasDenseCloud
       ? { id: "wg-cloud-dense", label: labels["wg-cloud-dense"] ?? "Condensation" }
       : null,

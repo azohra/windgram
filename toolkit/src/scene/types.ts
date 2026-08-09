@@ -241,6 +241,31 @@ export interface SceneOptions {
    */
   widthPx?: number;
   /**
+   * Lower bound on the resolved column pitch, px. Applied after the
+   * `widthPx` fit (and to an explicit `columnWidthPx` alike), so a
+   * density policy — "columns never narrower than 32px on this panel" —
+   * is one build instead of a probe build plus a corrected one. When the
+   * floor moves a `widthPx` fit, `scene.width` exceeds the target and the
+   * consumer's panel scrolls: the legibility floor wins over the fit, and
+   * over `maxColumnWidthPx` if the two conflict.
+   */
+  minColumnWidthPx?: number;
+  /**
+   * Upper bound on the resolved column pitch, px — the ceiling half of
+   * the density policy (`minColumnWidthPx` above). When the ceiling moves
+   * a `widthPx` fit, the chart comes out narrower than the target rather
+   * than stretching its columns past legibility.
+   */
+  maxColumnWidthPx?: number;
+  /**
+   * Fit as if the window had at least this many columns: the `widthPx`
+   * derivation divides by `max(hourCount, fitMinColumns)`, so a two-hour
+   * window does not stretch two columns across the whole panel. Only the
+   * fit reads it; explicit `columnWidthPx` is already a statement of
+   * pitch. Default 1 — no effect.
+   */
+  fitMinColumns?: number;
+  /**
    * Height of the time-height profile panel in px (the strips keep their
    * fixed heights above it). Default 340 — the reference proportions.
    * A page-scale consumer widening the columns raises this to match.
@@ -313,6 +338,21 @@ export interface SceneOptions {
    * Deardorff convective velocity scale, not a climb rate).
    */
   stripLabels?: Partial<Record<MetricStrip["key"], string>>;
+  /**
+   * The consumer's selection — the hour (and, optionally, altitude) an
+   * inspector is reading — as a scene input, so the reference serializer
+   * draws the marker and "tooltips and pixels cannot disagree" extends to
+   * it. Distinct from `selectedHourIndex`, which the scene computes
+   * (peak W*): this one is the consumer's, and the scene only resolves
+   * it. `hourIndex` clamps into the rendered window; `altitudeM` (metres
+   * MSL) snaps to the hour's nearest DRAWN barb for the ring — the same
+   * answer `nearestDrawnBarb` gives — and an hour without drawn barbs
+   * gets column and hairline alone. The scene reports the resolved
+   * geometry as `SceneGraph.selection`. Selection is per-build by design:
+   * hover previews that must not pay a rebuild stay a consumer overlay
+   * (drawn from these same scales), pins ride the option.
+   */
+  selection?: { hourIndex: number; altitudeM?: number | null } | null;
 }
 
 export interface SceneScales {
@@ -444,6 +484,45 @@ export interface BarbPlacement {
   shaftPath: string;
   pennantPaths: ReadonlyArray<string>;
   scale: number;
+  /** Rendered hour index (into `hourValidAts`) the barb belongs to. */
+  hourIndex: number;
+  /**
+   * The wind reading's data altitude, metres MSL: the level's `heightM`,
+   * or the model elevation for the surface barb. The surface barb DRAWS
+   * at `scales.surfaceWindY` (lifted clear of the frame), so its `y` and
+   * `yForAltitude(altitudeM)` deliberately differ — identity comes from
+   * here, not from inverting the drawn position.
+   */
+  altitudeM: number;
+  /** True for the surface (10 m) barb — a level can sit at floor height. */
+  surface: boolean;
+}
+
+/**
+ * The consumer-supplied selection, resolved to scene geometry
+ * (`SceneOptions.selection` -> `SceneGraph.selection`): the tinted column
+ * spanning strips and profile, its centre hairline, and the drawn barb
+ * the selection names, ring-ready. The reference serializer draws all
+ * three (`wg-selection-column`/`-line`/`-ring`), so the marker and the
+ * consumer's readout cannot disagree.
+ */
+export interface SceneSelection {
+  hourIndex: number;
+  /** Column-left x; the column is `width` wide. */
+  x: number;
+  width: number;
+  centerX: number;
+  /** The strip-stack origin, matching the selected-hour highlight's span. */
+  top: number;
+  /** The plot floor. */
+  bottom: number;
+  /**
+   * The selected drawn barb — nearest drawn barb to the requested
+   * altitude, in drawn-y distance. Null when the selection named no
+   * altitude or the hour drew no barbs (a stride-skipped column).
+   * `scale` is the barb's own, so the ring sizes with page-scale barbs.
+   */
+  barb: { x: number; y: number; altitudeM: number; surface: boolean; scale: number } | null;
 }
 
 export interface SceneLabel {
@@ -528,6 +607,11 @@ export interface SceneGraph {
   launch: { y: number; altitudeM: number; label: string } | null;
   /** Hour column highlighted as "the day's best" (max W*). */
   selectedHourIndex: number;
+  /**
+   * The consumer-supplied selection resolved to geometry (see
+   * `SceneOptions.selection`); null when the build supplied none.
+   */
+  selection: SceneSelection | null;
   /**
    * Whether the serializer draws the selected-hour column highlight —
    * the `selectedHour` overlay. `selectedHourIndex` above stays computed

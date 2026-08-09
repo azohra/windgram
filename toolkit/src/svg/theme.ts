@@ -110,6 +110,10 @@ export const TOKEN_DEFAULTS = {
   "halo-series": "transparent",
   "halo-barb": "#355963",
   accent: "#913b0c",
+  // The consumer-selection marks (column, hairline, barb ring): their own
+  // slot so a theme can split "the day's best hour" (accent) from "the
+  // hour you are reading", shipping at the same warm default.
+  selection: "#913b0c",
   // The surface-temperature row's ink: its own slot (theme it apart from
   // the highlight), shipping at the accent's warm default.
   temp: "#913b0c",
@@ -150,9 +154,62 @@ export const TOKEN_DEFAULTS = {
   wind: "#ffffff",
 } as const;
 
+/**
+ * Key-entry id -> the `--wg-*` token suffix that themes its stroke. The
+ * ids are `buildKeySpec`'s (each series' most specific class token); this
+ * map is the one home for that correspondence — the stylesheet's series
+ * rules derive from it below, and a consumer building its own swatches or
+ * focus styling reads it here instead of parsing id strings.
+ */
+export const SERIES_TOKENS = {
+  "wg-series-usable": "usable",
+  "wg-series-cloud-base": "cloud-base",
+  "wg-series-boundary": "boundary",
+  "wg-series-pbl": "pbl",
+  "wg-isotherm": "ink",
+  "wg-isotherm-freezing": "freezing",
+  "wg-dewpoint-isoline": "dewpoint",
+} as const satisfies Readonly<Record<string, keyof typeof TOKEN_DEFAULTS>>;
+
+/**
+ * Fill token and opacity per field-overlay class — the one home for the
+ * facts a ramp chip needs (the stylesheet's field rules derive from this
+ * map). `buildKeySpec`'s `ramps` name these classes; an HTML legend reads
+ * the token and opacity here instead of restating them.
+ */
+export const FIELD_STYLE_DEFAULTS = {
+  "wg-cloud-medium": { token: "cloud", opacity: 0.22 },
+  "wg-cloud-light": { token: "cloud", opacity: 0.1 },
+  "wg-ti-weak": { token: "ti-weak", opacity: 0.55 },
+  "wg-ti-fair": { token: "ti-fair", opacity: 0.55 },
+  "wg-ti-good": { token: "ti-good", opacity: 0.55 },
+  "wg-ti-strong": { token: "ti-strong", opacity: 0.55 },
+  "wg-shear-light": { token: "shear-light", opacity: 0.5 },
+  "wg-shear-moderate": { token: "shear-moderate", opacity: 0.5 },
+  "wg-shear-strong": { token: "shear-strong", opacity: 0.5 },
+  "wg-rh-60": { token: "rh-60", opacity: 0.5 },
+  "wg-rh-80": { token: "rh-80", opacity: 0.5 },
+  "wg-rh-95": { token: "rh-95", opacity: 0.5 },
+  "wg-omega-lift": { token: "omega-lift", opacity: 0.4 },
+  "wg-omega-lift-strong": { token: "omega-lift-strong", opacity: 0.5 },
+  "wg-omega-sink": { token: "omega-sink", opacity: 0.4 },
+  "wg-omega-sink-strong": { token: "omega-sink-strong", opacity: 0.5 },
+} as const satisfies Readonly<Record<string, { token: keyof typeof TOKEN_DEFAULTS; opacity: number }>>;
+
 /** `var(--wg-<name>, <default>)` with the fallback read from TOKEN_DEFAULTS. */
 function v(name: keyof typeof TOKEN_DEFAULTS): string {
   return `var(--wg-${name}, ${TOKEN_DEFAULTS[name]})`;
+}
+
+/** One field class's stylesheet rule, derived from FIELD_STYLE_DEFAULTS. */
+function fieldRule(className: keyof typeof FIELD_STYLE_DEFAULTS): string {
+  const style = FIELD_STYLE_DEFAULTS[className];
+  return `.${className} { fill: ${v(style.token)}; opacity: ${style.opacity}; }`;
+}
+
+/** One series class's stroke value, derived from SERIES_TOKENS. */
+function seriesStroke(id: keyof typeof SERIES_TOKENS): string {
+  return v(SERIES_TOKENS[id]);
 }
 
 /** Per-element halo slot falling back to the shared `--wg-halo` (marker
@@ -188,6 +245,9 @@ export const DEFAULT_STYLESHEET = `
 .wg-halo { stroke: ${v("halo-series")}; }
 .wg-selected-column { fill: ${v("accent")}; opacity: 0.05; }
 .wg-selected-line { stroke: ${v("accent")}; }
+.wg-selection-column { fill: ${v("selection")}; opacity: 0.07; }
+.wg-selection-line { stroke: ${v("selection")}; }
+.wg-selection-ring { stroke: ${v("selection")}; }
 .wg-launch-line { stroke: ${v("ink")}; }
 .wg-strip-pressure { stroke: ${v("pressure")}; }
 .wg-strip-pressure-area, .wg-strip-pressure-band { fill: ${v("pressure")}; }
@@ -210,37 +270,37 @@ export const DEFAULT_STYLESHEET = `
 .wg-cloud-cell { fill: ${v("cloud")}; }
 .wg-strip-row-label { fill: ${v("ink-mute")}; font-size: ${v("text-row-tag")}; }
 .wg-gust { fill: ${v("gust")}; font-size: ${v("text-gust")}; font-weight: 700; }
-.wg-series-pbl { stroke: ${v("pbl")}; }
+.wg-series-pbl { stroke: ${seriesStroke("wg-series-pbl")}; }
 .wg-series-pbl-band { fill: ${v("pbl")}; opacity: 0.16; }
 ${STABILITY_RULES}
 .wg-cloud-hatch-line { stroke: ${v("ink-soft")}; }
-.wg-cloud-medium { fill: ${v("cloud")}; opacity: 0.22; }
-.wg-cloud-light { fill: ${v("cloud")}; opacity: 0.1; }
-.wg-ti-weak { fill: ${v("ti-weak")}; opacity: 0.55; }
-.wg-ti-fair { fill: ${v("ti-fair")}; opacity: 0.55; }
-.wg-ti-good { fill: ${v("ti-good")}; opacity: 0.55; }
-.wg-ti-strong { fill: ${v("ti-strong")}; opacity: 0.55; }
-.wg-shear-light { fill: ${v("shear-light")}; opacity: 0.5; }
-.wg-shear-moderate { fill: ${v("shear-moderate")}; opacity: 0.5; }
-.wg-shear-strong { fill: ${v("shear-strong")}; opacity: 0.5; }
-.wg-rh-60 { fill: ${v("rh-60")}; opacity: 0.5; }
-.wg-rh-80 { fill: ${v("rh-80")}; opacity: 0.5; }
-.wg-rh-95 { fill: ${v("rh-95")}; opacity: 0.5; }
-.wg-omega-lift { fill: ${v("omega-lift")}; opacity: 0.4; }
-.wg-omega-lift-strong { fill: ${v("omega-lift-strong")}; opacity: 0.5; }
-.wg-omega-sink { fill: ${v("omega-sink")}; opacity: 0.4; }
-.wg-omega-sink-strong { fill: ${v("omega-sink-strong")}; opacity: 0.5; }
-.wg-series-boundary { stroke: ${v("boundary")}; }
+${fieldRule("wg-cloud-medium")}
+${fieldRule("wg-cloud-light")}
+${fieldRule("wg-ti-weak")}
+${fieldRule("wg-ti-fair")}
+${fieldRule("wg-ti-good")}
+${fieldRule("wg-ti-strong")}
+${fieldRule("wg-shear-light")}
+${fieldRule("wg-shear-moderate")}
+${fieldRule("wg-shear-strong")}
+${fieldRule("wg-rh-60")}
+${fieldRule("wg-rh-80")}
+${fieldRule("wg-rh-95")}
+${fieldRule("wg-omega-lift")}
+${fieldRule("wg-omega-lift-strong")}
+${fieldRule("wg-omega-sink")}
+${fieldRule("wg-omega-sink-strong")}
+.wg-series-boundary { stroke: ${seriesStroke("wg-series-boundary")}; }
 .wg-series-boundary-band { fill: ${v("boundary")}; opacity: 0.16; }
-.wg-series-cloud-base { stroke: ${v("cloud-base")}; }
+.wg-series-cloud-base { stroke: ${seriesStroke("wg-series-cloud-base")}; }
 .wg-series-cloud-base-band { fill: ${v("cloud-base")}; opacity: 0.16; }
-.wg-series-usable { stroke: ${v("usable")}; }
+.wg-series-usable { stroke: ${seriesStroke("wg-series-usable")}; }
 .wg-series-usable-band { fill: ${v("usable")}; opacity: 0.16; }
-.wg-isotherm { stroke: ${v("ink")}; }
-.wg-isotherm-freezing { stroke: ${v("freezing")}; }
+.wg-isotherm { stroke: ${seriesStroke("wg-isotherm")}; }
+.wg-isotherm-freezing { stroke: ${seriesStroke("wg-isotherm-freezing")}; }
 .wg-isotherm-label { fill: ${v("ink")}; }
 .wg-isotherm-label-freezing { fill: ${v("freezing")}; }
-.wg-dewpoint-isoline { stroke: ${v("dewpoint")}; }
+.wg-dewpoint-isoline { stroke: ${seriesStroke("wg-dewpoint-isoline")}; }
 .wg-dewpoint-label { fill: ${v("dewpoint")}; }
 .wg-barb { stroke: ${v("wind")}; }
 .wg-barb-fill { fill: ${v("wind")}; stroke: ${v("wind")}; }

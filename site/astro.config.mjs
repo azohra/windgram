@@ -100,6 +100,7 @@ export default defineConfig({
             { slug: "docs/typescript/analyze", label: "Analyze a profile" },
             { slug: "docs/typescript/compare", label: "Compare profiles" },
             { slug: "docs/typescript/scene", label: "Scene graph" },
+            { slug: "docs/typescript/wire-an-inspector", label: "Wire an inspector" },
             { slug: "docs/typescript/svg", label: "SVG renderer and key" },
             { slug: "docs/typescript/defaults-and-tokens", label: "Defaults and tokens" },
           ],

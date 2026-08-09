@@ -34,6 +34,7 @@ import {
   type SceneLabel,
   type SceneMarker,
   type SceneOptions,
+  type SceneSelection,
   type SeriesElement,
   type SurfaceTemperatureMark,
 } from "./types.js";
@@ -209,11 +210,23 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
   const capeClasses = options.capeClasses ?? DEFAULT_CAPE_CLASSES;
   /* Container fit: widthPx states the consumer's intent (fill this panel)
      and wins over columnWidthPx; the gutters stay internal so they can
-     vary without a breaking export. */
-  const columnWidth =
+     vary without a breaking export. fitMinColumns keeps a short window
+     from stretching (the fit divides by at least that many columns), and
+     the min/max clamp bounds the resolved pitch — both applied HERE, so a
+     consumer with pitch policy never needs a probe build to learn what
+     pitch the fit produced. The minimum wins over the maximum: a
+     legibility floor beats a fit ceiling. */
+  const fitColumns = Math.max(hours.length, Math.max(1, Math.floor(options.fitMinColumns ?? 1)));
+  let columnWidth =
     options.widthPx !== undefined
-      ? Math.max(1, (options.widthPx - MARGIN_LEFT - MARGIN_RIGHT) / Math.max(hours.length, 1))
+      ? Math.max(1, (options.widthPx - MARGIN_LEFT - MARGIN_RIGHT) / fitColumns)
       : (options.columnWidthPx ?? DEFAULT_COLUMN_WIDTH);
+  if (options.maxColumnWidthPx !== undefined) {
+    columnWidth = Math.min(columnWidth, options.maxColumnWidthPx);
+  }
+  if (options.minColumnWidthPx !== undefined) {
+    columnWidth = Math.max(columnWidth, options.minColumnWidthPx);
+  }
   const plotHeight = options.plotHeightPx ?? DEFAULT_PLOT_HEIGHT;
   const floorM = profile.site.modelElevationM;
   const siteAltitudeM = profile.site.altitudeM;
@@ -610,7 +623,13 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
     hours.forEach((hour, index) => {
       if (index % barbStride !== 0) return;
       const cx = xCenter(index);
-      const place = (cy: number, speedMs: number, directionDeg: number) => {
+      const place = (
+        cy: number,
+        speedMs: number,
+        directionDeg: number,
+        altitudeM: number,
+        surface: boolean,
+      ) => {
         const speedKmh = msToKmh(speedMs);
         const parts = windBarbParts(speedKmh);
         const paths = windBarbPaths(speedKmh);
@@ -623,9 +642,12 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
           shaftPath: paths.shaft,
           pennantPaths: paths.pennants,
           scale: barbScale,
+          hourIndex: index,
+          altitudeM,
+          surface,
         });
       };
-      place(surfaceWindY, hour.surface.windSpeedMs, hour.surface.windDirectionDeg);
+      place(surfaceWindY, hour.surface.windSpeedMs, hour.surface.windDirectionDeg, floorM, true);
       const topIndex = hour.levels.length - 1;
       const topY = topIndex >= 0 ? y(hour.levels[topIndex].heightM) : null;
       let lastY = surfaceWindY;
@@ -635,7 +657,7 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
           if (lastY - levelY < barbMinGap) return; // too close to the last drawn
           if (topY !== null && levelY - topY < barbMinGap) return; // the top wins
         }
-        place(levelY, level.windSpeedMs, level.windDirectionDeg);
+        place(levelY, level.windSpeedMs, level.windDirectionDeg, level.heightM, false);
         lastY = levelY;
       });
     });
@@ -774,6 +796,45 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
       ? { y: y(siteAltitudeM), altitudeM: siteAltitudeM, label: `launch ${Math.round(siteAltitudeM)} m` }
       : null;
 
+  /* The consumer's selection, resolved against what this build actually
+     drew: the hour clamps into the rendered window, and a requested
+     altitude snaps to the nearest DRAWN barb in that column (by drawn-y
+     distance, ties to the lower barb — the same answer nearestDrawnBarb
+     gives), so the ring always circles a real glyph. */
+  let selection: SceneSelection | null = null;
+  if (options.selection != null && hours.length > 0) {
+    const hourIndex = Math.min(
+      hours.length - 1,
+      Math.max(0, Math.floor(options.selection.hourIndex)),
+    );
+    const altitudeM = options.selection.altitudeM;
+    let barb: SceneSelection["barb"] = null;
+    if (altitudeM != null) {
+      const targetY = y(altitudeM);
+      for (const candidate of barbs) {
+        if (candidate.hourIndex !== hourIndex) continue;
+        if (barb === null || Math.abs(candidate.y - targetY) < Math.abs(barb.y - targetY)) {
+          barb = {
+            x: candidate.x,
+            y: candidate.y,
+            altitudeM: candidate.altitudeM,
+            surface: candidate.surface,
+            scale: candidate.scale,
+          };
+        }
+      }
+    }
+    selection = {
+      hourIndex,
+      x: x(hourIndex),
+      width: columnWidth,
+      centerX: xCenter(hourIndex),
+      top: METRIC_TOP,
+      bottom: plotBottom,
+      barb,
+    };
+  }
+
   /* ------------------------------------------------------------- sampling */
 
   const sampling: HourSampling[] = hours.map((hour, index) => {
@@ -839,6 +900,7 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
     markers,
     launch,
     selectedHourIndex,
+    selection,
     highlightSelectedHour: overlays.selectedHour,
     hourValidAts: hours.map((hour) => hour.validAt),
     sampling,

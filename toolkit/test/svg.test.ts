@@ -31,6 +31,14 @@ function scienceSvg(): string {
   return renderSvg(buildScene(scienceSceneProfile(), TZ));
 }
 
+/* The consumer-selection marks: hour 2 at 1500 m — a level inside the
+   plot — so column, hairline, and barb ring all draw. */
+function selectionSvg(): string {
+  return renderSvg(
+    buildScene(deterministicSceneProfile(), { ...TZ, selection: { hourIndex: 2, altitudeM: 1500 } }),
+  );
+}
+
 describe("golden SVG fixtures", () => {
   it("matches the deterministic golden", async () => {
     await expect(deterministicSvg()).toMatchFileSnapshot("golden/deterministic.svg");
@@ -42,6 +50,10 @@ describe("golden SVG fixtures", () => {
 
   it("matches the science golden", async () => {
     await expect(scienceSvg()).toMatchFileSnapshot("golden/science.svg");
+  });
+
+  it("matches the selection golden", async () => {
+    await expect(selectionSvg()).toMatchFileSnapshot("golden/selection.svg");
   });
 
   it("is deterministic across renders", () => {
@@ -113,6 +125,27 @@ describe("renderSvg structure", () => {
     expect(svg).toContain('class="wg-strip-buoyancyShear"');
     expect(svg).toContain('class="wg-ti-');
     expect(svg).toContain('class="wg-shear-');
+  });
+
+  it("draws the consumer selection from the scene's resolved geometry, ring over the barbs", () => {
+    const scene = buildScene(deterministicSceneProfile(), {
+      ...TZ,
+      selection: { hourIndex: 2, altitudeM: 1500 },
+    });
+    const rendered = renderSvg(scene);
+    expect(rendered).toContain('class="wg-selection-column"');
+    expect(rendered).toContain('class="wg-selection-line"');
+    // The ring sits at the resolved barb's x, after the barbs in document
+    // order so it circles its glyph, radius following the barb scale.
+    const barb = scene.selection!.barb!;
+    expect(rendered).toContain(`<circle cx="${barb.x}"`);
+    expect(rendered).toContain(`r="${12 * barb.scale}" class="wg-selection-ring"`);
+    expect(rendered.indexOf('class="wg-selection-ring"')).toBeGreaterThan(
+      rendered.lastIndexOf('class="wg-barb"'),
+    );
+    // No selection option, none of it drawn (the stylesheet rules stay).
+    const bare = deterministicSvg();
+    expect(bare.slice(bare.indexOf("</style>"))).not.toContain("wg-selection-");
   });
 
   it("renders ensemble bands for strips and series", () => {

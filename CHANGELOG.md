@@ -6,6 +6,57 @@ entry names the versions it actually changes.
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-08-09
+
+`windgram` (npm and JSR) 0.11.0 — the scene interaction extensions from the
+two-part interact audit: pure queries and key-spec coverage in the package's
+existing homes, no new subpath, with the pointer state machine shipping as a
+portal recipe rather than code.
+
+### Added
+
+- Scene interaction queries beside the hit-tests: `clientPointToScene`
+  (client pixels → scene coordinates through the mount's rect, DOM-free),
+  `hourIndexForValidAt` (the pin-carry primitive — selections keyed by
+  `validAt` survive hour-window renumbering; index-keyed pins silently
+  move), fractional `xForTime` for time cursors and solar ticks, and
+  `drawnBarbsForHour` / `nearestDrawnBarb` over the barbs a column actually
+  drew. `hourIndexForX` gains `{ clamp: true }` so strips and margins still
+  select; `xForTime` takes the same option to pin out-of-window instants to
+  the frame edges.
+- Barb identity as scene facts: every `BarbPlacement` carries its
+  `hourIndex`, data `altitudeM`, and a `surface` flag, closing the gap that
+  had the first consumer restating the surface row's offset as its own
+  `+28 m` constant.
+- Consumer selection as a scene option: `selection: { hourIndex, altitudeM? }`
+  resolves against what the build drew (reported as `scene.selection`), and
+  the reference serializer renders the tinted column, centre hairline, and
+  barb ring (`wg-selection-*` classes, themed by the new `--wg-selection`
+  token) — so the marker and the consumer's readout share one authority.
+  Golden-covered (`selection.svg`), distinct from the computed peak-W*
+  `selectedHourIndex`.
+- `buildKeySpec` coverage: field-overlay `ramps` whose chips carry the drawn
+  classes in weak-to-strong reading order, and a `selfLabeled` opt-in that
+  admits the Td-isoline and plain-isotherm families with their real style
+  facts. `renderKeySvg` draws the ramps with the classes themselves, so
+  fill and opacity inherit from the same rules that shaded the chart.
+- Pitch policy as build options: `minColumnWidthPx` / `maxColumnWidthPx`
+  clamp the resolved column pitch (the minimum wins a conflict), and
+  `fitMinColumns` keeps a short window from stretching by making the
+  `widthPx` fit divide by at least that many columns — so a density policy
+  is one build instead of a probe build plus a corrected one. Defaults
+  change nothing.
+- Token authorities for legends built outside SVG: `SERIES_TOKENS`
+  (key-entry id → theme token, replacing downstream id parsing) and
+  `FIELD_STYLE_DEFAULTS` (field class → fill token and opacity, replacing
+  restated `0.55`/`0.5` opacities); the default stylesheet now derives
+  those rules from the maps, byte-identically.
+- A "Wire an inspector" portal page — the preview/pin/touch state machine
+  as a documented recipe with figures (a real render of the selection
+  option, and the state diagram), the pointer→selection pipeline, the
+  rebuild-versus-overlay tradeoff, and the carry-or-reset decision — plus
+  scene, svg, and defaults-and-tokens page coverage of the new exports.
+
 ### Removed
 
 - The deep browser QA suites (per-route accessibility audits, interaction

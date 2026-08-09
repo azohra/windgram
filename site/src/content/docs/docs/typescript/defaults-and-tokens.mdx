@@ -29,10 +29,14 @@ every layer. Omit `overlays` when the reference defaults are sufficient.
 
 ## Read token authorities
 
-`windgram/svg` exports two maps:
+`windgram/svg` exports four maps:
 
-- `TOKEN_DEFAULTS` contains every non-stability renderer token; and
-- `STABILITY_TOKEN_DEFAULTS` contains the ordered eight-class stability ramp.
+- `TOKEN_DEFAULTS` contains every non-stability renderer token;
+- `STABILITY_TOKEN_DEFAULTS` contains the ordered eight-class stability ramp;
+- `SERIES_TOKENS` maps key-entry ids to the token that themes each line
+  (`"wg-series-cloud-base"` → `cloud-base`); and
+- `FIELD_STYLE_DEFAULTS` carries each field-overlay class's fill token and
+  opacity for legend chips built outside SVG.
 
 Token keys omit the CSS prefix: `surface` maps to `--wg-surface`, and
 `stable` maps to `--wg-stab-stable`. Read the maps for legends and swatches;

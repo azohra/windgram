@@ -69,6 +69,60 @@ describe("buildKeySpec series entries", () => {
   });
 });
 
+describe("buildKeySpec self-labeled opt-in", () => {
+  it("admits an opted-in family with its real style facts", () => {
+    const scene = buildScene(deterministicSceneProfile(), { ...TZ, overlays: { dewPoint: true } });
+    const spec = buildKeySpec(scene, { selfLabeled: ["dewPointIsoline"] });
+    const entry = spec.series.find((candidate) => candidate.id === "wg-dewpoint-isoline");
+    expect(entry).toBeDefined();
+    expect(entry!.label).toBe("Dew point");
+    const source = scene.series.find((candidate) => candidate.key === "dewPointIsoline")!;
+    expect(entry!.dash).toBe(source.dash);
+    expect(entry!.strokeWidth).toBe(source.strokeWidth);
+    // The family not opted in stays out.
+    expect(spec.series.map((candidate) => candidate.id)).not.toContain("wg-isotherm");
+  });
+
+  it("keeps an opted-in family out when the scene drew none of it", () => {
+    // Dew point overlay off: no Td isolines drawn, opt-in or not.
+    const spec = buildKeySpec(buildScene(deterministicSceneProfile(), TZ), {
+      selfLabeled: ["dewPointIsoline"],
+    });
+    expect(spec.series.map((entry) => entry.id)).not.toContain("wg-dewpoint-isoline");
+  });
+});
+
+describe("buildKeySpec ramps", () => {
+  it("describes each shaded field overlay with the classes the scene drew, weak first", () => {
+    const scene = buildScene(deterministicSceneProfile(), {
+      ...TZ,
+      overlays: { thermalIndex: true, windShear: true },
+    });
+    const spec = buildKeySpec(scene);
+    expect(spec.ramps.map((ramp) => ramp.key)).toEqual(["thermalIndex", "windShear"]);
+    const drawnClasses = new Set(
+      scene.fields.flatMap((field) => field.paths.map((path) => path.className)),
+    );
+    for (const ramp of spec.ramps) {
+      expect(ramp.classes.length).toBeGreaterThan(0);
+      for (const className of ramp.classes) expect(drawnClasses.has(className)).toBe(true);
+    }
+    // Weak-first reading order.
+    const ti = spec.ramps.find((ramp) => ramp.key === "thermalIndex")!;
+    expect(ti.classes[0]).toBe("wg-ti-weak");
+    expect(ti.label).toBe("Thermal index, weak → strong");
+  });
+
+  it("has no ramps when no field overlay shaded, and honours label overrides", () => {
+    expect(buildKeySpec(buildScene(deterministicSceneProfile(), TZ)).ramps).toEqual([]);
+    const spec = buildKeySpec(
+      buildScene(deterministicSceneProfile(), { ...TZ, overlays: { thermalIndex: true } }),
+      { labels: { "ramp-thermalIndex": "TI" } },
+    );
+    expect(spec.ramps[0].label).toBe("TI");
+  });
+});
+
 describe("buildKeySpec blocks", () => {
   it("stability classes come from derive/'s table — boundaries can never drift", () => {
     const spec = buildKeySpec(buildScene(deterministicSceneProfile(), TZ));
@@ -161,5 +215,19 @@ describe("renderKeySvg", () => {
   it("keeps its own pattern namespace so a page can hold chart and key with default prefixes", () => {
     expect(svg).toContain('id="wg-key-cloud-hatch"');
     expect(svg).toContain('fill="url(#wg-key-cloud-hatch)"');
+  });
+
+  it("draws ramp cells with the field classes themselves, and says so in the aria", () => {
+    const rampScene = buildScene(deterministicSceneProfile(), {
+      ...TZ,
+      overlays: { thermalIndex: true },
+    });
+    const rampSvg = renderKeySvg(buildKeySpec(rampScene));
+    for (const className of buildKeySpec(rampScene).ramps[0].classes) {
+      expect(rampSvg).toContain(`class="${className}"`);
+      // The chart's own rule paints the chip: fill AND opacity inherited.
+      expect(rampSvg).toContain(`.${className} { fill: var(`);
+    }
+    expect(rampSvg).toContain("shading ramps for Thermal index");
   });
 });

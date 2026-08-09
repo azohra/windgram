@@ -1,0 +1,181 @@
+---
+import { drawnBarbsForHour, xForHour } from "windgram/scene";
+import Figure from "../figure/Figure.astro";
+import { renderSyntheticWindgram } from "../../lib/example-windgram";
+import { scenarioById } from "../../lib/scenarios";
+
+/* The consumer-selection option, shown on a real render: a probe build
+   picks an hour away from the computed best-hour highlight and a drawn
+   level barb in it, then the shipped scene is rebuilt with that selection
+   so the column, hairline, and ring on this page are the reference
+   serializer's own output — not an illustration of it. */
+const scenario = scenarioById("convective-cycle");
+const idPrefix = "ts-inspector-selection";
+
+const probe = renderSyntheticWindgram(scenario, {}, `${idPrefix}-probe`).scene;
+const hourIndex = Math.max(0, probe.selectedHourIndex - 2);
+const ladder = drawnBarbsForHour(probe, hourIndex);
+/* A mid-ladder level barb, so the ring is visibly not the surface row. */
+const target = ladder[Math.min(ladder.length - 1, 2)] ?? ladder[0];
+
+const { scene, svg } = renderSyntheticWindgram(
+  scenario,
+  { selection: { hourIndex, altitudeM: target?.altitudeM } },
+  idPrefix,
+);
+const selection = scene.selection!;
+const bestX = xForHour(scene, scene.selectedHourIndex);
+
+const chips = [
+  { n: 1, x: selection.centerX, y: selection.top + 13 },
+  { n: 2, x: selection.centerX, y: selection.bottom - 14 },
+  ...(selection.barb ? [{ n: 3, x: selection.barb.x + 24, y: selection.barb.y }] : []),
+];
+---
+
+<Figure
+  id="ts-inspector-selection"
+  title="A selection the scene resolved and the serializer drew"
+  lesson="Pass selection to buildScene and the reference render marks it — the inspector and the pixels share one authority."
+  description={`A rendered teaching windgram whose build received selection: { hourIndex: ${selection.hourIndex}, altitudeM: ${Math.round(target?.altitudeM ?? 0)} }. The serializer drew the tinted selection column with its centre hairline, and a ring on the drawn wind barb the requested altitude snapped to. The scene's own computed best-hour highlight is visible on a different column.`}
+  caption={`scene.selection resolved the ring to the drawn barb at ${Math.round(selection.barb?.altitudeM ?? 0)} m — the nearest DRAWN barb to the request, the same answer nearestDrawnBarb gives. The paler highlight at hour ${scene.selectedHourIndex} is scene.selectedHourIndex, the computed peak-W* column: the two marks are different facts.`}
+  units="scene px · altitude m"
+  {scenario}
+>
+  <div
+    class="wg-scroll selection-scroll"
+    role="region"
+    tabindex="0"
+    aria-label="Scrollable windgram with the consumer selection annotated"
+  >
+    <div class="selection-canvas" style={`width: ${scene.width}px`}>
+      <div class="selection-mount" set:html={svg} />
+      <svg
+        class="selection-overlay"
+        viewBox={`0 0 ${scene.width} ${scene.height}`}
+        width={scene.width}
+        height={scene.height}
+        aria-hidden="true"
+      >
+        {chips.map((chip) => (
+          <g>
+            <circle cx={chip.x} cy={chip.y} r="9" class="selection-chip" />
+            <text x={chip.x} y={chip.y + 3.5} class="selection-chip-number">{chip.n}</text>
+          </g>
+        ))}
+        <g>
+          <circle cx={bestX} cy={selection.top + 13} r="9" class="selection-chip selection-chip--muted" />
+          <text x={bestX} y={selection.top + 16.5} class="selection-chip-number">4</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+
+  <ol slot="legend" class="selection-legend">
+    <li>
+      <span class="selection-legend__n">1</span>
+      <span>
+        <strong>Selection column</strong> — <code>scene.selection.x · width · top · bottom</code>:
+        the tinted column and its span, strips to plot floor (<code>wg-selection-column</code>)
+      </span>
+    </li>
+    <li>
+      <span class="selection-legend__n">2</span>
+      <span>
+        <strong>Hairline</strong> — <code>scene.selection.centerX</code>: the column-centre
+        time line (<code>wg-selection-line</code>)
+      </span>
+    </li>
+    {selection.barb && (
+      <li>
+        <span class="selection-legend__n">3</span>
+        <span>
+          <strong>Barb ring</strong> — <code>scene.selection.barb</code>: the requested
+          altitude snapped to the nearest drawn barb, ringed at its drawn position
+          (<code>wg-selection-ring</code>, themed by <code>--wg-selection</code>)
+        </span>
+      </li>
+    )}
+    <li>
+      <span class="selection-legend__n selection-legend__n--muted">4</span>
+      <span>
+        <strong>Not the selection</strong> — <code>scene.selectedHourIndex</code>: the
+        scene's own computed peak-W* highlight, a different fact with its own toggle
+      </span>
+    </li>
+  </ol>
+</Figure>
+
+<style>
+  .selection-scroll {
+    background: var(--surface);
+  }
+
+  .selection-canvas {
+    position: relative;
+  }
+
+  .selection-mount :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .selection-overlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: auto;
+    pointer-events: none;
+  }
+
+  .selection-chip {
+    fill: var(--accent);
+    stroke: var(--surface);
+    stroke-width: 1.5;
+  }
+
+  .selection-chip--muted {
+    fill: var(--ink-mute);
+  }
+
+  .selection-chip-number {
+    fill: var(--accent-ink);
+    font: 800 11px var(--mono);
+    text-anchor: middle;
+  }
+
+  .selection-legend {
+    display: grid;
+    gap: 0.45rem;
+    margin: 0;
+    padding: 0;
+    font: 0.76rem/1.5 var(--mono);
+    list-style: none;
+  }
+
+  .selection-legend li {
+    display: grid;
+    grid-template-columns: 1.5rem 1fr;
+    gap: 0.6rem;
+  }
+
+  .selection-legend__n {
+    display: grid;
+    place-items: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    color: var(--accent-ink);
+    background: var(--accent);
+    border-radius: 50%;
+    font-weight: 800;
+  }
+
+  .selection-legend__n--muted {
+    background: var(--ink-mute);
+  }
+
+  .selection-legend strong {
+    color: var(--ink);
+  }
+</style>

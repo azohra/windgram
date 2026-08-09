@@ -94,12 +94,17 @@ computed.
 | --- | --- | --- |
 | `widthPx` | The chart must fill a known panel | Sets total scene width after hour windowing and wins over `columnWidthPx` |
 | `columnWidthPx` | The chart should scroll by a chosen hour pitch | Sets pixels per hour when `widthPx` is absent |
+| `minColumnWidthPx` / `maxColumnWidthPx` | A density policy bounds the pitch | Clamps the resolved pitch; a moved fit narrows the chart or lets it scroll. The minimum wins a conflict |
+| `fitMinColumns` | Short windows must not stretch | The `widthPx` fit divides by at least this many columns; inert with explicit `columnWidthPx` |
 | `hourLabel` | A surface needs 24-hour, 12-hour, or custom labels | Changes ticks and the scene aria label together |
 | `stripLabels` | A publisher has its own display voice | Changes visible labels only; strip keys and CSS classes remain stable |
 | `plotHeightPx` | The time-height panel needs a different vertical scale | Changes the panel height; strips retain fixed heights |
 
 Use `widthPx` instead of probe-building to discover package gutters. The
-package owns those gutters and derives `scene.scales.columnWidth`.
+package owns those gutters and derives `scene.scales.columnWidth`. A pitch
+policy belongs in the same build: pass the bounds and the short-window
+floor as options rather than building once to read the fitted pitch and
+again to correct it.
 
 ## Control barb and marker density
 
@@ -121,6 +126,48 @@ can recompute only the usable-lift series from published inputs for a
 deterministic document. Palette is not scene data; apply `--wg-*` tokens when
 rendering.
 
-Use `cursorReading`, `xForHour`, `hourIndexForX`, `yForAltitude`, and
-`altitudeForY` for interaction. They share the plotted scales, keeping
-tooltips and geometry aligned.
+## Answer pointer positions
+
+The hit-testing queries beside `buildScene` share the plotted scales, keeping
+tooltips and geometry aligned. Read them in the order a pointer event needs
+them:
+
+- `clientPointToScene(scene, rect, clientX, clientY)` maps a client-pixel
+  position through the mount's bounding rect into scene coordinates, scaling
+  x and y independently. It returns null for a zero-area rect — the
+  measurement a hidden tab produces.
+- `hourIndexForX(scene, x)` names the hour column under an x, null outside
+  the plot; `hourIndexForX(scene, x, { clamp: true })` resolves to the
+  nearest edge column instead, so strips and margins still select.
+- `cursorReading(scene, x, y)` interpolates the continuous column —
+  temperature, wind, lapse, stability class — at any altitude.
+- `drawnBarbsForHour(scene, hourIndex)` and
+  `nearestDrawnBarb(scene, hourIndex, y)` answer the discrete question
+  instead: which barbs did this column actually draw (stride and min-gap
+  thinning applied), and which is nearest the pointer. Each
+  `BarbPlacement` carries its `hourIndex`, data `altitudeM`, and a
+  `surface` flag — the surface barb draws at `scales.surfaceWindY`, above
+  its data altitude, and the flag is its identity.
+- `xForTime(scene, validAt)` positions an instant with sub-hour precision —
+  time cursors, sunrise and sunset ticks — interpolating between hour
+  centres; `{ clamp: true }` pins out-of-window instants to the frame edges.
+- `hourIndexForValidAt(scene, validAt)` finds the rendered index for an
+  instant, comparing timestamps rather than strings. Key stored selections
+  by `validAt` and re-ask after every rebuild: hour windows renumber, and
+  an index-keyed pin silently moves.
+
+## Express a selection
+
+`selection: { hourIndex, altitudeM? }` passes the consumer's selection — the
+hour an inspector is reading, and optionally an altitude — into the build.
+The scene resolves it against what it actually drew and reports the geometry
+as `scene.selection`: the column, its centre line, and the nearest drawn barb
+for the ring. `renderSvg` draws all three (`wg-selection-*` classes, themed
+by `--wg-selection`), so the marker and the readout cannot disagree. It is
+distinct from `selectedHourIndex`, which the scene computes itself (the
+peak-W* column).
+
+The pointer wiring that feeds these queries — preview, pin, touch policy,
+and carrying a pin across model switches — is a consumer state machine, not
+scene data; [Wire an inspector](/docs/typescript/wire-an-inspector/) is the
+worked recipe.

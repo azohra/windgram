@@ -11,7 +11,13 @@ import { DEFAULT_STYLESHEET } from "./theme.js";
    in theme.ts. Output is deterministic: stable element ordering,
    two-decimal rounding, no generated ids beyond the configurable prefix. */
 
-export { DEFAULT_STYLESHEET, STABILITY_TOKEN_DEFAULTS, TOKEN_DEFAULTS } from "./theme.js";
+export {
+  DEFAULT_STYLESHEET,
+  FIELD_STYLE_DEFAULTS,
+  SERIES_TOKENS,
+  STABILITY_TOKEN_DEFAULTS,
+  TOKEN_DEFAULTS,
+} from "./theme.js";
 
 export interface RenderSvgOptions {
   /**
@@ -280,6 +286,30 @@ export function renderSvg(scene: SceneGraph, options: RenderSvgOptions = {}): st
       }),
     );
   }
+  // The consumer's selection (scene.selection): tinted column and centre
+  // hairline here, under everything the pilot reads; the barb ring joins
+  // after the barbs so it circles its glyph, not the other way around.
+  if (scene.selection) {
+    const centre = short(scene.selection.centerX);
+    body.push(
+      el("rect", {
+        x: short(scene.selection.x),
+        y: short(scene.selection.top),
+        width: short(scene.selection.width),
+        height: short(scene.selection.bottom - scene.selection.top),
+        class: "wg-selection-column",
+      }),
+      el("line", {
+        x1: centre,
+        x2: centre,
+        y1: short(scene.selection.top),
+        y2: short(scene.selection.bottom),
+        class: "wg-selection-line",
+        "stroke-width": 1.2,
+        "stroke-dasharray": "3 4",
+      }),
+    );
+  }
 
   /* ----- axes ----- */
   for (const tick of scene.axes.altitude) {
@@ -409,6 +439,22 @@ export function renderSvg(scene: SceneGraph, options: RenderSvgOptions = {}): st
     );
   }
   for (const barb of scene.barbs) body.push(renderBarb(barb));
+  // The selection ring rides over the barbs so it circles its glyph; the
+  // radius follows the barb scale (12 at full size, ~10 at the reference
+  // 0.85 — the first consumer's measured look).
+  if (scene.selection?.barb) {
+    const ringed = scene.selection.barb;
+    body.push(
+      el("circle", {
+        cx: short(ringed.x),
+        cy: short(ringed.y),
+        r: short(12 * ringed.scale),
+        class: "wg-selection-ring",
+        fill: "none",
+        "stroke-width": 1.4,
+      }),
+    );
+  }
   for (const gust of scene.gusts) {
     body.push(
       text(
@@ -463,6 +509,7 @@ const KEY_GROUP_CHAR_PX = 4.9;
 const KEY_SWATCH_W = 26;
 const KEY_CHIP_W = 24;
 const KEY_CHIP_H = 9;
+const KEY_RAMP_CELL_W = 9;
 const KEY_SWATCH_STROKE = 2;
 const KEY_LABEL_GAP = 6;
 const KEY_ENTRY_GAP = 18;
@@ -487,7 +534,8 @@ export function renderKeySvg(spec: KeySpec, options: RenderSvgOptions = {}): str
   type RowItem =
     | { kind: "series"; label: string; className: string; dash: string | null }
     | { kind: "hatch"; label: string }
-    | { kind: "band"; label: string };
+    | { kind: "band"; label: string }
+    | { kind: "ramp"; label: string; classes: ReadonlyArray<string> };
   const items: RowItem[] = [
     ...spec.series.map((entry) => ({
       kind: "series" as const,
@@ -497,11 +545,20 @@ export function renderKeySvg(spec: KeySpec, options: RenderSvgOptions = {}): str
     })),
     ...(spec.hatch ? [{ kind: "hatch" as const, label: spec.hatch.label }] : []),
     ...(spec.band ? [{ kind: "band" as const, label: spec.band.label }] : []),
+    ...spec.ramps.map((entry) => ({
+      kind: "ramp" as const,
+      label: entry.label,
+      classes: entry.classes,
+    })),
   ];
+  const itemSwatchWidth = (item: RowItem) =>
+    item.kind === "series"
+      ? KEY_SWATCH_W
+      : item.kind === "ramp"
+        ? item.classes.length * KEY_RAMP_CELL_W
+        : KEY_CHIP_W;
   const itemWidth = (item: RowItem) =>
-    (item.kind === "series" ? KEY_SWATCH_W : KEY_CHIP_W) +
-    KEY_LABEL_GAP +
-    Math.ceil(item.label.length * KEY_LABEL_CHAR_PX);
+    itemSwatchWidth(item) + KEY_LABEL_GAP + Math.ceil(item.label.length * KEY_LABEL_CHAR_PX);
   const rowWidth =
     items.reduce((sum, item) => sum + itemWidth(item), 0) +
     KEY_ENTRY_GAP * Math.max(items.length - 1, 0);
@@ -547,6 +604,32 @@ export function renderKeySvg(spec: KeySpec, options: RenderSvgOptions = {}): str
       if (item.dash) attrs["stroke-dasharray"] = item.dash;
       body.push(el("path", attrs));
       x += KEY_SWATCH_W;
+    } else if (item.kind === "ramp") {
+      // Ramp cells carry the field classes themselves, so fill and opacity
+      // come from the same rules that shaded the plot.
+      const rampY = short(swatchY - KEY_CHIP_H / 2);
+      item.classes.forEach((className, index) => {
+        body.push(
+          el("rect", {
+            x: short(x + index * KEY_RAMP_CELL_W),
+            y: rampY,
+            width: KEY_RAMP_CELL_W,
+            height: KEY_CHIP_H,
+            class: className,
+          }),
+        );
+      });
+      body.push(
+        el("rect", {
+          x: short(x),
+          y: rampY,
+          width: item.classes.length * KEY_RAMP_CELL_W,
+          height: KEY_CHIP_H,
+          class: "wg-key-frame",
+          "stroke-width": 0.7,
+        }),
+      );
+      x += item.classes.length * KEY_RAMP_CELL_W;
     } else {
       const chipX = short(x);
       const chipY = short(swatchY - KEY_CHIP_H / 2);
@@ -652,8 +735,12 @@ export function renderKeySvg(spec: KeySpec, options: RenderSvgOptions = {}): str
     );
   }
 
+  const lineItems = items.filter((item) => item.kind !== "ramp");
   const ariaParts = [
-    items.length > 0 ? `line styles for ${items.map((item) => item.label).join(", ")}` : null,
+    lineItems.length > 0 ? `line styles for ${lineItems.map((item) => item.label).join(", ")}` : null,
+    spec.ramps.length > 0
+      ? `shading ramps for ${spec.ramps.map((ramp) => ramp.label).join("; ")}`
+      : null,
     spec.stability ? "and the lapse-rate stability ramp" : null,
   ].filter((part): part is string => part !== null);
   return el(

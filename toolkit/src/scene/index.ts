@@ -5,6 +5,7 @@
 export { buildScene, M_TO_FT } from "./scene.js";
 export {
   buildKeySpec,
+  type KeyRampEntry,
   type KeySpec,
   type KeySpecOptions,
   type KeySeriesEntry,
@@ -12,7 +13,19 @@ export {
   type KeyStabilityGroup,
 } from "./key.js";
 
-export { cursorReading, xForHour, yForAltitude, altitudeForY, hourIndexForX } from "./hit-test.js";
+export {
+  altitudeForY,
+  clientPointToScene,
+  cursorReading,
+  drawnBarbsForHour,
+  hourIndexForValidAt,
+  hourIndexForX,
+  nearestDrawnBarb,
+  xForHour,
+  xForTime,
+  yForAltitude,
+  type MountRect,
+} from "./hit-test.js";
 export {
   interpolateVertical,
   sampledFieldPaths,
@@ -40,6 +53,7 @@ export {
   type SceneMarker,
   type SceneOptions,
   type SceneScales,
+  type SceneSelection,
   type SeriesElement,
   type MarkerTrainStride,
   type StripCell,
