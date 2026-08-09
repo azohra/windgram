@@ -291,7 +291,24 @@ individually. `smooth` (default true)
 applies the 1-2-1 kernel to the cloud-base and usable-lift series — a
 renderer choice, undoable because the documents publish unsmoothed values.
 `columnWidthPx` (default 44) and `plotHeightPx` (default 340) size the chart
-for its page instead of hard-coding the reference proportions.
+for its page instead of hard-coding the reference proportions; `widthPx`
+states the intent directly — a target total width, from which the column
+width is derived after windowing, so a consumer filling a measured panel
+never probe-builds to learn the gutters.
+
+Presentation is parameterized too (all defaults preserve the reference
+look). `hourLabel` sets the tick convention — `"24h"` (default), `"12h"`
+(`7a … 12p … 9p`), or a formatter function — and threads through
+everything the scene prints an hour in, ticks and aria label alike.
+`surfaceTemperature` (an overlay, default on) prints the per-hour `<n>°`
+row under the time axis. Barb density is geometry-aware: stride 1 wherever
+the column pitch fits the glyph, a greedy pixel-gap walk up each column
+where level spacing is dense, and a pitch-following glyph scale — pin or
+force any of it with `barbStride`, `barbMinGapPx`, `barbScale`.
+`markerStride` turns the single selected-hour cloud/wing glyphs into
+trains along their lines. `stripLabels` overrides strip display names
+(`{ thermalStrength: "LIFT" }`) while keys and classes keep the honest
+identity.
 
 Two more options move conventions into the consumer's hands. `capeClasses`
 sets the CAPE strip's class boundaries; the default,
@@ -343,9 +360,42 @@ the cloud glyph at cloud base fills with `--wg-cloud-marker` (a pale cream,
 the reference look) while its outline keeps `--wg-cloud-base`, the hue of
 the line it marks.
 
+Type and halos are tokens too: every font size the serializer sets is a
+`--wg-text-*` custom property (`--wg-text-tick`, `--wg-text-strip-name`,
+…), and the halo colour splits per element — `--wg-halo-series`,
+`--wg-halo-barb`, `--wg-halo-marker`, `--wg-halo-text` — each falling back
+to the shared `--wg-halo`, so one override still retints everything while
+any element can be tuned, or switched off with `transparent`, alone.
+
 For full control, pass `stylesheet: null` to omit the embedded sheet and
 style the classes yourself; the exported `DEFAULT_STYLESHEET` string is the
 reference to start from.
+
+### The key
+
+A windgram encodes meaning in line style, and nothing on the plot says
+which is which. `buildKeySpec(scene)` (from `windgram/scene`) derives a
+typed, serializable description of what that scene's key must say from
+what it actually drew — series entries carrying the REAL dash, stroke
+width, and class name; the condensation-hatch chip; the eight-class
+stability ramp with its boundaries straight from
+`WINDGRAM_STABILITY_CLASSES`; the p25–p75 band note for ensemble scenes.
+Every fact is inherited, never copied, so a key cannot drift from its
+chart. `renderKeySvg(keySpec, options)` (from `windgram/svg`) is the
+reference look: the centred swatch row, then the LAPSE RATE bar with
+boundary values above the cell edges and group words inside. The same
+`--wg-*` tokens theme chart and key together; labels are the only prose,
+overridable per entry id via `buildKeySpec`'s `labels` option. Consumers
+building a focusable key (hover-to-preview, click-to-pin) read the spec
+and draw their own.
+
+```ts
+import { buildKeySpec, buildScene } from "windgram/scene";
+import { renderKeySvg } from "windgram/svg";
+
+const scene = buildScene(profile, { timeZone });
+const key = renderKeySvg(buildKeySpec(scene)); // place it under the chart
+```
 
 ## Presets
 
@@ -567,18 +617,20 @@ guard), `loadRuns` (the `data/runs.json` index), the pure pair check
 ### `windgram/scene`
 
 The headless renderer core: `buildScene(profile, options)` and the
-`SceneGraph` types, `DEFAULT_OVERLAYS`, `DEFAULT_CAPE_CLASSES`,
-hit-testing (`cursorReading`,
+`SceneGraph` types, `DEFAULT_OVERLAYS`, `DEFAULT_CAPE_CLASSES`, the key
+facts (`buildKeySpec`, the `KeySpec` types), hit-testing (`cursorReading`,
 `xForHour`, `yForAltitude`, …), and the low-level geometry helpers the site's
-own figures reuse (`windBarbPaths`, `sampledFieldPaths`, `curvedPath`,
-`pointPath`, `interpolateVertical`). The deprecated `msToKmh` re-export
-departed in 0.4.0 as promised — import it from `windgram/derive`.
+own figures reuse (`windBarbPaths`, `BARB_GLYPH_RADIUS`,
+`sampledFieldPaths`, `curvedPath`, `pointPath`, `interpolateVertical`).
+The deprecated `msToKmh` re-export departed in 0.4.0 as promised — import
+it from `windgram/derive`.
 
 ### `windgram/svg`
 
-The reference serializer: `renderSvg(scene, options)`, `DEFAULT_STYLESHEET`,
-the token-default maps (`TOKEN_DEFAULTS`, `STABILITY_TOKEN_DEFAULTS`), and
-the `RenderSvgOptions` type (`stylesheet`, `idPrefix`). Output is
+The reference serializer: `renderSvg(scene, options)` and
+`renderKeySvg(keySpec, options)`, `DEFAULT_STYLESHEET`, the token-default
+maps (`TOKEN_DEFAULTS`, `STABILITY_TOKEN_DEFAULTS`), and the
+`RenderSvgOptions` type (`stylesheet`, `idPrefix`). Output is
 deterministic — stable element ordering, two-decimal rounding — and golden
 fixtures in `test/golden/` lock it down.
 
@@ -604,6 +656,36 @@ stability, windowing, smoothing — and the pipeline never publishes those.
 The document `schemaVersion` stays 1 across these releases: profile
 additions are additive-optional, and consumers discover the rest from the
 catalogue.
+
+**0.5.0** — the presentation wave: the second consumer feedback list, plus
+the key.
+
+- The default render changes, deliberately (goldens regenerated once):
+  strip scales print at each strip's right edge (max top, min bottom);
+  the per-hour surface-temperature row appears under the time axis (the
+  `surfaceTemperature` overlay, on by default); barb density is
+  geometry-aware on both axes with a pitch-following glyph scale, and the
+  glyph itself spaces feathers wider on a longer shaft so stacks read as
+  feathers, not blobs; the surface wind row sits half a glyph height
+  clear of the plot floor instead of being bisected by it, with the gust
+  readouts just above the glyphs' reach and the placed row exposed as
+  `scales.surfaceWindY` for hit-testing.
+- New scene options, all defaulting to the reference conventions:
+  `hourLabel` (`"24h"` | `"12h"` | formatter, threaded through ticks and
+  aria label), `barbStride` / `barbMinGapPx` / `barbScale`, `widthPx`
+  (container fit), `markerStride` (glyph trains), `stripLabels` (display
+  voice; identity stays).
+- The key: `buildKeySpec(scene)` derives the typed key facts from what
+  the scene drew — real dashes, widths, classes, and the stability
+  boundaries from `WINDGRAM_STABILITY_CLASSES` — and
+  `renderKeySvg(keySpec)` is the reference look; tokens theme chart and
+  key together, and tests assert the spec against the scene so the two
+  cannot drift.
+- The token surface grows: `--wg-text-*` type-scale tokens for every
+  font size the serializer sets, per-element halo tokens
+  (`--wg-halo-series/-barb/-marker/-text`, each falling back to
+  `--wg-halo`, `transparent` as the off-switch), and `--wg-temp` for the
+  temperature row.
 
 **0.4.0** — the analysis-minimum wave, built to the evidence spikes'
 verdicts.

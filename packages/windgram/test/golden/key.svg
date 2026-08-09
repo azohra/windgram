@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 718 78" role="img" aria-label="Windgram key: line styles for Usable lift, Cloud base, Boundary layer, Model boundary layer, 0 °C, Condensation and the lapse-rate stability ramp." class="wg wg-key">
+<style>
+.wg text { font-family: var(--wg-font, "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif); }
+.wg .wg-mono { font-family: var(--wg-font-mono, "IBM Plex Mono", ui-monospace, monospace); }
+.wg-frame { fill: var(--wg-surface, #fffdf8); stroke: var(--wg-rule, #776956); }
+.wg-strip-frame { fill: var(--wg-strip-bg, #f2f4f1); stroke: var(--wg-rule, #776956); }
+.wg-gridline { stroke: var(--wg-rule, #776956); }
+.wg-hourline { stroke: var(--wg-ink, #152529); }
+.wg-text { fill: var(--wg-ink, #152529); }
+.wg-text-soft { fill: var(--wg-ink-soft, #2f454a); }
+.wg-text-mute { fill: var(--wg-ink-mute, #40565a); }
+.wg-strip-name { fill: var(--wg-ink, #152529); font-size: var(--wg-text-strip-name, 10.5px); font-weight: 700; }
+.wg-strip-unit { fill: var(--wg-ink-mute, #40565a); font-size: var(--wg-text-strip-unit, 9.5px); }
+.wg-strip-scale { fill: var(--wg-ink-mute, #40565a); font-size: var(--wg-text-strip-scale, 8px); }
+.wg-tick { fill: var(--wg-ink-mute, #40565a); font-size: var(--wg-text-tick, 10.5px); }
+.wg-hour-tick { fill: var(--wg-ink-mute, #40565a); font-size: var(--wg-text-hour-tick, 11px); }
+.wg-series-label { font-size: var(--wg-text-series-label, 10.5px); font-weight: 700; }
+.wg-launch-label { fill: var(--wg-ink, #152529); font-size: var(--wg-text-launch, 10.5px); font-weight: 600; }
+.wg-surface-temp { fill: var(--wg-temp, #913b0c); font-size: var(--wg-text-surface-temp, 9.5px); font-weight: 700; }
+.wg-haloed-text { stroke: var(--wg-halo-text, var(--wg-halo, #fffdf8)); paint-order: stroke; }
+.wg-halo { stroke: var(--wg-halo-series, var(--wg-halo, #fffdf8)); }
+.wg-selected-column { fill: var(--wg-accent, #913b0c); opacity: 0.05; }
+.wg-selected-line { stroke: var(--wg-accent, #913b0c); }
+.wg-launch-line { stroke: var(--wg-ink, #152529); }
+.wg-strip-pressure { stroke: var(--wg-pressure, #963f36); }
+.wg-strip-pressure-area, .wg-strip-pressure-band { fill: var(--wg-pressure, #963f36); }
+.wg-strip-precipitation { stroke: var(--wg-rain, #207a83); }
+.wg-strip-precipitation-area, .wg-strip-precipitation-band { fill: var(--wg-rain, #207a83); }
+.wg-strip-cloudCover { stroke: var(--wg-cloud, #5b6969); }
+.wg-strip-cloudCover-area, .wg-strip-cloudCover-band { fill: var(--wg-cloud, #5b6969); }
+.wg-strip-thermalStrength { stroke: var(--wg-lift, #9a7500); }
+.wg-strip-thermalStrength-area, .wg-strip-thermalStrength-band { fill: var(--wg-lift, #9a7500); }
+.wg-strip-buoyancyShear { stroke: var(--wg-bs, #6d597a); }
+.wg-strip-buoyancyShear-area, .wg-strip-buoyancyShear-band { fill: var(--wg-bs, #6d597a); }
+.wg-strip-cape { stroke: var(--wg-cape, #8a4a08); }
+.wg-strip-cape-area, .wg-strip-cape-band { fill: var(--wg-cape, #8a4a08); }
+.wg-cape-calm { fill: var(--wg-cape-calm, #dde3d5); opacity: 0.6; }
+.wg-cape-watch { fill: var(--wg-cape-watch, #e7c46c); opacity: 0.6; }
+.wg-cape-risk { fill: var(--wg-cape-risk, #d98243); opacity: 0.6; }
+.wg-cape-severe { fill: var(--wg-cape-severe, #c04f3a); opacity: 0.6; }
+.wg-cape-capped { opacity: 0.28; }
+.wg-cloud-cell { fill: var(--wg-cloud, #5b6969); }
+.wg-strip-row-label { fill: var(--wg-ink-mute, #40565a); font-size: var(--wg-text-row-tag, 7.5px); }
+.wg-gust { fill: var(--wg-gust, #355963); font-size: var(--wg-text-gust, 9.5px); font-weight: 700; }
+.wg-series-pbl { stroke: var(--wg-pbl, #56609b); }
+.wg-series-pbl-band { fill: var(--wg-pbl, #56609b); opacity: 0.16; }
+.wg-stab-very-unstable { fill: var(--wg-stab-very-unstable, #fe9996); }
+.wg-stab-unstable { fill: var(--wg-stab-unstable, #da934a); }
+.wg-stab-conditional-strong { fill: var(--wg-stab-conditional-strong, #a68300); }
+.wg-stab-conditional { fill: var(--wg-stab-conditional, #6a753f); }
+.wg-stab-near-neutral { fill: var(--wg-stab-near-neutral, #5b5f6b); }
+.wg-stab-stable { fill: var(--wg-stab-stable, #04548d); }
+.wg-stab-inverted { fill: var(--wg-stab-inverted, #004f4a); }
+.wg-stab-strong-inversion { fill: var(--wg-stab-strong-inversion, #1b3071); }
+.wg-cloud-hatch-line { stroke: var(--wg-ink-soft, #2f454a); }
+.wg-cloud-medium { fill: var(--wg-cloud, #5b6969); opacity: 0.22; }
+.wg-cloud-light { fill: var(--wg-cloud, #5b6969); opacity: 0.1; }
+.wg-ti-weak { fill: var(--wg-ti-weak, #f4e3c0); opacity: 0.55; }
+.wg-ti-fair { fill: var(--wg-ti-fair, #ecc57e); opacity: 0.55; }
+.wg-ti-good { fill: var(--wg-ti-good, #de9b4e); opacity: 0.55; }
+.wg-ti-strong { fill: var(--wg-ti-strong, #c96a33); opacity: 0.55; }
+.wg-shear-light { fill: var(--wg-shear-light, #cfc3de); opacity: 0.5; }
+.wg-shear-moderate { fill: var(--wg-shear-moderate, #a58ec4); opacity: 0.5; }
+.wg-shear-strong { fill: var(--wg-shear-strong, #7b5ea7); opacity: 0.5; }
+.wg-rh-60 { fill: var(--wg-rh-60, #d3e0e3); opacity: 0.5; }
+.wg-rh-80 { fill: var(--wg-rh-80, #a9c7cf); opacity: 0.5; }
+.wg-rh-95 { fill: var(--wg-rh-95, #7fadbb); opacity: 0.5; }
+.wg-omega-lift { fill: var(--wg-omega-lift, #8dc2a0); opacity: 0.4; }
+.wg-omega-lift-strong { fill: var(--wg-omega-lift-strong, #56a377); opacity: 0.5; }
+.wg-omega-sink { fill: var(--wg-omega-sink, #d3a68f); opacity: 0.4; }
+.wg-omega-sink-strong { fill: var(--wg-omega-sink-strong, #bd7d5c); opacity: 0.5; }
+.wg-series-boundary { stroke: var(--wg-boundary, #a46b10); }
+.wg-series-boundary-band { fill: var(--wg-boundary, #a46b10); opacity: 0.16; }
+.wg-series-cloud-base { stroke: var(--wg-cloud-base, #355963); }
+.wg-series-cloud-base-band { fill: var(--wg-cloud-base, #355963); opacity: 0.16; }
+.wg-series-usable { stroke: var(--wg-usable, #2179ad); }
+.wg-series-usable-band { fill: var(--wg-usable, #2179ad); opacity: 0.16; }
+.wg-isotherm { stroke: var(--wg-ink, #152529); }
+.wg-isotherm-freezing { stroke: var(--wg-freezing, #2b748f); }
+.wg-isotherm-label { fill: var(--wg-ink, #152529); }
+.wg-isotherm-label-freezing { fill: var(--wg-freezing, #2b748f); }
+.wg-dewpoint-isoline { stroke: var(--wg-dewpoint, #3a7d4f); }
+.wg-dewpoint-label { fill: var(--wg-dewpoint, #3a7d4f); }
+.wg-barb { stroke: var(--wg-wind, #355963); }
+.wg-barb-fill { fill: var(--wg-wind, #355963); stroke: var(--wg-wind, #355963); }
+.wg-barb-halo { stroke: var(--wg-halo-barb, var(--wg-halo, #fffdf8)); }
+.wg-barb-fill-halo { fill: var(--wg-halo-barb, var(--wg-halo, #fffdf8)); stroke: var(--wg-halo-barb, var(--wg-halo, #fffdf8)); }
+.wg-marker-wing { fill: var(--wg-usable, #2179ad); stroke: var(--wg-usable, #2179ad); }
+.wg-marker-cloud { fill: var(--wg-cloud-marker, #f8f3d8); stroke: var(--wg-cloud-base, #355963); }
+.wg-marker-halo { fill: var(--wg-halo-marker, var(--wg-halo, #fffdf8)); stroke: var(--wg-halo-marker, var(--wg-halo, #fffdf8)); }
+.wg-key-label { fill: var(--wg-ink-mute, #40565a); font-size: var(--wg-text-tick, 10.5px); }
+.wg-key-title { fill: var(--wg-ink, #152529); font-size: var(--wg-text-key-title, 9px); font-weight: 700; letter-spacing: 0.08em; }
+.wg-key-boundary { fill: var(--wg-ink-mute, #40565a); font-size: var(--wg-text-key-boundary, 8px); }
+.wg-key-group { fill: var(--wg-key-group-ink, #ffffff); stroke: var(--wg-key-group-halo, #00000066); paint-order: stroke; font-size: var(--wg-text-key-group, 8px); font-weight: 700; }
+.wg-key-band { fill: var(--wg-ink-mute, #40565a); opacity: 0.16; }
+.wg-key-frame { fill: none; stroke: var(--wg-rule, #776956); }
+</style>
+<defs><pattern id="wg-key-cloud-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" class="wg-cloud-hatch-line" stroke-width="1.2"/></pattern></defs>
+<path d="M12 19 H38" class="wg-series-usable" fill="none" stroke-width="2" stroke-linecap="round"/>
+<text x="44" y="22.5" class="wg-key-label">Usable lift</text>
+<path d="M126 19 H152" class="wg-series-cloud-base" fill="none" stroke-width="2" stroke-linecap="round" stroke-dasharray="1 5"/>
+<text x="158" y="22.5" class="wg-key-label">Cloud base</text>
+<path d="M234 19 H260" class="wg-series-boundary" fill="none" stroke-width="2" stroke-linecap="round" stroke-dasharray="10 5"/>
+<text x="266" y="22.5" class="wg-key-label">Boundary layer</text>
+<path d="M366 19 H392" class="wg-series-pbl" fill="none" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 3"/>
+<text x="398" y="22.5" class="wg-key-label">Model boundary layer</text>
+<path d="M532 19 H558" class="wg-isotherm wg-isotherm-freezing" fill="none" stroke-width="2" stroke-linecap="round" stroke-dasharray="7 3 1 3"/>
+<text x="564" y="22.5" class="wg-key-label">0 °C</text>
+<rect x="606" y="14.5" width="24" height="9" fill="url(#wg-key-cloud-hatch)"/>
+<rect x="606" y="14.5" width="24" height="9" class="wg-key-frame" stroke-width="0.7"/>
+<text x="636" y="22.5" class="wg-key-label">Condensation</text>
+<g role="img" aria-label="Lapse-rate stability ramp: very unstable at the left through strong inversion at the right; boundary values in °C per 1,000 ft"><text x="12" y="60" class="wg-key-title">LAPSE RATE</text><rect x="85" y="46" width="77.63" height="22" class="wg-stab-very-unstable"><title>Very unstable</title></rect><rect x="162.63" y="46" width="77.63" height="22" class="wg-stab-unstable"><title>Unstable</title></rect><rect x="240.25" y="46" width="77.63" height="22" class="wg-stab-conditional-strong"><title>Conditional strong</title></rect><rect x="317.88" y="46" width="77.63" height="22" class="wg-stab-conditional"><title>Conditional</title></rect><rect x="395.5" y="46" width="77.63" height="22" class="wg-stab-near-neutral"><title>Near neutral</title></rect><rect x="473.13" y="46" width="77.63" height="22" class="wg-stab-stable"><title>Stable</title></rect><rect x="550.75" y="46" width="77.63" height="22" class="wg-stab-inverted"><title>Inverted</title></rect><rect x="628.38" y="46" width="77.63" height="22" class="wg-stab-strong-inversion"><title>Strong inversion</title></rect><text x="162.63" y="42" text-anchor="middle" class="wg-key-boundary wg-mono">-3</text><text x="240.25" y="42" text-anchor="middle" class="wg-key-boundary wg-mono">-2.5</text><text x="317.88" y="42" text-anchor="middle" class="wg-key-boundary wg-mono">-2</text><text x="395.5" y="42" text-anchor="middle" class="wg-key-boundary wg-mono">-1.5</text><text x="473.13" y="42" text-anchor="middle" class="wg-key-boundary wg-mono">-1.2</text><text x="550.75" y="42" text-anchor="middle" class="wg-key-boundary wg-mono">0</text><text x="628.38" y="42" text-anchor="middle" class="wg-key-boundary wg-mono">0.5</text><text x="162.63" y="60" text-anchor="middle" class="wg-key-group" stroke-width="2">Unstable</text><text x="356.69" y="60" text-anchor="middle" class="wg-key-group" stroke-width="2">Conditional instability</text><text x="511.94" y="60" text-anchor="middle" class="wg-key-group" stroke-width="2">Stable</text><text x="628.38" y="60" text-anchor="middle" class="wg-key-group" stroke-width="2">Inverted</text></g>
+</svg>

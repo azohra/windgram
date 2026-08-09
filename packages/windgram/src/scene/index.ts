@@ -3,12 +3,20 @@
    layers both consume it, so tooltips and pixels can never disagree. */
 
 export { buildScene, M_TO_FT } from "./scene.js";
+export {
+  buildKeySpec,
+  type KeySpec,
+  type KeySpecOptions,
+  type KeySeriesEntry,
+  type KeyStabilityClass,
+  type KeyStabilityGroup,
+} from "./key.js";
 
 // msToKmh moved to windgram/derive in 0.3.0; its deprecated re-export here
 // departed in 0.4.0 as the 0.3.x JSDoc promised.
 export { cursorReading, xForHour, yForAltitude, altitudeForY, hourIndexForX } from "./hit-test.js";
 export { interpolateVertical, sampledFieldPaths, type FieldNode } from "./field.js";
-export { windBarbParts, windBarbPaths, type WindBarbParts } from "./barbs.js";
+export { BARB_GLYPH_RADIUS, windBarbParts, windBarbPaths, type WindBarbParts } from "./barbs.js";
 export { curvedPath, pointPath, bandPath, short, type PlotPoint } from "./path.js";
 export {
   DEFAULT_CAPE_CLASSES,
@@ -32,4 +40,5 @@ export {
   type SeriesElement,
   type StripCell,
   type StripRow,
+  type SurfaceTemperatureMark,
 } from "./types.js";

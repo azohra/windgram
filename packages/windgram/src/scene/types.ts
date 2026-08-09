@@ -50,6 +50,15 @@ import type { FieldNode } from "./field.js";
  *   reading down, like the sky — whose cells darken with layer cloud
  *   fraction (surface.low/mid/highCloudPercent; NOAA models only).
  *
+ * Presentation-wave overlay (0.5.0):
+ * - `surfaceTemperature`: per-hour "<n>°" readouts in a row under the
+ *   hour labels — the classic windgram element pilots read the day's
+ *   warming from. Pure function of published state
+ *   (surface.temperatureC, rounded to integer °C), so it lives here
+ *   under the one-home rule. Default on — unlike the science-wave
+ *   overlays it always has data, so the default render grows one text
+ *   row taller (a deliberate 0.5.0 look change).
+ *
  * Cloud-shading precedence inside `clouds`: hours whose levels carry
  * cloudFractionPercent (GFS's model cloud profile) shade from it directly
  * (light >= 30 %, medium >= 60 %, dense >= 85 %); all other hours keep the
@@ -98,7 +107,8 @@ export type OverlayName =
   | "cloudBase"
   | "usableLiftTop"
   | "launch"
-  | "selectedHour";
+  | "selectedHour"
+  | "surfaceTemperature";
 
 export const DEFAULT_OVERLAYS: Readonly<Record<OverlayName, boolean>> = {
   temperature: true,
@@ -128,6 +138,9 @@ export const DEFAULT_OVERLAYS: Readonly<Record<OverlayName, boolean>> = {
   usableLiftTop: true,
   launch: true,
   selectedHour: true,
+  // Presentation wave (0.5.0): always has data, so on-by-default is a
+  // deliberate change to the default render (one text row taller).
+  surfaceTemperature: true,
 };
 
 /**
@@ -223,11 +236,79 @@ export interface SceneOptions {
   /** Column width in px per hour. Default 44. */
   columnWidthPx?: number;
   /**
+   * Target TOTAL scene width in px — the container-fit form. buildScene
+   * derives the column width from it after windowing
+   * (`(widthPx − gutters) / hourCount`) using its internal gutter widths,
+   * so `scene.width` comes out equal to the target and a consumer filling
+   * a measured panel never needs a probe build. Wins over
+   * `columnWidthPx` when both are given (it is the statement of intent);
+   * absent both, the 44px default column applies.
+   */
+  widthPx?: number;
+  /**
    * Height of the time-height profile panel in px (the strips keep their
    * fixed heights above it). Default 340 — the gold-standard proportions.
    * A page-scale consumer widening the columns raises this to match.
    */
   plotHeightPx?: number;
+  /**
+   * Hour-tick label convention. `"24h"` (default) renders `7 … 13 … 21`,
+   * exactly today's output; `"12h"` renders `7a … 12p … 9p` (lowercase
+   * a/p, noon is 12p, midnight 12a); a function receives the hour's
+   * `validAt` and the display `timeZone` and owns the string outright.
+   * The convention threads through everything the scene prints an hour
+   * in: the tick labels and the aria label (whose `:00` suffix is a
+   * 24-hour idiom — in the other modes the span reads `7a to 9p`, or the
+   * function's output verbatim). Deliberately NOT covered, because they
+   * are data timestamps rather than display hours: analyze/'s
+   * `CitedInstant.local` (ISO-shaped, joins back to `validAt`) and
+   * derive/'s day-window formatters (windowing arithmetic) stay h23.
+   */
+  hourLabel?: "24h" | "12h" | ((validAt: string, timeZone: string) => string);
+  /**
+   * Wind-barb hour stride. `"auto"` (default) is geometry-aware: stride 1
+   * whenever the column pitch covers the rotated glyph's footprint
+   * (2 × BARB_GLYPH_RADIUS × the resolved barb scale), widening only as
+   * columns actually get too narrow — a page-scale chart gets a barb
+   * every hour where the old count heuristic halved any day longer than
+   * nine hours. An explicit number forces that stride. The gust row
+   * follows the resolved stride either way.
+   */
+  barbStride?: number | "auto";
+  /**
+   * Minimum vertical clearance in px between barbs in one hour's column.
+   * Replaces the count-based level stride (every 2nd level past six) with
+   * a greedy walk up the column: the surface barb always draws, each
+   * level barb draws only if it clears the last drawn one by this gap,
+   * and the topmost level always draws (a lower neighbour that would
+   * crowd it is dropped instead — the top wins). Level spacing is
+   * irregular — dense near the surface, sparse aloft — so a pixel gap
+   * thins exactly where it is dense, which a count stride cannot.
+   * Default: 24 × the resolved barb scale.
+   */
+  barbMinGapPx?: number;
+  /**
+   * Barb glyph scale. Default follows the column pitch: 0.85 (the
+   * reference look) at the default 44px columns and below, growing
+   * linearly to 1.0 at 66px and wider — page-scale charts get
+   * page-scale barbs. Set a number to pin it.
+   */
+  barbScale?: number;
+  /**
+   * Marker trains along the derived-height lines. Absent (default), each
+   * line carries exactly one glyph at the selected hour — today's look.
+   * A stride draws the glyph every n hours along its line (the selected
+   * hour is always among them), making the line self-identifying without
+   * a legend. Each train rides its line's own overlay toggle.
+   */
+  markerStride?: { cloudBase?: number; usableLiftTop?: number };
+  /**
+   * Display-label overrides per strip key ("thermalStrength" → "LIFT").
+   * Voice only: the strip's `key` (and its `wg-strip-*` class) remain the
+   * identity; the default labels state the honest quantity (`w*` is the
+   * Deardorff convective velocity scale, not a climb rate).
+   */
+  stripLabels?: Partial<Record<MetricStrip["key"], string>>;
 }
 
 export interface SceneScales {
@@ -240,6 +321,13 @@ export interface SceneScales {
   floorM: number;
   topM: number;
   hourCount: number;
+  /**
+   * The y the surface wind barbs are actually placed at — half a rendered
+   * glyph height above the plot floor, so the glyph is not bisected by
+   * the frame. Consumers hit-testing against wind rows read this instead
+   * of assuming y(floorM).
+   */
+  surfaceWindY: number;
 }
 
 export interface AltitudeTick {
@@ -369,6 +457,18 @@ export interface GustMark {
   label: string;
 }
 
+/**
+ * Per-hour surface-temperature readout in the row under the hour labels:
+ * "<n>°", integer °C from surface.temperatureC (the `surfaceTemperature`
+ * overlay).
+ */
+export interface SurfaceTemperatureMark {
+  x: number;
+  y: number;
+  temperatureC: number;
+  label: string;
+}
+
 /** Vertical node stacks per hour that hit-testing interpolates against. */
 export interface HourSampling {
   validAt: string;
@@ -397,6 +497,7 @@ export interface SceneGraph {
   series: ReadonlyArray<SeriesElement>;
   barbs: ReadonlyArray<BarbPlacement>;
   gusts: ReadonlyArray<GustMark>;
+  surfaceTemperatures: ReadonlyArray<SurfaceTemperatureMark>;
   labels: ReadonlyArray<SceneLabel>;
   markers: ReadonlyArray<SceneMarker>;
   launch: { y: number; altitudeM: number; label: string } | null;

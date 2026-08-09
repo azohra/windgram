@@ -14,7 +14,7 @@ import { stabilityClass } from "../derive/stability.js";
 import { thermalIndexC } from "../derive/thermal-index.js";
 import { usableLiftTopM } from "../derive/usable-lift.js";
 import { msToKmh, windToComponents } from "../derive/wind.js";
-import { windBarbParts, windBarbPaths } from "./barbs.js";
+import { BARB_GLYPH_HEIGHT, BARB_GLYPH_RADIUS, windBarbParts, windBarbPaths } from "./barbs.js";
 import { sampledFieldPaths, type FieldNode } from "./field.js";
 import { bandPath, pointPath, type PlotPoint } from "./path.js";
 import {
@@ -36,6 +36,7 @@ import {
   type SeriesElement,
   type StripCell,
   type StripRow,
+  type SurfaceTemperatureMark,
 } from "./types.js";
 
 /* Layout constants ported from the site renderer (the gold standard for
@@ -53,8 +54,25 @@ export const DEFAULT_COLUMN_WIDTH = 44;
 export const DEFAULT_PLOT_HEIGHT = 340;
 const HOUR_LABEL_DY = 18;
 const BOTTOM_PADDING = 14;
-const WIND_BARB_SCALE = 0.85;
+/* The surfaceTemperature row sits one line under the hour labels; the
+   scene grows by this much when the overlay draws. */
+const SURFACE_TEMP_ROW_PX = 14;
+/* Barb scale follows the column pitch: the reference 0.85 at the default
+   44px columns and below, growing linearly to 1.0 at 66px and wider —
+   page-scale charts get page-scale barbs. options.barbScale pins it. */
+const BARB_SCALE_MIN = 0.85;
+const BARB_SCALE_MIN_COLUMN = DEFAULT_COLUMN_WIDTH;
+const BARB_SCALE_MAX_COLUMN = 66;
+/* Default vertical clearance between one column's barbs, at scale 1;
+   the resolved default multiplies by the resolved barb scale. */
+const BARB_MIN_GAP_PX = 24;
 export const M_TO_FT = 3.28084;
+
+function pitchBarbScale(columnWidth: number): number {
+  const span = BARB_SCALE_MAX_COLUMN - BARB_SCALE_MIN_COLUMN;
+  const fraction = Math.min(1, Math.max(0, (columnWidth - BARB_SCALE_MIN_COLUMN) / span));
+  return BARB_SCALE_MIN + (1 - BARB_SCALE_MIN) * fraction;
+}
 
 /* Glyph paths for the sport-specific markers (wing at usable-lift top, cloud
    at cloud base), ported verbatim from the site renderer. */
@@ -339,7 +357,13 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
   const overlays: Record<OverlayName, boolean> = { ...DEFAULT_OVERLAYS, ...options.overlays };
   const smooth = options.smooth !== false;
   const capeClasses = options.capeClasses ?? DEFAULT_CAPE_CLASSES;
-  const columnWidth = options.columnWidthPx ?? DEFAULT_COLUMN_WIDTH;
+  /* Container fit: widthPx states the consumer's intent (fill this panel)
+     and wins over columnWidthPx; the gutters stay internal so they can
+     vary without a breaking export. */
+  const columnWidth =
+    options.widthPx !== undefined
+      ? Math.max(1, (options.widthPx - MARGIN_LEFT - MARGIN_RIGHT) / Math.max(hours.length, 1))
+      : (options.columnWidthPx ?? DEFAULT_COLUMN_WIDTH);
   const plotHeight = options.plotHeightPx ?? DEFAULT_PLOT_HEIGHT;
   const floorM = profile.site.modelElevationM;
   const siteAltitudeM = profile.site.altitudeM;
@@ -577,7 +601,12 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
   const plotBottom = plotTop + plotHeight;
   const plotWidth = columnWidth * Math.max(hours.length, 1);
   const width = MARGIN_LEFT + plotWidth + MARGIN_RIGHT;
-  const height = plotBottom + HOUR_LABEL_DY + BOTTOM_PADDING;
+  const surfaceTemperatureRow = overlays.surfaceTemperature && hours.length > 0;
+  const height =
+    plotBottom +
+    HOUR_LABEL_DY +
+    (surfaceTemperatureRow ? SURFACE_TEMP_ROW_PX : 0) +
+    BOTTOM_PADDING;
 
   const y = (altitudeM: number) =>
     plotTop + plotHeight * (1 - (altitudeM - floorM) / (topM - floorM));
@@ -611,7 +640,8 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
     const strip: MetricStrip = {
       key: spec.key,
       className: `wg-strip-${spec.key}`,
-      label: spec.label,
+      // Voice is the consumer's; the key stays the identity.
+      label: options.stripLabels?.[spec.key] ?? spec.label,
       unit: spec.unit,
       top,
       height: METRIC_BAND_HEIGHT,
@@ -942,11 +972,32 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
 
   /* ---------------------------------------------------------------- barbs */
 
+  /* Density is geometry, not count. Horizontally: stride 1 whenever
+     the column pitch covers the rotated glyph footprint, widening only as
+     columns actually get too narrow. Vertically: a greedy min-gap walk up
+     each column — level spacing is irregular (dense near the surface,
+     sparse aloft), so a pixel gap thins exactly where it is dense, which
+     the old count stride could not. The surface barb always draws; the
+     topmost level always draws and wins over a lower neighbour that would
+     crowd it. */
+  const barbScale = options.barbScale ?? pitchBarbScale(columnWidth);
+  const barbFootprint = 2 * BARB_GLYPH_RADIUS * barbScale;
+  const barbStride =
+    options.barbStride === undefined || options.barbStride === "auto"
+      ? Math.max(1, Math.ceil(barbFootprint / columnWidth))
+      : Math.max(1, Math.floor(options.barbStride));
+  const barbMinGap = options.barbMinGapPx ?? BARB_MIN_GAP_PX * barbScale;
+  /* The surface row sits half a rendered glyph height above the plot
+     floor — dead on y(floorM) the glyph is bisected by the frame and
+     spills over the time axis (the predecessor chart lifted its surface
+     wind row clear of the bottom edge for exactly this reason).
+     Pixel-space, so it holds at any plotHeightPx; exposed as
+     scales.surfaceWindY so hit-testing agrees with the render. */
+  const surfaceWindY = y(floorM) - (BARB_GLYPH_HEIGHT / 2) * barbScale;
   const barbs: BarbPlacement[] = [];
   if (overlays.wind) {
-    const stride = hours.length > 9 ? 2 : 1;
     hours.forEach((hour, index) => {
-      if (index % stride !== 0) return;
+      if (index % barbStride !== 0) return;
       const cx = xCenter(index);
       const place = (cy: number, speedMs: number, directionDeg: number) => {
         const speedKmh = msToKmh(speedMs);
@@ -960,33 +1011,41 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
           calm: parts.calm,
           shaftPath: paths.shaft,
           pennantPaths: paths.pennants,
-          scale: WIND_BARB_SCALE,
+          scale: barbScale,
         });
       };
-      place(y(floorM), hour.surface.windSpeedMs, hour.surface.windDirectionDeg);
-      const levelStride = hour.levels.length > 6 ? 2 : 1;
+      place(surfaceWindY, hour.surface.windSpeedMs, hour.surface.windDirectionDeg);
+      const topIndex = hour.levels.length - 1;
+      const topY = topIndex >= 0 ? y(hour.levels[topIndex].heightM) : null;
+      let lastY = surfaceWindY;
       hour.levels.forEach((level, levelIndex) => {
-        if (levelIndex % levelStride !== 0 && levelIndex !== hour.levels.length - 1) return;
-        place(y(level.heightM), level.windSpeedMs, level.windDirectionDeg);
+        const levelY = y(level.heightM);
+        if (levelIndex !== topIndex) {
+          if (lastY - levelY < barbMinGap) return; // too close to the last drawn
+          if (topY !== null && levelY - topY < barbMinGap) return; // the top wins
+        }
+        place(levelY, level.windSpeedMs, level.windDirectionDeg);
+        lastY = levelY;
       });
     });
   }
 
-  /* Gust readouts ride just above the surface barbs at the same stride, so
-     sustained (barb) and gust (number) read as one row. The scene labels
-     the value "G…"; whether that means hour-max or instantaneous is the
-     consumer's caption, from models.json capabilities.gust. */
+  /* Gust readouts ride just clear of the surface glyphs' rotated reach,
+     at the resolved barb stride, so sustained (barb) and gust (number)
+     read as one row without tangling. The scene labels the value "G…";
+     whether that means hour-max or instantaneous is the consumer's
+     caption, from models.json capabilities.gust. */
   const gusts: GustMark[] = [];
   if (overlays.gusts) {
-    const stride = hours.length > 9 ? 2 : 1;
+    const gustY = surfaceWindY - BARB_GLYPH_RADIUS * barbScale - 5;
     hours.forEach((hour, index) => {
-      if (index % stride !== 0) return;
+      if (index % barbStride !== 0) return;
       const gustMs = hour.surface.windGustMs;
       if (gustMs == null) return;
       const speedKmh = msToKmh(gustMs);
       gusts.push({
         x: xCenter(index),
-        y: y(floorM) - 16,
+        y: gustY,
         speedKmh,
         label: `G${Math.round(speedKmh)}`,
       });
@@ -1028,28 +1087,70 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
     )
     .map((entry) => ({ ...entry, y: y(entry.altitudeM) }));
 
+  /* The hour-label convention: one resolver feeds everything the scene
+     prints an hour in — the tick labels and the aria label. */
+  const hourConvention = options.hourLabel ?? "24h";
+  const hourText =
+    typeof hourConvention === "function"
+      ? (validAt: string) => hourConvention(validAt, options.timeZone)
+      : hourConvention === "12h"
+        ? (validAt: string) => twelveHourLabel(hourLabel(validAt, options.timeZone))
+        : (validAt: string) => hourLabel(validAt, options.timeZone);
+  /* The ":00" the aria label appends is a 24-hour idiom; the other modes
+     read their labels verbatim ("7a to 9p"). */
+  const ariaHour =
+    hourConvention === "24h" ? (validAt: string) => `${hourText(validAt)}:00` : hourText;
+
   const hourTicks: HourTick[] = hours.map((hour, index) => ({
     index,
     x: xCenter(index),
-    label: hourLabel(hour.validAt, options.timeZone),
+    label: hourText(hour.validAt),
     gridline: index % 2 === 0,
   }));
+
+  /* Per-hour surface temperature: the row under the hour labels pilots
+     read the day's warming from. Pure function of published state —
+     surface.temperatureC, rounded — so it lives here, once. */
+  const surfaceTemperatures: SurfaceTemperatureMark[] = surfaceTemperatureRow
+    ? hours.map((hour, index) => ({
+        x: xCenter(index),
+        y: plotBottom + HOUR_LABEL_DY + SURFACE_TEMP_ROW_PX,
+        temperatureC: hour.surface.temperatureC,
+        label: `${Math.round(hour.surface.temperatureC)}°`,
+      }))
+    : [];
 
   const selectedHourIndex = hours.reduce(
     (best, hour, index) =>
       hour.derived.thermalVelocityMs > (hours[best]?.derived.thermalVelocityMs ?? 0) ? index : best,
     0,
   );
+  /* Marker glyphs on the derived-height lines. Default: one per line at
+     the selected hour. A markerStride draws a train along the line —
+     hours congruent to the selected one at that stride, so the selected
+     hour is always marked — making the line self-identifying without a
+     legend. Each glyph rides its line's own overlay toggle. */
   const markers: SceneMarker[] = [];
-  const selected = hours[selectedHourIndex];
-  if (selected) {
-    const usable = usableValues[selectedHourIndex];
-    if (overlays.usableLiftTop && usable != null) {
-      markers.push({ kind: "wing", x: xCenter(selectedHourIndex), y: y(usable), path: WING_MARKER_PATH });
+  const markerIndices = (stride: number | undefined): number[] => {
+    if (hours.length === 0) return [];
+    if (stride === undefined) return [selectedHourIndex];
+    const step = Math.max(1, Math.floor(stride));
+    return hours
+      .map((_, index) => index)
+      .filter((index) => (((index - selectedHourIndex) % step) + step) % step === 0);
+  };
+  if (overlays.usableLiftTop) {
+    for (const index of markerIndices(options.markerStride?.usableLiftTop)) {
+      const usable = usableValues[index];
+      if (usable == null) continue;
+      markers.push({ kind: "wing", x: xCenter(index), y: y(usable), path: WING_MARKER_PATH });
     }
-    const cloudBase = cloudBaseValues[selectedHourIndex];
-    if (overlays.cloudBase && cloudBase != null) {
-      markers.push({ kind: "cloud", x: xCenter(selectedHourIndex), y: y(cloudBase), path: CLOUD_MARKER_PATH });
+  }
+  if (overlays.cloudBase) {
+    for (const index of markerIndices(options.markerStride?.cloudBase)) {
+      const cloudBase = cloudBaseValues[index];
+      if (cloudBase == null) continue;
+      markers.push({ kind: "cloud", x: xCenter(index), y: y(cloudBase), path: CLOUD_MARKER_PATH });
     }
   }
 
@@ -1099,7 +1200,7 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
   return {
     width,
     height,
-    ariaLabel: sceneAriaLabel(profile, hours.map((hour) => hour.validAt), options.timeZone),
+    ariaLabel: sceneAriaLabel(profile, hours.map((hour) => hour.validAt), options.timeZone, ariaHour),
     scales: {
       plotLeft: MARGIN_LEFT,
       plotTop,
@@ -1109,6 +1210,7 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
       floorM,
       topM,
       hourCount: hours.length,
+      surfaceWindY,
     },
     axes: { altitude: altitudeTicks, pressureAltitude, hours: hourTicks },
     strips,
@@ -1116,6 +1218,7 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
     series,
     barbs,
     gusts,
+    surfaceTemperatures,
     labels,
     markers,
     launch,
@@ -1134,6 +1237,7 @@ function sceneAriaLabel(
   profile: WindgramProfile,
   hourValidAts: ReadonlyArray<string>,
   timeZone: string,
+  ariaHour: (validAt: string) => string,
 ): string {
   const chartDescription =
     "surface metric strips above a time-height field; derived series, isotherms, shading overlays and winds aloft are drawn over the profile";
@@ -1151,8 +1255,8 @@ function sceneAriaLabel(
   const lastDay = day.format(new Date(last));
   const span =
     firstDay === lastDay
-      ? `${firstDay} ${hourLabel(first, timeZone)}:00 to ${hourLabel(last, timeZone)}:00`
-      : `${firstDay} ${hourLabel(first, timeZone)}:00 to ${lastDay} ${hourLabel(last, timeZone)}:00`;
+      ? `${firstDay} ${ariaHour(first)} to ${ariaHour(last)}`
+      : `${firstDay} ${ariaHour(first)} to ${lastDay} ${ariaHour(last)}`;
   return `${identity}, ${span} (${timeZone}): ${chartDescription}.`;
 }
 
@@ -1160,6 +1264,16 @@ function median(values: number[]): number {
   const sorted = [...values].sort((left, right) => left - right);
   const middle = Math.floor(sorted.length / 2);
   return sorted.length % 2 === 0 ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle];
+}
+
+/* "7a … 12p … 9p": lowercase a/p appended to the 12-hour clock number.
+   Derives from the already-normalized h23 label so the two conventions
+   can never disagree about which hour it is. */
+function twelveHourLabel(h23Label: string): string {
+  const hour = Number(h23Label);
+  if (hour === 0) return "12a";
+  if (hour === 12) return "12p";
+  return hour < 12 ? `${hour}a` : `${hour - 12}p`;
 }
 
 const hourLabelFormatters = new Map<string, Intl.DateTimeFormat>();

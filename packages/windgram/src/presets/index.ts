@@ -47,11 +47,14 @@ export function applyPreset(preset: Preset, options: SceneOptions): SceneOptions
  *
  * - `sceneOptions` names every optional convention `buildScene` defaults:
  *   the reference overlay set, 1-2-1 smoothing on, the WMO-No. 1038 CAPE
- *   classes, and the gold-standard proportions. `sinkRateMs` is
- *   deliberately absent: the default is to draw the PUBLISHED usable-lift
- *   series (which embeds the 1.0 m/s convention), and naming a number here
- *   would switch to the recompute path instead — a different code path,
- *   not the default;
+ *   classes, the gold-standard proportions, the 24-hour tick convention
+ *   and geometry-aware barb density. `sinkRateMs` is deliberately absent:
+ *   the default is to draw the PUBLISHED usable-lift series (which embeds
+ *   the 1.0 m/s convention), and naming a number here would switch to the
+ *   recompute path instead — a different code path, not the default.
+ *   `barbScale` and `barbMinGapPx` are absent for the same reason: their
+ *   defaults are pitch-following computations, and naming a number would
+ *   pin them;
  * - `tokens` is the complete reference palette: `TOKEN_DEFAULTS` plus the
  *   stability ramp from `STABILITY_TOKEN_DEFAULTS` under its `stab-`
  *   prefix. Composed from those exports, never restated.
@@ -63,6 +66,8 @@ export const REFERENCE_PRESET: Preset = {
     capeClasses: DEFAULT_CAPE_CLASSES,
     columnWidthPx: DEFAULT_COLUMN_WIDTH,
     plotHeightPx: DEFAULT_PLOT_HEIGHT,
+    hourLabel: "24h",
+    barbStride: "auto",
   },
   tokens: {
     ...TOKEN_DEFAULTS,

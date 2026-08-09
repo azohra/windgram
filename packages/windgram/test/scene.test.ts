@@ -256,8 +256,9 @@ describe("series", () => {
 describe("barbs and markers", () => {
   it("places surface + level barbs per hour, in km/h", () => {
     const scene = buildScene(deterministicSceneProfile(), TZ);
-    // 8 hours (stride 1), 1 surface + 5 levels each.
-    expect(scene.barbs).toHaveLength(8 * 6);
+    // 8 hours (stride 1), 1 surface + 4 levels each: the first level sits
+    // within the min gap of the lifted surface row, so the walk drops it.
+    expect(scene.barbs).toHaveLength(8 * 5);
     expect(scene.barbs[0].speedKmh).toBeCloseTo(1 * 3.6, 6);
     expect(scene.barbs[0].calm).toBe(false); // 3.6 km/h rounds to a half barb
   });

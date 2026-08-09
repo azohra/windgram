@@ -1,4 +1,5 @@
 import type { BarbPlacement, SceneGraph } from "../scene/types.js";
+import type { KeySpec } from "../scene/key.js";
 import { short } from "../scene/path.js";
 
 /* svg/ — the reference serializer: scene -> self-contained SVG string.
@@ -69,10 +70,37 @@ const STABILITY_RULES = Object.entries(STABILITY_TOKEN_DEFAULTS)
  * today. Note `cloud-marker`: the cloud glyph drawn at cloud base FILLS
  * with this cream (the reference look — a cloud is pale, not ink-dark)
  * while its outline keeps the `cloud-base` hue of the line it marks.
+ *
+ * `text-*` entries are the type scale: every font size the serializer
+ * sets, as `--wg-text-<role>` tokens, so a page-scale consumer retypes
+ * the chart without forking the renderer. Weights stay in the rules.
+ *
+ * The halo tokens are per-element: `--wg-halo-series`, `--wg-halo-barb`,
+ * `--wg-halo-marker` and `--wg-halo-text` each fall back to the shared
+ * `--wg-halo`, so one override still retints everything while any
+ * element can be tuned — or switched off with `transparent` — alone.
+ * They carry no entries here because their default IS `halo`.
  */
 export const TOKEN_DEFAULTS = {
   font: '"IBM Plex Sans", ui-sans-serif, system-ui, sans-serif',
   "font-mono": '"IBM Plex Mono", ui-monospace, monospace',
+  "text-strip-name": "10.5px",
+  "text-strip-unit": "9.5px",
+  "text-strip-scale": "8px",
+  "text-row-tag": "7.5px",
+  "text-tick": "10.5px",
+  "text-hour-tick": "11px",
+  "text-gust": "9.5px",
+  "text-series-label": "10.5px",
+  "text-launch": "10.5px",
+  "text-surface-temp": "9.5px",
+  "text-key-title": "9px",
+  "text-key-boundary": "8px",
+  "text-key-group": "8px",
+  // The stability-bar group words: white with a dark halo so they hold
+  // on the lighter cells (the ramp's light end is ~2:1 on the surface).
+  "key-group-ink": "#ffffff",
+  "key-group-halo": "#00000066",
   surface: "#fffdf8",
   "strip-bg": "#f2f4f1",
   rule: "#776956",
@@ -81,6 +109,9 @@ export const TOKEN_DEFAULTS = {
   "ink-mute": "#40565a",
   halo: "#fffdf8",
   accent: "#913b0c",
+  // The surface-temperature row's ink: its own slot (theme it apart from
+  // the highlight), shipping at the accent's warm default.
+  temp: "#913b0c",
   pressure: "#963f36",
   rain: "#207a83",
   cloud: "#5b6969",
@@ -121,6 +152,11 @@ function v(name: keyof typeof TOKEN_DEFAULTS): string {
   return `var(--wg-${name}, ${TOKEN_DEFAULTS[name]})`;
 }
 
+/** Per-element halo slot falling back to the shared `--wg-halo`. */
+function haloVar(element: "series" | "barb" | "marker" | "text"): string {
+  return `var(--wg-halo-${element}, ${v("halo")})`;
+}
+
 /* The default look. Token defaults are the site's theme.css values — the
    colours actually rendered today — not the older fallback constants that
    had drifted inside the site's chart.ts. Every fallback derives from
@@ -135,8 +171,16 @@ export const DEFAULT_STYLESHEET = `
 .wg-text { fill: ${v("ink")}; }
 .wg-text-soft { fill: ${v("ink-soft")}; }
 .wg-text-mute { fill: ${v("ink-mute")}; }
-.wg-haloed-text { stroke: ${v("halo")}; paint-order: stroke; }
-.wg-halo { stroke: ${v("halo")}; }
+.wg-strip-name { fill: ${v("ink")}; font-size: ${v("text-strip-name")}; font-weight: 700; }
+.wg-strip-unit { fill: ${v("ink-mute")}; font-size: ${v("text-strip-unit")}; }
+.wg-strip-scale { fill: ${v("ink-mute")}; font-size: ${v("text-strip-scale")}; }
+.wg-tick { fill: ${v("ink-mute")}; font-size: ${v("text-tick")}; }
+.wg-hour-tick { fill: ${v("ink-mute")}; font-size: ${v("text-hour-tick")}; }
+.wg-series-label { font-size: ${v("text-series-label")}; font-weight: 700; }
+.wg-launch-label { fill: ${v("ink")}; font-size: ${v("text-launch")}; font-weight: 600; }
+.wg-surface-temp { fill: ${v("temp")}; font-size: ${v("text-surface-temp")}; font-weight: 700; }
+.wg-haloed-text { stroke: ${haloVar("text")}; paint-order: stroke; }
+.wg-halo { stroke: ${haloVar("series")}; }
 .wg-selected-column { fill: ${v("accent")}; opacity: 0.05; }
 .wg-selected-line { stroke: ${v("accent")}; }
 .wg-launch-line { stroke: ${v("ink")}; }
@@ -158,8 +202,8 @@ export const DEFAULT_STYLESHEET = `
 .wg-cape-severe { fill: ${v("cape-severe")}; opacity: 0.6; }
 .wg-cape-capped { opacity: 0.28; }
 .wg-cloud-cell { fill: ${v("cloud")}; }
-.wg-strip-row-label { fill: ${v("ink-mute")}; }
-.wg-gust { fill: ${v("gust")}; }
+.wg-strip-row-label { fill: ${v("ink-mute")}; font-size: ${v("text-row-tag")}; }
+.wg-gust { fill: ${v("gust")}; font-size: ${v("text-gust")}; font-weight: 700; }
 .wg-series-pbl { stroke: ${v("pbl")}; }
 .wg-series-pbl-band { fill: ${v("pbl")}; opacity: 0.16; }
 ${STABILITY_RULES}
@@ -194,11 +238,17 @@ ${STABILITY_RULES}
 .wg-dewpoint-label { fill: ${v("dewpoint")}; }
 .wg-barb { stroke: ${v("wind")}; }
 .wg-barb-fill { fill: ${v("wind")}; stroke: ${v("wind")}; }
-.wg-barb-halo { stroke: ${v("halo")}; }
-.wg-barb-fill-halo { fill: ${v("halo")}; stroke: ${v("halo")}; }
+.wg-barb-halo { stroke: ${haloVar("barb")}; }
+.wg-barb-fill-halo { fill: ${haloVar("barb")}; stroke: ${haloVar("barb")}; }
 .wg-marker-wing { fill: ${v("usable")}; stroke: ${v("usable")}; }
 .wg-marker-cloud { fill: ${v("cloud-marker")}; stroke: ${v("cloud-base")}; }
-.wg-marker-halo { fill: ${v("halo")}; stroke: ${v("halo")}; }
+.wg-marker-halo { fill: ${haloVar("marker")}; stroke: ${haloVar("marker")}; }
+.wg-key-label { fill: ${v("ink-mute")}; font-size: ${v("text-tick")}; }
+.wg-key-title { fill: ${v("ink")}; font-size: ${v("text-key-title")}; font-weight: 700; letter-spacing: 0.08em; }
+.wg-key-boundary { fill: ${v("ink-mute")}; font-size: ${v("text-key-boundary")}; }
+.wg-key-group { fill: ${v("key-group-ink")}; stroke: ${v("key-group-halo")}; paint-order: stroke; font-size: ${v("text-key-group")}; font-weight: 700; }
+.wg-key-band { fill: ${v("ink-mute")}; opacity: 0.16; }
+.wg-key-frame { fill: none; stroke: ${v("rule")}; }
 `.trim();
 
 type AttrValue = string | number;
@@ -213,6 +263,12 @@ function el(tag: string, attrs: Record<string, AttrValue>, children?: string): s
 
 function text(attrs: Record<string, AttrValue>, content: string): string {
   return el("text", attrs, escapeXml(content));
+}
+
+/* One decimal at most, trailing zero dropped: "101.3", "101", "0.5",
+   "2.6" — enough to read a strip's scale without crowding the gutter. */
+function stripScaleLabel(value: number): string {
+  return String(Math.round(value * 10) / 10);
 }
 
 function escapeXml(value: string): string {
@@ -343,7 +399,6 @@ export function renderSvg(scene: SceneGraph, options: RenderSvgOptions = {}): st
           {
             x: plotLeft + plotWidth + 8,
             y: short(row.top + row.height / 2 + 2.5),
-            "font-size": 7.5,
             class: "wg-strip-row-label wg-mono",
           },
           row.label,
@@ -374,17 +429,35 @@ export function renderSvg(scene: SceneGraph, options: RenderSvgOptions = {}): st
           x: plotLeft - 8,
           y: strip.top + 11,
           "text-anchor": "end",
-          "font-size": 10.5,
-          "font-weight": 700,
-          class: "wg-text",
+          class: "wg-strip-name",
         },
         strip.label,
       ),
       text(
-        { x: plotLeft - 8, y: strip.top + 22, "text-anchor": "end", "font-size": 9.5, class: "wg-text-mute" },
+        { x: plotLeft - 8, y: strip.top + 22, "text-anchor": "end", class: "wg-strip-unit" },
         strip.unit,
       ),
     );
+    // The strip's scale, at its right edge: maximum up top, minimum at the
+    // bottom — without them the strips read as shapes, not numbers. Row
+    // strips (cloud layers) put their tags there instead and have no line
+    // to scale.
+    if (!strip.rows) {
+      body.push(
+        text(
+          { x: plotLeft + plotWidth + 8, y: strip.top + 8, class: "wg-strip-scale wg-mono" },
+          stripScaleLabel(strip.maximum),
+        ),
+        text(
+          {
+            x: plotLeft + plotWidth + 8,
+            y: strip.top + strip.height,
+            class: "wg-strip-scale wg-mono",
+          },
+          stripScaleLabel(strip.minimum),
+        ),
+      );
+    }
   }
 
   /* ----- plot frame, fields, selected column ----- */
@@ -435,11 +508,11 @@ export function renderSvg(scene: SceneGraph, options: RenderSvgOptions = {}): st
         "stroke-width": 1,
       }),
       text(
-        { x: plotLeft - 8, y: short(tick.y + 3), "text-anchor": "end", "font-size": 10.5, class: "wg-text-mute" },
+        { x: plotLeft - 8, y: short(tick.y + 3), "text-anchor": "end", class: "wg-tick" },
         tick.labelMetres,
       ),
       text(
-        { x: plotLeft + plotWidth + 8, y: short(tick.y + 3), "font-size": 10.5, class: "wg-text-mute" },
+        { x: plotLeft + plotWidth + 8, y: short(tick.y + 3), class: "wg-tick" },
         tick.labelFeet,
       ),
     );
@@ -464,10 +537,17 @@ export function renderSvg(scene: SceneGraph, options: RenderSvgOptions = {}): st
           x: short(tick.x),
           y: plotBottom + 18,
           "text-anchor": "middle",
-          "font-size": 11,
-          class: "wg-text-mute wg-mono",
+          class: "wg-hour-tick wg-mono",
         },
         tick.label,
+      ),
+    );
+  }
+  for (const mark of scene.surfaceTemperatures) {
+    body.push(
+      text(
+        { x: short(mark.x), y: short(mark.y), "text-anchor": "middle", class: "wg-surface-temp wg-mono" },
+        mark.label,
       ),
     );
   }
@@ -489,9 +569,7 @@ export function renderSvg(scene: SceneGraph, options: RenderSvgOptions = {}): st
         {
           x: plotLeft + 7,
           y: short(scene.launch.y - 6),
-          "font-size": 10.5,
-          "font-weight": 600,
-          class: "wg-text wg-haloed-text",
+          class: "wg-launch-label wg-haloed-text",
           "stroke-width": 2.5,
         },
         scene.launch.label,
@@ -553,8 +631,6 @@ export function renderSvg(scene: SceneGraph, options: RenderSvgOptions = {}): st
           x: short(gust.x),
           y: short(gust.y),
           "text-anchor": "middle",
-          "font-size": 9.5,
-          "font-weight": 700,
           class: "wg-gust wg-haloed-text wg-mono",
           "stroke-width": 2.2,
         },
@@ -569,9 +645,7 @@ export function renderSvg(scene: SceneGraph, options: RenderSvgOptions = {}): st
           x: short(label.x),
           y: short(label.y),
           "text-anchor": label.anchor,
-          "font-size": 10.5,
-          "font-weight": 700,
-          class: `${label.className} wg-haloed-text`,
+          class: `${label.className} wg-series-label wg-haloed-text`,
           "stroke-width": 2.5,
         },
         label.text,
@@ -587,6 +661,224 @@ export function renderSvg(scene: SceneGraph, options: RenderSvgOptions = {}): st
       role: "img",
       "aria-label": scene.ariaLabel,
       class: "wg",
+    },
+    `\n${body.join("\n")}\n`,
+  );
+}
+
+/* ------------------------------------------------------------------ key */
+
+/* Key layout constants. Text widths are estimated (label chars x an
+   average glyph width for the reference face) because the serializer is
+   headless — deterministic beats typographically perfect here. */
+const KEY_PAD = 12;
+const KEY_LABEL_CHAR_PX = 5.8;
+const KEY_TITLE_CHAR_PX = 6.3;
+const KEY_GROUP_CHAR_PX = 4.9;
+const KEY_SWATCH_W = 26;
+const KEY_CHIP_W = 24;
+const KEY_CHIP_H = 9;
+const KEY_SWATCH_STROKE = 2;
+const KEY_LABEL_GAP = 6;
+const KEY_ENTRY_GAP = 18;
+const KEY_ROW_H = 26;
+const KEY_TITLE_GAP = 10;
+const KEY_MIN_CELL_W = 40;
+const KEY_BAR_H = 22;
+
+/**
+ * Serializes a key spec (scene/buildKeySpec) to a self-contained SVG
+ * string — the reference key. Swatches draw with each entry's REAL dash,
+ * stroke width and class, so `--wg-*` tokens theme the key exactly as
+ * they theme the chart and the two cannot disagree; the stability bar
+ * prints the class boundaries above its cell edges and the group words
+ * inside the cells. Default `idPrefix` is "wg-key" so a page holding the
+ * default-prefixed chart and its key has no colliding pattern ids.
+ */
+export function renderKeySvg(spec: KeySpec, options: RenderSvgOptions = {}): string {
+  const idPrefix = options.idPrefix ?? "wg-key";
+  const stylesheet = options.stylesheet === undefined ? DEFAULT_STYLESHEET : options.stylesheet;
+
+  type RowItem =
+    | { kind: "series"; label: string; className: string; dash: string | null }
+    | { kind: "hatch"; label: string }
+    | { kind: "band"; label: string };
+  const items: RowItem[] = [
+    ...spec.series.map((entry) => ({
+      kind: "series" as const,
+      label: entry.label,
+      className: entry.className,
+      dash: entry.dash,
+    })),
+    ...(spec.hatch ? [{ kind: "hatch" as const, label: spec.hatch.label }] : []),
+    ...(spec.band ? [{ kind: "band" as const, label: spec.band.label }] : []),
+  ];
+  const itemWidth = (item: RowItem) =>
+    (item.kind === "series" ? KEY_SWATCH_W : KEY_CHIP_W) +
+    KEY_LABEL_GAP +
+    Math.ceil(item.label.length * KEY_LABEL_CHAR_PX);
+  const rowWidth =
+    items.reduce((sum, item) => sum + itemWidth(item), 0) +
+    KEY_ENTRY_GAP * Math.max(items.length - 1, 0);
+  const title = spec.stability?.title ?? "";
+  const titleWidth = spec.stability ? Math.ceil(title.length * KEY_TITLE_CHAR_PX) + KEY_TITLE_GAP : 0;
+  const minStabilityWidth = spec.stability
+    ? titleWidth + KEY_MIN_CELL_W * spec.stability.classes.length
+    : 0;
+  const width = Math.max(rowWidth, minStabilityWidth) + 2 * KEY_PAD;
+  const rowBottom = items.length > 0 ? 6 + KEY_ROW_H : 6;
+  const barTop = rowBottom + 14;
+  const height = spec.stability ? barTop + KEY_BAR_H + 10 : rowBottom + 6;
+
+  const body: string[] = [];
+  if (stylesheet) body.push(el("style", {}, `\n${stylesheet}\n`));
+  if (spec.hatch) {
+    const hatchId = `${idPrefix}-cloud-hatch`;
+    body.push(
+      el(
+        "defs",
+        {},
+        el(
+          "pattern",
+          { id: hatchId, width: 7, height: 7, patternUnits: "userSpaceOnUse", patternTransform: "rotate(45)" },
+          el("line", { x1: 0, y1: 0, x2: 0, y2: 7, class: "wg-cloud-hatch-line", "stroke-width": 1.2 }),
+        ),
+      ),
+    );
+  }
+
+  /* ----- the centred row: swatches with the REAL dashes, then chips ----- */
+  let x = (width - rowWidth) / 2;
+  const swatchY = 6 + KEY_ROW_H / 2;
+  for (const item of items) {
+    if (item.kind === "series") {
+      const attrs: Record<string, AttrValue> = {
+        d: `M${short(x)} ${short(swatchY)} H${short(x + KEY_SWATCH_W)}`,
+        class: item.className,
+        fill: "none",
+        "stroke-width": KEY_SWATCH_STROKE,
+        "stroke-linecap": "round",
+      };
+      if (item.dash) attrs["stroke-dasharray"] = item.dash;
+      body.push(el("path", attrs));
+      x += KEY_SWATCH_W;
+    } else {
+      const chipX = short(x);
+      const chipY = short(swatchY - KEY_CHIP_H / 2);
+      const chip: Record<string, AttrValue> = {
+        x: chipX,
+        y: chipY,
+        width: KEY_CHIP_W,
+        height: KEY_CHIP_H,
+      };
+      if (item.kind === "hatch") chip["fill"] = `url(#${idPrefix}-cloud-hatch)`;
+      else chip["class"] = "wg-key-band";
+      body.push(
+        el("rect", chip),
+        el("rect", {
+          x: chipX,
+          y: chipY,
+          width: KEY_CHIP_W,
+          height: KEY_CHIP_H,
+          class: "wg-key-frame",
+          "stroke-width": 0.7,
+        }),
+      );
+      x += KEY_CHIP_W;
+    }
+    x += KEY_LABEL_GAP;
+    body.push(text({ x: short(x), y: short(swatchY + 3.5), class: "wg-key-label" }, item.label));
+    x += Math.ceil(item.label.length * KEY_LABEL_CHAR_PX) + KEY_ENTRY_GAP;
+  }
+
+  /* ----- the stability row: title at the left, the bar filling the rest,
+     boundary values above the cell edges, group words inside ----- */
+  if (spec.stability) {
+    const barX = KEY_PAD + titleWidth;
+    const cellW = (width - 2 * KEY_PAD - titleWidth) / spec.stability.classes.length;
+    const cells: string[] = [];
+    cells.push(
+      text(
+        { x: KEY_PAD, y: short(barTop + KEY_BAR_H / 2 + 3), class: "wg-key-title" },
+        title,
+      ),
+    );
+    spec.stability.classes.forEach((entry, index) => {
+      // <title> is the cell's tooltip and accessible name: plain words
+      // for a colour that otherwise only a legend-reader could name.
+      cells.push(
+        el(
+          "rect",
+          {
+            x: short(barX + index * cellW),
+            y: short(barTop),
+            width: short(cellW),
+            height: KEY_BAR_H,
+            class: `wg-stab-${entry.className}`,
+          },
+          el("title", {}, escapeXml(entry.label)),
+        ),
+      );
+    });
+    spec.stability.classes.slice(0, -1).forEach((entry, index) => {
+      cells.push(
+        text(
+          {
+            x: short(barX + (index + 1) * cellW),
+            y: short(barTop - 4),
+            "text-anchor": "middle",
+            class: "wg-key-boundary wg-mono",
+          },
+          String(entry.maxLapse),
+        ),
+      );
+    });
+    let offset = 0;
+    for (const group of spec.stability.groups) {
+      const maxPx = group.span * cellW - 8;
+      const label =
+        group.label.length * KEY_GROUP_CHAR_PX <= maxPx
+          ? group.label
+          : `${group.label.slice(0, Math.max(1, Math.floor(maxPx / KEY_GROUP_CHAR_PX) - 1))}…`;
+      cells.push(
+        text(
+          {
+            x: short(barX + (offset + group.span / 2) * cellW),
+            y: short(barTop + KEY_BAR_H / 2 + 3),
+            "text-anchor": "middle",
+            class: "wg-key-group",
+            "stroke-width": 2,
+          },
+          label,
+        ),
+      );
+      offset += group.span;
+    }
+    body.push(
+      el(
+        "g",
+        {
+          role: "img",
+          "aria-label":
+            "Lapse-rate stability ramp: very unstable at the left through strong inversion at the right; boundary values in °C per 1,000 ft",
+        },
+        cells.join(""),
+      ),
+    );
+  }
+
+  const ariaParts = [
+    items.length > 0 ? `line styles for ${items.map((item) => item.label).join(", ")}` : null,
+    spec.stability ? "and the lapse-rate stability ramp" : null,
+  ].filter((part): part is string => part !== null);
+  return el(
+    "svg",
+    {
+      xmlns: "http://www.w3.org/2000/svg",
+      viewBox: `0 0 ${short(width)} ${short(height)}`,
+      role: "img",
+      "aria-label": `Windgram key: ${ariaParts.join(" ") || "empty"}.`,
+      class: "wg wg-key",
     },
     `\n${body.join("\n")}\n`,
   );

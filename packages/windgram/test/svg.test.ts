@@ -76,6 +76,14 @@ describe("renderSvg structure", () => {
     // Strip var() fallbacks that match an exported default; any hex left
     // in the stylesheet would be a value living outside its one home.
     let sheet = DEFAULT_STYLESHEET;
+    // Per-element halo slots nest the shared token as their fallback —
+    // their default IS --wg-halo, so they carry no TOKEN_DEFAULTS entry.
+    for (const element of ["series", "barb", "marker", "text"]) {
+      sheet = sheet.replaceAll(
+        `var(--wg-halo-${element}, var(--wg-halo, ${TOKEN_DEFAULTS.halo}))`,
+        "",
+      );
+    }
     for (const [name, value] of Object.entries(TOKEN_DEFAULTS)) {
       sheet = sheet.replaceAll(`var(--wg-${name}, ${value})`, "");
     }
@@ -159,6 +167,7 @@ describe("renderSvg structure", () => {
           usableLiftTop: false,
           launch: false,
           selectedHour: false,
+          surfaceTemperature: false,
         },
       }),
       { stylesheet: null },
@@ -166,6 +175,7 @@ describe("renderSvg structure", () => {
     for (const forbidden of [
       "wg-strip-",
       "wg-series-",
+      "wg-surface-temp",
       "wg-stab-",
       // (the invisible hatch <pattern> def keeps its class; nothing fills with it)
       "wg-cloud-dense",
@@ -187,7 +197,8 @@ describe("renderSvg structure", () => {
     // The axes and frame remain: this is still a windgram, not a blank.
     expect(everythingOff).toContain('class="wg-frame"');
     expect(everythingOff).toContain('class="wg-gridline"');
-    expect(everythingOff).toContain('class="wg-text-mute wg-mono"');
+    expect(everythingOff).toContain('class="wg-tick"');
+    expect(everythingOff).toContain('class="wg-hour-tick wg-mono"');
   });
 
   it("removes the derived-height lines and selected-hour highlight per toggle", () => {
