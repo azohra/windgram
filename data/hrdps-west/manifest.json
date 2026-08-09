@@ -1,10 +1,10 @@
 {
   "firstForecastHour": 1,
   "forecastHours": 48,
-  "generatedAt": "2026-08-09T00:25:11.206Z",
+  "generatedAt": "2026-08-09T08:12:32.244Z",
   "lastForecastHour": 48,
   "model": "hrdps-west",
-  "referenceTime": "2026-08-08T12:00:00Z",
+  "referenceTime": "2026-08-09T00:00:00Z",
   "schemaVersion": 1,
   "sites": [
     {
@@ -25,9 +25,9 @@
     }
   ],
   "stats": {
-    "downloadBytes": 2180946727,
+    "downloadBytes": 2201923522,
     "downloads": 2785,
-    "durationMs": 1107964,
+    "durationMs": 2437041,
     "retries": 0
   }
 }
