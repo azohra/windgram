@@ -1,10 +1,10 @@
 {
   "firstForecastHour": 1,
   "forecastHours": 84,
-  "generatedAt": "2026-08-09T00:32:28.731Z",
+  "generatedAt": "2026-08-09T03:16:26.693Z",
   "lastForecastHour": 84,
   "model": "rdps",
-  "referenceTime": "2026-08-08T18:00:00Z",
+  "referenceTime": "2026-08-09T00:00:00Z",
   "schemaVersion": 1,
   "sites": [
     {
@@ -25,9 +25,9 @@
     }
   ],
   "stats": {
-    "downloadBytes": 4856813404,
-    "downloads": 7226,
-    "durationMs": 434809,
-    "retries": 1
+    "downloadBytes": 4849144870,
+    "downloads": 7228,
+    "durationMs": 575362,
+    "retries": 3
   }
 }
