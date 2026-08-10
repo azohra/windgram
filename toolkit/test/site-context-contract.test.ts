@@ -87,21 +87,12 @@ const CONTEXT = {
 };
 
 describe("site context contract", () => {
-  /* TODO(pipeline, launch-decoupling): the committed repo-root
-     site-context.json is still the v1 shape (schemaVersion 1, optional
-     bareEarth, no elevation pick). The pipeline step — `windgram terrain`
-     v2 with the elevation priority pick — regenerates it; until then this
-     drift test is EXPECTED to fail. When the pipeline lands, it.fails will
-     itself fail: flip it back to a plain it. */
-  it.fails(
-    "parses the committed site-context.json (v2) — pending the pipeline re-scope",
-    () => {
-      const text = readFileSync(new URL("../../site-context.json", import.meta.url), "utf8");
-      const parsed = parseSiteContextJson(text);
-      expect(parsed).not.toBeNull();
-      expect(Object.keys(parsed?.sites ?? {}).length).toBeGreaterThan(0);
-    },
-  );
+  it("parses the committed site-context.json", () => {
+    const text = readFileSync(new URL("../../site-context.json", import.meta.url), "utf8");
+    const parsed = parseSiteContextJson(text);
+    expect(parsed).not.toBeNull();
+    expect(Object.keys(parsed?.sites ?? {}).length).toBeGreaterThan(0);
+  });
 
   it("accepts a generated context and parses from the stored string", () => {
     expect(parseSiteContext(CONTEXT)).not.toBeNull();
