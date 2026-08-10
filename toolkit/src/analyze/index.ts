@@ -76,6 +76,7 @@ export {
   ANALYZE_VOCABULARY_VERSION,
   DEFAULT_ANALYZE_THRESHOLDS,
   type AnalyzeOptions,
+  type AnalyzeThresholdOverrides,
   type AnalyzeThresholds,
   type CapTimingFinding,
   type CitedInstant,

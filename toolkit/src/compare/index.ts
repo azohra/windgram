@@ -45,6 +45,7 @@ import { isDeterministicProfile, type WindgramProfile } from "../contract/index.
 import {
   analyzeProfile,
   resolveAnalyzeThresholds,
+  type AnalyzeThresholdOverrides,
   type AnalyzeThresholds,
   type CitedInstant,
   type ThermalWindowFinding,
@@ -55,13 +56,36 @@ import {
 import { round1 } from "../analyze/kinds/shared.js";
 
 /**
- * The comparison-kind set this module can emit. Version 1 ships exactly
+ * The comparison-kind set this module can emit. Version 1 shipped exactly
  * the kinds the 2026-08-09 findings spike earned: windowAgreement and
  * heightSpread, over the member ledger. Kinds trialled at the value
  * level and killed by artifacts (consensus, outliers) remain
  * deliberately absent.
  */
-export const COMPARE_VOCABULARY_VERSION = 1;
+export const COMPARE_VOCABULARY_VERSION = 2;
+/* v2 (2026-08-10): rides analyze v4 as one release (toolkit 0.21.0),
+   ratified in notes/design-analyze-compare-v4.md over the 2026-08-10
+   spikes (notes/spike-v4: S1-percentiles, S3-wind carry the compare-side
+   evidence). Votes read the renamed `thermalWindow` kind. The breaking
+   identity change: a member is `(model, referenceTime)`, not the model
+   slug — re-derived blind by all three reviews, and the same-model guard
+   v1 landed becomes real support for two runs of one model (the
+   convergence program's break, pre-paid). windowAgreement gains the
+   sensitivity statement (smallest threshold move that flips a voter),
+   cadence echoes on timing votes (Tier 0 #5 — a 3-hourly member's edge
+   is quantization, not timing), outOfHorizon abstentions (Tier 0 #4:
+   "voters 3, unanimous true" said nothing about the 7 members that never
+   reached the day) and the midnight-electorate fix (Tier 0 #3); zero-voter
+   findings are suppressed only when a day has zero voters AND zero
+   abstentions, so horizon-edge days keep their roster records.
+   windDivergence lands from S3 with the mandatory elevation-regime echo
+   (mean-wind ratios 0.18–1.22 at matched sites are grid-elevation
+   regimes, not disagreement), gust spreads stay within one semantics
+   class (measured gap ~1.8–2.8×), and shear rates never join a roster
+   (not comparable across level densities). heightSpread peaks gain the
+   optional p10–p90 band as verdict-free context (S1: 57 of 61 outside
+   peaks sit ABOVE the band — exceedance is the norm, never an outlier
+   verdict); WindowVote carries the percentile test through. */
 
 /* ------------------------------------------------------------- vocabulary */
 
@@ -169,7 +193,7 @@ export interface CompareOptions {
    */
   timeZone: string;
   /** Threshold overrides, applied identically to every member. */
-  thresholds?: Partial<AnalyzeThresholds>;
+  thresholds?: AnalyzeThresholdOverrides;
   /**
    * ONE launch for the whole comparison, passed to every member's analysis
    * (see AnalyzeOptions.launch) — documents are launch-agnostic, and

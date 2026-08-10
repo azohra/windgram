@@ -100,7 +100,7 @@ describe("the analysis envelope", () => {
     }
   });
 
-  it("emits only the version-2 vocabulary — kinds are a closed, versioned set", () => {
+  it("emits only the versioned vocabulary — kinds are a closed, versioned set", () => {
     const kinds = new Set(
       [
         analyzeProfile(hrrr(), ERIE),
@@ -146,6 +146,88 @@ describe("thermalWindow", () => {
     expect(saturday.evidence.liftTopBandP10P90).toBeUndefined(); // deterministic document
   });
 
+  it("stamps forecast lead and the cadence echo on every window", () => {
+    // leadHours anchors on the day's peak-lift hour (the claim's central
+    // instant); stepHours echoes the window's own quantization bound.
+    const hrrrWindows = ofKind<ThermalWindowFinding>(
+      analyzeProfile(hrrr(), ERIE).findings,
+      "thermalWindow",
+    );
+    const saturday = hrrrWindows.find((finding) => finding.day === "2026-08-08")!;
+    // Run 2026-08-08T18:00Z, peak lift at 23:00Z — five hours out.
+    expect(saturday.leadHours).toBe(5);
+    expect(saturday.stepHours).toBe(1);
+    const sunday = hrrrWindows.find((finding) => finding.day === "2026-08-09")!;
+    expect(sunday.leadHours).toBe(24);
+
+    const repsWindows = ofKind<ThermalWindowFinding>(
+      analyzeProfile(reps(), ERIE).findings,
+      "thermalWindow",
+    );
+    // Same run hour, 3-hourly document: peak at 21:00Z, three hours out,
+    // and the duration's quantization (one 3-hour step) rides along.
+    expect(repsWindows[0].leadHours).toBe(3);
+    expect(repsWindows[0].stepHours).toBe(3);
+  });
+
+  it("bridges sub-threshold dips only when asked — maxGapHours states the segmentation convention", () => {
+    // One mid-window hour dips under the W* floor: 22:00Z at 0.85.
+    const dipped = hrrr();
+    for (const hour of dipped.hours) {
+      if (hour.validAt === "2026-08-08T22:00:00Z") {
+        (hour.derived as { thermalVelocityMs: number }).thermalVelocityMs = 0.85;
+      }
+    }
+    // Default 0: the dip splits the day into two windows — v3 behaviour.
+    const split = ofKind<ThermalWindowFinding>(
+      analyzeProfile(dipped, ERIE).findings,
+      "thermalWindow",
+    ).filter((finding) => finding.day === "2026-08-08");
+    expect(split.map((finding) => [finding.start.validAt, finding.end.validAt])).toEqual([
+      ["2026-08-08T19:00:00Z", "2026-08-08T21:00:00Z"],
+      ["2026-08-08T23:00:00Z", "2026-08-09T01:00:00Z"],
+    ]);
+    // maxGapHours 1 bridges the one-hour dip into a single window; the
+    // bridged hour stays in the cited evidence, dip visible.
+    const merged = ofKind<ThermalWindowFinding>(
+      analyzeProfile(dipped, {
+        ...ERIE,
+        thresholds: { thermalWindow: { maxGapHours: 1 } },
+      }).findings,
+      "thermalWindow",
+    ).filter((finding) => finding.day === "2026-08-08");
+    expect(merged).toHaveLength(1);
+    expect(merged[0].start.validAt).toBe("2026-08-08T19:00:00Z");
+    expect(merged[0].end.validAt).toBe("2026-08-09T01:00:00Z");
+    expect(merged[0].durationHours).toBe(7);
+    expect(merged[0].peakLiftTopM).toBe(2905.6); // the far run's peak carries
+    const dipIndex = merged[0].evidence.hours.indexOf("2026-08-08T22:00:00Z");
+    expect(merged[0].evidence.thermalVelocityMs[dipIndex]).toBe(0.85);
+    expect(merged[0].thresholds).toEqual({ wstarMinMs: 0.9, depthMinM: 300, maxGapHours: 1 });
+  });
+
+  it("never bridges a data hole — a null hour is not a forecast dip", () => {
+    // The same gap, but the hour publishes no lift top at all: bridging
+    // would manufacture continuity over data the model never forecast.
+    const holed = hrrr();
+    for (const hour of holed.hours) {
+      if (hour.validAt === "2026-08-08T22:00:00Z") {
+        (hour.derived as { usableLiftTopM: number | null }).usableLiftTopM = null;
+      }
+    }
+    const windows = ofKind<ThermalWindowFinding>(
+      analyzeProfile(holed, {
+        ...ERIE,
+        thresholds: { thermalWindow: { maxGapHours: 1 } },
+      }).findings,
+      "thermalWindow",
+    ).filter((finding) => finding.day === "2026-08-08");
+    expect(windows.map((finding) => [finding.start.validAt, finding.end.validAt])).toEqual([
+      ["2026-08-08T19:00:00Z", "2026-08-08T21:00:00Z"],
+      ["2026-08-08T23:00:00Z", "2026-08-09T01:00:00Z"],
+    ]);
+  });
+
   it("moves with the caller's thresholds — they are conventions, not physics", () => {
     const strict = analyzeProfile(hrrr(), {
       ...ERIE,
@@ -156,7 +238,7 @@ describe("thermalWindow", () => {
     // Only 22:00Z clears both bars (top 2826.3 = 1579 m over launch, W* 2.16).
     expect(findings[0].durationHours).toBe(1);
     expect(findings[0].start.validAt).toBe("2026-08-08T22:00:00Z");
-    expect(findings[0].thresholds).toEqual({ wstarMinMs: 2.1, depthMinM: 1500 });
+    expect(findings[0].thresholds).toEqual({ wstarMinMs: 2.1, depthMinM: 1500, maxGapHours: 0 });
   });
 
   it("states the negative: a day with no window emits quietDay with the numbers that failed", () => {
@@ -511,6 +593,8 @@ describe("mixed cadence — spacing is per-gap, never a document constant", () =
     expect(saturday.start.validAt).toBe("2026-08-08T19:00:00Z");
     expect(saturday.end.validAt).toBe("2026-08-09T01:00:00Z");
     expect(saturday.durationHours).toBe(9);
+    // The echo names the widest cited step — the quantization bound.
+    expect(saturday.stepHours).toBe(3);
   });
 
   it("gates capTiming per day — a document that merely starts hourly gets no coarse-day cap story", () => {

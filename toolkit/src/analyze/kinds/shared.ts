@@ -101,6 +101,22 @@ export function hourStepsOf(profile: WindgramProfile): HourSteps {
   return { before, after, maxStepHours: Math.max(...gaps), indexOf };
 }
 
+/**
+ * Forecast lead in hours from the run's referenceTime to a cited instant —
+ * the design's item 6a, computed in ONE home so every day-keyed kind
+ * states lead the same way: thermalWindow anchors on the day's peak-lift
+ * hour, and the percentile-crossing and quiet-day statements reuse this
+ * helper on their own anchor instants. S1 (2026-08-10) measured why the
+ * number is mandatory wherever band statements ride: all 22
+ * p50-quiet/band-window days sat at lead ≥ 72 h — a day-10 window and a
+ * day-1 window are epistemically different objects wearing the same
+ * vocabulary. Rounded to one decimal (both instants are on-the-hour on
+ * live documents, so this reads as an integer in practice).
+ */
+export function leadHoursTo(referenceTime: string, validAt: string): number {
+  return round1((Date.parse(validAt) - Date.parse(referenceTime)) / 3_600_000);
+}
+
 /** The leading cadence — see `Context.stepHours` for what it may and may
  * not be used for. */
 export function stepHoursOf(profile: WindgramProfile): number {

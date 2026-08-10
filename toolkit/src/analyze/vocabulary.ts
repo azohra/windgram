@@ -26,7 +26,7 @@ import type { WindSummaryFinding } from "./kinds/wind-summary.js";
  * a kind is a contract event — bump this, and document the evidence that
  * justified the change (see the module charter in index.ts).
  */
-export const ANALYZE_VOCABULARY_VERSION = 3;
+export const ANALYZE_VOCABULARY_VERSION = 4;
 /* v2 (2026-08-08): adds `quietDay` — production consumer evidence: a day
    with no flyable window was expressible only by absence, so headlines
    could say "no window" but never why. The negative now carries the
@@ -38,7 +38,30 @@ export const ANALYZE_VOCABULARY_VERSION = 3;
    window. quietDay carries `coverage` with a `truncated` verdict (a
    truncated quiet day is a data boundary, not a forecast, and must not
    vote in comparisons); flyableWindow carries `clippedAtStart` /
-   `clippedAtEnd` so a clipped edge reads as ≥/≤, not as timing. */
+   `clippedAtEnd` so a clipped edge reads as ≥/≤, not as timing.
+   v4 (2026-08-10): ONE vocabulary event, gated by the four 2026-08-10
+   evidence spikes (notes/spike-v4: S1-percentiles, S2-smoke, S3-wind,
+   S4-convective) and ratified in notes/design-analyze-compare-v4.md.
+   The rename: `flyableWindow` becomes `thermalWindow` — the kind string
+   was the one judgment word the discipline could not reduce; the
+   arithmetic tests thermals, not flyability (its JSDoc records the
+   argument). Contract-shaped defect fixes ride the bump: spacing-derived
+   statements read the actual per-gap cadence, never a document constant
+   (S1 caught live GEPS switching 3 h → 6 h mid-horizon and misreading
+   durations, truncation verdicts, and the cap-timing gate); thermalWindow
+   carries its own `stepHours` quantization echo, a caller-movable
+   `maxGapHours` segmentation tolerance (default 0 = v3 behaviour), and
+   `leadHours` (S1: all 22 p50-quiet/band-window days sat at lead ≥ 72 h —
+   the finding must say how far out it reads). The kinds the spikes
+   earned land in this same event: percentile-crossing statements (S1,
+   amended shape — hours-passing counts, never per-percentile windows),
+   smoke magnitudes with the joined-document caveat fix (S2 — the derate
+   verdict DIED and is deliberately absent), the wind family (S3 —
+   window-scoped wind, caller-thresholded exceedance, deterministic-only
+   direction evolution, analyze-only band shear), convective un-gating
+   with quiet-day atmospheric context and the cappedAllDay verdict split
+   (S4), and the removals: `bands.trend` and `maxRelativeSpread` (diurnal
+   confounds measured live in both directions), `liftCeiling.flips`. */
 
 /* ------------------------------------------------------------- vocabulary */
 
@@ -73,7 +96,7 @@ export type FindingKind = WindgramFinding["kind"];
 
 /* One entry line per threshold-using kind. */
 export interface AnalyzeThresholds {
-  thermalWindow: { wstarMinMs: number; depthMinM: number };
+  thermalWindow: { wstarMinMs: number; depthMinM: number; maxGapHours: number };
   liftCeiling: { cloudCapMarginM: number };
   capTiming: {
     instabilityMinCapeJkg: number;
@@ -93,7 +116,7 @@ export interface AnalyzeThresholds {
  * caller-movable per call — they are conventions, not physics.
  */
 export const DEFAULT_ANALYZE_THRESHOLDS: AnalyzeThresholds = {
-  thermalWindow: { wstarMinMs: 0.9, depthMinM: 300 },
+  thermalWindow: { wstarMinMs: 0.9, depthMinM: 300, maxGapHours: 0 },
   liftCeiling: { cloudCapMarginM: 50 },
   capTiming: {
     instabilityMinCapeJkg: 100,
@@ -104,6 +127,16 @@ export const DEFAULT_ANALYZE_THRESHOLDS: AnalyzeThresholds = {
   terrainMismatch: { minAbsDeltaM: 250 },
   windSummary: { bandMarginM: 200, persistenceFractionOfMax: 0.8 },
   ensembleMembership: { wideningRatio: 1.5 },
+};
+
+/**
+ * Per-kind threshold overrides: each kind's block merges over its default,
+ * so a caller may move one number (say, `thermalWindow.maxGapHours`)
+ * without restating the rest — the embedded `thresholds` echo on every
+ * finding confesses the resolved values either way.
+ */
+export type AnalyzeThresholdOverrides = {
+  [K in keyof AnalyzeThresholds]?: Partial<AnalyzeThresholds[K]>;
 };
 
 export interface AnalyzeOptions {
@@ -125,7 +158,7 @@ export interface AnalyzeOptions {
    */
   launch?: { elevationM: number } | null;
   /** Per-kind threshold overrides, merged over the defaults per kind. */
-  thresholds?: Partial<AnalyzeThresholds>;
+  thresholds?: AnalyzeThresholdOverrides;
 }
 
 /* ---------------------------------------------------------------- envelope */

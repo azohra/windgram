@@ -22,6 +22,7 @@ import {
   ANALYZE_VOCABULARY_VERSION,
   DEFAULT_ANALYZE_THRESHOLDS,
   type AnalyzeOptions,
+  type AnalyzeThresholdOverrides,
   type AnalyzeThresholds,
   type WindgramAnalysis,
   type WindgramFinding,
@@ -98,13 +99,13 @@ export function analyzeProfile(
  * option — exported so `compare/` can echo the resolved values in its
  * envelope without restating the merge (one home). */
 export function resolveAnalyzeThresholds(
-  overrides?: Partial<AnalyzeThresholds>,
+  overrides?: AnalyzeThresholdOverrides,
 ): AnalyzeThresholds {
   return mergeThresholds(overrides);
 }
 
 /* One merge line per threshold-using kind. */
-function mergeThresholds(overrides?: Partial<AnalyzeThresholds>): AnalyzeThresholds {
+function mergeThresholds(overrides?: AnalyzeThresholdOverrides): AnalyzeThresholds {
   if (!overrides) return DEFAULT_ANALYZE_THRESHOLDS;
   return {
     thermalWindow: { ...DEFAULT_ANALYZE_THRESHOLDS.thermalWindow, ...overrides.thermalWindow },
