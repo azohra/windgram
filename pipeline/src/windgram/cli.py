@@ -17,7 +17,7 @@ from .config import (
     resolve_path,
     validate_sites_path,
 )
-from .sites import load_sites
+from .sites import load_sites, load_sites_input
 
 
 MODEL_SLUGS = (
@@ -107,10 +107,10 @@ def _parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _load_sites_for_cli(path: Path) -> list[dict]:
+def _load_sites_for_cli(path: Path, loader=load_sites) -> list[dict]:
     validate_sites_path(path)
     try:
-        return load_sites(path)
+        return loader(path)
     except (OSError, ValueError, KeyError, TypeError) as error:
         raise PublisherConfigurationError(f"invalid sites file {path}: {error}") from error
     except RuntimeError as error:
@@ -231,7 +231,10 @@ def _build(arguments: argparse.Namespace) -> int:
 
 
 def _terrain(arguments: argparse.Namespace) -> int:
-    sites = _load_sites_for_cli(resolve_path(arguments.sites))
+    # Identity only, never the joining loader: terrain GENERATES the
+    # context the join reads, so joining here would chicken-and-egg on
+    # the first run after a catalogue change.
+    sites = _load_sites_for_cli(resolve_path(arguments.sites), loader=load_sites_input)
     # The terrain module needs numpy (and, inside the command, rasterio —
     # both behind the `terrain` extra so cron builds stay lean); importing
     # here keeps `windgram build` clear of them.

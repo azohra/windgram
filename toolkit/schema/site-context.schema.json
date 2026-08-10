@@ -5,7 +5,7 @@
   "properties": {
     "schemaVersion": {
       "type": "number",
-      "const": 1
+      "const": 2
     },
     "generatedAt": {
       "type": "string",
@@ -82,6 +82,25 @@
       "additionalProperties": {
         "type": "object",
         "properties": {
+          "elevation": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                "description": "The sources[] entry this value came from."
+              },
+              "elevationM": {
+                "type": "number",
+                "description": "Launch elevation at the catalogued point, metres MSL, bilinear."
+              }
+            },
+            "required": [
+              "source",
+              "elevationM"
+            ],
+            "description": "THE launch elevation — the operative value builders write into every document's site block, from the best available source: bare-earth lidar first (lidarbc), the national 30 m DTM next (mrdem30), the 30 m surface model last (glo30 — canopy included, and the generator warns when it must stoop to it)."
+          },
           "terrain": {
             "type": "object",
             "properties": {
@@ -149,25 +168,6 @@
               "relief"
             ],
             "description": "Terrain analysis from ONE consistent elevation model across every site, so numbers compare across the catalogue."
-          },
-          "bareEarth": {
-            "type": "object",
-            "properties": {
-              "source": {
-                "type": "string",
-                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-                "description": "The sources[] entry this value came from."
-              },
-              "elevationM": {
-                "type": "number",
-                "description": "Bare-earth (DTM) elevation at the launch point, metres MSL, bilinear."
-              }
-            },
-            "required": [
-              "source",
-              "elevationM"
-            ],
-            "description": "The best available bare-earth elevation at the launch — ground returns, no canopy. Absent when no bare-earth model covers the site; absence means \"not measured\", never agreement."
           },
           "landCover": {
             "type": "object",
@@ -249,10 +249,11 @@
           }
         },
         "required": [
+          "elevation",
           "terrain",
           "landCover"
         ],
-        "description": "One site's terrain and land-cover context. Coordinates, surveyed elevation and timezone are NOT echoed here — sites.json is their home; join by slug."
+        "description": "One site's derived ground truth: the operative launch elevation, the terrain analysis, and the land cover. Coordinates and timezone are NOT echoed here — the sites input is their home; join by slug."
       },
       "description": "Site slug → context. Join against sites.json; slugs are the identity."
     }

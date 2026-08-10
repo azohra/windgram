@@ -23,6 +23,17 @@ const slugSchema = z
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "expected a lowercase hyphenated slug")
   .describe("Lowercase hyphenated slug — the identity of models and sites everywhere.");
 
+/** what3words address of the launch (e.g. "filled.count.soap") — a
+ * human-readable echo for pilots; latitude/longitude stays the operative
+ * identity, and the string is stored opaque (validating it would need
+ * the proprietary what3words API). */
+const what3wordsSchema = z
+  .string()
+  .regex(/^[a-z]+\.[a-z]+\.[a-z]+$/)
+  .describe(
+    'what3words address of the launch ("word.word.word", no leading slashes) — a human-readable echo for pilots. latitude/longitude is the operative identity; the string is opaque (validation would need the proprietary what3words API).',
+  );
+
 // UTC instants; "Z" required, fractional seconds tolerated (manifests carry
 // milliseconds, profile documents whole seconds).
 const utcInstantSchema = z.iso
@@ -396,16 +407,19 @@ export const windgramSiteSchema = z.object({
   name: z.string().min(1),
   latitude: z.number(),
   longitude: z.number(),
+  what3words: what3wordsSchema.optional(),
   /**
-   * The launch's surveyed elevation, metres MSL — the same quantity the
-   * sites.json catalogue publishes as `elevationM`, stored per-profile.
-   * Null when unknown.
+   * The launch elevation, metres MSL — pipeline-derived from the best
+   * available elevation model at the catalogued coordinates (bare-earth
+   * lidar where it exists; see site-context.json for the source and the
+   * full terrain story). Historically this was a hand-estimated value
+   * described as "surveyed" — it never was one. Null when unknown.
    */
   altitudeM: z
     .number()
     .nullable()
     .describe(
-      "The launch's surveyed elevation, metres MSL — the same quantity sites.json publishes as elevationM, stored per-profile. Null when unknown.",
+      "The launch elevation, metres MSL — pipeline-derived from the best available elevation model at the catalogued coordinates (bare-earth lidar where it exists; site-context.json names the source). Null when unknown.",
     ),
   modelElevationM: z
     .number()
@@ -1056,49 +1070,100 @@ export type ModelCatalogue = z.infer<typeof modelCatalogueSchema>;
 
 /* -------------------------------------------------------------- sites.json */
 
-export const siteCatalogueEntrySchema = z.object({
+/* Since the 0.19.0 wave the site catalogue exists twice, deliberately:
+   the repository's sites.json is the hand-authored INPUT — identity
+   only, nothing a human can get wrong about the physical world — and
+   the published sites.json at the dataset root is the machine-generated
+   COMPLETE record: identity plus the pipeline-derived launch elevation
+   and per-site dataset availability, regenerated wholesale at every
+   publish like runs.json. Humans author where a launch is; the pipeline
+   states what it is and what covers it. */
+
+const siteIdentityFields = {
   slug: slugSchema,
   name: z.string().min(1),
   latitude: z.number(),
   longitude: z.number(),
+  what3words: what3wordsSchema.optional(),
   /**
-   * The launch's surveyed elevation, metres MSL — the catalogue is its
-   * home. Profile documents store the same quantity per-profile as
-   * `site.altitudeM`, where it may be null (a profile built before the
-   * launch was surveyed keeps its null forever; the catalogue is current).
-   */
-  elevationM: z
-    .number()
-    .describe(
-      "The launch's surveyed elevation, metres MSL — the catalogue is its home. Profile site.altitudeM stores the same quantity per-profile and may be null there (a profile built before the survey keeps its null; the catalogue is current).",
-    ),
-  /**
-   * The site's IANA timezone (e.g. "America/Vancouver") — the catalogue is
-   * its home, and it is required: local time is load-bearing for reading a
-   * windgram (the pilots' day, window edges, cap timing), so every
-   * catalogued launch declares it. Builders echo it per-profile as the
-   * optional `site.timeZone`.
+   * The site's IANA timezone (e.g. "America/Vancouver") — required: local
+   * time is load-bearing for reading a windgram (the pilots' day, window
+   * edges, cap timing), so every catalogued launch declares it. Builders
+   * echo it per-profile as the optional `site.timeZone`.
    */
   timeZone: z
     .string()
     .min(1)
     .describe(
-      'The site\'s IANA timezone (e.g. "America/Vancouver") — required; the catalogue is its home. Local time is load-bearing for reading a windgram, and builders echo it per-profile as the optional site.timeZone.',
+      'The site\'s IANA timezone (e.g. "America/Vancouver") — required. Local time is load-bearing for reading a windgram, and builders echo it per-profile as the optional site.timeZone.',
     ),
-});
+};
+
+export const siteInputEntrySchema = z
+  .object(siteIdentityFields)
+  .describe(
+    "One hand-authored launch: identity only. Elevation is deliberately absent — the pipeline derives it from lidar (see site-context.json); a human types nothing about the physical world but where it is.",
+  );
+export type SiteInputEntry = z.infer<typeof siteInputEntrySchema>;
+
+/* sites.json at the REPOSITORY root — the hand-authored input catalogue. */
+export const sitesInputSchema = z
+  .object({
+    schemaVersion: z.literal(2),
+    sites: z.array(siteInputEntrySchema),
+  })
+  .describe(
+    "Repository sites.json — the hand-authored site input: identity only (slug, name, coordinates, optional what3words, timezone). The pipeline derives elevation and publishes the complete record at the dataset root.",
+  );
+export type SitesInput = z.infer<typeof sitesInputSchema>;
+
+export const siteElevationSchema = z
+  .object({
+    elevationM: z
+      .number()
+      .describe("Launch elevation, metres MSL — pipeline-derived, bilinear at the coordinates."),
+    source: slugSchema.describe(
+      "The site-context source this elevation came from (lidarbc, mrdem30, glo30 — best bare-earth first).",
+    ),
+    resolutionM: z.number().positive().describe("The source's native ground resolution, metres."),
+  })
+  .describe(
+    "The launch elevation the pipeline derived from the best available elevation model at the catalogued coordinates — bare-earth lidar where it exists. The coordinates are the identity; this is what the ground there measures.",
+  );
+export type SiteElevation = z.infer<typeof siteElevationSchema>;
+
+export const siteCatalogueEntrySchema = z
+  .object({
+    ...siteIdentityFields,
+    elevation: siteElevationSchema,
+    /**
+     * Which published datasets currently cover this site, by kind —
+     * derived from the published manifests' own site lists at every
+     * publish, so it states what IS published, never what is planned.
+     * Freshness lives in runs.json; join by slug.
+     */
+    datasets: z
+      .object({
+        profiles: z.array(slugSchema),
+        smoke: z.array(slugSchema),
+        observations: z.array(slugSchema),
+      })
+      .describe(
+        "Published datasets covering this site, by kind, derived from the published manifests at every publish — what IS published, never what is planned. Freshness lives in runs.json; join by slug.",
+      ),
+  })
+  .describe("One launch in the published catalogue: identity, derived elevation, and coverage.");
 export type SiteCatalogueEntry = z.infer<typeof siteCatalogueEntrySchema>;
 
-/* sites.json at the repository root — hand-maintained, the site catalogue.
-   `{schemaVersion, sites}` since the 0.3.0 wave (previously a bare array,
-   which the guard rejects: an unversioned document cannot promise its
-   shape). */
+/* sites.json at the DATASET root — machine-generated at every publish. */
 export const sitesCatalogueSchema = z
   .object({
-    schemaVersion: z.literal(SCHEMA_VERSION),
+    schemaVersion: z.literal(2),
+    generatedAt: utcInstantSchema.describe("When the published catalogue was generated, UTC."),
     sites: z.array(siteCatalogueEntrySchema),
   })
   .describe(
-    "sites.json — the hand-maintained site catalogue: every launch the builders publish profiles for. {schemaVersion, sites} since the 0.3.0 wave (previously a bare array).",
+    "Published sites.json at the dataset root — the machine-generated complete site record: hand-authored identity joined with the pipeline-derived elevation and per-site dataset coverage, regenerated wholesale at every publish (a pure function of the dataset, like runs.json).",
   );
 export type SitesCatalogue = z.infer<typeof sitesCatalogueSchema>;
 
@@ -1220,17 +1285,17 @@ export const siteContextTerrainSchema = z
   );
 export type SiteContextTerrain = z.infer<typeof siteContextTerrainSchema>;
 
-export const siteContextBareEarthSchema = z
+export const siteContextElevationSchema = z
   .object({
     source: slugSchema.describe("The sources[] entry this value came from."),
     elevationM: z
       .number()
-      .describe("Bare-earth (DTM) elevation at the launch point, metres MSL, bilinear."),
+      .describe("Launch elevation at the catalogued point, metres MSL, bilinear."),
   })
   .describe(
-    "The best available bare-earth elevation at the launch — ground returns, no canopy. Absent when no bare-earth model covers the site; absence means \"not measured\", never agreement.",
+    "THE launch elevation — the operative value builders write into every document's site block, from the best available source: bare-earth lidar first (lidarbc), the national 30 m DTM next (mrdem30), the 30 m surface model last (glo30 — canopy included, and the generator warns when it must stoop to it).",
   );
-export type SiteContextBareEarth = z.infer<typeof siteContextBareEarthSchema>;
+export type SiteContextElevation = z.infer<typeof siteContextElevationSchema>;
 
 export const siteContextLandCoverFractionsSchema = z
   .object({
@@ -1262,22 +1327,23 @@ export type SiteContextLandCover = z.infer<typeof siteContextLandCoverSchema>;
 
 export const siteContextEntrySchema = z
   .object({
+    elevation: siteContextElevationSchema,
     terrain: siteContextTerrainSchema,
-    bareEarth: siteContextBareEarthSchema.optional(),
     landCover: siteContextLandCoverSchema,
   })
   .describe(
-    "One site's terrain and land-cover context. Coordinates, surveyed elevation and timezone are NOT echoed here — sites.json is their home; join by slug.",
+    "One site's derived ground truth: the operative launch elevation, the terrain analysis, and the land cover. Coordinates and timezone are NOT echoed here — the sites input is their home; join by slug.",
   );
 export type SiteContextEntry = z.infer<typeof siteContextEntrySchema>;
 
 /* site-context.json at the repository root, machine-written by the
    pipeline's one-shot `windgram terrain` command and committed like the
    catalogues it annotates. Published to the dataset root beside
-   sites.json. */
+   sites.json. Version 2: the elevation block (the operative launch
+   elevation) replaced the optional bareEarth block of version 1. */
 export const siteContextSchema = z
   .object({
-    schemaVersion: z.literal(SCHEMA_VERSION),
+    schemaVersion: z.literal(2),
     generatedAt: utcInstantSchema.describe("When the context was generated, UTC."),
     sources: z
       .array(siteContextSourceSchema)
@@ -1358,6 +1424,15 @@ export function parseSitesCatalogue(value: unknown): SitesCatalogue | null {
 
 export function parseSitesCatalogueJson(text: string): SitesCatalogue | null {
   return parseSitesCatalogue(tryParseJson(text));
+}
+
+export function parseSitesInput(value: unknown): SitesInput | null {
+  const result = sitesInputSchema.safeParse(value);
+  return result.success ? result.data : null;
+}
+
+export function parseSitesInputJson(text: string): SitesInput | null {
+  return parseSitesInput(tryParseJson(text));
 }
 
 export function parseSiteContext(value: unknown): SiteContext | null {

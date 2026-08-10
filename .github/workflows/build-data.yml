@@ -3,8 +3,10 @@
 # https://data.meteo.azohra.com. A no-new-run check costs one listing or
 # capabilities request per model plus one manifest GET and exits; uploads
 # happen only when a run advances. Builders learn what is already published
-# from the data base itself (WINDGRAM_DATA_BASE, default the public URL), so
-# a queued job never rebuilds a run another job already published.
+# from the published dataset itself — here through the authenticated S3 API
+# (the job-level R2 credentials; Cloudflare never mediates these reads), and
+# over public HTTPS for anyone running without them — so a queued job never
+# rebuilds a run another job already published.
 #
 # Builds group by provider rate-limit domain, one job per provider host, so
 # the per-host connection rule holds by construction: builders inside a job
@@ -47,8 +49,12 @@ jobs:
     # hours ≈ 1.7 GB, the 12 km grid is ~7× smaller ≈ 0.3 GB) plus
     # decode-once sampling — the old 30-minute budget scaled by 5.3/3.3.
     timeout-minutes: 45
-    # The uploads talk to R2 through the S3-compatible API; ubuntu runners
-    # ship aws CLI v2. The checksum settings are Cloudflare's documented
+    # Job-level on purpose: the upload steps talk to R2 through the
+    # S3-compatible API (ubuntu runners ship aws CLI v2), and the BUILD
+    # steps read the published dataset through the same credentials —
+    # dataset.py's authenticated S3 mode engages when R2_ENDPOINT and the
+    # AWS keys are present, so Cloudflare never mediates the pipeline's
+    # own reads. The checksum settings are Cloudflare's documented
     # requirement for aws CLI >= 2.23 against R2.
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
@@ -107,7 +113,8 @@ jobs:
     # new run in one check (~22 GiB; the old single job budgeted 120 minutes
     # for ~44 GiB plus NOAA).
     timeout-minutes: 90
-    # R2 upload credentials and checksum settings: see the noaa job.
+    # R2 credentials (authenticated reads AND uploads) and checksum
+    # settings: see the noaa job.
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
@@ -147,7 +154,8 @@ jobs:
       cancel-in-progress: false
     # Worst case ~22 GiB, matching the dd job's budget.
     timeout-minutes: 90
-    # R2 upload credentials and checksum settings: see the noaa job.
+    # R2 credentials (authenticated reads AND uploads) and checksum
+    # settings: see the noaa job.
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}

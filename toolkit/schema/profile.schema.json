@@ -57,6 +57,11 @@
         "longitude": {
           "type": "number"
         },
+        "what3words": {
+          "type": "string",
+          "pattern": "^[a-z]+\\.[a-z]+\\.[a-z]+$",
+          "description": "what3words address of the launch (\"word.word.word\", no leading slashes) — a human-readable echo for pilots. latitude/longitude is the operative identity; the string is opaque (validation would need the proprietary what3words API)."
+        },
         "altitudeM": {
           "anyOf": [
             {
@@ -66,7 +71,7 @@
               "type": "null"
             }
           ],
-          "description": "The launch's surveyed elevation, metres MSL — the same quantity sites.json publishes as elevationM, stored per-profile. Null when unknown."
+          "description": "The launch elevation, metres MSL — pipeline-derived from the best available elevation model at the catalogued coordinates (bare-earth lidar where it exists; site-context.json names the source). Null when unknown."
         },
         "modelElevationM": {
           "type": "number",

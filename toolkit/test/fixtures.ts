@@ -132,23 +132,35 @@ export function manifest(): WindgramManifest {
 
 export function sitesCatalogue(): SitesCatalogue {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
+    generatedAt: "2026-08-10T12:00:00Z",
     sites: [
       {
         slug: "dundee",
         name: "Dundee",
         latitude: 49.291977,
         longitude: -117.183569,
-        elevationM: 1485,
         timeZone: "America/Vancouver",
+        elevation: { elevationM: 1476.4, source: "mrdem30", resolutionM: 30 },
+        datasets: {
+          profiles: ["hrdps-west", "gfs"],
+          smoke: ["raqdps"],
+          observations: ["goes18-dsr", "goes18-aod"],
+        },
       },
       {
         slug: "red-mountain",
         name: "Red Mtn",
         latitude: 49.091868,
         longitude: -117.820838,
-        elevationM: 1591,
+        what3words: "example.words.only",
         timeZone: "America/Vancouver",
+        elevation: { elevationM: 1585.9, source: "lidarbc", resolutionM: 1 },
+        datasets: {
+          profiles: ["hrdps-west", "gfs"],
+          smoke: ["raqdps"],
+          observations: ["goes18-dsr", "goes18-aod"],
+        },
       },
     ],
   };

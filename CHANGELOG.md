@@ -4,6 +4,56 @@ Notable repository and `windgram` package changes are recorded here. Dataset
 schema, npm package, and Python pipeline versions are independent; each release
 entry names the versions it actually changes.
 
+## [0.19.0] - 2026-08-10
+
+`windgram` (npm and JSR) 0.19.0 and `windgram` pipeline (PyPI) 0.7.0 —
+the catalogue foundation: humans author where a launch is, the pipeline
+states what it is, and the published record is complete. Breaking by
+design (we are the dataset's only consumer).
+
+### Changed
+
+- **The repository's `sites.json` is now the hand-authored INPUT**
+  (schemaVersion 2): slug, name, coordinates, optional `what3words`,
+  timezone — identity only. The elevation field is gone: the old
+  values were free-website estimates that the contract had been
+  describing as "surveyed" (a plausible-but-wrong claim about our own
+  data), while the pipeline's lidar sampling is strictly better.
+  `sitesInputSchema` / `parseSitesInput` guard the input shape.
+- **`site-context.json` (schemaVersion 2) owns the operative launch
+  elevation**: a per-site `elevation {source, elevationM}` block —
+  bare-earth lidar first (LidarBC 1 m), the national 30 m DTM next
+  (MRDEM), the surface model last and loudly — replaces the optional
+  `bareEarth` block. The sites loader joins identity with context at
+  build time and fails loudly when a site lacks its context entry, so
+  adding a launch forces `windgram terrain` and the commit stays
+  atomic. Every profile's `site.altitudeM` is now this derived value,
+  and its contract description finally tells the truth about where it
+  comes from.
+- **The published `sites.json` at the dataset root is generated, not
+  copied** (schemaVersion 2): identity joined with the derived
+  elevation and per-site `datasets {profiles, smoke, observations}`
+  coverage read from the published manifests' own site lists —
+  regenerated wholesale at every publish, a pure function of the
+  dataset like `runs.json`. One fetch answers what sites exist, where
+  and how high they really are, and what covers them; freshness stays
+  in `runs.json`.
+- **The pipeline reads its own published state over authenticated S3**
+  (boto3 against the R2 endpoint, engaged by the same credentials the
+  uploads already use): `NoSuchKey` is true absence, `AccessDenied` is
+  fatal misconfiguration, and Cloudflare's WAF never sees the reads —
+  the bot-challenge incident class is closed for CI without any zone
+  change. The public-HTTPS path (with challenge detection) remains for
+  credential-free local runs and external publishers.
+
+### Added
+
+- **`what3words` through to the windgram**: the optional identity
+  field rides the input catalogue, echoes into every profile's site
+  block, and joins the scene's accessible description
+  (`Windgram for Dundee (///word.word.word), model …`) — a launch
+  named the way pilots name it, beside coordinates that machines use.
+
 ## [0.6.3] - 2026-08-10
 
 `windgram` pipeline (PyPI) 0.6.3 — a challenged read is a broken read,

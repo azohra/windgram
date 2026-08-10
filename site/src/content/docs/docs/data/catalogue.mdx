@@ -54,16 +54,62 @@ observation datasets (GOES-18 DSR and AOD today): identity, `gridKm`, and a
 
 A new catalogue entry is not a package enum change.
 
+## The site catalogue exists twice
+
+`sites.json` deliberately exists in two shapes. The repository's file is
+the hand-authored **input** — identity only: `slug`, `name`,
+`latitude`/`longitude`, an optional `what3words` address, and the
+required IANA `timeZone`. A human types nothing about the physical world
+but where the launch is; there is no elevation field. `parseSitesInputJson`
+guards this shape, and the
+[configure-launches guide](/docs/publish/configure-launches/) covers
+authoring it.
+
+The published `sites.json` at the dataset root is the **generated
+complete record** (`schemaVersion: 2`, with its own `generatedAt`): the
+same identity joined with the pipeline-derived
+`elevation { elevationM, source, resolutionM }` and per-site
+`datasets { profiles, smoke, observations }` coverage, read from the
+published manifests' own site lists. Like `runs.json`, it is a pure
+function of the dataset, regenerated wholesale at every publish — it
+states what **is** published, never what is planned. Freshness stays in
+`runs.json`; join the two by slug. Git authors identity, the pipeline
+states ground truth, the bucket publishes the complete record.
+
+One fetch answers what sites exist, how high they really are, and what
+covers them:
+
+```ts title="read-sites.ts"
+import { parseSitesCatalogueJson } from "windgram/contract";
+
+export function siteSummaries(text: string): string[] {
+  const catalogue = parseSitesCatalogueJson(text);
+  if (!catalogue) throw new Error("unsupported site catalogue");
+
+  return catalogue.sites.map((site) => {
+    const observed = site.datasets.observations;
+    return (
+      `${site.name}: ${site.elevation.elevationM} m MSL ` +
+      `(${site.elevation.source} · ${site.elevation.resolutionM} m) — ` +
+      `observations: ${observed.length > 0 ? observed.join(", ") : "none"}`
+    );
+  });
+}
+```
+
 ## Site context beside the catalogues
 
 `site-context.json` is the third catalogue-root file, published at the
 dataset root beside `models.json` and `sites.json`: static,
 machine-generated terrain and land-cover context for every catalogued
-site. Fetch it once, guard it with `parseSiteContextJson`, and join its
-entries against `sites.json` by slug — it echoes no coordinates or
-surveyed elevations of its own. It has no cadence and no runs; it changes
-only when the site catalogue does. Its shape, sources, and licences live
-in the [site context reference](/docs/reference/site-context-document/).
+site — and the **elevation authority**: its per-site `elevation` block is
+where the published catalogue's `elevation` and every profile's
+`site.altitudeM` come from. Fetch it once, guard it with
+`parseSiteContextJson`, and join its entries against `sites.json` by slug
+— it echoes no coordinates or timezone of its own. It has no cadence and
+no runs; it changes only when the site catalogue does. Its shape,
+sources, and licences live in the
+[site context reference](/docs/reference/site-context-document/).
 
 ## Absence and semantics are declarations
 

@@ -293,6 +293,7 @@ def _build_profiles(run: dict, reference_time: str, sites: list[dict], stats: Do
                     "siteId": site["slug"],
                     "siteName": site["name"],
                     "siteTimeZone": site.get("timeZone"),
+                    "siteWhat3words": site.get("what3words"),
                 },
                 model=SLUG,
                 semantics=SEMANTICS,

@@ -73,15 +73,22 @@ s3 cp "data/$model/manifest.json" "$bucket/$model/manifest.json" \
 # with every model keeps the bucket following the source checkout.
 s3 cp models.json "$bucket/models.json" \
   --cache-control "$short" --content-type application/json
-s3 cp sites.json "$bucket/sites.json" \
-  --cache-control "$short" --content-type application/json
 # site-context.json is machine-generated but committed like a catalogue
-# (regenerated only when the site catalogue changes), so it publishes the
-# same way. Tolerate absence: checkouts predating the terrain wave.
-if [ -f site-context.json ]; then
-  s3 cp site-context.json "$bucket/site-context.json" \
-    --cache-control "$short" --content-type application/json
-fi
+# (regenerated only when the site catalogue changes), so it publishes
+# verbatim.
+s3 cp site-context.json "$bucket/site-context.json" \
+  --cache-control "$short" --content-type application/json
+
+# The published sites.json is NOT the committed one: it is the complete
+# site record — committed identity joined with the context's derived
+# elevation and per-site dataset coverage from the published manifests.
+# Like runs.json, a pure function of the committed files and the
+# published dataset, so concurrent upload lanes converge on whoever
+# writes last.
+uv run --no-dev --project pipeline python -c \
+  "from windgram.publish import write_sites_catalogue; write_sites_catalogue()"
+s3 cp data/sites.json "$bucket/sites.json" \
+  --cache-control "$short" --content-type application/json
 
 # runs.json is regenerated from every model's *published* manifest (model
 # list from models.json, never-published models tolerated), so the index

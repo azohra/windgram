@@ -1,11 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Windgram site catalogue, sites.json",
+  "title": "Windgram published site catalogue, data-root sites.json",
   "type": "object",
   "properties": {
     "schemaVersion": {
       "type": "number",
-      "const": 1
+      "const": 2
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+      "description": "When the published catalogue was generated, UTC."
     },
     "sites": {
       "type": "array",
@@ -27,14 +33,75 @@
           "longitude": {
             "type": "number"
           },
-          "elevationM": {
-            "type": "number",
-            "description": "The launch's surveyed elevation, metres MSL — the catalogue is its home. Profile site.altitudeM stores the same quantity per-profile and may be null there (a profile built before the survey keeps its null; the catalogue is current)."
+          "what3words": {
+            "type": "string",
+            "pattern": "^[a-z]+\\.[a-z]+\\.[a-z]+$",
+            "description": "what3words address of the launch (\"word.word.word\", no leading slashes) — a human-readable echo for pilots. latitude/longitude is the operative identity; the string is opaque (validation would need the proprietary what3words API)."
           },
           "timeZone": {
             "type": "string",
             "minLength": 1,
-            "description": "The site's IANA timezone (e.g. \"America/Vancouver\") — required; the catalogue is its home. Local time is load-bearing for reading a windgram, and builders echo it per-profile as the optional site.timeZone."
+            "description": "The site's IANA timezone (e.g. \"America/Vancouver\") — required. Local time is load-bearing for reading a windgram, and builders echo it per-profile as the optional site.timeZone."
+          },
+          "elevation": {
+            "type": "object",
+            "properties": {
+              "elevationM": {
+                "type": "number",
+                "description": "Launch elevation, metres MSL — pipeline-derived, bilinear at the coordinates."
+              },
+              "source": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                "description": "The site-context source this elevation came from (lidarbc, mrdem30, glo30 — best bare-earth first)."
+              },
+              "resolutionM": {
+                "type": "number",
+                "exclusiveMinimum": 0,
+                "description": "The source's native ground resolution, metres."
+              }
+            },
+            "required": [
+              "elevationM",
+              "source",
+              "resolutionM"
+            ],
+            "description": "The launch elevation the pipeline derived from the best available elevation model at the catalogued coordinates — bare-earth lidar where it exists. The coordinates are the identity; this is what the ground there measures."
+          },
+          "datasets": {
+            "type": "object",
+            "properties": {
+              "profiles": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                  "description": "Lowercase hyphenated slug — the identity of models and sites everywhere."
+                }
+              },
+              "smoke": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                  "description": "Lowercase hyphenated slug — the identity of models and sites everywhere."
+                }
+              },
+              "observations": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                  "description": "Lowercase hyphenated slug — the identity of models and sites everywhere."
+                }
+              }
+            },
+            "required": [
+              "profiles",
+              "smoke",
+              "observations"
+            ],
+            "description": "Published datasets covering this site, by kind, derived from the published manifests at every publish — what IS published, never what is planned. Freshness lives in runs.json; join by slug."
           }
         },
         "required": [
@@ -42,15 +109,18 @@
           "name",
           "latitude",
           "longitude",
-          "elevationM",
-          "timeZone"
-        ]
+          "timeZone",
+          "elevation",
+          "datasets"
+        ],
+        "description": "One launch in the published catalogue: identity, derived elevation, and coverage."
       }
     }
   },
   "required": [
     "schemaVersion",
+    "generatedAt",
     "sites"
   ],
-  "description": "sites.json — the hand-maintained site catalogue: every launch the builders publish profiles for. {schemaVersion, sites} since the 0.3.0 wave (previously a bare array)."
+  "description": "Published sites.json at the dataset root — the machine-generated complete site record: hand-authored identity joined with the pipeline-derived elevation and per-site dataset coverage, regenerated wholesale at every publish (a pure function of the dataset, like runs.json)."
 }

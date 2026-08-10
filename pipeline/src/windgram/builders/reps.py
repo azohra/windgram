@@ -432,6 +432,8 @@ def _build_documents(
                     "name": site["name"],
                     "latitude": site["latitude"],
                     "longitude": site["longitude"],
+                    # The catalogue's what3words echo, same as the member profiles'.
+                    **({"what3words": site["what3words"]} if site.get("what3words") else {}),
                     "altitudeM": site["elevationM"],
                     # The control member's terrain stands in for the ensemble.
                     "modelElevationM": terrain[0][site["slug"]],
@@ -495,6 +497,7 @@ def _derive_member_profile(
             "siteId": site["slug"],
             "siteName": site["name"],
             "siteTimeZone": site.get("timeZone"),
+            "siteWhat3words": site.get("what3words"),
         },
         model=SLUG,
         semantics=SEMANTICS,

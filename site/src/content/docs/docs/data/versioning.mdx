@@ -13,7 +13,7 @@ from their authorities when the site builds, so they cannot go stale here.
 
 | Axis | Current value | Authority | What it versions |
 | --- | ---: | --- | --- |
-| Published JSON schema | <code>{SCHEMA_VERSION}</code> | `SCHEMA_VERSION` and the zod contract in `toolkit/src/contract/index.ts` | Profiles, manifests, and the model, site, and run-index document families |
+| Published JSON schema | <code>{SCHEMA_VERSION}</code> | `SCHEMA_VERSION` and the zod contract in `toolkit/src/contract/index.ts` | Profiles, manifests, and the model and run-index document families; the site catalogues and site context pin their own `schemaVersion: 2` |
 | npm package | <code>{WINDGRAM_PACKAGE_VERSION}</code> | `toolkit/package.json` | Contract guards, derivations, single-profile analysis, cross-model comparison, transport, scene graph, SVG renderer, tokens, and scene-derived key |
 | Python pipeline | <code>{PIPELINE_VERSION}</code> | `pipeline/pyproject.toml` | The repository's provider ingestion, derivation, and publication implementation |
 
@@ -29,8 +29,12 @@ independent of the published dataset schema.
 
 ## Published document compatibility
 
-Every current profile, manifest, model catalogue, site catalogue, and run index
-uses `schemaVersion: 1`. The generated JSON Schemas under
+Every current profile, manifest, model catalogue, and run index uses
+`schemaVersion: 1`; the site input, the published site catalogue, and the
+site context carry `schemaVersion: 2` (the 0.19 catalogue-foundation
+boundary: hand-typed elevation left the input, and the published record
+gained the derived elevation and dataset coverage). The generated JSON
+Schemas under
 `toolkit/schema/` describe the inputs accepted by the released
 package (npm <code>{WINDGRAM_PACKAGE_VERSION}</code>); the zod schemas and
 their parse guards are the behavioural authority.

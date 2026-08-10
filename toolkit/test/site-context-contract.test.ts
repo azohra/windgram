@@ -7,7 +7,7 @@ import { parseSiteContext, parseSiteContextJson } from "../src/contract/index.js
 /* Values from the live terrain probe [verified 2026-08-10]: GLO-30 at
    dundee, LidarBC bare earth at erie, WorldCover fractions at flagpole. */
 const CONTEXT = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   generatedAt: "2026-08-10T08:00:00Z",
   sources: [
     {
@@ -42,6 +42,7 @@ const CONTEXT = {
   ],
   sites: {
     dundee: {
+      elevation: { source: "mrdem30", elevationM: 1476.4 },
       terrain: {
         source: "glo30",
         elevationM: 1492.1,
@@ -63,6 +64,7 @@ const CONTEXT = {
       },
     },
     erie: {
+      elevation: { source: "lidarbc", elevationM: 1245.8 },
       terrain: {
         source: "glo30",
         elevationM: 1244.2,
@@ -70,7 +72,6 @@ const CONTEXT = {
         aspectDeg: 236,
         relief: [{ radiusKm: 1, minM: 760, maxM: 1503, percentile: 72 }],
       },
-      bareEarth: { source: "lidarbc", elevationM: 1245.8 },
       landCover: {
         source: "worldcover2021",
         atLaunch: "grassland",
@@ -92,8 +93,8 @@ describe("site context contract", () => {
     expect(parseSiteContext(CONTEXT)).not.toBeNull();
     const parsed = parseSiteContextJson(JSON.stringify(CONTEXT));
     expect(parsed?.sites.dundee?.terrain.relief[2]?.percentile).toBe(57);
-    expect(parsed?.sites.erie?.bareEarth?.elevationM).toBe(1245.8);
-    expect(parsed?.sites.dundee?.bareEarth).toBeUndefined();
+    expect(parsed?.sites.erie?.elevation.elevationM).toBe(1245.8);
+    expect(parsed?.sites.erie?.elevation.source).toBe("lidarbc");
   });
 
   it("keeps the licence attributions — they must travel with the data", () => {
@@ -108,7 +109,17 @@ describe("site context contract", () => {
     expect(parseSiteContext(stripped)).toBeNull();
   });
 
-  it("rejects a coordinate echo — sites.json is the home of identity", () => {
+  it("requires the elevation block — the context is where derived ground truth lives", () => {
+    const missing = {
+      ...CONTEXT,
+      sites: {
+        dundee: { terrain: CONTEXT.sites.dundee.terrain, landCover: CONTEXT.sites.dundee.landCover },
+      },
+    };
+    expect(parseSiteContext(missing)).toBeNull();
+  });
+
+  it("rejects a coordinate echo — the sites input is the home of identity", () => {
     const echoed = {
       ...CONTEXT,
       sites: {

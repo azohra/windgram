@@ -1,14 +1,17 @@
 """Shared output writing: the contract's rounding table, profile JSON,
-manifests, the cross-model run index, and gzipped run history."""
+manifests, the cross-model run index, the published site catalogue, and
+gzipped run history."""
 
 from __future__ import annotations
 
 import gzip
 import json
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .dataset import published_history, published_manifest
+from .sites import context_elevation, load_site_context, load_sites_input
 
 # The spec's rounding table, field name → decimal places, applied at the
 # serialization edge so published JSON carries no float64 noise. Compass
@@ -189,6 +192,83 @@ def write_runs_index(
 ) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     write_json(path, runs_index(catalogued_model_slugs(models_path)), compact=False)
+
+
+# models.json catalogue array → the published catalogue's datasets key.
+_DATASET_KINDS = (
+    ("models", "profiles"),
+    ("smokeModels", "smoke"),
+    ("observationModels", "observations"),
+)
+
+
+def sites_catalogue(
+    sites_path: Path = Path("sites.json"),
+    context_path: Path = Path("site-context.json"),
+    models_path: Path = Path("models.json"),
+) -> dict:
+    """The PUBLISHED sites.json (contract sitesCatalogueSchema v2): the
+    committed identity joined with the context's derived elevation (plus
+    the source's resolution from the context's sources[] table) and
+    per-site dataset coverage read from the published manifests — what IS
+    published, never what is planned. Like runs.json, a pure function of
+    the committed files and the published dataset, so concurrent upload
+    lanes converge on whoever writes last. A model that has never
+    published contributes nothing; a site absent from every manifest gets
+    empty arrays."""
+    sites = load_sites_input(sites_path)
+    context = load_site_context(context_path)
+    resolutions = {source["id"]: source["resolutionM"] for source in context["sources"]}
+    catalogue = json.loads(models_path.read_text())
+
+    coverage: dict[str, dict[str, list[str]]] = {
+        site["slug"]: {kind: [] for _, kind in _DATASET_KINDS} for site in sites
+    }
+    for catalogue_key, kind in _DATASET_KINDS:
+        for entry in catalogue.get(catalogue_key, []):
+            manifest = published_manifest(entry["slug"])
+            if manifest is None:
+                continue
+            for site_ref in manifest.get("sites", []):
+                if site_ref["slug"] in coverage:
+                    coverage[site_ref["slug"]][kind].append(entry["slug"])
+
+    return {
+        "schemaVersion": 2,
+        "generatedAt": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "sites": [
+            {
+                "slug": site["slug"],
+                "name": site["name"],
+                "latitude": site["latitude"],
+                "longitude": site["longitude"],
+                **(
+                    {"what3words": site["what3words"]}
+                    if site.get("what3words")
+                    else {}
+                ),
+                "timeZone": site["timeZone"],
+                "elevation": {
+                    "elevationM": elevation["elevationM"],
+                    "source": elevation["source"],
+                    "resolutionM": resolutions[elevation["source"]],
+                },
+                "datasets": coverage[site["slug"]],
+            }
+            for site in sites
+            for elevation in [context_elevation(context, site["slug"], context_path)]
+        ],
+    }
+
+
+def write_sites_catalogue(
+    path: Path = Path("data/sites.json"),
+    sites_path: Path = Path("sites.json"),
+    context_path: Path = Path("site-context.json"),
+    models_path: Path = Path("models.json"),
+) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    write_json(path, sites_catalogue(sites_path, context_path, models_path), compact=False)
 
 
 def compact_json(value: dict) -> str:

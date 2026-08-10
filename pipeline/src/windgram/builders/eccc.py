@@ -624,6 +624,7 @@ def _build_profiles(
                     "siteId": site["slug"],
                     "siteName": site["name"],
                     "siteTimeZone": site.get("timeZone"),
+                    "siteWhat3words": site.get("what3words"),
                 },
                 model=model.slug,
                 semantics=model_semantics(model),
