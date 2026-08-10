@@ -6,6 +6,7 @@ import {
   analyzeProfile,
   DEFAULT_ANALYZE_THRESHOLDS,
   type CapTimingFinding,
+  type ConvectiveDayFinding,
   type DataCaveatsFinding,
   type EnsembleMembershipFinding,
   type ThermalWindowFinding,
@@ -114,6 +115,7 @@ describe("the analysis envelope", () => {
         "dataCaveats",
         "ensembleMembership",
         "capTiming",
+        "convectiveDay",
         "thermalWindow",
         "quietDay",
         "liftCeiling",
@@ -631,6 +633,133 @@ describe("capTiming at multi-hour cadence — interval verdicts (v4, S4)", () =>
     expect(saturday.precipSemantics).toBe("windowMeanRate");
     expect(saturday.precipStartsAt?.validAt).toBe("2026-08-09T00:00:00Z");
     expect(saturday.peakPrecipMmHr).toBe(0.85); // contract 2-dp for mm/h
+  });
+});
+
+describe("convectiveDay — the CIN-less convective story (v4, S4)", () => {
+  const iso = (ms: number) => new Date(ms).toISOString().replace(".000Z", "Z");
+
+  /** An HRDPS-shaped document built from the hrrr fixture: CIN deleted
+   * everywhere (the HRDPS family publishes CAPE with no CIN), hours
+   * re-stamped hourly from `firstValidAt` so full days and horizon
+   * slivers can both be constructed; CAPE optionally overridden. */
+  function cinless(firstValidAt: string, count: number, capes?: number[]): WindgramProfile {
+    const doc = JSON.parse(JSON.stringify(fixtures["hrrrConusErie"])) as {
+      hours: Array<{ validAt: string; surface: { capeJkg?: number; cinJkg?: number } }>;
+    };
+    const start = Date.parse(firstValidAt);
+    doc.hours = doc.hours.slice(0, count).map((hour, k) => {
+      delete hour.surface.cinJkg;
+      if (capes) hour.surface.capeJkg = capes[k];
+      return { ...hour, validAt: iso(start + k * 3_600_000) };
+    });
+    const profile = parseWindgramProfile(doc);
+    expect(profile).not.toBeNull();
+    return profile!;
+  }
+
+  it("states CAPE magnitude and timing where capTiming is mute, refusing the cap question", () => {
+    // A full local day: 24 hourly rows re-stamped 07:00Z-06:00Z, local
+    // 00:00-23:00. The fixture's CAPE ridge (peak 540) lands at index 6.
+    const profile = cinless("2026-08-08T07:00:00Z", 24);
+    const analysis = analyzeProfile(profile, ERIE);
+    // The un-gating: no CIN means capTiming stays silent…
+    expect(ofKind(analysis.findings, "capTiming")).toHaveLength(0);
+    // …and convectiveDay now carries what the model CAN say.
+    const findings = ofKind<ConvectiveDayFinding>(analysis.findings, "convectiveDay");
+    expect(findings).toHaveLength(1);
+    const day = findings[0];
+    expect(day.day).toBe("2026-08-08");
+    expect(day.peakCapeJkg).toBe(540);
+    expect(day.peakCapeAt).toEqual({ validAt: "2026-08-08T13:00:00Z", local: "2026-08-08T06:00" });
+    // The refusal is explicit: absence of CIN is never "no cap".
+    expect(day.capIsJudgeable).toBe(false);
+    expect(day.capNotJudgeableReason).toBe("modelPublishesNoCin");
+    expect(JSON.stringify(day)).not.toMatch(/verdict/i);
+    // Full-day coverage, stated.
+    expect(day.coverage.truncated).toBe(false);
+    expect(day.coverage.hours).toBe(24);
+    expect(day.stepHours).toBe(1);
+    // The window anchor rides along, as on capTiming (this re-stamped day
+    // carries two windows; the anchor is the day's last window's end).
+    expect(day.thermalWindowEndsAt?.validAt).toBe("2026-08-09T06:00:00Z");
+    expect(day.thresholds).toEqual(DEFAULT_ANALYZE_THRESHOLDS.convectiveDay);
+    // Evidence arrays cover exactly the cited hours.
+    expect(day.evidence.hours).toHaveLength(24);
+    expect(day.evidence.capeJkg[6]).toBe(540);
+    expect(day.evidence.precipitationMmHr).toHaveLength(24);
+  });
+
+  it("states the dry forecast positively — a 0.00 series is a forecast, not absence", () => {
+    const day = ofKind<ConvectiveDayFinding>(
+      analyzeProfile(cinless("2026-08-08T07:00:00Z", 24), ERIE).findings,
+      "convectiveDay",
+    )[0];
+    // No covered hour exceeds the floor: the honest positive, and exactly
+    // one of the two precip statements is present.
+    expect(day.noPrecipAboveThreshold).toBe(true);
+    expect(day.precipStartsAt).toBeUndefined();
+    expect(day.peakPrecipMmHr).toBeUndefined();
+  });
+
+  it("carries precip timing over the embedded floor, with the semantics echo", () => {
+    const profile = cinless("2026-08-08T07:00:00Z", 24);
+    const rates: Record<string, number> = {
+      "2026-08-08T15:00:00Z": 0.3,
+      "2026-08-08T16:00:00Z": 1.46,
+      "2026-08-08T17:00:00Z": 0.8,
+    };
+    for (const hour of profile.hours) {
+      const rate = rates[hour.validAt];
+      if (rate !== undefined) (hour.surface as { precipitationMmHr: number }).precipitationMmHr = rate;
+    }
+    (profile as { semantics?: object }).semantics = { precipitation: "windowMeanRate" };
+    const parsed = parseWindgramProfile(profile)!;
+    const day = ofKind<ConvectiveDayFinding>(
+      analyzeProfile(parsed, ERIE).findings,
+      "convectiveDay",
+    )[0];
+    expect(day.precipStartsAt).toEqual({
+      validAt: "2026-08-08T15:00:00Z",
+      local: "2026-08-08T08:00",
+    });
+    expect(day.peakPrecipMmHr).toBe(1.46); // contract 2-dp for mm/h
+    expect(day.noPrecipAboveThreshold).toBeUndefined();
+    expect(day.precipSemantics).toBe("windowMeanRate");
+    // The threshold is caller-movable: raise the floor over the peak and
+    // the same day reads dry, positively.
+    const strict = ofKind<ConvectiveDayFinding>(
+      analyzeProfile(parsed, { ...ERIE, thresholds: { convectiveDay: { precipMinMmHr: 2 } } })
+        .findings,
+      "convectiveDay",
+    )[0];
+    expect(strict.noPrecipAboveThreshold).toBe(true);
+    expect(strict.thresholds.precipMinMmHr).toBe(2);
+  });
+
+  it("confesses the horizon sliver — nocturnal CAPE on a truncated day is not a soaring statement", () => {
+    // S4's live HRDPS 08-12 shape: a 00:00-05:00 local sliver carrying
+    // elevated nocturnal CAPE, day peak cited at 01:00.
+    const sliver = cinless("2026-08-12T07:00:00Z", 6, [100, 294, 250, 180, 120, 100]);
+    const day = ofKind<ConvectiveDayFinding>(
+      analyzeProfile(sliver, ERIE).findings,
+      "convectiveDay",
+    )[0];
+    expect(day.day).toBe("2026-08-12");
+    expect(day.peakCapeJkg).toBe(294);
+    expect(day.peakCapeAt?.local).toBe("2026-08-12T01:00");
+    // The confession that keeps the peak honest: covered hours only, and
+    // a truncated day must not vote in comparisons (see the JSDoc).
+    expect(day.coverage.truncated).toBe(true);
+    expect(day.coverage.hours).toBe(6);
+  });
+
+  it("emits only where the document publishes CAPE and no CIN — the S4-measured family", () => {
+    // hrrr publishes both: the full cap story belongs to capTiming.
+    expect(ofKind(analyzeProfile(hrrr(), ERIE).findings, "convectiveDay")).toHaveLength(0);
+    // geps is an ensemble (and publishes CIN); reps publishes no CAPE.
+    expect(ofKind(analyzeProfile(geps(), FLAGPOLE).findings, "convectiveDay")).toHaveLength(0);
+    expect(ofKind(analyzeProfile(reps(), ERIE).findings, "convectiveDay")).toHaveLength(0);
   });
 });
 

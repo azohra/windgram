@@ -12,6 +12,7 @@
    kind work merges without conflict. */
 
 import type { CapTimingFinding } from "./kinds/cap-timing.js";
+import type { ConvectiveDayFinding } from "./kinds/convective-day.js";
 import type { DataCaveatsFinding } from "./kinds/data-caveats.js";
 import type { EnsembleMembershipFinding } from "./kinds/ensemble-membership.js";
 import type { ThermalWindowFinding } from "./kinds/thermal-window.js";
@@ -71,6 +72,7 @@ export type { CitedInstant, LocalDayKey } from "./kinds/shared.js";
 
 /* Per-kind types — one line per kind. */
 export type { CapTimingFinding } from "./kinds/cap-timing.js";
+export type { ConvectiveDayFinding } from "./kinds/convective-day.js";
 export type { DataCaveat, DataCaveatsFinding } from "./kinds/data-caveats.js";
 export type { EnsembleMembershipFinding } from "./kinds/ensemble-membership.js";
 export type { ThermalWindowFinding } from "./kinds/thermal-window.js";
@@ -85,6 +87,7 @@ export type WindgramFinding =
   | DataCaveatsFinding
   | EnsembleMembershipFinding
   | CapTimingFinding
+  | ConvectiveDayFinding
   | ThermalWindowFinding
   | QuietDayFinding
   | LiftCeilingFinding
@@ -104,6 +107,7 @@ export interface AnalyzeThresholds {
     brokenCapMinCapeJkg: number;
     precipMinMmHr: number;
   };
+  convectiveDay: { precipMinMmHr: number };
   terrainMismatch: { minAbsDeltaM: number };
   windSummary: { bandMarginM: number; persistenceFractionOfMax: number };
   ensembleMembership: { wideningRatio: number };
@@ -124,6 +128,7 @@ export const DEFAULT_ANALYZE_THRESHOLDS: AnalyzeThresholds = {
     brokenCapMinCapeJkg: 200,
     precipMinMmHr: 0.2,
   },
+  convectiveDay: { precipMinMmHr: 0.2 },
   terrainMismatch: { minAbsDeltaM: 250 },
   windSummary: { bandMarginM: 200, persistenceFractionOfMax: 0.8 },
   ensembleMembership: { wideningRatio: 1.5 },

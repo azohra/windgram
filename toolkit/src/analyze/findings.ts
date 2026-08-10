@@ -10,6 +10,7 @@
 
 import { isDeterministicProfile, type WindgramProfile } from "../contract/index.js";
 import { findCapTiming } from "./kinds/cap-timing.js";
+import { findConvectiveDays } from "./kinds/convective-day.js";
 import { findDataCaveats } from "./kinds/data-caveats.js";
 import { findEnsembleMembership } from "./kinds/ensemble-membership.js";
 import { findThermalWindows } from "./kinds/thermal-window.js";
@@ -71,6 +72,7 @@ export function analyzeProfile(
     ...findQuietDays(context, windows),
     ...findLiftCeilings(context, windows),
     ...findCapTiming(context, windows),
+    ...findConvectiveDays(context, windows),
     ...findWindSummaries(context),
     ...findEnsembleMembership(context),
     findDataCaveats(context, timeZoneSource),
@@ -111,6 +113,7 @@ function mergeThresholds(overrides?: AnalyzeThresholdOverrides): AnalyzeThreshol
     thermalWindow: { ...DEFAULT_ANALYZE_THRESHOLDS.thermalWindow, ...overrides.thermalWindow },
     liftCeiling: { ...DEFAULT_ANALYZE_THRESHOLDS.liftCeiling, ...overrides.liftCeiling },
     capTiming: { ...DEFAULT_ANALYZE_THRESHOLDS.capTiming, ...overrides.capTiming },
+    convectiveDay: { ...DEFAULT_ANALYZE_THRESHOLDS.convectiveDay, ...overrides.convectiveDay },
     terrainMismatch: { ...DEFAULT_ANALYZE_THRESHOLDS.terrainMismatch, ...overrides.terrainMismatch },
     windSummary: { ...DEFAULT_ANALYZE_THRESHOLDS.windSummary, ...overrides.windSummary },
     ensembleMembership: {
