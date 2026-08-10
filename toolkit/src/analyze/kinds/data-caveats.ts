@@ -21,7 +21,10 @@ export type DataCaveat =
     }
   | {
       /** Multi-hour steps: timing finer than the cadence (window edges,
-       * onset times) is interpolation, not forecast. */
+       * onset times) is interpolation, not forecast. `stepHours` is the
+       * document's WIDEST adjacent gap — cadence can widen mid-horizon
+       * (live GEPS: 3 h then 6 h), and the widest step is the honest
+       * single number where the shape allows only one. */
       caveat: "stepCadence";
       stepHours: number;
     }
@@ -93,7 +96,11 @@ export function findDataCaveats(
     }
   }
 
-  if (context.stepHours > 1) caveats.push({ caveat: "stepCadence", stepHours: context.stepHours });
+  // The widest gap, not the leading pair's: a document that starts hourly
+  // and widens mid-horizon still interpolates timing at its far steps.
+  if (context.steps.maxStepHours > 1) {
+    caveats.push({ caveat: "stepCadence", stepHours: context.steps.maxStepHours });
+  }
   if (timeZoneSource === "utcFallback") caveats.push({ caveat: "timesAreUtc" });
 
   return { kind: "dataCaveats", caveats };

@@ -426,6 +426,124 @@ describe("ensembleMembership", () => {
   });
 });
 
+describe("mixed cadence — spacing is per-gap, never a document constant", () => {
+  /* The defect S1 measured live (2026-08-10): GEPS publishes 63 steps at
+     3 h then 32 at 6 h, and the old first-pair `stepHoursOf` misread every
+     spacing-derived statement on the far horizon — quiet days on fully
+     covered 6-hourly days read truncated, covered spans counted 6-hour
+     steps as 3. These constructions re-stamp real fixture hours onto a
+     switching grid: the spacing is what is under test. */
+
+  const iso = (ms: number) => new Date(ms).toISOString().replace(".000Z", "Z");
+
+  /** GEPS's live shape in miniature: ten 3-hourly steps, then a 6-hourly
+   * tail (re-stamped clones of the remaining published hours). */
+  function gepsSwitching(): WindgramProfile {
+    const doc = JSON.parse(JSON.stringify(fixtures["gepsFlagpole"])) as {
+      hours: Array<{ validAt: string }>;
+    };
+    const head = doc.hours.slice(0, 10);
+    const anchor = Date.parse(head[9].validAt); // 2026-08-09T18:00:00Z
+    const tail = doc.hours
+      .slice(10, 16)
+      .map((hour, k) => ({ ...hour, validAt: iso(anchor + (k + 1) * 6 * 3_600_000) }));
+    doc.hours = [...head, ...tail];
+    const profile = parseWindgramProfile(doc);
+    expect(profile).not.toBeNull();
+    return profile!;
+  }
+
+  /** HRRR's hourly head with a 3-hourly tail (published hours, subsampled). */
+  function hrrrWidening(): WindgramProfile {
+    const doc = JSON.parse(JSON.stringify(fixtures["hrrrConusErie"])) as {
+      hours: unknown[];
+    };
+    doc.hours = [
+      ...doc.hours.slice(0, 7), // 19:00Z..01:00Z hourly
+      doc.hours[9],
+      doc.hours[12],
+      doc.hours[15],
+      doc.hours[18],
+      doc.hours[21], // 04:00Z..16:00Z three-hourly
+    ];
+    const profile = parseWindgramProfile(doc);
+    expect(profile).not.toBeNull();
+    return profile!;
+  }
+
+  it("keeps the envelope's stepHours as the leading cadence and confesses the widest step", () => {
+    const analysis = analyzeProfile(gepsSwitching(), FLAGPOLE);
+    expect(analysis.stepHours).toBe(3); // leading pair — a display fact
+    const caveats = ofKind<DataCaveatsFinding>(analysis.findings, "dataCaveats")[0];
+    // The caveat names the WIDEST gap: timing at the far horizon is
+    // 6-hour interpolation even though the document opens 3-hourly.
+    expect(caveats.caveats).toContainEqual({ caveat: "stepCadence", stepHours: 6 });
+  });
+
+  it("judges quiet-day truncation at the day's own cadence — a covered 6-hourly day is no data boundary", () => {
+    const quiet = ofKind<QuietDayFinding>(analyzeProfile(gepsSwitching(), FLAGPOLE).findings, "quietDay");
+    const byDay = Object.fromEntries(quiet.map((finding) => [finding.day, finding]));
+    // The far day samples 05:00/11:00/17:00/23:00 local at 6 h — full
+    // coverage. The old document-wide constant (3 h) read 05:00 as a
+    // late start and called the day truncated with 12 covered hours.
+    expect(byDay["2026-08-10"].coverage.truncated).toBe(false);
+    expect(byDay["2026-08-10"].coverage.hours).toBe(24);
+    // The switch day: four 3-hour steps then two 6-hour steps; its last
+    // sample (23:00 local) covers the 6 hours to the next published
+    // sample, crossing midnight — the stated covered-span convention.
+    expect(byDay["2026-08-09"].coverage.truncated).toBe(false);
+    expect(byDay["2026-08-09"].coverage.hours).toBe(27);
+    // The 3-hourly near day is untouched by the fix.
+    expect(byDay["2026-08-08"].coverage.truncated).toBe(true);
+    expect(byDay["2026-08-08"].coverage.hours).toBe(18);
+  });
+
+  it("counts durationHours as covered span at the actual cadence", () => {
+    const windows = ofKind<ThermalWindowFinding>(
+      analyzeProfile(hrrrWidening(), ERIE).findings,
+      "thermalWindow",
+    );
+    const saturday = windows.find((finding) => finding.day === "2026-08-08")!;
+    // Same seven cited instants as the hourly document (19:00Z-01:00Z),
+    // but the last cited step is 3 h wide (next published sample 04:00Z):
+    // six 1-hour steps plus one 3-hour step, not 7 × leading cadence.
+    expect(saturday.evidence.hours).toHaveLength(7);
+    expect(saturday.start.validAt).toBe("2026-08-08T19:00:00Z");
+    expect(saturday.end.validAt).toBe("2026-08-09T01:00:00Z");
+    expect(saturday.durationHours).toBe(9);
+  });
+
+  it("gates capTiming per day — a document that merely starts hourly gets no coarse-day cap story", () => {
+    // Baseline: both local days carry a verdict on the hourly document.
+    expect(
+      ofKind<CapTimingFinding>(analyzeProfile(hrrr(), ERIE).findings, "capTiming"),
+    ).toHaveLength(2);
+    // Widened: day one's CAPE/CIN rows end 3-hourly, day two is entirely
+    // 3-hourly — instant verdicts need hourly sampling AT THE DAY, and
+    // the old leading-pair gate would have admitted both.
+    expect(
+      ofKind<CapTimingFinding>(analyzeProfile(hrrrWidening(), ERIE).findings, "capTiming"),
+    ).toHaveLength(0);
+  });
+
+  it("measures wind persistence as covered span — a lone far-horizon sample is as wide as its step", () => {
+    const doc = JSON.parse(JSON.stringify(fixtures["repsErie"])) as { hours: unknown[] };
+    // 3-hourly through 09:00Z, then one 6-hour gap to the last sample.
+    doc.hours = [...doc.hours.slice(0, 5), doc.hours[6]];
+    const profile = parseWindgramProfile(doc)!;
+    const findings = ofKind<WindSummaryFinding>(
+      analyzeProfile(profile, ERIE).findings,
+      "windSummary",
+    );
+    const sunday = findings.find((finding) => finding.day === "2026-08-09")!;
+    // The peak stands alone at the document's last sample, whose arriving
+    // gap is 6 h — the persistence states that step's real width, where
+    // the leading cadence would have said 3.
+    expect(sunday.maxWindInBand?.at.validAt).toBe("2026-08-09T15:00:00Z");
+    expect(sunday.maxWindInBand?.persistenceHours).toBe(6);
+  });
+});
+
 describe("dataCaveats", () => {
   it("declares what REPS cannot say — the whole science wave absent, threshold-free", () => {
     const finding = ofKind<DataCaveatsFinding>(analyzeProfile(reps(), ERIE).findings, "dataCaveats")[0];

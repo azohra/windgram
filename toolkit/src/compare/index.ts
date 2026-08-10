@@ -72,6 +72,8 @@ export interface ComparisonMemberLedger {
   referenceTime: string;
   /** Hours older than the newest member's run — a discount fact. */
   runAgeHours: number;
+  /** The member's LEADING cadence (see WindgramAnalysis.stepHours) — a
+   * ledger fact; live documents can widen mid-horizon. */
   stepHours: number;
   hours: number;
   modelElevationM: number;

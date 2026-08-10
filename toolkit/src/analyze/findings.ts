@@ -15,7 +15,7 @@ import { findEnsembleMembership } from "./kinds/ensemble-membership.js";
 import { findThermalWindows } from "./kinds/thermal-window.js";
 import { findLiftCeilings } from "./kinds/lift-ceiling.js";
 import { findQuietDays } from "./kinds/quiet-day.js";
-import { citedInstantFactory, stepHoursOf, type Context } from "./kinds/shared.js";
+import { citedInstantFactory, hourStepsOf, stepHoursOf, type Context } from "./kinds/shared.js";
 import { findTerrainMismatch } from "./kinds/terrain-mismatch.js";
 import { findWindSummaries } from "./kinds/wind-summary.js";
 import {
@@ -56,6 +56,7 @@ export function analyzeProfile(
     timeZone,
     deterministic: isDeterministicProfile(profile),
     stepHours: stepHoursOf(profile),
+    steps: hourStepsOf(profile),
     launchElevationM,
     launchReferenceM: launchElevationM ?? profile.site.modelElevationM,
     cite: citedInstantFactory(timeZone),

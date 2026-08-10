@@ -7,11 +7,14 @@ import { round1, type CitedInstant, type Context, type LocalDayKey } from "./sha
 
 /**
  * The overdevelopment-timing story per local day: CAPE build vs CIN erosion
- * vs the thermal window's close. GATED to hourly deterministic documents
- * that publish CIN: the spike found ensemble-median CIN bimodal (a p50 over
- * members half of whom have broken the cap says neither thing), and
- * 3-hourly cadence makes "when the cap breaks" interpolation rather than
- * forecast — so ensembles and multi-hour steps emit nothing here.
+ * vs the thermal window's close. GATED to deterministic documents that
+ * publish CIN, on days sampled hourly: the spike found ensemble-median CIN
+ * bimodal (a p50 over members half of whom have broken the cap says
+ * neither thing), and multi-hour cadence makes "when the cap breaks"
+ * interpolation rather than forecast — so ensembles emit nothing here, and
+ * the hourly test runs per DAY (cadence widens mid-horizon on live
+ * documents; a day whose CAPE/CIN rows are not adjacent hourly samples is
+ * silent, including single-sample days).
  * Verdicts are arithmetic relations over the embedded thresholds:
  * `noInstability` (peak CAPE under `instabilityMinCapeJkg`), `capBreaks`
  * (some hour has |CIN| < `brokenCapMaxAbsCinJkg` while CAPE >
@@ -45,9 +48,14 @@ export function findCapTiming(
   context: Context,
   windows: ThermalWindowFinding[],
 ): CapTimingFinding[] {
-  const { profile, thresholds, stepHours } = context;
+  const { profile, thresholds } = context;
   // The gate (see the kind's JSDoc): hourly deterministic with CIN only.
-  if (!context.deterministic || stepHours !== 1) return [];
+  // Deterministic is a document fact; hourly is judged PER DAY below —
+  // cadence is not a document-wide constant (live GDPS widens 3 h → 6 h
+  // mid-horizon; S4 measured its far-horizon steps at 11:00 → 17:00 →
+  // 23:00), so a leading-pair read would admit far coarse days on a
+  // document that merely starts hourly.
+  if (!context.deterministic) return [];
   const rows = profile.hours
     .map((hour) => ({
       hour,
@@ -71,6 +79,19 @@ export function findCapTiming(
 
   const findings: CapTimingFinding[] = [];
   for (const [day, dayRows] of byDay) {
+    // Instant verdicts need hourly sampling AT THIS DAY: every adjacent
+    // pair of the day's CAPE/CIN rows exactly one hour apart, and at
+    // least two rows (a single sample cannot carry a day's cap story).
+    // Days sampled coarser say nothing here — "when the cap breaks" at
+    // multi-hour spacing is interpolation, not forecast.
+    const hourly =
+      dayRows.length >= 2 &&
+      dayRows.every(
+        (row, i) =>
+          i === 0 ||
+          Date.parse(row.hour.validAt) - Date.parse(dayRows[i - 1].hour.validAt) === 3_600_000,
+      );
+    if (!hourly) continue;
     const peak = dayRows.reduce((best, row) => (row.cape > best.cape ? row : best));
     const evidence = {
       hours: dayRows.map((row) => row.hour.validAt),

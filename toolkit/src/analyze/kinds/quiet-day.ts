@@ -34,7 +34,8 @@ export interface QuietDayFinding {
   /**
    * The hours the claim is built from. `truncated` is the arithmetic
    * verdict that the document's own hour range clips this local day (its
-   * covered span misses the day's start or end at the model's cadence):
+   * covered span misses the day's start or end at the local cadence of
+   * the day's own edge hours — cadence can widen mid-horizon):
    * a quiet call built from a sliver of a day — a short-horizon run
    * ending before the thermals start — is a data boundary, not a
    * forecast. A truncated quiet day must not vote in cross-model
@@ -76,14 +77,20 @@ export function findQuietDays(
   const findings: QuietDayFinding[] = [];
   for (const [day, hours] of byDay) {
     if (windowDays.has(day)) continue;
-    /* Coverage: a continuous profile covers a full local day at cadence k
-       exactly when its first covered hour falls inside the day's first
-       step and its last inside the day's last step. Anything else means
+    /* Coverage: a continuous profile covers a full local day exactly when
+       its first covered hour falls inside the day's first step and its
+       last inside the day's last step — judged at the LOCAL cadence of
+       those hours (steps.before at the day's first sample, steps.after at
+       its last), never a document-wide constant: live GEPS switches 3 h →
+       6 h mid-horizon, and reading the leading cadence misread its far
+       6-hourly days as truncated (S1, 2026-08-10). Anything else means
        the document's own horizon clips the day. */
-    const step = context.stepHours;
+    const { steps } = context;
+    const firstIdx = steps.indexOf.get(hours[0].validAt)!;
+    const lastIdx = steps.indexOf.get(hours[hours.length - 1].validAt)!;
     const firstLocalH = localHourOfDay(hours[0].validAt, context.timeZone);
     const lastLocalH = localHourOfDay(hours[hours.length - 1].validAt, context.timeZone);
-    const truncated = !(firstLocalH < step && lastLocalH >= 24 - step);
+    const truncated = !(firstLocalH < steps.before[firstIdx] && lastLocalH >= 24 - steps.after[lastIdx]);
     let peakWstar: number | null = null;
     let peakWstarAt: string | null = null;
     let peakDepth: number | null = null;
@@ -116,7 +123,9 @@ export function findQuietDays(
       peakLiftDepthAt: peakDepthAt === null ? null : context.cite(peakDepthAt),
       failed,
       coverage: {
-        hours: hours.length * step,
+        // Covered span at the actual cadence (HourSteps convention) — at
+        // constant cadence exactly samples × stepHours, as before v4.
+        hours: steps.after.slice(firstIdx, lastIdx + 1).reduce((sum, span) => sum + span, 0),
         first: context.cite(hours[0].validAt),
         last: context.cite(hours[hours.length - 1].validAt),
         truncated,

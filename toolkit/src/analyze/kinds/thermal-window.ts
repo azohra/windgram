@@ -69,7 +69,7 @@ function band(value: Scalar | null | undefined): [number, number] | null {
 }
 
 export function findThermalWindows(context: Context): ThermalWindowFinding[] {
-  const { profile, launchReferenceM, thresholds, stepHours } = context;
+  const { profile, launchReferenceM, thresholds, steps } = context;
   const { wstarMinMs, depthMinM } = thresholds.thermalWindow;
   const launchKnown = context.launchElevationM !== null;
   const ensemble = !context.deterministic;
@@ -109,7 +109,13 @@ export function findThermalWindows(context: Context): ThermalWindowFinding[] {
       clippedAtStart: hours[0].validAt === profile.hours[0].validAt,
       clippedAtEnd:
         hours[hours.length - 1].validAt === profile.hours[profile.hours.length - 1].validAt,
-      durationHours: hours.length * stepHours,
+      // Covered span at the document's ACTUAL cadence (see HourSteps in
+      // shared.ts): each cited step covers the hours to the next published
+      // sample. At constant cadence this is samples × stepHours exactly;
+      // on a mixed-cadence document (live GEPS: 3 h then 6 h) the far
+      // horizon's wider steps count at their real width instead of the
+      // leading pair's.
+      durationHours: steps.after.slice(index, last + 1).reduce((sum, span) => sum + span, 0),
       peakLiftTopM: round1(peakTop),
       peakLiftTopAt: context.cite(peakHour.validAt),
       peakLiftTopAboveLaunchM: launchKnown ? round1(peakTop - launchReferenceM) : null,

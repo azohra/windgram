@@ -143,6 +143,13 @@ export interface WindgramAnalysis {
   /** The timezone every local field below reads in. */
   timeZone: string;
   timeZoneSource: "document" | "override" | "utcFallback";
+  /**
+   * The document's LEADING cadence (its first two hours' gap) — a display
+   * fact, not a document-wide constant: live documents widen mid-horizon
+   * (GEPS publishes 3-hourly then 6-hourly), so spacing-derived arithmetic
+   * inside findings reads the actual per-gap spacing, and a mixed-cadence
+   * document carries a `stepCadence` caveat naming its widest step.
+   */
   stepHours: number;
   hours: number;
   findings: WindgramFinding[];

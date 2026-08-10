@@ -117,16 +117,25 @@ export function findWindSummaries(context: Context): WindSummaryFinding[] {
       );
       const peakIndex = bandMaxima.findIndex((entry) => entry === peakEntry);
       const floor = peakEntry.max.windMs * persistenceFractionOfMax;
-      let persistence = 1;
+      let runFirst = peakIndex;
+      let runLast = peakIndex;
       for (let i = peakIndex - 1; i >= 0 && (bandMaxima[i].max?.windMs ?? -1) >= floor; i -= 1) {
-        persistence += 1;
+        runFirst = i;
       }
       for (
         let i = peakIndex + 1;
         i < bandMaxima.length && (bandMaxima[i].max?.windMs ?? -1) >= floor;
         i += 1
       ) {
-        persistence += 1;
+        runLast = i;
+      }
+      // Covered span of the persistence run at the actual cadence
+      // (HourSteps convention) — at constant cadence exactly
+      // samples × stepHours, as before v4.
+      const { steps } = context;
+      let persistenceHours = 0;
+      for (let i = runFirst; i <= runLast; i += 1) {
+        persistenceHours += steps.after[steps.indexOf.get(bandMaxima[i].hour.validAt)!];
       }
       finding.maxWindInBand = {
         windMs: round2(peakEntry.max.windMs),
@@ -135,7 +144,7 @@ export function findWindSummaries(context: Context): WindSummaryFinding[] {
         heightM: round1(peakEntry.max.heightM),
         pressureHpa: peakEntry.max.pressureHpa,
         at: context.cite(peakEntry.hour.validAt),
-        persistenceHours: persistence * context.stepHours,
+        persistenceHours,
       };
     }
 
