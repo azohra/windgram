@@ -12,6 +12,7 @@ import {
   type LiftCeilingFinding,
   type QuietDayFinding,
   type TerrainMismatchFinding,
+  type WindExceedanceFinding,
   type WindSummaryFinding,
 } from "../src/analyze/index.js";
 import { parseWindgramProfile, type WindgramProfile } from "../src/contract/index.js";
@@ -118,6 +119,7 @@ describe("the analysis envelope", () => {
         "quietDay",
         "liftCeiling",
         "windSummary",
+        "windExceedance",
       ]).toContain(kind);
     }
   });
@@ -761,6 +763,172 @@ describe("windSummary.duringWindow", () => {
     expect(sunday.maxWindInBand?.windMs).toBe(1.58);
     expect(sunday.maxWindInBand?.pressureHpa).toBeNull();
     expect(Number.isNaN(sunday.maxWindInBand?.pressureHpa)).toBe(false);
+  });
+});
+
+describe("windExceedance", () => {
+  /* S3 candidate 2: caller-thresholded absolute runs over window hours.
+     The package never owns a ceiling; the caller's value is echoed
+     verbatim; gust ceilings are per semantics class, never reused. */
+
+  const tagged = () => {
+    const doc = hrrr();
+    (doc as { semantics?: object }).semantics = {
+      gust: "hourMax",
+      precipitation: "instantRate",
+    };
+    return parseWindgramProfile(doc)!;
+  };
+
+  it("emits nothing without caller ceilings — no defaults exist anywhere", () => {
+    const findings = ofKind(analyzeProfile(tagged(), ERIE).findings, "windExceedance");
+    expect(findings).toHaveLength(0);
+    // An empty ceilings object supplies no quantity either.
+    expect(
+      ofKind(analyzeProfile(tagged(), { ...ERIE, windCeilings: {} }).findings, "windExceedance"),
+    ).toHaveLength(0);
+  });
+
+  it("finds maximal runs per day and quantity over window hours, threshold echoed verbatim", () => {
+    const findings = ofKind<WindExceedanceFinding>(
+      analyzeProfile(tagged(), {
+        ...ERIE,
+        windCeilings: { surfaceMs: 2.5, gust: { hourMaxMs: 3 }, bandMs: 4 },
+      }).findings,
+      "windExceedance",
+    );
+    // Saturday: gust, surface, and band all exceed; Sunday: gust only
+    // (its window hour reads surface 1.02, band 1.51).
+    expect(
+      findings.map((finding) => [finding.day, finding.quantity]).sort(),
+    ).toEqual([
+      ["2026-08-08", "bandWind"],
+      ["2026-08-08", "gust"],
+      ["2026-08-08", "surfaceWind"],
+      ["2026-08-09", "gust"],
+    ]);
+
+    const gust = findings.find(
+      (finding) => finding.day === "2026-08-08" && finding.quantity === "gust",
+    )!;
+    // Window gusts [2.33, 2.15, 2.59, 3.23, 3.9, 3.74, 3.46]: one maximal
+    // run, 22:00Z-01:00Z, peaking 3.9 at 16:00 local.
+    expect(gust.thresholdMs).toBe(3);
+    expect(gust.gustSemantics).toBe("hourMax");
+    expect(gust.stepHours).toBe(1);
+    expect(gust.runs).toEqual([
+      {
+        start: { validAt: "2026-08-08T22:00:00Z", local: "2026-08-08T15:00" },
+        end: { validAt: "2026-08-09T01:00:00Z", local: "2026-08-08T18:00" },
+        hours: 4,
+        peakMs: 3.9,
+        peakAt: { validAt: "2026-08-08T23:00:00Z", local: "2026-08-08T16:00" },
+      },
+    ]);
+    expect(gust.evidence.hours).toHaveLength(7);
+    expect(gust.evidence.valueMs).toEqual([2.33, 2.15, 2.59, 3.23, 3.9, 3.74, 3.46]);
+
+    const surface = findings.find(
+      (finding) => finding.day === "2026-08-08" && finding.quantity === "surfaceWind",
+    )!;
+    // Surface winds [1.92, 1.56, 2.11, 2.59, 2.72, 2.47, 2.32]: 22:00Z and
+    // 23:00Z stand at/above 2.5; 00:00Z (2.47) ends the run.
+    expect(surface.gustSemantics).toBeUndefined();
+    expect(surface.runs).toEqual([
+      {
+        start: { validAt: "2026-08-08T22:00:00Z", local: "2026-08-08T15:00" },
+        end: { validAt: "2026-08-08T23:00:00Z", local: "2026-08-08T16:00" },
+        hours: 2,
+        peakMs: 2.72,
+        peakAt: { validAt: "2026-08-08T23:00:00Z", local: "2026-08-08T16:00" },
+      },
+    ]);
+
+    const band = findings.find(
+      (finding) => finding.day === "2026-08-08" && finding.quantity === "bandWind",
+    )!;
+    // Band maxima [1.87, 2.06, 3.19, 3.65, 4.28, 3.77, 3.49]: 23:00Z alone.
+    expect(band.runs).toHaveLength(1);
+    expect(band.runs[0].hours).toBe(1);
+    expect(band.runs[0].peakMs).toBe(4.28);
+
+    const sundayGust = findings.find(
+      (finding) => finding.day === "2026-08-09" && finding.quantity === "gust",
+    )!;
+    expect(sundayGust.runs).toEqual([
+      {
+        start: { validAt: "2026-08-09T18:00:00Z", local: "2026-08-09T11:00" },
+        end: { validAt: "2026-08-09T18:00:00Z", local: "2026-08-09T11:00" },
+        hours: 1,
+        peakMs: 3.05,
+        peakAt: { validAt: "2026-08-09T18:00:00Z", local: "2026-08-09T11:00" },
+      },
+    ]);
+  });
+
+  it("refuses across gust semantics classes — an instant ceiling reads nothing from an hourMax document", () => {
+    // The caller supplied only the OTHER class's ceiling: silence, never a
+    // silently misread threshold (S3: the class gap is a factor ~1.8-2.8).
+    const wrongClass = analyzeProfile(tagged(), {
+      ...ERIE,
+      windCeilings: { gust: { instantMs: 3 } },
+    });
+    expect(ofKind(wrongClass.findings, "windExceedance")).toHaveLength(0);
+    // An UNTAGGED document declares no gust semantics: no ceiling matches,
+    // whichever classes the caller supplies.
+    const untagged = analyzeProfile(hrrr(), {
+      ...ERIE,
+      windCeilings: { gust: { hourMaxMs: 3, instantMs: 3 } },
+    });
+    expect(ofKind(untagged.findings, "windExceedance")).toHaveLength(0);
+  });
+
+  it("breaks runs at scope gaps — two same-day windows never bridge into one run", () => {
+    // The dip splits Saturday into two windows (19:00Z-21:00Z and
+    // 23:00Z-01:00Z); every scope hour gusts >= 2, but the out-of-scope
+    // 22:00Z hour keeps the runs apart.
+    const dipped = tagged();
+    for (const hour of dipped.hours) {
+      if (hour.validAt === "2026-08-08T22:00:00Z") {
+        (hour.derived as { thermalVelocityMs: number }).thermalVelocityMs = 0.85;
+      }
+    }
+    const saturday = ofKind<WindExceedanceFinding>(
+      analyzeProfile(dipped, { ...ERIE, windCeilings: { gust: { hourMaxMs: 2 } } }).findings,
+      "windExceedance",
+    ).find((finding) => finding.day === "2026-08-08")!;
+    expect(saturday.evidence.hours).toHaveLength(6);
+    expect(saturday.runs.map((run) => [run.start.validAt, run.end.validAt, run.hours])).toEqual([
+      ["2026-08-08T19:00:00Z", "2026-08-08T21:00:00Z", 3],
+      ["2026-08-08T23:00:00Z", "2026-08-09T01:00:00Z", 3],
+    ]);
+  });
+
+  it("reads ensembles at p50 and confesses coarse cadence in run lengths", () => {
+    // REPS is gustless (no gust runs whatever the ceilings), but its band
+    // wind exceeds a 1.5 m/s ceiling on Saturday's single-sample window —
+    // a run whose covered span is the 3-hour step, stated.
+    const findings = ofKind<WindExceedanceFinding>(
+      analyzeProfile(reps(), {
+        ...ERIE,
+        windCeilings: { gust: { hourMaxMs: 1, instantMs: 1 }, bandMs: 1.5 },
+      }).findings,
+      "windExceedance",
+    );
+    expect(findings).toHaveLength(1);
+    const band = findings[0];
+    expect(band.day).toBe("2026-08-08");
+    expect(band.quantity).toBe("bandWind");
+    expect(band.stepHours).toBe(3);
+    expect(band.runs).toEqual([
+      {
+        start: { validAt: "2026-08-08T21:00:00Z", local: "2026-08-08T14:00" },
+        end: { validAt: "2026-08-08T21:00:00Z", local: "2026-08-08T14:00" },
+        hours: 3,
+        peakMs: 1.78,
+        peakAt: { validAt: "2026-08-08T21:00:00Z", local: "2026-08-08T14:00" },
+      },
+    ]);
   });
 });
 

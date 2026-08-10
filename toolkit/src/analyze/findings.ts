@@ -17,6 +17,7 @@ import { findLiftCeilings } from "./kinds/lift-ceiling.js";
 import { findQuietDays } from "./kinds/quiet-day.js";
 import { citedInstantFactory, hourStepsOf, stepHoursOf, type Context } from "./kinds/shared.js";
 import { findTerrainMismatch } from "./kinds/terrain-mismatch.js";
+import { findWindExceedance } from "./kinds/wind-exceedance.js";
 import { findWindSummaries } from "./kinds/wind-summary.js";
 import {
   ANALYZE_VOCABULARY_VERSION,
@@ -62,6 +63,7 @@ export function analyzeProfile(
     launchReferenceM: launchElevationM ?? profile.site.modelElevationM,
     cite: citedInstantFactory(timeZone),
     thresholds,
+    ...(options.windCeilings ? { windCeilings: options.windCeilings } : {}),
   };
 
   const windows = findThermalWindows(context);
@@ -72,6 +74,7 @@ export function analyzeProfile(
     ...findLiftCeilings(context, windows),
     ...findCapTiming(context, windows),
     ...findWindSummaries(context, windows),
+    ...findWindExceedance(context, windows),
     ...findEnsembleMembership(context),
     findDataCaveats(context, timeZoneSource),
   ];

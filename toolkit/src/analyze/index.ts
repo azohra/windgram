@@ -89,6 +89,8 @@ export {
   type QuietDayFinding,
   type TerrainMismatchFinding,
   type ThermalWindowFinding,
+  type WindCeilings,
+  type WindExceedanceFinding,
   type WindgramAnalysis,
   type WindgramFinding,
   type WindSummaryFinding,

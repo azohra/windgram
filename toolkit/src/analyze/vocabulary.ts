@@ -18,6 +18,7 @@ import type { ThermalWindowFinding } from "./kinds/thermal-window.js";
 import type { LiftCeilingFinding } from "./kinds/lift-ceiling.js";
 import type { QuietDayFinding } from "./kinds/quiet-day.js";
 import type { TerrainMismatchFinding } from "./kinds/terrain-mismatch.js";
+import type { WindExceedanceFinding } from "./kinds/wind-exceedance.js";
 import type { WindSummaryFinding } from "./kinds/wind-summary.js";
 
 /**
@@ -77,6 +78,7 @@ export type { ThermalWindowFinding } from "./kinds/thermal-window.js";
 export type { LiftCeilingFinding } from "./kinds/lift-ceiling.js";
 export type { QuietDayFinding } from "./kinds/quiet-day.js";
 export type { TerrainMismatchFinding } from "./kinds/terrain-mismatch.js";
+export type { WindExceedanceFinding } from "./kinds/wind-exceedance.js";
 export type { WindSummaryFinding } from "./kinds/wind-summary.js";
 
 /* The union — one member line per kind. */
@@ -88,7 +90,8 @@ export type WindgramFinding =
   | ThermalWindowFinding
   | QuietDayFinding
   | LiftCeilingFinding
-  | WindSummaryFinding;
+  | WindSummaryFinding
+  | WindExceedanceFinding;
 
 export type FindingKind = WindgramFinding["kind"];
 
@@ -159,6 +162,25 @@ export interface AnalyzeOptions {
   launch?: { elevationM: number } | null;
   /** Per-kind threshold overrides, merged over the defaults per kind. */
   thresholds?: AnalyzeThresholdOverrides;
+  /**
+   * Caller-owned wind ceilings for `windExceedance` — deliberately NOT in
+   * `thresholds`, because NO DEFAULTS EXIST: the package never owns a
+   * "safe wind" number, and without a ceiling the kind emits nothing.
+   * Gust ceilings are per semantics class (`hourMaxMs` / `instantMs`,
+   * never reused across classes — S3 measured the gap at a factor
+   * ~1.8-2.8 at matched means); each supplied value is echoed verbatim in
+   * the findings it produces.
+   */
+  windCeilings?: WindCeilings;
+}
+
+/** See `AnalyzeOptions.windCeilings` — caller conventions, no defaults. */
+export interface WindCeilings {
+  surfaceMs?: number;
+  /** Per gust-semantics class; a document only reads the ceiling matching
+   * its own declared `semantics.gust`. */
+  gust?: { hourMaxMs?: number; instantMs?: number };
+  bandMs?: number;
 }
 
 /* ---------------------------------------------------------------- envelope */
