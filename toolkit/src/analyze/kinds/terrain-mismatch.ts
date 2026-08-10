@@ -1,5 +1,6 @@
 /* terrainMismatch — the kind's type and its extractor, one module. */
 
+import { isEnsembleValue } from "../../contract/index.js";
 import { p50 } from "../../derive/ensemble.js";
 import { round1, type CitedInstant, type Context } from "./shared.js";
 
@@ -27,6 +28,15 @@ export interface TerrainMismatchFinding {
   evidence: {
     maxUsableLiftTopM: number | null;
     maxUsableLiftTopAt: CitedInstant | null;
+    /**
+     * The max published p90 lift top — ensemble documents only, null for
+     * deterministic ones — so the bench is checkable against the band's
+     * top, not only the median the verdict reads (S1, 2026-08-10, live at
+     * red-mountain: p50 depth −52 m while p90 cleared launch by +1072 m;
+     * benched members stay benched, and this number is the evidence a
+     * consumer needs to see that the call read the whole band).
+     */
+    maxUsableLiftTopP90M: number | null;
   };
 }
 
@@ -41,11 +51,16 @@ export function findTerrainMismatch(context: Context): TerrainMismatchFinding[] 
 
   let maxTop: number | null = null;
   let maxTopAt: CitedInstant | null = null;
+  let maxTopP90: number | null = null;
   for (const hour of profile.hours) {
-    const top = p50(hour.derived.usableLiftTopM);
+    const value = hour.derived.usableLiftTopM;
+    const top = p50(value);
     if (top !== null && (maxTop === null || top > maxTop)) {
       maxTop = top;
       maxTopAt = context.cite(hour.validAt);
+    }
+    if (value !== null && isEnsembleValue(value) && value.p90 !== null) {
+      if (maxTopP90 === null || value.p90 > maxTopP90) maxTopP90 = value.p90;
     }
   }
   return [
@@ -59,6 +74,7 @@ export function findTerrainMismatch(context: Context): TerrainMismatchFinding[] 
       evidence: {
         maxUsableLiftTopM: maxTop === null ? null : round1(maxTop),
         maxUsableLiftTopAt: maxTopAt,
+        maxUsableLiftTopP90M: maxTopP90 === null ? null : round1(maxTopP90),
       },
     },
   ];

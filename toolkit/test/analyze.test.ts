@@ -523,6 +523,10 @@ describe("terrainMismatch", () => {
     expect(finding.liftTopEverReachesLaunch).toBe(false);
     expect(finding.evidence.maxUsableLiftTopM).toBe(793.7);
     expect(finding.evidence.maxUsableLiftTopAt?.validAt).toBe("2026-08-09T21:00:00Z");
+    // The band's own top so the bench is checkable beyond the median: even
+    // the most optimistic member family (p90 max 809.4 m) sits 412.6 m
+    // under the 1222 m launch — benched at every percentile.
+    expect(finding.evidence.maxUsableLiftTopP90M).toBe(809.4);
     expect(finding.thresholds).toEqual(DEFAULT_ANALYZE_THRESHOLDS.terrainMismatch);
   });
 
@@ -545,6 +549,9 @@ describe("terrainMismatch", () => {
     expect(findings).toHaveLength(1);
     expect(findings[0].deltaM).toBe(-69.4);
     expect(findings[0].liftTopEverReachesLaunch).toBe(true); // 2905.6 m > 1247 m launch
+    // Deterministic documents publish no band: the p90 evidence is null,
+    // never a restated median.
+    expect(findings[0].evidence.maxUsableLiftTopP90M).toBeNull();
   });
 });
 
