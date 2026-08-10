@@ -48,7 +48,11 @@ def _session() -> requests.Session:
 
 def fetch_published(path: str) -> bytes | None:
     """GET <data base>/<path>: the object's bytes, or None when nothing is
-    published there (HTTP 404). Any other client error stays fatal; 429s,
+    published there. Absence is TWO status codes: 404, and the 403 that
+    S3-style storage returns for a missing key when listing is denied —
+    every dataset's very first build asks for a manifest that has never
+    existed and gets the 403 (verified against the live base 2026-08-10,
+    the goes18-dsr cold start). Any other client error stays fatal; 429s,
     5xx, and transport errors are retried before failing."""
     url = f"{data_base()}/{path.lstrip('/')}"
     last_error: Exception | None = None
@@ -57,7 +61,7 @@ def fetch_published(path: str) -> bytes | None:
             response = _session().get(url, timeout=REQUEST_TIMEOUT_S)
             if response.status_code == 200:
                 return response.content
-            if response.status_code == 404:
+            if response.status_code in (403, 404):
                 return None
             if response.status_code != 429 and response.status_code < 500:
                 raise RuntimeError(f"data base {url} failed with {response.status_code}")
