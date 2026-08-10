@@ -334,20 +334,26 @@ describe("thermalWindow", () => {
 });
 
 describe("liftCeiling", () => {
-  it("attributes the deterministic window's ceiling to sink, with evidence per segment", () => {
+  it("attributes the deterministic window's ceiling to sink, citing the segment's peak", () => {
     const findings = ofKind<LiftCeilingFinding>(analyzeProfile(hrrr(), ERIE).findings, "liftCeiling");
     const saturday = findings.find((finding) => finding.day === "2026-08-08")!;
     expect(saturday.segments).toHaveLength(1);
-    expect(saturday.flips).toBe(0);
     expect(saturday.segments[0].cause).toBe("sinkLimited");
     expect(saturday.segments[0].hoursN).toBe(7);
-    // Cloud base stands 1.4 km above the lift top at the segment's start.
+    // The Tier 0 fix this pins: the 7-hour segment's evidence is its PEAK
+    // hour (23:00Z, top 2905.6), not its first (19:00Z, top 1840.7) — the
+    // pre-v4 frozen-first-hour evidence did not represent the claim. Cloud
+    // base and BL top are sampled at that same cited hour, so the
+    // sinkLimited relation re-derives from the printed row.
     expect(saturday.segments[0].evidence).toEqual({
-      usableLiftTopM: 1840.7,
-      cloudBaseM: 3248,
-      boundaryLayerTopM: 1841.7,
+      peakUsableLiftTopM: 2905.6,
+      peakUsableLiftTopAt: { validAt: "2026-08-08T23:00:00Z", local: "2026-08-08T16:00" },
+      cloudBaseM: 3401.7,
+      boundaryLayerTopM: 2771.2,
     });
     expect(saturday.thresholds).toEqual(DEFAULT_ANALYZE_THRESHOLDS.liftCeiling);
+    // flips was removed at v4: it restated segments.length - 1.
+    expect("flips" in saturday).toBe(false);
   });
 
   it("calls the REPS windows cloud-capped — base sits on (or within 50 m of) the top", () => {
@@ -357,7 +363,7 @@ describe("liftCeiling", () => {
       expect(finding.segments[0].cause).toBe("cloudCapped");
     }
     // Sunday's is exact: usable lift top IS the published cloud base.
-    expect(findings[1].segments[0].evidence.usableLiftTopM).toBe(2543.2);
+    expect(findings[1].segments[0].evidence.peakUsableLiftTopM).toBe(2543.2);
     expect(findings[1].segments[0].evidence.cloudBaseM).toBe(2543.2);
   });
 });
