@@ -37,28 +37,7 @@ provider transport ──→ gridpoint sampling ──→ source-shaped hours
 | Derivation | `derive.py` | Produce published profile blocks and model-dependent derived values |
 | Ensemble aggregation | `ensemble.py` | Aggregate member profiles, including circular wind and censored counts |
 | Publication | `publish.py` | Round contract fields, write JSON, append gzip history, build run index |
-| Published-state reads | `dataset.py` | Fetch already-published manifests, the run index, and history months over one of two transports |
 | Teaching scenarios | `scenarios.py` | Generate fixed inputs through the same derivation authority |
-
-## Reading the published dataset
-
-Builders learn what is already published from the published dataset
-itself — the already-published check, the run index, the month archives
-history appends continue — never from a scratch output tree. Two read
-transports, selected per call from the environment:
-
-- **Authenticated S3** — when `WINDGRAM_DATA_BASE` is unset and the full
-  upload credential set is present (`R2_ENDPOINT`, `AWS_ACCESS_KEY_ID`,
-  `AWS_SECRET_ACCESS_KEY` — exactly what the upload script uses), reads
-  go through boto3 against the bucket on that endpoint, so the CDN never
-  mediates the pipeline's own reads. `NoSuchKey` is true absence;
-  `AccessDenied` is fatal — this process holds credentials, so denial is
-  misconfiguration, never absence.
-- **Public HTTPS** — otherwise, and always when `WINDGRAM_DATA_BASE` is
-  set (an external publisher points it at their own published tree). A
-  403 carrying `cf-mitigated: challenge` fails loudly with the zone-level
-  fix named: a Cloudflare bot challenge is a broken read, never an empty
-  dataset.
 
 ## Authority boundary
 

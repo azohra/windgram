@@ -41,21 +41,15 @@ def derive_windgram_profile(source: dict, model: str, semantics: dict[str, str])
     echoed into the document as site.timeZone for the same self-interpreting
     reason: local time is load-bearing for reading a windgram, and a stored
     profile should not need the catalogue beside it to know its clock.
-    siteWhat3words (optional in source) is echoed as site.what3words the
-    same way — a human-readable launch address for pilots; the coordinates
-    stay the operative identity.
     """
     site = {
         "id": source["siteId"],
         "name": source["siteName"],
         "latitude": source["latitude"],
         "longitude": source["longitude"],
+        "altitudeM": source["siteAltitudeM"],
+        "modelElevationM": source["modelElevationM"],
     }
-    # Contract key order: what3words sits between longitude and altitudeM.
-    if source.get("siteWhat3words"):
-        site["what3words"] = source["siteWhat3words"]
-    site["altitudeM"] = source["siteAltitudeM"]
-    site["modelElevationM"] = source["modelElevationM"]
     if source.get("siteTimeZone"):
         site["timeZone"] = source["siteTimeZone"]
     return {

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "windgram"
-version = "0.7.0"
+version = "0.6.3"
 description = "Open pipeline for publishing model-derived soaring profiles as static JSON."
 readme = "README.md"
 license = "MIT"
@@ -18,12 +18,6 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Atmospheric Science",
 ]
 dependencies = [
-    # boto3 is a REGULAR dependency, not an extra: every one of the 12
-    # build steps reads the published dataset, and production reads it
-    # through the authenticated S3 API (see dataset.py) — a remembered
-    # extra flag on each of them is a footgun, and external publishers
-    # get the same authenticated-read option for free.
-    "boto3>=1.34",
     "eccodes>=2.47.0",
     "eccodeslib>=2.48.0.26",
     "h5py>=3.11",

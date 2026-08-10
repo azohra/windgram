@@ -106,7 +106,7 @@ profile `schemaVersion` remains `1`.
 | `liftCeiling` | Whether each segment's arithmetic ceiling is cloud-capped or sink-limited | Carries usable-lift top, cloud base, and boundary-layer top for each segment |
 | `capTiming` | CAPE build, CIN erosion, and precipitation timing relative to a window | Emitted only for hourly deterministic documents with CIN; no ensemble-median or three-hour interpolation claim |
 | `windSummary` | Maximum gust and climb-band wind magnitudes, timing, altitude, and persistence | Carries the document's gust semantics and reports magnitudes without policy labels |
-| `terrainMismatch` | Grid terrain delta and whether published lift ever arithmetically reaches the catalogued launch altitude | Emitted only when launch altitude is known and the embedded mismatch threshold is met |
+| `terrainMismatch` | Grid terrain delta and whether published lift ever arithmetically reaches surveyed launch altitude | Emitted only when launch altitude is known and the embedded mismatch threshold is met |
 | `ensembleMembership` | Contributor-count loss and p10–p90 band-width magnitude or trend | Spread and membership are not a confidence interval or confidence score |
 | `dataCaveats` | Absent quantity families, derived-null hours, coarse cadence, or UTC fallback | Threshold-free; absence remains “not published,” never zero |
 

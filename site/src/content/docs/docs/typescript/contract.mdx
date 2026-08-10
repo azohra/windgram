@@ -7,25 +7,18 @@ import ContractAnatomyFigure from '../../../../components/docs/ContractAnatomyFi
 
 The `windgram/contract` export is the executable authority for published JSON.
 Its zod schemas, inferred TypeScript types, nullable parse guards, and generated
-JSON Schemas describe the same document families.
+JSON Schemas describe the same six document families.
 
 <ContractAnatomyFigure />
 
-| Document | Parser | Location |
+| Document | Parser | Published location |
 | --- | --- | --- |
 | Profile | `parseWindgramProfileJson` | `<model>/sites/<site>.json` and each history line |
 | Manifest | `parseWindgramManifestJson` | `<model>/manifest.json` |
 | Models | `parseModelCatalogueJson` | `models.json` |
-| Sites input | `parseSitesInputJson` | The repository's hand-authored `sites.json` — identity only |
-| Sites | `parseSitesCatalogueJson` | `sites.json` at the dataset root — generated at every publish |
+| Sites | `parseSitesCatalogueJson` | `sites.json` |
 | Site context | `parseSiteContextJson` | `site-context.json` |
 | Run index | `parseRunsIndexJson` | `runs.json` |
-
-The two sites rows are one catalogue in two deliberate shapes: the input
-holds what a human authors (slug, name, coordinates, optional
-`what3words` address, timezone), and the published record joins that
-identity with the pipeline-derived elevation and per-site dataset
-coverage — see [the site catalogue exists twice](/docs/data/catalogue/#the-site-catalogue-exists-twice).
 
 Each parser also has an already-parsed counterpart without the `Json` suffix.
 All return the typed document or `null`; rejected input is not patched into
@@ -94,12 +87,10 @@ handling a whole document. Each pair feeds exactly one parse entry point.
 The document roots are `windgramProfileSchema`/`WindgramProfile`,
 `windgramManifestSchema`/`WindgramManifest`,
 `modelCatalogueSchema`/`ModelCatalogue`,
-`sitesInputSchema`/`SitesInput`,
 `sitesCatalogueSchema`/`SitesCatalogue`,
 `siteContextSchema`/`SiteContext`, and
-`runsIndexSchema`/`RunsIndex`. `SCHEMA_VERSION` is the literal the
-profile, manifest, models, and run-index roots pin; the two sites roots
-and the site context pin their own `schemaVersion: 2`. Their pieces:
+`runsIndexSchema`/`RunsIndex`; `SCHEMA_VERSION` is the literal every root
+pins. Their pieces:
 
 | Schema (type) | One-line role | Feeds |
 | --- | --- | --- |
@@ -109,18 +100,16 @@ and the site context pin their own `schemaVersion: 2`. Their pieces:
 | `windgramSurfaceSchema` (`WindgramSurface`) | An hour's surface block, optional capability fields absent-not-zero | `parseWindgramProfile(Json)` |
 | `windgramLevelSchema` (`WindgramLevel`) | One pressure-level entry in an hour's ascending `levels` array | `parseWindgramProfile(Json)` |
 | `windgramDerivedSchema` (`WindgramDerived`) | The pipeline-owned `derived` block of an hour | `parseWindgramProfile(Json)` |
-| `windgramSiteSchema` (`WindgramSite`) | Site identity, coordinates, elevations, and the optional `what3words` and timezone echoes | `parseWindgramProfile(Json)` |
+| `windgramSiteSchema` (`WindgramSite`) | Site identity, coordinates, elevations, and the optional timezone echo | `parseWindgramProfile(Json)` |
 | `windgramRunSchema` (`WindgramRun`) | Publication identity: `referenceTime`, `generatedAt`, optional `members` | `parseWindgramProfile(Json)` |
 | `windgramSemanticsSchema` (`WindgramSemantics`) | The optional gust/precipitation meaning tag stored with a document | `parseWindgramProfile(Json)` |
 | `windgramManifestSiteSchema` (`WindgramManifestSite`) | One published site name/slug pair in a manifest | `parseWindgramManifest(Json)` |
 | `windgramManifestStatsSchema` (`WindgramManifestStats`) | The stable accounting core plus open numeric extension keys | `parseWindgramManifest(Json)` |
 | `modelEntrySchema` (`ModelEntry`) | One model catalogue entry: slug, cadence, levels, lifecycle | `parseModelCatalogue(Json)` |
 | `modelCapabilitiesSchema` (`ModelCapabilities`) | A model's declared capability set, absences included | `parseModelCatalogue(Json)` |
-| `siteInputEntrySchema` (`SiteInputEntry`) | One hand-authored launch: identity only — slug, name, coordinates, optional `what3words`, required IANA `timeZone` | `parseSitesInput(Json)` |
-| `siteElevationSchema` (`SiteElevation`) | The pipeline-derived launch elevation with its source and resolution | `parseSitesCatalogue(Json)` |
-| `siteCatalogueEntrySchema` (`SiteCatalogueEntry`) | One published launch: identity, derived `elevation`, and per-dataset coverage | `parseSitesCatalogue(Json)` |
+| `siteCatalogueEntrySchema` (`SiteCatalogueEntry`) | One launch entry, IANA `timeZone` required since v0.4 | `parseSitesCatalogue(Json)` |
 | `siteContextSourceSchema` (`SiteContextSource`) | One upstream terrain/land-cover source, with the licence attribution that travels with its values | `parseSiteContext(Json)` |
-| `siteContextEntrySchema` (`SiteContextEntry`) | One site's operative launch elevation, terrain, and land-cover context, joined to `sites.json` by slug | `parseSiteContext(Json)` |
+| `siteContextEntrySchema` (`SiteContextEntry`) | One site's terrain, optional bare-earth, and land-cover context, joined to `sites.json` by slug | `parseSiteContext(Json)` |
 | `runsIndexEntrySchema` (`RunsIndexEntry`) | One model's current `(referenceTime, generatedAt)` pair | `parseRunsIndex(Json)` |
 
 `DeterministicWindgramProfile` is the narrowed profile type
@@ -139,7 +128,7 @@ and the site context pin their own `schemaVersion: 2`. Their pieces:
 - The zod contract is behavioural authority. For other languages, the
   generated JSON Schema files ship as plain files in the npm tarball's
   `schema/` directory (`node_modules/windgram/schema/profile.schema.json` and
-  its siblings) and in the repository at `toolkit/schema/`.
+  its four siblings) and in the repository at `toolkit/schema/`.
   They are not a package export specifier, so read them from the filesystem
   or the repository, not through `import`.
 

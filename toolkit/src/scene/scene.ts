@@ -1122,11 +1122,7 @@ function sceneAriaLabel(
 ): string {
   const chartDescription =
     "surface metric strips above a time-height field; derived series, isotherms, shading overlays and winds aloft are drawn over the profile";
-  // The what3words echo names the launch for a human the way lat/lon
-  // cannot; it rides the accessible identity when the document carries it.
-  const identity = `Windgram for ${profile.site.name}${
-    profile.site.what3words ? ` (///${profile.site.what3words})` : ""
-  }, model ${profile.model}`;
+  const identity = `Windgram for ${profile.site.name}, model ${profile.model}`;
   if (hourValidAts.length === 0) return `${identity}, no forecast hours: ${chartDescription}.`;
   const day = new Intl.DateTimeFormat("en-CA", {
     timeZone,

@@ -145,10 +145,7 @@ SITE = {
     "name": "Boulder",
     "latitude": 40.0,
     "longitude": 255.0,
-    # What the joining sites loader supplies: the context's derived
-    # elevation beside the committed identity.
     "elevationM": 1600.0,
-    "what3words": "filled.count.soap",
     "timeZone": "America/Denver",
 }
 LEVEL_HEIGHTS = {
@@ -240,8 +237,6 @@ def test_build_profiles_publishes_omega_and_tolerates_its_absence(monkeypatch):
 
     (profile,) = result["profiles"]
     assert profile["site"]["timeZone"] == "America/Denver"  # the catalogue echo
-    assert profile["site"]["what3words"] == "filled.count.soap"  # ditto
-    assert profile["site"]["altitudeM"] == 1600.0  # the joined elevation
     assert profile["semantics"] == {"gust": "instant", "precipitation": "windowMeanRate"}
     first, second = profile["hours"]
     # Every curated level carries the sampled omega verbatim: Pa/s in,

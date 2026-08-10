@@ -12,7 +12,6 @@ import {
   parseRunsIndexJson,
   parseSitesCatalogue,
   parseSitesCatalogueJson,
-  parseSitesInput,
   parseWindgramManifest,
   parseWindgramManifestJson,
   parseWindgramProfile,
@@ -444,60 +443,21 @@ describe("models.json schema", () => {
 });
 
 describe("sites.json schema", () => {
-  it("accepts the published {schemaVersion: 2, generatedAt, sites} catalogue", () => {
+  it("accepts the {schemaVersion, sites} catalogue", () => {
     const parsed = parseSitesCatalogue(sitesCatalogue());
     expect(parsed).not.toBeNull();
     expect(parsed!.sites.map((site) => site.slug)).toEqual(["dundee", "red-mountain"]);
-    expect(parsed!.sites[0].elevation.elevationM).toBe(1476.4);
-    expect(parsed!.sites[0].elevation.source).toBe("mrdem30");
-    expect(parsed!.sites[1].what3words).toBe("example.words.only");
-    expect(parsed!.sites[1].datasets.observations).toContain("goes18-aod");
+    expect(parsed!.sites[0].elevationM).toBe(1485);
   });
 
   it("rejects the pre-0.3.0 bare-array shape — unversioned documents cannot promise theirs", () => {
     expect(parseSitesCatalogue(sitesCatalogue().sites)).toBeNull();
   });
 
-  it("requires the derived elevation with its source — the published record is complete", () => {
+  it("requires the surveyed elevation — the catalogue is its home", () => {
     const bad = sitesCatalogue();
-    delete (bad.sites[0] as { elevation?: unknown }).elevation;
+    delete (bad.sites[0] as { elevationM?: number }).elevationM;
     expect(parseSitesCatalogue(bad)).toBeNull();
-  });
-
-  it("parses the repository input — identity only, no elevation to get wrong", () => {
-    const input = {
-      schemaVersion: 2,
-      sites: [
-        {
-          slug: "dundee",
-          name: "Dundee",
-          latitude: 49.291977,
-          longitude: -117.183569,
-          what3words: "example.words.only",
-          timeZone: "America/Vancouver",
-        },
-      ],
-    };
-    const parsed = parseSitesInput(input);
-    expect(parsed).not.toBeNull();
-    expect(parsed!.sites[0].what3words).toBe("example.words.only");
-  });
-
-  it("rejects a what3words string that is not three dot-separated words", () => {
-    const input = {
-      schemaVersion: 2,
-      sites: [
-        {
-          slug: "dundee",
-          name: "Dundee",
-          latitude: 49.291977,
-          longitude: -117.183569,
-          what3words: "///example.words.only",
-          timeZone: "America/Vancouver",
-        },
-      ],
-    };
-    expect(parseSitesInput(input)).toBeNull();
   });
 
   it("rejects prose slugs", () => {
@@ -514,13 +474,11 @@ describe("sites.json schema", () => {
     expect(parseSitesCatalogue(bad)).toBeNull();
   });
 
-  it("parses from a stored string; the repository's actual sites.json is the INPUT shape", () => {
+  it("parses from a stored string and accepts the repository's actual sites.json", () => {
     expect(parseSitesCatalogueJson(JSON.stringify(sitesCatalogue()))).not.toBeNull();
     expect(parseSitesCatalogueJson("[]")).toBeNull();
     const raw = readFileSync(join(__dirname, "..", "..", "sites.json"), "utf-8");
-    // The committed file is hand-authored identity, not the published record.
-    expect(parseSitesInput(JSON.parse(raw))).not.toBeNull();
-    expect(parseSitesCatalogueJson(raw)).toBeNull();
+    expect(parseSitesCatalogueJson(raw)).not.toBeNull();
   });
 });
 
@@ -606,7 +564,7 @@ describe("JSON Schema generation", () => {
       io: "input",
     }) as JsonSchema;
     const entry = (sites.properties!["sites"] as { items: JsonSchema }).items;
-    expect(entry.properties!["elevation"]!.description).toContain("bare-earth");
+    expect(entry.properties!["elevationM"]!.description).toContain("altitudeM");
     expect(entry.properties!["timeZone"]!.description).toContain("IANA");
   });
 

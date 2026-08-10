@@ -1,49 +1,37 @@
 import {
   siteContextSchema,
-  sitesInputSchema,
+  sitesCatalogueSchema,
   type LandCoverClass,
+  type SiteCatalogueEntry,
   type SiteContext,
-  type SiteContextElevation,
   type SiteContextEntry,
   type SiteContextSource,
-  type SiteInputEntry,
 } from "windgram/contract";
 import rawContext from "../../../site-context.json";
 import rawSites from "../../../sites.json";
 
-/* site-context.json and the repository's hand-authored sites.json input
-   are validated against the package contract at build time (the
-   models.json pattern in catalogue.ts), so a document that drifts from
-   the contract — or a context entry missing for a catalogued site —
-   fails the build instead of shipping a figure that lies. */
+/* site-context.json and sites.json are validated against the package
+   contract at build time (the models.json pattern in catalogue.ts), so a
+   context document that drifts from the contract — or a context entry
+   missing for a catalogued site — fails the build instead of shipping a
+   figure that lies. */
 const context: SiteContext = siteContextSchema.parse(rawContext);
-const catalogue = sitesInputSchema.parse(rawSites);
+const catalogue = sitesCatalogueSchema.parse(rawSites);
 
 export const SITE_CONTEXT: SiteContext = context;
 
 export interface ContextSite {
-  site: SiteInputEntry;
+  site: SiteCatalogueEntry;
   context: SiteContextEntry;
 }
 
 /* Every catalogued site joined to its context by slug — the same join
-   the pipeline's sites loader performs at build time. The operative
-   launch elevation lives in the context's `elevation` block; identity
-   (coordinates, timezone, what3words) lives in the input. */
+   consumers perform against the published dataset root. */
 export const CONTEXT_SITES: ContextSite[] = catalogue.sites.map((site) => {
   const entry = context.sites[site.slug];
   if (!entry) throw new Error(`site-context.json has no entry for catalogued site "${site.slug}"`);
   return { site, context: entry };
 });
-
-/* One site's operative launch elevation with its source row resolved —
-   the value plus the resolution/licence/attribution a display needs. */
-export function catalogueElevation(entry: SiteContextEntry): {
-  elevation: SiteContextElevation;
-  source: SiteContextSource;
-} {
-  return { elevation: entry.elevation, source: sourceById(entry.elevation.source) };
-}
 
 export function sourceById(id: string): SiteContextSource {
   const source = context.sources.find((candidate) => candidate.id === id);

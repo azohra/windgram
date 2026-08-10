@@ -12,7 +12,7 @@ remain consumer choices, with the site's timezone echoed for new documents.
 profile
 ├── schemaVersion + model
 ├── run { referenceTime, generatedAt, members? }
-├── site { identity, coordinates, what3words?, launch altitude, model elevation, timeZone? }
+├── site { identity, coordinates, launch altitude, model elevation, timeZone? }
 ├── semantics? { gust?, precipitation? }
 └── hours[]
     ├── validAt
@@ -35,14 +35,9 @@ profile
 publication. Ensemble documents also declare total membership once at
 `run.members`.
 
-| Site field | Meaning |
-| --- | --- |
-| `altitudeM` | The launch elevation, metres MSL — pipeline-derived from the best available elevation model at the catalogued coordinates (bare-earth lidar where it exists; the [site context](/docs/reference/site-context-document/) names the source). Nullable in stored profiles: null means unknown, never zero. |
-| `modelElevationM` | The model's own terrain elevation at the site's grid point. |
-| `what3words` | Optional `"word.word.word"` echo from the site input — a human-readable launch name for pilots. Coordinates stay the operative identity; the string is opaque. |
-
-Keep both elevations because derived column values and display launch lines
-answer different questions.
+`site.altitudeM` is surveyed launch elevation (nullable in stored profiles);
+`site.modelElevationM` is grid terrain. Keep both because derived column values
+and display launch lines answer different questions.
 
 The v0.4 publication wave added optional `site.timeZone`, echoed from the
 site catalogue's required IANA zone. New documents therefore carry their own

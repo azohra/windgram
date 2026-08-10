@@ -8,8 +8,7 @@ import LandCoverFractionsFigure from "../../../../components/docs/LandCoverFract
 import ReliefPercentileFigure from "../../../../components/docs/ReliefPercentileFigure.astro";
 
 Every profile document carries two elevations for the same place:
-`site.altitudeM`, the launch elevation the pipeline derives from the
-best available elevation model, and `site.modelElevationM`, the
+`site.altitudeM`, the surveyed launch, and `site.modelElevationM`, the
 elevation of the model's own terrain at that grid point. At the launches
 in this project's catalogue the two routinely disagree by tens to
 hundreds of metres — and that disagreement is not an error to fix but a
@@ -31,14 +30,10 @@ sizes of those effects are in the
 [source facts](/docs/reference/site-context-document/#sources-and-licences--verified-2026-08-10)
 of the reference page.
 
-How well is the *real* mountain known? Within metres — because the
-catalogue's launch elevation **is** the measurement. A human types only
-the coordinates into `sites.json`; the pipeline samples the best
-bare-earth source at that point — 1 m lidar where it exists, the
-national 30 m DTM otherwise — and that derived value becomes
-`site.altitudeM` in every profile. The ladder puts it against the 30 m
-Copernicus surface model, which measures the top of whatever stands
-there — where the two differ, the difference is canopy, not error:
+How well is the *real* mountain known? Within metres. For each catalogued
+launch, three independent answers — the surveyed elevation, a bare-earth
+lidar or national DTM, and the 30 m Copernicus surface model — land on a
+scale where a few metres are visible:
 
 <ElevationLadderFigure />
 
@@ -54,8 +49,8 @@ smoothing, per model, at your launch.
 A windgram draws both worlds on one altitude axis, and the gap sits
 between them:
 
-- **The launch marker is the catalogued launch** — `site.altitudeM`,
-  the ladder's diamond, derived from the real ground.
+- **The launch marker is the surveyed launch** — `site.altitudeM`, the
+  ladder's diamond.
 - **"Surface" is the model's ground** — surface temperature, heat fluxes,
   w\*, surface wind, and gusts are all referenced to the model's smoothed
   terrain at `site.modelElevationM`, which can be hundreds of metres

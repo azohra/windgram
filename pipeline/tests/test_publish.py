@@ -1,10 +1,6 @@
 import inspect
 import json
 import time
-from pathlib import Path
-
-import pytest
-from jsonschema import Draft202012Validator
 
 from windgram import publish
 from windgram.publish import (
@@ -13,7 +9,6 @@ from windgram.publish import (
     round_document,
     runs_index,
     write_runs_index,
-    write_sites_catalogue,
 )
 
 
@@ -222,153 +217,4 @@ def test_write_runs_index_defaults_read_the_root_catalogue_and_write_the_scratch
     # root; these defaults are that call's contract.
     signature = inspect.signature(write_runs_index)
     assert str(signature.parameters["path"].default) == "data/runs.json"
-    assert str(signature.parameters["models_path"].default) == "models.json"
-
-
-# ------------------------------------------------ published site catalogue
-
-
-CATALOGUE_SITES = [
-    {
-        "slug": "dundee",
-        "name": "Dundee",
-        "latitude": 49.291977,
-        "longitude": -117.183569,
-        "what3words": "filled.count.soap",
-        "timeZone": "America/Vancouver",
-    },
-    {
-        "slug": "new-hill",
-        "name": "New Hill",
-        "latitude": 49.5,
-        "longitude": -117.5,
-        "timeZone": "America/Vancouver",
-    },
-]
-
-CATALOGUE_CONTEXT = {
-    "schemaVersion": 2,
-    "generatedAt": "2026-08-10T08:00:00Z",
-    "sources": [
-        {"id": "lidarbc", "resolutionM": 1},
-        {"id": "mrdem30", "resolutionM": 30},
-    ],
-    "sites": {
-        "dundee": {"elevation": {"source": "lidarbc", "elevationM": 1476.4}},
-        "new-hill": {"elevation": {"source": "mrdem30", "elevationM": 987.2}},
-    },
-}
-
-CATALOGUE_MODELS = {
-    "models": [{"slug": "gfs"}, {"slug": "hrdps-continental"}, {"slug": "reps"}],
-    "smokeModels": [{"slug": "raqdps"}],
-    "observationModels": [{"slug": "goes18-dsr"}, {"slug": "goes18-aod"}],
-}
-
-
-def _manifest_covering(model: str, slugs: list[str]) -> dict:
-    return {
-        "model": model,
-        "referenceTime": "2026-08-10T06:00:00Z",
-        "generatedAt": "2026-08-10T09:00:00Z",
-        "sites": [{"name": slug.title(), "slug": slug} for slug in slugs],
-    }
-
-
-def _write_catalogue_inputs(tmp_path) -> dict:
-    sites_path = tmp_path / "sites.json"
-    sites_path.write_text(json.dumps({"schemaVersion": 2, "sites": CATALOGUE_SITES}))
-    context_path = tmp_path / "site-context.json"
-    context_path.write_text(json.dumps(CATALOGUE_CONTEXT))
-    models_path = tmp_path / "models.json"
-    models_path.write_text(json.dumps(CATALOGUE_MODELS))
-    return {
-        "sites_path": sites_path,
-        "context_path": context_path,
-        "models_path": models_path,
-    }
-
-
-def test_sites_catalogue_joins_identity_elevation_and_published_coverage(
-    tmp_path, monkeypatch
-):
-    paths = _write_catalogue_inputs(tmp_path)
-    publish_manifests(
-        monkeypatch,
-        {
-            # dundee rides every published kind; new-hill only the profiles.
-            "gfs": _manifest_covering("gfs", ["dundee", "new-hill"]),
-            "reps": _manifest_covering("reps", ["dundee"]),
-            "raqdps": _manifest_covering("raqdps", ["dundee"]),
-            "goes18-dsr": _manifest_covering("goes18-dsr", ["dundee"]),
-            # hrdps-continental and goes18-aod have never published:
-            # they contribute nothing, never an error.
-        },
-    )
-    path = tmp_path / "data" / "sites.json"
-
-    write_sites_catalogue(path, **paths)
-    document = json.loads(path.read_text())
-
-    # The toolkit's JSON Schema artifact is the contract's authority.
-    schema = json.loads(Path("toolkit/schema/sites.schema.json").read_text())
-    Draft202012Validator(schema).validate(document)
-
-    assert document["schemaVersion"] == 2
-    dundee, new_hill = document["sites"]
-    assert dundee["what3words"] == "filled.count.soap"  # identity carried
-    assert dundee["elevation"] == {
-        "elevationM": 1476.4,
-        "source": "lidarbc",
-        "resolutionM": 1,  # the source's resolution travels with the value
-    }
-    assert dundee["datasets"] == {
-        "profiles": ["gfs", "reps"],
-        "smoke": ["raqdps"],
-        "observations": ["goes18-dsr"],
-    }
-    assert "what3words" not in new_hill  # optional stays optional
-    assert new_hill["elevation"]["source"] == "mrdem30"
-    assert new_hill["datasets"] == {
-        "profiles": ["gfs"],
-        "smoke": [],
-        "observations": [],
-    }
-
-
-def test_a_site_absent_from_every_manifest_publishes_empty_coverage(
-    tmp_path, monkeypatch
-):
-    paths = _write_catalogue_inputs(tmp_path)
-    publish_manifests(monkeypatch, {})  # nothing has ever published
-    path = tmp_path / "data" / "sites.json"
-
-    write_sites_catalogue(path, **paths)
-    document = json.loads(path.read_text())
-
-    schema = json.loads(Path("toolkit/schema/sites.schema.json").read_text())
-    Draft202012Validator(schema).validate(document)
-    empty = {"profiles": [], "smoke": [], "observations": []}
-    assert [site["datasets"] for site in document["sites"]] == [empty, empty]
-
-
-def test_a_catalogued_site_missing_from_the_context_fails_loudly(
-    tmp_path, monkeypatch
-):
-    paths = _write_catalogue_inputs(tmp_path)
-    context = {**CATALOGUE_CONTEXT, "sites": {"dundee": CATALOGUE_CONTEXT["sites"]["dundee"]}}
-    paths["context_path"].write_text(json.dumps(context))
-    publish_manifests(monkeypatch, {})
-
-    with pytest.raises(RuntimeError, match="new-hill.*windgram terrain"):
-        write_sites_catalogue(tmp_path / "data" / "sites.json", **paths)
-
-
-def test_write_sites_catalogue_defaults_read_the_checkout_root():
-    # The upload script calls write_sites_catalogue() bare from the
-    # checkout root; these defaults are that call's contract.
-    signature = inspect.signature(write_sites_catalogue)
-    assert str(signature.parameters["path"].default) == "data/sites.json"
-    assert str(signature.parameters["sites_path"].default) == "sites.json"
-    assert str(signature.parameters["context_path"].default) == "site-context.json"
     assert str(signature.parameters["models_path"].default) == "models.json"

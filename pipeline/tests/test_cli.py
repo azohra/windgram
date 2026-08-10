@@ -15,23 +15,13 @@ SITE = {
     "name": "Test Hill",
     "latitude": 49.0,
     "longitude": -117.0,
-    "timeZone": "America/Vancouver",
+    "elevationM": 1000,
 }
-CONTEXT = {
-    "schemaVersion": 2,
-    "generatedAt": "2026-08-10T08:00:00Z",
-    "sources": [],
-    "sites": {"test-hill": {"elevation": {"source": "mrdem30", "elevationM": 1000}}},
-}
-# What the joining loader hands every builder: identity plus the
-# context's derived elevation.
-LOADED_SITE = {**SITE, "elevationM": 1000}
 
 
 def write_sites(path: Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"schemaVersion": 2, "sites": [SITE]}))
-    (path.parent / "site-context.json").write_text(json.dumps(CONTEXT))
+    path.write_text(json.dumps({"schemaVersion": 1, "sites": [SITE]}))
     return path
 
 
@@ -211,7 +201,7 @@ def test_existing_builder_writes_to_external_output_without_network(tmp_path, mo
     )
 
     assert result == 0
-    assert sampled_sites == [LOADED_SITE]
+    assert sampled_sites == [SITE]
     manifest = json.loads((output / "hrrr-conus" / "manifest.json").read_text())
     assert manifest["model"] == "hrrr-conus"
     assert manifest["sites"] == [{"name": SITE["name"], "slug": SITE["slug"]}]

@@ -1,6 +1,6 @@
 ---
 title: Configure launches
-description: Author a versioned launch-identity catalogue; the pipeline derives everything else.
+description: Define a versioned club launch catalogue for the Python publisher.
 ---
 
 import { Aside, Steps } from '@astrojs/starlight/components';
@@ -11,45 +11,37 @@ absolute path for that dispatch.
 
 ## Catalogue shape
 
-The repository's `sites.json` is the hand-authored **input**: identity only.
-A human types nothing about the physical world but where the launch is —
-the elevation is derived by the pipeline, not typed.
-
 ```json title="club-sites.json"
 {
-  "schemaVersion": 2,
+  "schemaVersion": 1,
   "sites": [
     {
       "slug": "test-hill",
       "name": "Test Hill",
       "latitude": 49.0,
       "longitude": -117.0,
-      "what3words": "filled.count.soap",
+      "elevationM": 1000,
       "timeZone": "America/Vancouver"
     }
   ]
 }
 ```
 
-The input must satisfy `sitesInputSchema` from `windgram/contract` or the
-generated `toolkit/schema/sites-input.schema.json` artifact.
+The catalogue must satisfy `sitesCatalogueSchema` from `windgram/contract` or
+the generated `toolkit/schema/sites.schema.json` artifact.
 
-| Field | Meaning | Where it comes from |
-| --- | --- | --- |
-| `schemaVersion` | Site-input contract version; `2` | — |
-| `slug` | Stable lowercase, hyphenated identity used in output paths | Choose once; renaming changes every profile and history path |
-| `name` | Reader-facing launch name | What pilots call it |
-| `latitude`, `longitude` | Decimal degrees — the operative identity | A GPS fix at the launch |
-| `what3words` | Optional `"word.word.word"` address, no leading slashes | The what3words app at the launch. A human-readable echo for pilots; the string is opaque here — validating it needs the proprietary what3words API, so coordinates stay the identity |
-| `timeZone` | IANA timezone used to read local days and clock times | The [IANA zone list](https://www.iana.org/time-zones); do not infer it from longitude |
+| Field | Meaning |
+| --- | --- |
+| `schemaVersion` | Site-catalogue contract version; `1` |
+| `slug` | Stable lowercase, hyphenated identity used in output paths |
+| `name` | Reader-facing launch name |
+| `latitude`, `longitude` | Decimal degrees |
+| `elevationM` | Surveyed launch elevation, metres MSL |
+| `timeZone` | IANA timezone used to read local days and clock times |
 
-<Aside type="note" title="Three elevations, none of them typed">
-  The launch elevation is derived: `windgram terrain` samples the best
-  bare-earth source at the coordinates and writes it into
-  `site-context.json`, builders write it into every profile as
-  `site.altitudeM`, and the publish step writes it into the published
-  catalogue's `elevation` block. Each profile separately records the
-  sampled grid terrain as `site.modelElevationM`; the pipeline uses model
+<Aside type="note" title="Launch elevation and model elevation differ">
+  `elevationM` is the launch fact. Each profile records the sampled grid
+  terrain separately as `site.modelElevationM`; the pipeline uses model
   elevation for pressure-level filtering and model-column derivations.
 </Aside>
 
@@ -58,26 +50,25 @@ generated `toolkit/schema/sites-input.schema.json` artifact.
 <Steps>
 
 1. Choose a stable slug. Renaming it changes every profile and history path.
-
-2. Record coordinates — and, if you want pilots to see it, the launch's
-   what3words address. Do not record an elevation anywhere; the next step
-   derives it.
-
+2. Record coordinates and surveyed elevation from an appropriate source for
+   your club. Do not infer elevation from a forecast grid.
 3. Declare the launch's IANA timezone. Local time changes day windows and the
    meaning of timing findings, so builders echo this value into each profile
    as `site.timeZone`; do not infer it from longitude in presentation code.
+4. Validate the whole file without fetching provider data:
 
-4. Derive the site context. This step is mandatory, not housekeeping: the
-   sites loader joins `site-context.json` at build time and a site without
-   its context entry fails every build with
-
-   ```text
-   site 'test-hill' has no elevation in site-context.json — the derived
-   context must cover every catalogued site; run: uv sync --project
-   pipeline --extra terrain && uv run --project pipeline windgram terrain
+   ```sh title="Terminal"
+   uv run --project pipeline windgram build --model hrrr-conus --sites ./club-sites.json --output ./public/data --dry-run
    ```
 
-   so run exactly that:
+5. Run the chosen model. If any configured site falls outside that model's
+   sampling guard, the build fails with an out-of-grid error rather than
+   publishing a clamped boundary value. Use a site catalogue appropriate to
+   the selected model domain.
+
+6. Regenerate the static site context and commit it with the catalogue
+   change, so the published terrain and land-cover context stays joined to
+   the sites it describes:
 
    ```sh title="Terminal"
    uv sync --project pipeline --extra terrain
@@ -86,31 +77,10 @@ generated `toolkit/schema/sites-input.schema.json` artifact.
 
    The one-shot command reads `./sites.json` and rewrites
    `./site-context.json` (both paths accept overrides via `--sites` and
-   `--output`), deriving each launch's elevation from the best available
-   source — bare-earth lidar first. Its shape and sources are in the
+   `--output`). Its shape and sources are in the
    [site context reference](/docs/reference/site-context-document/).
 
-5. Commit `sites.json` and `site-context.json` together. The loud loader
-   makes the pair atomic: a catalogue change cannot land without its
-   enrichment.
-
-6. Validate the whole file without fetching provider data:
-
-   ```sh title="Terminal"
-   uv run --project pipeline windgram build --model hrrr-conus --sites ./club-sites.json --output ./public/data --dry-run
-   ```
-
-7. Run the chosen model. If any configured site falls outside that model's
-   sampling guard, the build fails with an out-of-grid error rather than
-   publishing a clamped boundary value. Use a site catalogue appropriate to
-   the selected model domain.
-
 </Steps>
-
-At publish, the pipeline generates the complete public record — identity
-joined with the derived elevation and per-site dataset coverage — as the
-dataset root's `sites.json`; see
-[the site catalogue exists twice](/docs/data/catalogue/#the-site-catalogue-exists-twice).
 
 The catalogue chooses sampling locations and their local clocks. It does not
 choose audience, launch suitability, display windows, or access policy. Those
