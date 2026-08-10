@@ -37,6 +37,8 @@ jobs:
       - name: Check generated doc-figure drift
         run: pnpm --dir scripts figures:check
       - name: Test Python pipeline
+        env:
+          PYTHONFAULTHANDLER: "1"
         run: uv run --project pipeline pytest pipeline/tests
       - name: Test TypeScript package and scenario SVG goldens
         run: pnpm --dir toolkit test
