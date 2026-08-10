@@ -32,8 +32,8 @@ class _Session:
         return self._responses.pop(0)
 
 
-def _response(status_code: int, content: bytes = b"") -> SimpleNamespace:
-    return SimpleNamespace(status_code=status_code, content=content)
+def _response(status_code: int, content: bytes = b"", headers: dict | None = None) -> SimpleNamespace:
+    return SimpleNamespace(status_code=status_code, content=content, headers=headers or {})
 
 
 def test_fetches_from_the_configured_base(monkeypatch):
@@ -63,6 +63,17 @@ def test_a_403_means_not_yet_published_like_a_404(monkeypatch):
     monkeypatch.setattr(dataset, "_session", lambda: session)
     assert fetch_published("goes18-dsr/manifest.json") is None
     assert len(session.requested_urls) == 1
+
+
+def test_a_cloudflare_challenge_403_is_fatal_never_absence(monkeypatch):
+    # A bot-challenge 403 (cf-mitigated: challenge) is a BROKEN read:
+    # reading it as "not yet published" made CI publish runs.json as {}
+    # and would reset every incremental window [observed 2026-08-10].
+    session = _Session([_response(403, headers={"cf-mitigated": "challenge"})])
+    monkeypatch.setattr(dataset, "_session", lambda: session)
+    with pytest.raises(RuntimeError, match="Cloudflare bot challenge"):
+        dataset.fetch_published("hrdps-west/manifest.json")
+    assert len(session.requested_urls) == 1  # fatal immediately, no retry
 
 
 def test_other_client_errors_stay_fatal(monkeypatch):

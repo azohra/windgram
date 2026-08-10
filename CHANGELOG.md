@@ -4,6 +4,23 @@ Notable repository and `windgram` package changes are recorded here. Dataset
 schema, npm package, and Python pipeline versions are independent; each release
 entry names the versions it actually changes.
 
+## [0.6.3] - 2026-08-10
+
+`windgram` pipeline (PyPI) 0.6.3 — a challenged read is a broken read,
+never absence. A production probe found Cloudflare bot-challenging
+GitHub runners with 403s on every read of the data hostname
+(`cf-mitigated: challenge`), and `fetch_published`'s 403-means-absent
+rule (the S3 missing-key tradeoff) turned that into builders silently
+seeing an empty dataset: CI published `runs.json` as `{}` while the
+dataset sat fully populated, freshness gates no-opped, and incremental
+GOES windows and history would have reset every run. `fetch_published`
+now distinguishes the two 403s: a response carrying
+`cf-mitigated: challenge` fails immediately with an error naming the
+zone-level fix, so the pipeline goes loudly stale instead of quietly
+wrong. **Operator action required**: the Cloudflare zone needs a
+WAF/bot exception for automated reads of the data hostname; until
+then, scheduled builds warn and publish nothing new.
+
 ## [0.6.2] - 2026-08-10
 
 `windgram` pipeline (PyPI) 0.6.2 — the real shutdown-crash fix, proven

@@ -62,6 +62,24 @@ def fetch_published(path: str) -> bytes | None:
             if response.status_code == 200:
                 return response.content
             if response.status_code in (403, 404):
+                # A 403 is absence ONLY when it is the S3-style
+                # missing-key denial. A Cloudflare bot challenge also
+                # answers 403 — identified by its cf-mitigated header —
+                # and treating THAT as absence makes every builder see
+                # an empty dataset and silently reset incremental state
+                # (observed 2026-08-10: CI runners were challenged on
+                # every read and published runs.json as {} while the
+                # dataset sat fully populated). A challenged read is a
+                # broken read, never absence — fail loudly and name the
+                # fix.
+                if response.headers.get("cf-mitigated") == "challenge":
+                    raise RuntimeError(
+                        f"data base {url} answered a Cloudflare bot challenge "
+                        "(cf-mitigated: challenge): automated reads from this "
+                        "network are blocked. Fix the zone's WAF/bot rules for "
+                        "the data hostname; treating a challenge as 'not yet "
+                        "published' would silently reset incremental state."
+                    )
                 return None
             if response.status_code != 429 and response.status_code < 500:
                 raise RuntimeError(f"data base {url} failed with {response.status_code}")
