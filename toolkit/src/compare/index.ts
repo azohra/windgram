@@ -48,7 +48,6 @@ import {
   type AnalyzeThresholdOverrides,
   type AnalyzeThresholds,
   type CitedInstant,
-  type ThermalWindowFinding,
   type LocalDayKey,
   type QuietDayFinding,
   type WindgramAnalysis,
@@ -70,7 +69,13 @@ export const COMPARE_VOCABULARY_VERSION = 2;
    identity change: a member is `(model, referenceTime)`, not the model
    slug — re-derived blind by all three reviews, and the same-model guard
    v1 landed becomes real support for two runs of one model (the
-   convergence program's break, pre-paid). windowAgreement gains the
+   convergence program's break, pre-paid). BREAKING KEY CHANGE that rides
+   it: the envelope's `analyses` record is keyed by the composite member
+   key `"{model}@{referenceTime}"` (see `comparisonMemberKey`) for EVERY
+   member, not by the model slug — a v1 consumer reading
+   `analyses[model]` must re-key via the ledger's `member` field; every
+   vote and roster entry now carries both `member` (the analyses/ledger
+   key) and `model` (the headline token). windowAgreement gains the
    sensitivity statement (smallest threshold move that flips a voter),
    cadence echoes on timing votes (Tier 0 #5 — a 3-hourly member's edge
    is quantization, not timing), outOfHorizon abstentions (Tier 0 #4:
@@ -89,8 +94,23 @@ export const COMPARE_VOCABULARY_VERSION = 2;
 
 /* ------------------------------------------------------------- vocabulary */
 
+/**
+ * The member key: `"{model}@{referenceTime}"` — v2's identity, one member
+ * per (model, referenceTime) run. Keys the envelope's `analyses` record
+ * and the ledger's `member` field; every vote and roster entry carries it
+ * beside the plain `model` so provenance joins by one string without
+ * parsing it.
+ */
+export function comparisonMemberKey(model: string, referenceTime: string): string {
+  return `${model}@${referenceTime}`;
+}
+
 /** One member's comparability facts — stated, never scored. */
 export interface ComparisonMemberLedger {
+  /** The member key (`comparisonMemberKey(model, referenceTime)`) — the
+   * envelope-wide identity every vote, roster entry, and `analyses` key
+   * uses. */
+  member: string;
   model: string;
   kind: "deterministic" | "ensemble";
   referenceTime: string;
@@ -117,6 +137,7 @@ export interface ComparisonMemberLedger {
 
 /** A member's window vote for one local day (its findings restated). */
 export interface WindowVote {
+  member: string;
   model: string;
   start: CitedInstant;
   end: CitedInstant;
@@ -130,6 +151,7 @@ export interface WindowVote {
 
 /** A member's quiet vote for one local day (non-truncated by definition). */
 export interface QuietVote {
+  member: string;
   model: string;
   failed: QuietDayFinding["failed"];
   peakThermalVelocityMs: number | null;
@@ -149,7 +171,7 @@ export interface WindowAgreementFinding {
   day: LocalDayKey;
   windows: ReadonlyArray<WindowVote>;
   quiet: ReadonlyArray<QuietVote>;
-  abstained: ReadonlyArray<{ model: string; reason: "truncatedDay" }>;
+  abstained: ReadonlyArray<{ member: string; model: string; reason: "truncatedDay" }>;
   voters: number;
   unanimous: boolean | null;
   /**
@@ -160,8 +182,8 @@ export interface WindowAgreementFinding {
   timing: {
     startSpreadHours: number | null;
     endSpreadHours: number | null;
-    starts: ReadonlyArray<{ model: string; at: CitedInstant }>;
-    ends: ReadonlyArray<{ model: string; at: CitedInstant }>;
+    starts: ReadonlyArray<{ member: string; model: string; at: CitedInstant }>;
+    ends: ReadonlyArray<{ member: string; model: string; at: CitedInstant }>;
   };
 }
 
@@ -176,7 +198,12 @@ export interface WindowAgreementFinding {
 export interface HeightSpreadFinding {
   kind: "heightSpread";
   day: LocalDayKey;
-  peaks: ReadonlyArray<{ model: string; peakLiftTopAboveLaunchM: number; at: CitedInstant }>;
+  peaks: ReadonlyArray<{
+    member: string;
+    model: string;
+    peakLiftTopAboveLaunchM: number;
+    at: CitedInstant;
+  }>;
   spreadM: number;
 }
 
@@ -225,7 +252,14 @@ export interface WindgramComparison {
   members: ReadonlyArray<ComparisonMemberLedger>;
   unavailable: ReadonlyArray<{ model: string; miss: "absent" | "invalid" }>;
   findings: ComparisonFinding[];
-  /** Each member's own analysis, keyed by model — the votes' provenance. */
+  /**
+   * Each member's own analysis — the votes' provenance. KEYED BY THE
+   * MEMBER KEY (`comparisonMemberKey(model, referenceTime)`, the ledger's
+   * `member` field) since v2, for every member: v1 keyed this record by
+   * the model slug, and the identity change to (model, referenceTime)
+   * re-keys it wholesale — a deliberate breaking change, because two runs
+   * of one model are two members and a model-slug key can hold only one.
+   */
   analyses: Readonly<Record<string, WindgramAnalysis>>;
 }
 
@@ -234,12 +268,12 @@ export interface WindgramComparison {
 /**
  * Compares one site's documents across models at the findings level.
  * Every profile must describe the same site (same `site.id`) — mixing
- * sites is a programming error and throws. So is passing two runs of one
- * model: member identity is the model slug, so a duplicate would silently
- * replace the first run's analysis while both stayed in the ledger
- * (holding two runs of one model is the compare-v2 identity change).
- * Members are analyzed here, with the comparison's single timeZone and
- * threshold set, so votes are apples-to-apples by construction.
+ * sites is a programming error and throws. Member identity is
+ * `(model, referenceTime)` (v2): two runs of one model are two members,
+ * each with its own ledger row, votes, and `analyses` entry; passing the
+ * SAME run twice is a programming error and throws. Members are analyzed
+ * here, with the comparison's single timeZone and threshold set, so votes
+ * are apples-to-apples by construction.
  */
 export function compareProfiles(
   profiles: ReadonlyArray<WindgramProfile>,
@@ -254,22 +288,26 @@ export function compareProfiles(
         `compareProfiles: mixed sites (${siteId} vs ${profile.site.id}) — one comparison, one site`,
       );
     }
-    if (seen.has(profile.model)) {
+    const key = comparisonMemberKey(profile.model, profile.run.referenceTime);
+    if (seen.has(key)) {
       throw new Error(
-        `compareProfiles: duplicate member (${profile.model}) — one comparison, one run per model`,
+        `compareProfiles: duplicate member (${key}) — a member is one (model, referenceTime) run; two runs of one model are two members, the same run twice is an error`,
       );
     }
-    seen.add(profile.model);
+    seen.add(key);
   }
 
   const thresholds = resolveAnalyzeThresholds(options.thresholds);
   const analyses: Record<string, WindgramAnalysis> = {};
   for (const profile of profiles) {
-    analyses[profile.model] = analyzeProfile(profile, {
-      timeZone: options.timeZone,
-      launch: options.launch,
-      thresholds: options.thresholds,
-    });
+    analyses[comparisonMemberKey(profile.model, profile.run.referenceTime)] = analyzeProfile(
+      profile,
+      {
+        timeZone: options.timeZone,
+        launch: options.launch,
+        thresholds: options.thresholds,
+      },
+    );
   }
 
   const newestReferenceTime = profiles
@@ -278,11 +316,13 @@ export function compareProfiles(
     .at(-1)!;
   const launch = options.launch?.elevationM ?? null;
   const members: ComparisonMemberLedger[] = profiles.map((profile) => {
-    const analysis = analyses[profile.model];
+    const member = comparisonMemberKey(profile.model, profile.run.referenceTime);
+    const analysis = analyses[member];
     const terrain = analysis.findings.find(
       (finding) => finding.kind === "terrainMismatch",
     );
     return {
+      member,
       model: profile.model,
       kind: isDeterministicProfile(profile) ? "deterministic" : "ensemble",
       referenceTime: profile.run.referenceTime,
@@ -300,25 +340,30 @@ export function compareProfiles(
     };
   });
   const benched = new Set(
-    members.filter((member) => member.benched !== null).map((member) => member.model),
+    members.filter((entry) => entry.benched !== null).map((entry) => entry.member),
   );
 
   /* Votes per local day, from the unbenched members' findings. */
   const byDay = new Map<
     LocalDayKey,
-    { windows: WindowVote[]; quiet: QuietVote[]; abstained: Array<{ model: string; reason: "truncatedDay" }> }
+    {
+      windows: WindowVote[];
+      quiet: QuietVote[];
+      abstained: Array<{ member: string; model: string; reason: "truncatedDay" }>;
+    }
   >();
   const dayOf = (day: LocalDayKey) => {
     let entry = byDay.get(day);
     if (!entry) byDay.set(day, (entry = { windows: [], quiet: [], abstained: [] }));
     return entry;
   };
-  for (const member of members) {
-    if (benched.has(member.model)) continue;
-    for (const finding of analyses[member.model].findings) {
+  for (const entry of members) {
+    if (benched.has(entry.member)) continue;
+    for (const finding of analyses[entry.member].findings) {
       if (finding.kind === "thermalWindow") {
         dayOf(finding.day).windows.push({
-          model: member.model,
+          member: entry.member,
+          model: entry.model,
           start: finding.start,
           end: finding.end,
           clippedAtStart: finding.clippedAtStart,
@@ -330,10 +375,15 @@ export function compareProfiles(
         });
       } else if (finding.kind === "quietDay") {
         if (finding.coverage.truncated) {
-          dayOf(finding.day).abstained.push({ model: member.model, reason: "truncatedDay" });
+          dayOf(finding.day).abstained.push({
+            member: entry.member,
+            model: entry.model,
+            reason: "truncatedDay",
+          });
         } else {
           dayOf(finding.day).quiet.push({
-            model: member.model,
+            member: entry.member,
+            model: entry.model,
             failed: finding.failed,
             peakThermalVelocityMs: finding.peakThermalVelocityMs,
             peakLiftDepthM: finding.peakLiftDepthM,
@@ -345,22 +395,22 @@ export function compareProfiles(
 
   const findings: ComparisonFinding[] = [];
   for (const [day, votes] of [...byDay.entries()].sort(([a], [b]) => (a < b ? -1 : 1))) {
-    const windowModels = new Set(votes.windows.map((vote) => vote.model));
-    const voters = windowModels.size + votes.quiet.length;
+    const windowMembers = new Set(votes.windows.map((vote) => vote.member));
+    const voters = windowMembers.size + votes.quiet.length;
     const firstWindows = new Map<string, WindowVote>();
     const lastWindows = new Map<string, WindowVote>();
     for (const vote of votes.windows) {
-      const first = firstWindows.get(vote.model);
-      if (!first || vote.start.validAt < first.start.validAt) firstWindows.set(vote.model, vote);
-      const last = lastWindows.get(vote.model);
-      if (!last || vote.end.validAt > last.end.validAt) lastWindows.set(vote.model, vote);
+      const first = firstWindows.get(vote.member);
+      if (!first || vote.start.validAt < first.start.validAt) firstWindows.set(vote.member, vote);
+      const last = lastWindows.get(vote.member);
+      if (!last || vote.end.validAt > last.end.validAt) lastWindows.set(vote.member, vote);
     }
     const starts = [...firstWindows.values()]
       .filter((vote) => !vote.clippedAtStart)
-      .map((vote) => ({ model: vote.model, at: vote.start }));
+      .map((vote) => ({ member: vote.member, model: vote.model, at: vote.start }));
     const ends = [...lastWindows.values()]
       .filter((vote) => !vote.clippedAtEnd)
-      .map((vote) => ({ model: vote.model, at: vote.end }));
+      .map((vote) => ({ member: vote.member, model: vote.model, at: vote.end }));
     findings.push({
       kind: "windowAgreement",
       day,
@@ -368,7 +418,7 @@ export function compareProfiles(
       quiet: votes.quiet,
       abstained: votes.abstained,
       voters,
-      unanimous: voters < 2 ? null : windowModels.size === 0 || votes.quiet.length === 0,
+      unanimous: voters < 2 ? null : windowMembers.size === 0 || votes.quiet.length === 0,
       timing: {
         startSpreadHours: spreadHours(starts.map((entry) => entry.at)),
         endSpreadHours: spreadHours(ends.map((entry) => entry.at)),
@@ -378,13 +428,14 @@ export function compareProfiles(
     });
 
     const peaks: Array<HeightSpreadFinding["peaks"][number]> = [];
-    for (const [model] of firstWindows) {
+    for (const [member] of firstWindows) {
       const best = votes.windows
-        .filter((vote) => vote.model === model && vote.peakLiftTopAboveLaunchM !== null)
+        .filter((vote) => vote.member === member && vote.peakLiftTopAboveLaunchM !== null)
         .sort((a, b) => b.peakLiftTopAboveLaunchM! - a.peakLiftTopAboveLaunchM!)[0];
       if (best) {
         peaks.push({
-          model,
+          member,
+          model: best.model,
           peakLiftTopAboveLaunchM: best.peakLiftTopAboveLaunchM!,
           at: best.peakLiftTopAt,
         });

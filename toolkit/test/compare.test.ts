@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { parseWindgramProfile, type WindgramProfile } from "../src/contract/index.js";
 import {
   compareProfiles,
+  comparisonMemberKey,
   COMPARE_VOCABULARY_VERSION,
   type HeightSpreadFinding,
   type WindowAgreementFinding,
@@ -53,12 +54,61 @@ describe("compareProfiles guards", () => {
     expect(() => compareProfiles([], { timeZone: TZ })).toThrow(/no members/);
   });
 
-  it("refuses two runs of one model — one comparison, one run per model", () => {
-    // Analyses are keyed by model slug: a duplicate would silently replace
-    // the first run's analysis while both runs stayed in the member ledger.
+  it("refuses the SAME run twice — identity is (model, referenceTime)", () => {
     expect(() => compareProfiles([hrrr(), hrrr()], { timeZone: TZ })).toThrow(
-      /duplicate member \(hrrr-conus\) — one comparison, one run per model/,
+      /duplicate member \(hrrr-conus@2026-08-08T18:00:00Z\)/,
     );
+  });
+});
+
+describe("member identity (model, referenceTime) — the v2 breaking change", () => {
+  // The same document reissued as a six-hours-newer run: v1's duplicate
+  // guard threw here; v2 holds both runs as two members.
+  const laterDoc = JSON.parse(JSON.stringify(fixtures["hrrrConusErie"])) as {
+    run: { referenceTime: string };
+  };
+  laterDoc.run.referenceTime = "2026-08-09T00:00:00Z";
+  const later = parseWindgramProfile(laterDoc)!;
+  const comparison = compareProfiles([hrrr(), later], { timeZone: TZ, launch: ERIE_LAUNCH });
+
+  it("holds two runs of one model as two members with distinct keys", () => {
+    expect(comparison.members).toHaveLength(2);
+    const keys = comparison.members.map((member) => member.member);
+    expect(keys).toEqual([
+      "hrrr-conus@2026-08-08T18:00:00Z",
+      "hrrr-conus@2026-08-09T00:00:00Z",
+    ]);
+    expect(comparison.members.every((member) => member.model === "hrrr-conus")).toBe(true);
+    // The key is the exported helper's — one construction everywhere.
+    expect(keys[0]).toBe(comparisonMemberKey("hrrr-conus", "2026-08-08T18:00:00Z"));
+    // Run age reads against the newest member: 6 h and 0 h.
+    expect(comparison.newestReferenceTime).toBe("2026-08-09T00:00:00Z");
+    expect(comparison.members.map((member) => member.runAgeHours)).toEqual([6, 0]);
+  });
+
+  it("keys analyses by the member key — both runs' provenance held at once", () => {
+    expect(Object.keys(comparison.analyses).sort()).toEqual([
+      "hrrr-conus@2026-08-08T18:00:00Z",
+      "hrrr-conus@2026-08-09T00:00:00Z",
+    ]);
+  });
+
+  it("counts the two runs as two voters", () => {
+    const agreement = ofKind<WindowAgreementFinding>(comparison.findings, "windowAgreement");
+    const day = agreement.find((finding) => finding.day === "2026-08-08")!;
+    // Identical hours: both runs vote the same window — 2 voters, unanimous.
+    expect(day.voters).toBe(2);
+    expect(day.unanimous).toBe(true);
+    expect(day.windows.map((vote) => vote.member).sort()).toEqual([
+      "hrrr-conus@2026-08-08T18:00:00Z",
+      "hrrr-conus@2026-08-09T00:00:00Z",
+    ]);
+    // And the identical peaks make a genuine zero spread, not a collapse.
+    const spread = ofKind<HeightSpreadFinding>(comparison.findings, "heightSpread").find(
+      (finding) => finding.day === "2026-08-08",
+    )!;
+    expect(spread.peaks).toHaveLength(2);
+    expect(spread.spreadM).toBe(0);
   });
 });
 
@@ -76,6 +126,7 @@ describe("the member ledger", () => {
     expect(byModel["hrrr-conus"].stepHours).toBe(1);
     expect(byModel["reps"].stepHours).toBe(3);
     for (const member of comparison.members) {
+      expect(member.member).toBe(comparisonMemberKey(member.model, member.referenceTime));
       expect(member.runAgeHours).toBeGreaterThanOrEqual(0);
       expect(member.elevationDeltaM).not.toBeNull();
       expect(member.benched).toBeNull();
