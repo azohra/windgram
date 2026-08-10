@@ -628,6 +628,142 @@ describe("mixed cadence — spacing is per-gap, never a document constant", () =
   });
 });
 
+describe("windSummary.duringWindow", () => {
+  /* S3 (2026-08-10): the whole-day maxGust cited an hour OUTSIDE the day's
+     window in 29.9 % of corpus rows. The block scopes the same numbers to
+     the thermalWindow's cited hours and stops discarding the per-hour band
+     maxima the extractor already computed. */
+
+  it("scopes gust and band wind to the window's hours and keeps the whole-day numbers", () => {
+    const saturday = ofKind<WindSummaryFinding>(
+      analyzeProfile(hrrr(), ERIE).findings,
+      "windSummary",
+    ).find((finding) => finding.day === "2026-08-08")!;
+    // Whole-day block untouched.
+    expect(saturday.maxGust?.gustMs).toBe(3.9);
+    // The scope is the Saturday window's seven cited hours, 19:00Z-01:00Z.
+    expect(saturday.duringWindow?.windowHours).toHaveLength(7);
+    expect(saturday.duringWindow?.windowHours[0]).toBe("2026-08-08T19:00:00Z");
+    expect(saturday.duringWindow?.windowHours[6]).toBe("2026-08-09T01:00:00Z");
+    // On this document the day's strongest gust falls INSIDE the window —
+    // both blocks cite 16:00 local, and now say which question they answer.
+    expect(saturday.duringWindow?.maxGust).toEqual({
+      gustMs: 3.9,
+      meanWindMs: 2.72,
+      at: { validAt: "2026-08-08T23:00:00Z", local: "2026-08-08T16:00" },
+    });
+    expect(saturday.duringWindow?.maxWindInBand).toEqual({
+      windMs: 4.28,
+      directionDeg: 289,
+      heightM: 2581.5,
+      at: { validAt: "2026-08-08T23:00:00Z", local: "2026-08-08T16:00" },
+    });
+    // The per-hour series over exactly the scope hours (published gusts;
+    // hand-computed climb-band maxima, launch 1247 ± 200 m to top + 200 m).
+    expect(saturday.duringWindow?.evidence.hours).toEqual(saturday.duringWindow?.windowHours);
+    expect(saturday.duringWindow?.evidence.windGustMs).toEqual([
+      2.33, 2.15, 2.59, 3.23, 3.9, 3.74, 3.46,
+    ]);
+    expect(saturday.duringWindow?.evidence.bandMaxWindMs).toEqual([
+      1.87, 2.06, 3.19, 3.65, 4.28, 3.77, 3.49,
+    ]);
+  });
+
+  it("pins the 02:00 divergence — the whole-day gust cites an hour nobody is airborne", () => {
+    // The S3 briefing-changer in miniature (nam@red-mountain 08-12: 7.23
+    // m/s at 02:00 local vs 2.23 in-window): plant a 7.23 m/s nocturnal
+    // gust at 09:00Z = 02:00 local Sunday and read both blocks.
+    const gusty = hrrr();
+    for (const hour of gusty.hours) {
+      if (hour.validAt === "2026-08-09T09:00:00Z") {
+        (hour.surface as { windGustMs: number }).windGustMs = 7.23;
+      }
+    }
+    const sunday = ofKind<WindSummaryFinding>(
+      analyzeProfile(gusty, ERIE).findings,
+      "windSummary",
+    ).find((finding) => finding.day === "2026-08-09")!;
+    // Whole-day: the nocturnal spike, at an hour with w* 0 and no lift top.
+    expect(sunday.maxGust?.gustMs).toBe(7.23);
+    expect(sunday.maxGust?.at.local).toBe("2026-08-09T02:00");
+    // During the window (its single hour, 11:00 local): less than half that.
+    expect(sunday.duringWindow?.windowHours).toEqual(["2026-08-09T18:00:00Z"]);
+    expect(sunday.duringWindow?.maxGust?.gustMs).toBe(3.05);
+    expect(sunday.duringWindow?.maxGust?.at.local).toBe("2026-08-09T11:00");
+    expect(sunday.duringWindow?.evidence.windGustMs).toEqual([3.05]);
+    expect(sunday.duringWindow?.evidence.bandMaxWindMs).toEqual([1.51]);
+  });
+
+  it("is absent on quiet days — the scope is the thermalWindow, and there is none", () => {
+    // An impossible w* floor makes every day quiet; the wind summaries
+    // still state whole-day magnitudes, but there is no scope to report.
+    const analysis = analyzeProfile(hrrr(), {
+      ...ERIE,
+      thresholds: { thermalWindow: { wstarMinMs: 99 } },
+    });
+    expect(ofKind(analysis.findings, "thermalWindow")).toHaveLength(0);
+    const findings = ofKind<WindSummaryFinding>(analysis.findings, "windSummary");
+    expect(findings.length).toBeGreaterThan(0);
+    for (const finding of findings) {
+      expect(finding.maxGust).toBeDefined();
+      expect(finding.duringWindow).toBeUndefined();
+    }
+  });
+
+  it("carries the gust semantics echo, and gustless models read null gust evidence", () => {
+    // REPS publishes no gust: the block still scopes the band wind, and the
+    // gust evidence says null per hour rather than pretending calm.
+    const saturday = ofKind<WindSummaryFinding>(
+      analyzeProfile(reps(), ERIE).findings,
+      "windSummary",
+    ).find((finding) => finding.day === "2026-08-08")!;
+    expect(saturday.duringWindow?.windowHours).toEqual(["2026-08-08T21:00:00Z"]);
+    expect(saturday.duringWindow?.maxGust).toBeUndefined();
+    expect(saturday.duringWindow?.evidence.windGustMs).toEqual([null]);
+    expect(saturday.duringWindow?.evidence.bandMaxWindMs).toEqual([1.78]);
+    // Whole-day and in-window band maxima diverge here too: the day's
+    // strongest in-band wind (2.01 m/s at 17:00 local) is after the window.
+    expect(saturday.maxWindInBand?.windMs).toBe(2.01);
+    expect(saturday.duringWindow?.maxWindInBand?.windMs).toBe(1.78);
+
+    const tagged = hrrr();
+    (tagged as { semantics?: object }).semantics = {
+      gust: "instant",
+      precipitation: "instantRate",
+    };
+    const summary = ofKind<WindSummaryFinding>(
+      analyzeProfile(parseWindgramProfile(tagged)!, ERIE).findings,
+      "windSummary",
+    )[0];
+    expect(summary.duringWindow?.maxGust?.semantics).toBe("instant");
+  });
+
+  it("states pressureHpa as null under full ensemble dropout — no more NaN under a number type", () => {
+    // Tier 0 #2: `?? NaN` serialized to null under JSON while the type said
+    // number. Drop the winning level's pressure to full dropout (members 0,
+    // every percentile null) and the field is honestly null in the object.
+    const doc = JSON.parse(JSON.stringify(fixtures["repsErie"])) as {
+      hours: Array<{ levels: Array<{ pressureHpa: unknown }> }>;
+    };
+    // 15:00Z carries Sunday's strongest in-band wind (1.58 m/s at 1511.9 m).
+    doc.hours[6].levels[0].pressureHpa = {
+      members: 0,
+      p10: null,
+      p25: null,
+      p50: null,
+      p75: null,
+      p90: null,
+    };
+    const sunday = ofKind<WindSummaryFinding>(
+      analyzeProfile(parseWindgramProfile(doc)!, ERIE).findings,
+      "windSummary",
+    ).find((finding) => finding.day === "2026-08-09")!;
+    expect(sunday.maxWindInBand?.windMs).toBe(1.58);
+    expect(sunday.maxWindInBand?.pressureHpa).toBeNull();
+    expect(Number.isNaN(sunday.maxWindInBand?.pressureHpa)).toBe(false);
+  });
+});
+
 describe("dataCaveats", () => {
   it("declares what REPS cannot say — the whole science wave absent, threshold-free", () => {
     const finding = ofKind<DataCaveatsFinding>(analyzeProfile(reps(), ERIE).findings, "dataCaveats")[0];

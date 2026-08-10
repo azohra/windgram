@@ -71,7 +71,7 @@ export function analyzeProfile(
     ...findQuietDays(context, windows),
     ...findLiftCeilings(context, windows),
     ...findCapTiming(context, windows),
-    ...findWindSummaries(context),
+    ...findWindSummaries(context, windows),
     ...findEnsembleMembership(context),
     findDataCaveats(context, timeZoneSource),
   ];
