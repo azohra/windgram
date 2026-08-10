@@ -401,7 +401,6 @@ def test_derived_levels_carry_omega_only_where_the_source_has_it():
         "siteName": "Dundee",
         "latitude": DUNDEE["latitude"],
         "longitude": DUNDEE["longitude"],
-        "siteAltitudeM": 1485,
         "modelElevationM": 1000.0,
         "hours": [
             {

@@ -10,7 +10,6 @@
     "name": "Synthetic Capped Launch",
     "latitude": 49,
     "longitude": -123,
-    "altitudeM": 1750,
     "modelElevationM": 900,
     "timeZone": "Etc/UTC"
   },

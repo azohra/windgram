@@ -523,7 +523,6 @@ def _build_documents(
                     "name": site["name"],
                     "latitude": site["latitude"],
                     "longitude": site["longitude"],
-                    "altitudeM": site["elevationM"],
                     # The control member's terrain stands in for the ensemble.
                     "modelElevationM": terrain[0][site["slug"]],
                 },
@@ -584,7 +583,6 @@ def _derive_member_profile(
             "longitude": site["longitude"],
             "modelElevationM": model_elevation_m,
             "referenceTime": reference_time,
-            "siteAltitudeM": site["elevationM"],
             "siteId": site["slug"],
             "siteName": site["name"],
             "siteTimeZone": site.get("timeZone"),

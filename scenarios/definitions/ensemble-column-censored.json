@@ -13,8 +13,10 @@
     "synthetic": true,
     "latitude": 49,
     "longitude": -123,
-    "altitudeM": 1050,
     "modelElevationM": 900
+  },
+  "launch": {
+    "elevationM": 1050
   },
   "clock": {
     "referenceTime": "2000-01-01T06:00:00Z",
@@ -33,24 +35,42 @@
       "type": "surface-field-curve",
       "field": "temperatureC",
       "points": [
-        {"hourOffset": 0, "value": 31},
-        {"hourOffset": 5, "value": 31}
+        {
+          "hourOffset": 0,
+          "value": 31
+        },
+        {
+          "hourOffset": 5,
+          "value": 31
+        }
       ]
     },
     {
       "type": "surface-field-curve",
       "field": "dewPointDepressionC",
       "points": [
-        {"hourOffset": 0, "value": 20},
-        {"hourOffset": 5, "value": 20}
+        {
+          "hourOffset": 0,
+          "value": 20
+        },
+        {
+          "hourOffset": 5,
+          "value": 20
+        }
       ]
     },
     {
       "type": "surface-field-curve",
       "field": "sensibleHeatFluxWm2",
       "points": [
-        {"hourOffset": 0, "value": 300},
-        {"hourOffset": 5, "value": 300}
+        {
+          "hourOffset": 0,
+          "value": 300
+        },
+        {
+          "hourOffset": 5,
+          "value": 300
+        }
       ]
     }
   ],
@@ -59,7 +79,13 @@
   },
   "capabilities": {
     "levels": true,
-    "pressureLevels": [925, 850, 800, 700, 600],
+    "pressureLevels": [
+      925,
+      850,
+      800,
+      700,
+      600
+    ],
     "verticalVelocity": false,
     "heatFluxes": true,
     "gust": false,
@@ -72,45 +98,89 @@
   "ensemble": {
     "members": 9,
     "perturbations": [
-      {"field": "surface.temperatureC", "distribution": "symmetric", "spread": 0.5, "correlation": "whole-column"},
-      {"field": "surface.dewPointDepressionC", "distribution": "symmetric", "spread": 0.5, "correlation": "whole-column"},
-      {"field": "levels.temperatureC", "distribution": "uniform", "spread": 0.4, "correlation": "by-level"},
-      {"field": "levels.windDirectionDeg", "distribution": "uniform", "spread": 15, "correlation": "independent"}
+      {
+        "field": "surface.temperatureC",
+        "distribution": "symmetric",
+        "spread": 0.5,
+        "correlation": "whole-column"
+      },
+      {
+        "field": "surface.dewPointDepressionC",
+        "distribution": "symmetric",
+        "spread": 0.5,
+        "correlation": "whole-column"
+      },
+      {
+        "field": "levels.temperatureC",
+        "distribution": "uniform",
+        "spread": 0.4,
+        "correlation": "by-level"
+      },
+      {
+        "field": "levels.windDirectionDeg",
+        "distribution": "uniform",
+        "spread": 15,
+        "correlation": "independent"
+      }
     ]
   },
   "assertions": [
     {
       "id": "boundary-band-exists",
       "description": "The aggregate publishes the controlled boundary-layer height band.",
-      "actual": {"field": "derived.boundaryLayerTopM", "hour": 2},
+      "actual": {
+        "field": "derived.boundaryLayerTopM",
+        "hour": 2
+      },
       "operator": "present"
     },
     {
       "id": "boundary-band-sits-at-the-column-ceiling",
       "description": "The censored boundary-layer median equals the highest published level's median height, not a resolved top.",
-      "actual": {"field": "derived.boundaryLayerTopM.p50", "hour": 2},
+      "actual": {
+        "field": "derived.boundaryLayerTopM.p50",
+        "hour": 2
+      },
       "operator": "equal",
-      "expected": {"field": "levels.heightM.p50", "hour": 2, "level": {"pressureHpa": 600}},
+      "expected": {
+        "field": "levels.heightM.p50",
+        "hour": 2,
+        "level": {
+          "pressureHpa": 600
+        }
+      },
       "tolerance": 0.5
     },
     {
       "id": "censored-band-has-no-spread",
       "description": "Members censored at the same ceiling collapse the boundary-layer p10-p90 band to that ceiling.",
-      "actual": {"field": "derived.boundaryLayerTopM.p90", "hour": 2},
+      "actual": {
+        "field": "derived.boundaryLayerTopM.p90",
+        "hour": 2
+      },
       "operator": "equal",
-      "expected": {"field": "derived.boundaryLayerTopM.p10", "hour": 2},
+      "expected": {
+        "field": "derived.boundaryLayerTopM.p10",
+        "hour": 2
+      },
       "tolerance": 0.5
     },
     {
       "id": "lift-band-exists",
       "description": "The aggregate publishes the controlled usable-lift height band.",
-      "actual": {"field": "derived.usableLiftTopM", "hour": 2},
+      "actual": {
+        "field": "derived.usableLiftTopM",
+        "hour": 2
+      },
       "operator": "present"
     },
     {
       "id": "temperature-band-exists",
       "description": "The aggregate retains its source temperature percentile band.",
-      "actual": {"field": "surface.temperatureC", "hour": 2},
+      "actual": {
+        "field": "surface.temperatureC",
+        "hour": 2
+      },
       "operator": "present"
     }
   ]

@@ -27,6 +27,9 @@ interface ScenarioEntry {
   modelShape: string;
   timeZone: string;
   site: { id: string };
+  /** The launch the scenario teaches against — index metadata, passed to
+      the renderer as SceneOptions.launch; documents are launch-agnostic. */
+  launch: { elevationM: number };
   outputs: ScenarioOutput[];
 }
 
@@ -39,8 +42,8 @@ interface LoadedOutput {
   entry: ScenarioEntry;
   output: ScenarioOutput;
   profile: WindgramProfile;
-  /** The scenario's launch, bridged from the baked v1 field (see loadOutput). */
-  launch: { elevationM: number } | undefined;
+  /** The scenario's launch, read from its index entry. */
+  launch: { elevationM: number };
   scene: SceneGraph;
   svg: string;
 }
@@ -86,16 +89,10 @@ function loadOutput(entry: ScenarioEntry, output: ScenarioOutput): LoadedOutput 
   expect(profile, `${label} must satisfy parseWindgramProfile`).not.toBeNull();
   expect(profile!.site.id, `${label} site identity`).toBe(entry.site.id);
 
-  /* TODO(pipeline, launch-decoupling): scenarios are pipeline-generated and
-     the committed documents still BAKE a site.altitudeM (a v1 leftover the
-     contract now strips at parse). Launches are render inputs now
-     (SceneOptions.launch), and the scenario generator owns moving the
-     launch into the scenario metadata; until it does, bridge it from the
-     raw JSON so the teaching renders keep their launch line and the goldens
-     stay byte-identical. When the pipeline regenerates scenarios, read the
-     launch from the index entry instead and delete this bridge. */
-  const bakedLaunch = (rawProfile as { site?: { altitudeM?: number | null } }).site?.altitudeM;
-  const launch = typeof bakedLaunch === "number" ? { elevationM: bakedLaunch } : undefined;
+  // Launches are render inputs (SceneOptions.launch); the scenario's launch
+  // is index metadata, never a document field.
+  const launch = entry.launch;
+  expect(launch?.elevationM, `${label} index entry must carry the launch`).toBeTypeOf("number");
 
   assertFiniteNumbers(profile, `${label} profile`);
   const scene = buildScene(profile!, { timeZone: entry.timeZone, launch });

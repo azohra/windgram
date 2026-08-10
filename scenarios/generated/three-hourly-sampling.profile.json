@@ -10,7 +10,6 @@
     "name": "Synthetic Sparse Ridge",
     "latitude": 49,
     "longitude": -123,
-    "altitudeM": 1050,
     "modelElevationM": 900,
     "timeZone": "Etc/UTC"
   },

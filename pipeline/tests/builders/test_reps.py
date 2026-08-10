@@ -603,7 +603,6 @@ def test_a_small_document_serializes_deterministically():
             "name": "Dundee",
             "latitude": 49.291977,
             "longitude": -117.183569,
-            "altitudeM": 1485,
             "modelElevationM": 1200.0,
         },
         "semantics": {"precipitation": "windowMeanRate"},
@@ -615,7 +614,7 @@ def test_a_small_document_serializes_deterministically():
         '"run":{"referenceTime":"2026-08-07T12:00:00Z","generatedAt":"2026-08-07T22:00:00Z",'
         '"members":21},'
         '"site":{"id":"dundee","name":"Dundee","latitude":49.291977,"longitude":-117.183569,'
-        '"altitudeM":1485,"modelElevationM":1200},'
+        '"modelElevationM":1200},'
         '"semantics":{"precipitation":"windowMeanRate"},'
         '"hours":[{"validAt":"2026-08-07T21:00:00Z",'
         '"surface":{'

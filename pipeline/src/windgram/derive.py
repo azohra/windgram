@@ -42,12 +42,15 @@ def derive_windgram_profile(source: dict, model: str, semantics: dict[str, str])
     reason: local time is load-bearing for reading a windgram, and a stored
     profile should not need the catalogue beside it to know its clock.
     """
+    # Sample provenance, deliberately not launch identity: where the
+    # atmosphere was sampled and what the model's own ground there is. A
+    # launch elevation is a render input (the toolkit's SceneOptions.launch),
+    # never baked here — a baked one would bind a grid forecast to one launch.
     site = {
         "id": source["siteId"],
         "name": source["siteName"],
         "latitude": source["latitude"],
         "longitude": source["longitude"],
-        "altitudeM": source["siteAltitudeM"],
         "modelElevationM": source["modelElevationM"],
     }
     if source.get("siteTimeZone"):

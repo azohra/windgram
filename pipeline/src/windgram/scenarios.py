@@ -290,7 +290,6 @@ def _prepare_source(definition: Mapping[str, Any], baseline: Mapping[str, Any]) 
             "siteName",
             "latitude",
             "longitude",
-            "siteAltitudeM",
             "modelElevationM",
             "hours",
         ),
@@ -309,6 +308,10 @@ def _prepare_source(definition: Mapping[str, Any], baseline: Mapping[str, Any]) 
     start = _utc(clock["startAt"], f"scenario {scenario_id} clock.startAt")
     step = timedelta(hours=clock["stepHours"])
     source = copy.deepcopy(dict(baseline))
+    # Pre-decoupling baselines may still carry a baked launch altitude; the
+    # derivation input is launch-agnostic (the launch lives in the definition's
+    # `launch` block and is published in the scenario index, never a document).
+    source.pop("siteAltitudeM", None)
     source.update(
         {
             "referenceTime": clock["referenceTime"],
@@ -317,7 +320,6 @@ def _prepare_source(definition: Mapping[str, Any], baseline: Mapping[str, Any]) 
             "siteName": site["name"],
             "latitude": site["latitude"],
             "longitude": site["longitude"],
-            "siteAltitudeM": site["altitudeM"],
             "modelElevationM": site["modelElevationM"],
             "siteTimeZone": definition["timeZone"],
         }
@@ -385,14 +387,7 @@ def _apply_transforms(definition: Mapping[str, Any], source: dict[str, Any]) -> 
             for hour in source["hours"]:
                 hour["validAt"] = _utc_text(_utc(hour["validAt"], "validAt") + delta)
         elif operation == "elevation-adjustment":
-            if "siteAltitudeDeltaM" in transform:
-                if source["siteAltitudeM"] is None:
-                    raise ScenarioError(
-                        f"scenario {definition['id']}: cannot adjust a null site altitude"
-                    )
-                source["siteAltitudeM"] += transform["siteAltitudeDeltaM"]
-            if "modelElevationDeltaM" in transform:
-                source["modelElevationM"] += transform["modelElevationDeltaM"]
+            source["modelElevationM"] += transform["modelElevationDeltaM"]
         else:  # protected by the closed JSON Schema vocabulary
             raise AssertionError(f"unhandled validated transform {operation}")
 
@@ -833,10 +828,19 @@ def _split_metric_field(field: str) -> tuple[str, str, str | None]:
     return block, name, None
 
 
-def _resolve_metric(profile: Mapping[str, Any], reference: Mapping[str, Any]) -> tuple[bool, Any]:
+def _resolve_metric(
+    profile: Mapping[str, Any],
+    reference: Mapping[str, Any],
+    launch: Mapping[str, Any] | None = None,
+) -> tuple[bool, Any]:
     field = reference["field"]
     block, name, percentile = _split_metric_field(field)
-    if block == "site":
+    if block == "launch":
+        # The scenario's launch is definition metadata (published in the
+        # index), never a document field — assertions that teach against it
+        # read the recipe, not the generated profile.
+        container = launch or {}
+    elif block == "site":
         container = profile["site"]
     else:
         hour_index = reference["hour"]
@@ -907,13 +911,14 @@ def _evaluate_assertions(definition: Mapping[str, Any], profiles: Mapping[str, A
         "less-than": lambda actual, expected, tolerance: actual < expected - tolerance,
         "less-than-or-equal": lambda actual, expected, tolerance: actual <= expected + tolerance,
     }
+    launch = definition.get("launch")
     for assertion in definition["assertions"]:
         context = _assertion_context(assertion)
         try:
             profile = _profile_for_reference(
                 definition, profiles, assertion["actual"]
             )
-            present, actual = _resolve_metric(profile, assertion["actual"])
+            present, actual = _resolve_metric(profile, assertion["actual"], launch)
         except ScenarioAssertionError as error:
             raise ScenarioAssertionError(
                 f"scenario {scenario_id} assertion {assertion['id']} ({context}): {error}"
@@ -939,7 +944,7 @@ def _evaluate_assertions(definition: Mapping[str, Any], profiles: Mapping[str, A
                     definition, profiles, expected_spec
                 )
                 expected_present, expected = _resolve_metric(
-                    expected_profile, expected_spec
+                    expected_profile, expected_spec, launch
                 )
             except ScenarioAssertionError as error:
                 raise ScenarioAssertionError(
@@ -1155,6 +1160,10 @@ def _build_artifacts(repository_root: Path) -> tuple[dict[Path, bytes], bytes]:
                 "modelShape": definition["modelShape"],
                 "timeZone": definition["timeZone"],
                 "site": representative["site"],
+                # The launch the scenario teaches against — index metadata,
+                # deliberately not a document field: renderers pass it as
+                # SceneOptions.launch, the same seam production consumers use.
+                "launch": definition["launch"],
                 "capabilities": definition["capabilities"],
                 "outputs": outputs,
             }

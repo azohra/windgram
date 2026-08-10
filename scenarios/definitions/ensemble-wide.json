@@ -13,8 +13,10 @@
     "synthetic": true,
     "latitude": 49,
     "longitude": -123,
-    "altitudeM": 1050,
     "modelElevationM": 900
+  },
+  "launch": {
+    "elevationM": 1050
   },
   "clock": {
     "referenceTime": "2000-01-01T06:00:00Z",
@@ -35,8 +37,14 @@
       "action": "add",
       "value": {
         "byHour": [
-          {"hourOffset": 0, "value": 9},
-          {"hourOffset": 5, "value": 14}
+          {
+            "hourOffset": 0,
+            "value": 9
+          },
+          {
+            "hourOffset": 5,
+            "value": 14
+          }
         ]
       }
     }
@@ -47,7 +55,13 @@
   },
   "capabilities": {
     "levels": true,
-    "pressureLevels": [925, 850, 800, 700, 600],
+    "pressureLevels": [
+      925,
+      850,
+      800,
+      700,
+      600
+    ],
     "verticalVelocity": false,
     "heatFluxes": true,
     "gust": "hourMax",
@@ -60,47 +74,117 @@
   "ensemble": {
     "members": 9,
     "perturbations": [
-      {"field": "surface.temperatureC", "distribution": "symmetric", "spread": 3, "correlation": "whole-column"},
-      {"field": "surface.dewPointDepressionC", "distribution": "uniform", "spread": 2, "correlation": "by-hour"},
-      {"field": "surface.windSpeedMs", "distribution": "symmetric", "spread": 3, "correlation": "whole-column"},
-      {"field": "surface.windDirectionDeg", "distribution": "symmetric", "spread": 80, "correlation": "by-hour"},
-      {"field": "surface.sensibleHeatFluxWm2", "distribution": "normal", "spread": 35, "correlation": "by-hour"},
-      {"field": "levels.temperatureC", "distribution": "symmetric", "spread": 2.5, "correlation": "by-level"},
-      {"field": "levels.windSpeedMs", "distribution": "symmetric", "spread": 3.5, "correlation": "whole-column"},
-      {"field": "levels.windDirectionDeg", "distribution": "uniform", "spread": 100, "correlation": "independent"}
+      {
+        "field": "surface.temperatureC",
+        "distribution": "symmetric",
+        "spread": 3,
+        "correlation": "whole-column"
+      },
+      {
+        "field": "surface.dewPointDepressionC",
+        "distribution": "uniform",
+        "spread": 2,
+        "correlation": "by-hour"
+      },
+      {
+        "field": "surface.windSpeedMs",
+        "distribution": "symmetric",
+        "spread": 3,
+        "correlation": "whole-column"
+      },
+      {
+        "field": "surface.windDirectionDeg",
+        "distribution": "symmetric",
+        "spread": 80,
+        "correlation": "by-hour"
+      },
+      {
+        "field": "surface.sensibleHeatFluxWm2",
+        "distribution": "normal",
+        "spread": 35,
+        "correlation": "by-hour"
+      },
+      {
+        "field": "levels.temperatureC",
+        "distribution": "symmetric",
+        "spread": 2.5,
+        "correlation": "by-level"
+      },
+      {
+        "field": "levels.windSpeedMs",
+        "distribution": "symmetric",
+        "spread": 3.5,
+        "correlation": "whole-column"
+      },
+      {
+        "field": "levels.windDirectionDeg",
+        "distribution": "uniform",
+        "spread": 100,
+        "correlation": "independent"
+      }
     ]
   },
   "assertions": [
     {
       "id": "temperature-band-is-wide",
       "description": "Broad member temperature perturbations spread the p10-p90 band by at least four degrees.",
-      "actual": {"field": "surface.temperatureC.p90", "hour": 2},
+      "actual": {
+        "field": "surface.temperatureC.p90",
+        "hour": 2
+      },
       "operator": "absolute-difference-at-least",
-      "expected": {"field": "surface.temperatureC.p10", "hour": 2},
+      "expected": {
+        "field": "surface.temperatureC.p10",
+        "hour": 2
+      },
       "threshold": 4
     },
     {
       "id": "lift-band-is-wide",
       "description": "Member disagreement spreads the usable-lift p10-p90 band by hundreds of metres.",
-      "actual": {"field": "derived.usableLiftTopM.p90", "hour": 2},
+      "actual": {
+        "field": "derived.usableLiftTopM.p90",
+        "hour": 2
+      },
       "operator": "absolute-difference-at-least",
-      "expected": {"field": "derived.usableLiftTopM.p10", "hour": 2},
+      "expected": {
+        "field": "derived.usableLiftTopM.p10",
+        "hour": 2
+      },
       "threshold": 300
     },
     {
       "id": "level-wind-band-is-wide",
       "description": "The 800 hPa wind-speed p10-p90 band spreads by at least four metres per second.",
-      "actual": {"field": "levels.windSpeedMs.p90", "hour": 2, "level": {"pressureHpa": 800}},
+      "actual": {
+        "field": "levels.windSpeedMs.p90",
+        "hour": 2,
+        "level": {
+          "pressureHpa": 800
+        }
+      },
       "operator": "absolute-difference-at-least",
-      "expected": {"field": "levels.windSpeedMs.p10", "hour": 2, "level": {"pressureHpa": 800}},
+      "expected": {
+        "field": "levels.windSpeedMs.p10",
+        "hour": 2,
+        "level": {
+          "pressureHpa": 800
+        }
+      },
       "threshold": 4
     },
     {
       "id": "gust-band-is-published",
       "description": "The declared gust capability publishes a percentile band above the median surface wind.",
-      "actual": {"field": "surface.windGustMs.p50", "hour": 2},
+      "actual": {
+        "field": "surface.windGustMs.p50",
+        "hour": 2
+      },
       "operator": "greater-than-or-equal",
-      "expected": {"field": "surface.windSpeedMs.p50", "hour": 2}
+      "expected": {
+        "field": "surface.windSpeedMs.p50",
+        "hour": 2
+      }
     }
   ]
 }
