@@ -5,6 +5,7 @@ import {
   ANALYZE_VOCABULARY_VERSION,
   analyzeProfile,
   DEFAULT_ANALYZE_THRESHOLDS,
+  type BandShearFinding,
   type CapTimingFinding,
   type DataCaveatsFinding,
   type EnsembleMembershipFinding,
@@ -122,6 +123,7 @@ describe("the analysis envelope", () => {
         "windSummary",
         "windExceedance",
         "windDirection",
+        "bandShear",
       ]).toContain(kind);
     }
   });
@@ -1054,6 +1056,84 @@ describe("windDirection", () => {
     expect(ofKind(analysis.findings, "thermalWindow").length).toBeGreaterThan(0);
     expect(ofKind(analysis.findings, "windDirection")).toHaveLength(0);
     expect(ofKind(analyzeProfile(geps(), FLAGPOLE).findings, "windDirection")).toHaveLength(0);
+  });
+});
+
+describe("bandShear", () => {
+  /* S3 candidate 4: adjacent-level layer shear inside launch→lift-top,
+     analyze-only (rates are not comparable across level densities). All
+     layer numbers below are hand-computed component-wise from the raw
+     fixture winds. */
+
+  it("finds the day's strongest layer with mandatory bounds and endpoint winds", () => {
+    const findings = ofKind<BandShearFinding>(
+      analyzeProfile(hrrr(), ERIE).findings,
+      "bandShear",
+    );
+    const saturday = findings.find((finding) => finding.day === "2026-08-08")!;
+    // 20:00Z (13:00 local): 1.39 m/s @ 214° against 2.06 m/s @ 265° across
+    // the 1525.6-2040.5 m layer — 1.6 m/s of vector shear over 514.9 m.
+    expect(saturday.maxShear.ratePerKm).toBe(3.11);
+    expect(saturday.maxShear.shearMs).toBe(1.6);
+    expect(saturday.maxShear.layer).toEqual({ fromM: 1525.6, toM: 2040.5, thicknessM: 514.9 });
+    expect(saturday.maxShear.at).toEqual({
+      validAt: "2026-08-08T20:00:00Z",
+      local: "2026-08-08T13:00",
+    });
+    expect(saturday.maxShear.lower).toEqual({ speedMs: 1.39, directionDeg: 214, heightM: 1525.6 });
+    expect(saturday.maxShear.upper).toEqual({ speedMs: 2.06, directionDeg: 265, heightM: 2040.5 });
+    expect(saturday.levelsInBand).toBe(3);
+    expect(saturday.bothEndpointsUnderFloorMs).toBe(false); // 2.06 stands over the 2 m/s floor
+    expect(saturday.thresholds).toEqual({ minLayerThicknessM: 30, endpointFloorMs: 2 });
+    // Per window hour, the hour's own max layer rate.
+    expect(saturday.evidence.hours).toHaveLength(7);
+    expect(saturday.evidence.maxRatePerKm).toEqual([1.19, 3.11, 2.48, 2.18, 2.21, 1.95, 1.97]);
+  });
+
+  it("flags a layer whose endpoints are both light wind — an arithmetic relation, no verdict", () => {
+    // Sunday's single-hour window is the S3 12 % case live: 1.01 m/s @ 245°
+    // against 1.51 m/s @ 257° reads 2.27 m/s/km, and both endpoints sit
+    // under the 2 m/s floor — the number is a direction difference between
+    // light winds, and the finding says exactly that relation.
+    const sunday = ofKind<BandShearFinding>(
+      analyzeProfile(hrrr(), ERIE).findings,
+      "bandShear",
+    ).find((finding) => finding.day === "2026-08-09")!;
+    expect(sunday.maxShear.ratePerKm).toBe(2.27);
+    expect(sunday.maxShear.layer).toEqual({ fromM: 1258.4, toM: 1506.4, thicknessM: 248 });
+    expect(sunday.levelsInBand).toBe(2);
+    expect(sunday.bothEndpointsUnderFloorMs).toBe(true);
+    expect(JSON.stringify(sunday)).not.toMatch(/hazard|quality|suspect/i);
+  });
+
+  it("is absent when the column offers fewer than two in-band levels — too sparse to state", () => {
+    // Strip every hour to its lowest level: one in-band level has no
+    // layer, so the kind says nothing (absence means "column too sparse
+    // to state", the honest GEPS/REPS behaviour S3 measured at 0.4-6 %).
+    const sparse = hrrr();
+    for (const hour of sparse.hours) {
+      (hour as { levels: unknown[] }).levels = hour.levels.slice(0, 1);
+    }
+    expect(ofKind(analyzeProfile(sparse, ERIE).findings, "bandShear")).toHaveLength(0);
+    // The thickness floor is a caller convention too: demanding thicker
+    // layers than the column publishes silences the kind the same way.
+    expect(
+      ofKind(
+        analyzeProfile(hrrr(), {
+          ...ERIE,
+          thresholds: { bandShear: { minLayerThicknessM: 600 } },
+        }).findings,
+        "bandShear",
+      ),
+    ).toHaveLength(0);
+  });
+
+  it("gates itself off ensembles — level direction percentiles are no more circular than surface ones", () => {
+    // REPS has thermalWindows and publishes level winds; the gate holds.
+    const analysis = analyzeProfile(reps(), ERIE);
+    expect(ofKind(analysis.findings, "thermalWindow").length).toBeGreaterThan(0);
+    expect(ofKind(analysis.findings, "bandShear")).toHaveLength(0);
+    expect(ofKind(analyzeProfile(geps(), FLAGPOLE).findings, "bandShear")).toHaveLength(0);
   });
 });
 

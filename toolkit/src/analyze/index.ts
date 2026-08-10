@@ -78,6 +78,7 @@ export {
   type AnalyzeOptions,
   type AnalyzeThresholdOverrides,
   type AnalyzeThresholds,
+  type BandShearFinding,
   type CapTimingFinding,
   type CitedInstant,
   type DataCaveat,

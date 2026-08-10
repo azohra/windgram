@@ -9,6 +9,7 @@
    line so parallel kind work merges without conflict. */
 
 import { isDeterministicProfile, type WindgramProfile } from "../contract/index.js";
+import { findBandShear } from "./kinds/band-shear.js";
 import { findCapTiming } from "./kinds/cap-timing.js";
 import { findDataCaveats } from "./kinds/data-caveats.js";
 import { findEnsembleMembership } from "./kinds/ensemble-membership.js";
@@ -77,6 +78,7 @@ export function analyzeProfile(
     ...findWindSummaries(context, windows),
     ...findWindExceedance(context, windows),
     ...findWindDirection(context, windows),
+    ...findBandShear(context, windows),
     ...findEnsembleMembership(context),
     findDataCaveats(context, timeZoneSource),
   ];
@@ -119,6 +121,7 @@ function mergeThresholds(overrides?: AnalyzeThresholdOverrides): AnalyzeThreshol
     terrainMismatch: { ...DEFAULT_ANALYZE_THRESHOLDS.terrainMismatch, ...overrides.terrainMismatch },
     windSummary: { ...DEFAULT_ANALYZE_THRESHOLDS.windSummary, ...overrides.windSummary },
     windDirection: { ...DEFAULT_ANALYZE_THRESHOLDS.windDirection, ...overrides.windDirection },
+    bandShear: { ...DEFAULT_ANALYZE_THRESHOLDS.bandShear, ...overrides.bandShear },
     ensembleMembership: {
       ...DEFAULT_ANALYZE_THRESHOLDS.ensembleMembership,
       ...overrides.ensembleMembership,

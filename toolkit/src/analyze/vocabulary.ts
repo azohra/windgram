@@ -11,6 +11,7 @@
    extractor line in findings.ts — keep each on its own line so parallel
    kind work merges without conflict. */
 
+import type { BandShearFinding } from "./kinds/band-shear.js";
 import type { CapTimingFinding } from "./kinds/cap-timing.js";
 import type { DataCaveatsFinding } from "./kinds/data-caveats.js";
 import type { EnsembleMembershipFinding } from "./kinds/ensemble-membership.js";
@@ -72,6 +73,7 @@ export const ANALYZE_VOCABULARY_VERSION = 4;
 export type { CitedInstant, LocalDayKey } from "./kinds/shared.js";
 
 /* Per-kind types — one line per kind. */
+export type { BandShearFinding } from "./kinds/band-shear.js";
 export type { CapTimingFinding } from "./kinds/cap-timing.js";
 export type { DataCaveat, DataCaveatsFinding } from "./kinds/data-caveats.js";
 export type { EnsembleMembershipFinding } from "./kinds/ensemble-membership.js";
@@ -94,7 +96,8 @@ export type WindgramFinding =
   | LiftCeilingFinding
   | WindSummaryFinding
   | WindExceedanceFinding
-  | WindDirectionFinding;
+  | WindDirectionFinding
+  | BandShearFinding;
 
 export type FindingKind = WindgramFinding["kind"];
 
@@ -113,6 +116,7 @@ export interface AnalyzeThresholds {
   terrainMismatch: { minAbsDeltaM: number };
   windSummary: { bandMarginM: number; persistenceFractionOfMax: number };
   windDirection: { directionFloorMs: number };
+  bandShear: { minLayerThicknessM: number; endpointFloorMs: number };
   ensembleMembership: { wideningRatio: number };
 }
 
@@ -134,6 +138,7 @@ export const DEFAULT_ANALYZE_THRESHOLDS: AnalyzeThresholds = {
   terrainMismatch: { minAbsDeltaM: 250 },
   windSummary: { bandMarginM: 200, persistenceFractionOfMax: 0.8 },
   windDirection: { directionFloorMs: 1 },
+  bandShear: { minLayerThicknessM: 30, endpointFloorMs: 2 },
   ensembleMembership: { wideningRatio: 1.5 },
 };
 
