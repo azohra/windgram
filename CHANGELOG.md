@@ -4,6 +4,25 @@ Notable repository and `windgram` package changes are recorded here. Dataset
 schema, npm package, and Python pipeline versions are independent; each release
 entry names the versions it actually changes.
 
+## [0.6.2] - 2026-08-10
+
+`windgram` pipeline (PyPI) 0.6.2 — the real shutdown-crash fix, proven
+on the environment that crashed. 0.6.1's diagnosis was incomplete: with
+netCDF4 out of the process, CI still exited 139. A CI-side bisect (the
+one-HDF5-stack theory could not be reproduced in any local or Docker
+environment) pinned it to the two ranged-fallback tests alone: a failed
+`h5py.File(...)` over a poisoned or garbage reader leaves
+partially-initialized HDF5 library state whose atexit teardown
+segfaults the interpreter after Python finalization — after every test
+has passed, invisible to faulthandler. The builder now refuses to hand
+h5py a file that cannot be HDF5: the ranged path checks the 8-byte HDF5
+signature on block 0 (already cached for the superblock read) and
+routes poisoned readers and garbage responses straight to the
+whole-file fallback. The fallback subset and the full suite were run on
+the failing CI environment via a diagnostic branch: exit 0 and exit 0.
+(0.6.1's one-HDF5-stack-per-process restructuring remains — it is the
+right architecture even though it was not the crash.)
+
 ## [0.6.1] - 2026-08-10
 
 `windgram` pipeline (PyPI) 0.6.1 — one HDF5 stack per process. The
