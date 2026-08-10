@@ -333,6 +333,109 @@ describe("thermalWindow", () => {
   });
 });
 
+describe("quietDay context — the atmospheric WHY beside the arithmetic why", () => {
+  /** Every hrrr day quiet: the impossible W* floor from the tests above. */
+  const QUIET = { ...ERIE, thresholds: { thermalWindow: { wstarMinMs: 99 } } };
+  const quietDays = (profile: WindgramProfile, options: object = QUIET) =>
+    ofKind<QuietDayFinding>(analyzeProfile(profile, options).findings, "quietDay");
+
+  it("stamps forecast lead anchored on the day's peak-W* hour", () => {
+    const byDay = Object.fromEntries(quietDays(hrrr()).map((finding) => [finding.day, finding]));
+    // Run 2026-08-08T18:00Z; Saturday's peak W* (2.16) fires at 22:00Z.
+    expect(byDay["2026-08-08"].peakThermalVelocityAt?.validAt).toBe("2026-08-08T22:00:00Z");
+    expect(byDay["2026-08-08"].leadHours).toBe(4);
+    // Sunday's peak W* (1.1) fires at 18:00Z the next day — 24 h out.
+    expect(byDay["2026-08-09"].leadHours).toBe(24);
+  });
+
+  it("restates cloud, gust, and flux with cited timing — co-timing, never causality", () => {
+    const saturday = quietDays(hrrr()).find((finding) => finding.day === "2026-08-08")!;
+    expect(saturday.context.cloudCoverAtPeakWstarPercent).toBe(100);
+    expect(saturday.context.daytimeCloudCoverPercent).toBe(100); // 19:00-23:00Z all 100 %
+    expect(saturday.context.maxGust).toEqual({
+      gustMs: 3.9,
+      at: { validAt: "2026-08-08T23:00:00Z", local: "2026-08-08T16:00" },
+    });
+    expect(saturday.context.peakSensibleHeatFluxWm2).toEqual({
+      valueWm2: 280,
+      at: { validAt: "2026-08-08T21:00:00Z", local: "2026-08-08T14:00" },
+    });
+    // A dry day carries no precipitation block, and no verdict anywhere.
+    expect(saturday.context.precipitation).toBeUndefined();
+    expect(JSON.stringify(saturday)).not.toMatch(/verdict/i);
+  });
+
+  it("carries BOTH the peak-hour cloud sample and the daytime aggregate — either alone misleads", () => {
+    // S4's live divergence in miniature: the peak W* fires in a clearing
+    // (12 %) while the day sits overcast (85 % on the other daytime hours).
+    const profile = hrrr();
+    for (const hour of profile.hours) {
+      const surface = hour.surface as { cloudCoverPercent: number };
+      if (hour.validAt === "2026-08-08T22:00:00Z") surface.cloudCoverPercent = 12;
+      else if (
+        ["2026-08-08T19:00:00Z", "2026-08-08T20:00:00Z", "2026-08-08T21:00:00Z", "2026-08-08T23:00:00Z"].includes(
+          hour.validAt,
+        )
+      )
+        surface.cloudCoverPercent = 85;
+    }
+    const saturday = quietDays(profile).find((finding) => finding.day === "2026-08-08")!;
+    expect(saturday.peakThermalVelocityAt?.validAt).toBe("2026-08-08T22:00:00Z");
+    expect(saturday.context.cloudCoverAtPeakWstarPercent).toBe(12);
+    // Local 10:00-16:00 covered samples: 19:00-23:00Z → (4×85 + 12) / 5.
+    expect(saturday.context.daytimeCloudCoverPercent).toBe(70.4);
+  });
+
+  it("states the wet day over the embedded floor, with the semantics and step echoes", () => {
+    const profile = hrrr();
+    const rates: Record<string, number> = {
+      "2026-08-08T20:00:00Z": 0.5,
+      "2026-08-08T21:00:00Z": 1.2,
+      "2026-08-08T22:00:00Z": 0.8,
+    };
+    for (const hour of profile.hours) {
+      const rate = rates[hour.validAt];
+      if (rate !== undefined) (hour.surface as { precipitationMmHr: number }).precipitationMmHr = rate;
+    }
+    (profile as { semantics?: object }).semantics = { precipitation: "instantRate" };
+    const parsed = parseWindgramProfile(profile)!;
+    const saturday = quietDays(parsed).find((finding) => finding.day === "2026-08-08")!;
+    expect(saturday.context.precipitation).toEqual({
+      peakMmHr: 1.2,
+      peakAt: { validAt: "2026-08-08T21:00:00Z", local: "2026-08-08T14:00" },
+      firstWetAt: { validAt: "2026-08-08T20:00:00Z", local: "2026-08-08T13:00" },
+      wetHours: 3,
+      minMmHr: DEFAULT_ANALYZE_THRESHOLDS.capTiming.precipMinMmHr,
+      semantics: "instantRate",
+      stepHours: 1,
+    });
+  });
+
+  it("omits maxGust where the model publishes none — absent is not calm", () => {
+    // REPS is gustless; under the impossible floor both its days are quiet.
+    const findings = quietDays(reps());
+    expect(findings.length).toBeGreaterThan(0);
+    for (const finding of findings) {
+      expect(finding.context.maxGust).toBeUndefined();
+      // The flux restatement still rides — REPS publishes it.
+      expect(finding.context.peakSensibleHeatFluxWm2).toBeDefined();
+    }
+  });
+
+  it("reads honestly when empty: no atmospheric suppressor stated, the flux was simply weak", () => {
+    const profile = hrrr();
+    for (const hour of profile.hours) {
+      (hour.surface as { cloudCoverPercent: number }).cloudCoverPercent = 0;
+    }
+    const saturday = quietDays(profile).find((finding) => finding.day === "2026-08-08")!;
+    expect(saturday.context.precipitation).toBeUndefined();
+    expect(saturday.context.cloudCoverAtPeakWstarPercent).toBe(0);
+    expect(saturday.context.daytimeCloudCoverPercent).toBe(0);
+    // Nothing atmospheric is asserted — the published restatements are all
+    // the block says, and none of them names a suppressor.
+  });
+});
+
 describe("liftCeiling", () => {
   it("attributes the deterministic window's ceiling to sink, citing the segment's peak", () => {
     const findings = ofKind<LiftCeilingFinding>(analyzeProfile(hrrr(), ERIE).findings, "liftCeiling");
