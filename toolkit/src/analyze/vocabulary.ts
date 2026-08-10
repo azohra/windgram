@@ -109,7 +109,6 @@ export interface AnalyzeThresholds {
   };
   terrainMismatch: { minAbsDeltaM: number };
   windSummary: { bandMarginM: number; persistenceFractionOfMax: number };
-  ensembleMembership: { wideningRatio: number };
 }
 
 /**
@@ -129,7 +128,6 @@ export const DEFAULT_ANALYZE_THRESHOLDS: AnalyzeThresholds = {
   },
   terrainMismatch: { minAbsDeltaM: 250 },
   windSummary: { bandMarginM: 200, persistenceFractionOfMax: 0.8 },
-  ensembleMembership: { wideningRatio: 1.5 },
 };
 
 /**

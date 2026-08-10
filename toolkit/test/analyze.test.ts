@@ -53,6 +53,82 @@ function ofKind<T extends { kind: string }>(
   return findings.filter((finding) => finding.kind === kind) as T[];
 }
 
+/* A synthetic ensemble document with hand-authored percentile blocks, so
+   every percentileCrossing and dayBands expectation is checkable by hand
+   against the floors (w* >= 0.9, depth >= 300 over the 1247 m erie launch
+   — lift top must reach 1547). Hours are cloned from the real reps fixture
+   (contract shape) and re-stamped: 3-hourly through 08-10T12:00Z, then a
+   6-hourly tail — S1's live GEPS cadence switch in miniature.
+
+   Local days (America/Vancouver, UTC−7):
+   - 2026-08-09 (h1–h5): quiet except 21:00Z (14:00 local), where p25
+     through p90 clear both floors and p10 fails both — the fragile day:
+     p50 passes, p10 disagrees, minimal token p25. Starts at 11:00 local —
+     a truncated day.
+   - 2026-08-10 (h6–h10): quiet at p10/p25/p50 everywhere; p75 and p90
+     clear at 18:00Z (11:00 local, 18 contributing lift members), p90
+     alone also at 08-11T00:00Z (17:00 local, ceiledMembers 1) — the
+     upside day, minimal token p75. Covered 02:00–23:00 local at its own
+     cadence — the one fully-covered day.
+   - 2026-08-11 (h11–h12): 18:00Z clears both floors at EVERY percentile —
+     all-agree, nothing to cross. Ends at 11:00 local — truncated. */
+
+type Ev = {
+  members: number;
+  p10: number;
+  p25: number;
+  p50: number;
+  p75: number;
+  p90: number;
+  ceiledMembers?: number;
+};
+function ev(
+  p10: number,
+  p25: number,
+  p50: number,
+  p75: number,
+  p90: number,
+  members = 21,
+  ceiledMembers?: number,
+): Ev {
+  const value: Ev = { members, p10, p25, p50, p75, p90 };
+  if (ceiledMembers !== undefined) value.ceiledMembers = ceiledMembers;
+  return value;
+}
+const quietWstar = () => ev(0.1, 0.15, 0.2, 0.3, 0.4);
+const quietTop = () => ev(1300, 1350, 1400, 1450, 1500);
+
+function crossingFixture(): WindgramProfile {
+  const doc = JSON.parse(JSON.stringify(fixtures["repsErie"])) as {
+    hours: Array<{ validAt: string; derived: Record<string, unknown> }>;
+  };
+  const template = JSON.stringify(doc.hours[0]);
+  const hour = (validAt: string, wstar: Ev, top: Ev) => {
+    const clone = JSON.parse(template) as (typeof doc.hours)[number];
+    clone.validAt = validAt;
+    clone.derived.thermalVelocityMs = wstar;
+    clone.derived.usableLiftTopM = top;
+    return clone;
+  };
+  doc.hours = [
+    hour("2026-08-09T18:00:00Z", quietWstar(), quietTop()),
+    hour("2026-08-09T21:00:00Z", ev(0.5, 0.95, 1.2, 1.5, 1.8), ev(1500, 1600, 1900, 2200, 2500, 21, 0)),
+    hour("2026-08-10T00:00:00Z", quietWstar(), quietTop()),
+    hour("2026-08-10T03:00:00Z", quietWstar(), quietTop()),
+    hour("2026-08-10T06:00:00Z", quietWstar(), quietTop()),
+    hour("2026-08-10T09:00:00Z", quietWstar(), quietTop()),
+    hour("2026-08-10T12:00:00Z", quietWstar(), quietTop()),
+    hour("2026-08-10T18:00:00Z", ev(0.3, 0.5, 0.7, 1.1, 1.4), ev(1200, 1300, 1400, 1800, 2200, 18, 0)),
+    hour("2026-08-11T00:00:00Z", ev(0.2, 0.4, 0.6, 0.85, 1.0), ev(1100, 1200, 1300, 1900, 2000, 21, 1)),
+    hour("2026-08-11T06:00:00Z", quietWstar(), quietTop()),
+    hour("2026-08-11T12:00:00Z", quietWstar(), quietTop()),
+    hour("2026-08-11T18:00:00Z", ev(1.0, 1.2, 1.5, 1.8, 2.0), ev(1600, 1700, 1900, 2100, 2300)),
+  ];
+  const profile = parseWindgramProfile(doc);
+  expect(profile).not.toBeNull();
+  return profile!;
+}
+
 describe("the analysis envelope", () => {
   it("stamps the vocabulary version and the document's identity", () => {
     const analysis = analyzeProfile(hrrr(), ERIE);
@@ -491,7 +567,7 @@ describe("ensembleMembership", () => {
     expect(cape.evidence.examples[0]).toEqual({ validAt: "2026-08-09T06:00:00Z", members: 18 });
   });
 
-  it("states band-width magnitude and trend, with no confidence verdicts", () => {
+  it("states band-width magnitude with no trend verdict — the v4 removals stay removed", () => {
     const finding = ofKind<EnsembleMembershipFinding>(
       analyzeProfile(reps(), ERIE).findings,
       "ensembleMembership",
@@ -499,10 +575,74 @@ describe("ensembleMembership", () => {
     const liftBand = finding.bands.find((entry) => entry.series === "usableLiftTopM")!;
     expect(liftBand.hoursWithSignal).toBe(4);
     expect(liftBand.medianBandWidth).toBe(287.8);
-    expect(liftBand.maxRelativeSpread).toBe(1.1);
-    expect(liftBand.trend).toBe("steady");
-    expect(liftBand.thresholds).toEqual(DEFAULT_ANALYZE_THRESHOLDS.ensembleMembership);
+    // Removed at v4 (S1: both diurnal-confound directions measured live on
+    // one document): the trend verdict, its wideningRatio threshold — gone
+    // from the threshold set entirely — and the p50-ratio spread whose
+    // denominator explodes as p50 approaches 0.
+    expect(liftBand).not.toHaveProperty("trend");
+    expect(liftBand).not.toHaveProperty("thresholds");
+    expect(liftBand).not.toHaveProperty("maxRelativeSpread");
+    expect(liftBand).not.toHaveProperty("maxSpreadAt");
+    expect(DEFAULT_ANALYZE_THRESHOLDS).not.toHaveProperty("ensembleMembership");
     expect(JSON.stringify(finding)).not.toMatch(/confidence/i);
+  });
+
+  it("carries the per-day band-width series at each day's peak-p50-w* hour", () => {
+    const finding = ofKind<EnsembleMembershipFinding>(
+      analyzeProfile(reps(), ERIE).findings,
+      "ensembleMembership",
+    )[0];
+    // Two local days, both horizon-clipped (the document opens at 14:00
+    // local and closes at 11:00). Widths read at each day's own peak-p50-w*
+    // hour: day one at 21:00Z (p50 1.06 vs 0.43 at 00:00Z), day two at
+    // 18:00Z (1.62). Hand arithmetic: 1.22−0.96 and 3006.5−2732.8;
+    // 1.68−1.51 and 2679.6−2391.8. Leads read from the 18:00Z run.
+    expect(finding.dayBands).toEqual([
+      {
+        day: "2026-08-08",
+        peakHour: { validAt: "2026-08-08T21:00:00Z", local: "2026-08-08T14:00" },
+        leadHours: 3,
+        wstarBandWidthMs: 0.26,
+        liftTopBandWidthM: 273.7,
+        truncated: true,
+      },
+      {
+        day: "2026-08-09",
+        peakHour: { validAt: "2026-08-09T18:00:00Z", local: "2026-08-09T11:00" },
+        leadHours: 24,
+        wstarBandWidthMs: 0.17,
+        liftTopBandWidthM: 287.8,
+        truncated: true,
+      },
+    ]);
+  });
+
+  it("reads day coverage at the day's own cadence and flags horizon stubs", () => {
+    // The synthetic switch fixture (see crossingFixture): only the middle
+    // day is fully covered — 02:00 local first sample inside its 3 h
+    // arriving step, 23:00 last sample covering to midnight at 6 h.
+    const finding = ofKind<EnsembleMembershipFinding>(
+      analyzeProfile(crossingFixture(), ERIE).findings,
+      "ensembleMembership",
+    )[0];
+    const byDay = Object.fromEntries(finding.dayBands.map((row) => [row.day, row]));
+    expect(byDay["2026-08-10"]).toEqual({
+      day: "2026-08-10",
+      peakHour: { validAt: "2026-08-10T18:00:00Z", local: "2026-08-10T11:00" },
+      leadHours: 48,
+      wstarBandWidthMs: 1.1, // 1.4 − 0.3 at the peak hour
+      liftTopBandWidthM: 1000, // 2200 − 1200
+      truncated: false,
+    });
+    // Edge days are horizon stubs: the widths ride along, flagged so the
+    // series never reads a clipped day as a day the run forecast.
+    expect(byDay["2026-08-09"].truncated).toBe(true);
+    expect(byDay["2026-08-09"].wstarBandWidthMs).toBe(1.3); // 1.8 − 0.5
+    expect(byDay["2026-08-09"].liftTopBandWidthM).toBe(1000); // 2500 − 1500
+    expect(byDay["2026-08-09"].leadHours).toBe(27);
+    expect(byDay["2026-08-11"].truncated).toBe(true);
+    expect(byDay["2026-08-11"].wstarBandWidthMs).toBe(1); // 2.0 − 1.0
+    expect(byDay["2026-08-11"].liftTopBandWidthM).toBe(700); // 2300 − 1600
   });
 
   it("says nothing about deterministic documents", () => {
@@ -631,80 +771,6 @@ describe("mixed cadence — spacing is per-gap, never a document constant", () =
 });
 
 describe("percentileCrossing", () => {
-  /* A synthetic ensemble document with hand-authored percentile blocks, so
-     every expectation below is checkable by hand against the floors
-     (w* >= 0.9, depth >= 300 over the 1247 m erie launch — lift top must
-     reach 1547). Hours are cloned from the real reps fixture (contract
-     shape) and re-stamped: 3-hourly through 08-10T12:00Z, then a 6-hourly
-     tail — S1's live GEPS cadence switch in miniature.
-
-     Local days (America/Vancouver, UTC−7):
-     - 2026-08-09 (h1–h5): quiet except 21:00Z (14:00 local), where p25
-       through p90 clear both floors and p10 fails both — the fragile day:
-       p50 passes, p10 disagrees, minimal token p25.
-     - 2026-08-10 (h6–h10): quiet at p10/p25/p50 everywhere; p75 and p90
-       clear at 18:00Z (11:00 local, 18 contributing lift members), p90
-       alone also at 08-11T00:00Z (17:00 local, ceiledMembers 1) — the
-       upside day, minimal token p75.
-     - 2026-08-11 (h11–h12): 18:00Z clears both floors at EVERY
-       percentile — all-agree, nothing to state. */
-
-  type Ev = {
-    members: number;
-    p10: number;
-    p25: number;
-    p50: number;
-    p75: number;
-    p90: number;
-    ceiledMembers?: number;
-  };
-  function ev(
-    p10: number,
-    p25: number,
-    p50: number,
-    p75: number,
-    p90: number,
-    members = 21,
-    ceiledMembers?: number,
-  ): Ev {
-    const value: Ev = { members, p10, p25, p50, p75, p90 };
-    if (ceiledMembers !== undefined) value.ceiledMembers = ceiledMembers;
-    return value;
-  }
-  const quietWstar = () => ev(0.1, 0.15, 0.2, 0.3, 0.4);
-  const quietTop = () => ev(1300, 1350, 1400, 1450, 1500);
-
-  function crossingFixture(): WindgramProfile {
-    const doc = JSON.parse(JSON.stringify(fixtures["repsErie"])) as {
-      hours: Array<{ validAt: string; derived: Record<string, unknown> }>;
-    };
-    const template = JSON.stringify(doc.hours[0]);
-    const hour = (validAt: string, wstar: Ev, top: Ev) => {
-      const clone = JSON.parse(template) as (typeof doc.hours)[number];
-      clone.validAt = validAt;
-      clone.derived.thermalVelocityMs = wstar;
-      clone.derived.usableLiftTopM = top;
-      return clone;
-    };
-    doc.hours = [
-      hour("2026-08-09T18:00:00Z", quietWstar(), quietTop()),
-      hour("2026-08-09T21:00:00Z", ev(0.5, 0.95, 1.2, 1.5, 1.8), ev(1500, 1600, 1900, 2200, 2500, 21, 0)),
-      hour("2026-08-10T00:00:00Z", quietWstar(), quietTop()),
-      hour("2026-08-10T03:00:00Z", quietWstar(), quietTop()),
-      hour("2026-08-10T06:00:00Z", quietWstar(), quietTop()),
-      hour("2026-08-10T09:00:00Z", quietWstar(), quietTop()),
-      hour("2026-08-10T12:00:00Z", quietWstar(), quietTop()),
-      hour("2026-08-10T18:00:00Z", ev(0.3, 0.5, 0.7, 1.1, 1.4), ev(1200, 1300, 1400, 1800, 2200, 18, 0)),
-      hour("2026-08-11T00:00:00Z", ev(0.2, 0.4, 0.6, 0.85, 1.0), ev(1100, 1200, 1300, 1900, 2000, 21, 1)),
-      hour("2026-08-11T06:00:00Z", quietWstar(), quietTop()),
-      hour("2026-08-11T12:00:00Z", quietWstar(), quietTop()),
-      hour("2026-08-11T18:00:00Z", ev(1.0, 1.2, 1.5, 1.8, 2.0), ev(1600, 1700, 1900, 2100, 2300)),
-    ];
-    const profile = parseWindgramProfile(doc);
-    expect(profile).not.toBeNull();
-    return profile!;
-  }
-
   const crossings = () =>
     ofKind<PercentileCrossingFinding>(
       analyzeProfile(crossingFixture(), ERIE).findings,

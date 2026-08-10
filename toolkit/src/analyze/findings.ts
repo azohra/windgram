@@ -115,9 +115,5 @@ function mergeThresholds(overrides?: AnalyzeThresholdOverrides): AnalyzeThreshol
     capTiming: { ...DEFAULT_ANALYZE_THRESHOLDS.capTiming, ...overrides.capTiming },
     terrainMismatch: { ...DEFAULT_ANALYZE_THRESHOLDS.terrainMismatch, ...overrides.terrainMismatch },
     windSummary: { ...DEFAULT_ANALYZE_THRESHOLDS.windSummary, ...overrides.windSummary },
-    ensembleMembership: {
-      ...DEFAULT_ANALYZE_THRESHOLDS.ensembleMembership,
-      ...overrides.ensembleMembership,
-    },
   };
 }
