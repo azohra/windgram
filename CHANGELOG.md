@@ -4,6 +4,81 @@ Notable repository and `windgram` package changes are recorded here. Dataset
 schema, npm package, and Python pipeline versions are independent; each release
 entry names the versions it actually changes.
 
+## [0.20.0] - 2026-08-10
+
+`windgram` (npm and JSR) 0.20.0 and `windgram` pipeline (PyPI) 0.8.0 —
+the launch-decoupled dataset: a windgram document describes the
+atmosphere the model computed over a grid sample; a launch is a place
+a human flies from. Humans author WHERE, the pipeline measures WHAT,
+and consumers attach the launch at render time. Designed once, on
+paper, before a line was written; breaking by design (we are the
+dataset's only consumer).
+
+### Changed
+
+- **Documents are launch-agnostic samples.** The profile `site` block
+  is re-scoped to sample provenance — id, name, coordinates, timezone
+  echo, and `modelElevationM` (the model's own ground: plot floor,
+  physics reference). `altitudeM` is REMOVED from the contract and
+  from every builder: the old values were free-website estimates the
+  schema mis-described as "surveyed", and baking even a perfect number
+  in binds a forecast that covers several launches to one of them. Old
+  stored documents still parse (the guard strips the field).
+- **The launch is a render input.** `SceneOptions.launch: {name?,
+  elevationM}` draws the marker and stretches the scale; no launch →
+  no marker, honestly, never an error. `AnalyzeOptions.launch` /
+  `CompareOptions.launch` follow the same pattern (without one, the
+  reference falls back to model ground and launch-relative findings
+  are absent). One fetched document renders for every launch its grid
+  cell covers. Teaching scenarios author a top-level `launch` block
+  and the scenario index carries it; every SVG golden is
+  byte-identical when fed the launch the documents used to bake.
+- **sites.json (schemaVersion 2) is identity and build selection
+  only**: slug, name, coordinates, timezone. An elevation in the file
+  is rejected with a pointer at its real home.
+- **site-context.json (schemaVersion 2) owns the launch elevation**:
+  a required `elevation {source, elevationM}` block — a measurement
+  selection, not a computation — picked by explicit priority
+  (LidarBC 1 m ground returns → MRDEM 30 m DTM → GLO-30 surface model
+  as a loud last resort), replacing the optional bareEarth block.
+  Consumers pull it on their own schedule and own the did-it-change
+  check.
+- **GEPS regained its unit-error tripwire, catalogue-free and
+  stronger**: the model's terrain datum must be barometrically
+  consistent with its OWN surface pressure (|H·ln(p0/p_sfc) − datum| ≤
+  1,000 m — honest weather moves the implied elevation well under
+  700 m; a dropped ×10 leaves kilometres). Verified against the live
+  feed; the old guard had compared against the catalogue estimate.
+
+### Added (downstream-driven, validated against the first real consumer)
+
+- **Transport generalizes across document kinds**: `loadDocument`
+  parameterized by contract guard (the manifest/document skew dance —
+  torn-reported-as-stale, retry-once, manifest-miss-wins — now written
+  once); `loadProfile` and new `loadSmoke` are typed wrappers;
+  `loadObservation` is a guarded single fetch whose docblock carries
+  the proof that observation series cannot tear.
+- **`loadSiteSet`**: manifest-anchored multi-site coherence — the
+  manifest is the publication's commit point; every site document is
+  validated against its run identity; a mid-publish fan-out retries
+  once and then reports a discriminated `{syncing}` result rather
+  than throwing. An all-old coherent set is honestly the previous
+  publication.
+- **`typicalPublicationLagHours`** on every profile and smoke model in
+  the catalogue: the upper end of normal for this dataset's publish of
+  a run, seeded 2026-08-10 from the feeds page's verified provider
+  availability plus pipeline overhead (three seeds flagged unverified
+  in their own provenance; all re-verify from the history archive
+  ~September 2026). `derive/` gains pure `runFreshness(runsEntry,
+  model, now, thresholds)` — the facts are the catalogue's, the
+  current/delayed/stale boundaries stay the consumer's.
+- **The ingest recipe** (docs): the server-side counterpart of "Wire
+  an inspector" — poll runs.json, detect publication by
+  (referenceTime, generatedAt), ingest coherent sets, serve the
+  predecessor through gaps, treat a baseline model's failure
+  differently from a bonus feed's, judge freshness with your own
+  thresholds.
+
 ## [0.19.0] - 2026-08-10 — RETRACTED, DO NOT USE
 
 `windgram` (npm/JSR) 0.19.0 and `windgram` pipeline (PyPI) 0.7.0
