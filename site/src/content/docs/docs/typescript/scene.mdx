@@ -167,6 +167,12 @@ by `--wg-selection`), so the marker and the readout cannot disagree. It is
 distinct from `selectedHourIndex`, which the scene computes itself (the
 peak-W* column).
 
+The resolver is also exported: `resolveSelection(scene, { hourIndex,
+altitudeM? })` returns the same `SceneSelection` geometry from an
+already-built scene — it is the very function `buildScene` calls — so a
+consumer overlay that must not pay for a rebuild (a hover preview) draws
+from geometry that cannot differ from the serializer-drawn pin.
+
 The pointer wiring that feeds these queries — preview, pin, touch policy,
 and carrying a pin across model switches — is a consumer state machine, not
 scene data; [Wire an inspector](/docs/typescript/wire-an-inspector/) is the

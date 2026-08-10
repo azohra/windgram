@@ -21,6 +21,7 @@ export {
   hourIndexForValidAt,
   hourIndexForX,
   nearestDrawnBarb,
+  resolveSelection,
   xForHour,
   xForTime,
   yForAltitude,

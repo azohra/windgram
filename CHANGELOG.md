@@ -6,6 +6,20 @@ entry names the versions it actually changes.
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-08-09
+
+`windgram` (npm and JSR) 0.12.0.
+
+### Added
+
+- `resolveSelection(scene, { hourIndex, altitudeM? })` — the selection
+  resolver as an exported scene query. It is the very function `buildScene`
+  runs for its `selection` option (the build now delegates to it), so a
+  consumer overlay that must not pay for a rebuild — the hover preview in
+  the Wire-an-inspector recipe — draws from geometry that cannot differ
+  from the serializer-drawn pin. Demanded by the first downstream rewrite,
+  where preview and pin otherwise resolve through two implementations.
+
 ## [0.11.0] - 2026-08-09
 
 `windgram` (npm and JSR) 0.11.0 — the scene interaction extensions from the

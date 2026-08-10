@@ -8,6 +8,7 @@ import { thermalIndexC } from "../derive/thermal-index.js";
 import { usableLiftTopM } from "../derive/usable-lift.js";
 import { msToKmh, windToComponents } from "../derive/wind.js";
 import { BARB_GLYPH_HEIGHT, BARB_GLYPH_RADIUS, windBarbParts, windBarbPaths } from "./barbs.js";
+import { resolveSelection } from "./hit-test.js";
 import { sampledFieldPaths, type FieldBanding, type FieldNode } from "./field.js";
 import { bandPath, pointPath } from "./path.js";
 import { resolveHour, resolveHourIndices, type Band, type ResolvedHour } from "./resolve.js";
@@ -34,7 +35,6 @@ import {
   type SceneLabel,
   type SceneMarker,
   type SceneOptions,
-  type SceneSelection,
   type SeriesElement,
   type SurfaceTemperatureMark,
 } from "./types.js";
@@ -796,44 +796,6 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
       ? { y: y(siteAltitudeM), altitudeM: siteAltitudeM, label: `launch ${Math.round(siteAltitudeM)} m` }
       : null;
 
-  /* The consumer's selection, resolved against what this build actually
-     drew: the hour clamps into the rendered window, and a requested
-     altitude snaps to the nearest DRAWN barb in that column (by drawn-y
-     distance, ties to the lower barb — the same answer nearestDrawnBarb
-     gives), so the ring always circles a real glyph. */
-  let selection: SceneSelection | null = null;
-  if (options.selection != null && hours.length > 0) {
-    const hourIndex = Math.min(
-      hours.length - 1,
-      Math.max(0, Math.floor(options.selection.hourIndex)),
-    );
-    const altitudeM = options.selection.altitudeM;
-    let barb: SceneSelection["barb"] = null;
-    if (altitudeM != null) {
-      const targetY = y(altitudeM);
-      for (const candidate of barbs) {
-        if (candidate.hourIndex !== hourIndex) continue;
-        if (barb === null || Math.abs(candidate.y - targetY) < Math.abs(barb.y - targetY)) {
-          barb = {
-            x: candidate.x,
-            y: candidate.y,
-            altitudeM: candidate.altitudeM,
-            surface: candidate.surface,
-            scale: candidate.scale,
-          };
-        }
-      }
-    }
-    selection = {
-      hourIndex,
-      x: x(hourIndex),
-      width: columnWidth,
-      centerX: xCenter(hourIndex),
-      top: METRIC_TOP,
-      bottom: plotBottom,
-      barb,
-    };
-  }
 
   /* ------------------------------------------------------------- sampling */
 
@@ -873,7 +835,7 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
     };
   });
 
-  return {
+  const scene: SceneGraph = {
     width,
     height,
     ariaLabel: sceneAriaLabel(profile, hours.map((hour) => hour.validAt), options.timeZone, ariaHour),
@@ -900,11 +862,19 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
     markers,
     launch,
     selectedHourIndex,
-    selection,
+    selection: null,
     highlightSelectedHour: overlays.selectedHour,
     hourValidAts: hours.map((hour) => hour.validAt),
     sampling,
   };
+  /* The consumer's selection resolves through the same exported query an
+     overlay calls (resolveSelection), on the finished scene — one
+     implementation, so a consumer-drawn preview and the serializer-drawn
+     pin can never disagree about where the selection is. */
+  if (options.selection != null) {
+    scene.selection = resolveSelection(scene, options.selection);
+  }
+  return scene;
 }
 
 /* The accessible name says WHICH forecast this is — site, model slug, and

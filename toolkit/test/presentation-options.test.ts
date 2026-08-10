@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BARB_GLYPH_RADIUS, buildScene, windBarbPaths } from "../src/scene/index.js";
+import { BARB_GLYPH_RADIUS, buildScene, resolveSelection, windBarbPaths } from "../src/scene/index.js";
 import { renderSvg } from "../src/svg/index.js";
 import {
   deterministicSceneProfile,
@@ -371,6 +371,20 @@ describe("selection option", () => {
     });
     expect(surface.selection!.barb!.surface).toBe(true);
     expect(surface.selection!.barb!.y).toBe(surface.scales.surfaceWindY);
+  });
+
+  it("resolveSelection IS the build's resolver — an overlay and the drawn pin cannot disagree", () => {
+    const request = { hourIndex: 2, altitudeM: 1500 };
+    const built = buildScene(deterministicSceneProfile(), { ...TZ, selection: request });
+    // The exported query over the same scene returns the identical geometry.
+    expect(resolveSelection(built, request)).toEqual(built.selection);
+    // And over a selection-less build of the same profile: same answer, no rebuild.
+    const bare = buildScene(deterministicSceneProfile(), TZ);
+    expect(resolveSelection(bare, request)).toEqual(built.selection);
+    expect(resolveSelection(bare, { hourIndex: 3 })!.barb).toBeNull();
+    // Null only for an empty scene.
+    const empty = buildScene(deterministicSceneProfile(), { ...TZ, hourIndices: [] });
+    expect(resolveSelection(empty, request)).toBeNull();
   });
 
   it("clamps the hour into the window and drops the ring when nothing drew", () => {

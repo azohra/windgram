@@ -1,7 +1,7 @@
 import { componentsToWind } from "../derive/wind.js";
 import { stabilityClass } from "../derive/stability.js";
 import { interpolateVertical } from "./field.js";
-import type { BarbPlacement, CursorReading, SceneGraph } from "./types.js";
+import type { BarbPlacement, CursorReading, SceneGraph, SceneSelection } from "./types.js";
 
 /* Value-at-cursor hit-testing: the whole point over a PNG RASP is that an
    hour can be READ, not just eyeballed. App tooltips call these against the
@@ -159,6 +159,48 @@ export function nearestDrawnBarb(
     if (nearest === null || Math.abs(barb.y - y) < Math.abs(nearest.y - y)) nearest = barb;
   }
   return nearest;
+}
+
+/**
+ * A selection resolved to scene geometry — THE resolver: `buildScene`
+ * calls this same function for its `selection` option, so a consumer
+ * overlay (a hover preview that must not pay for a rebuild) and the
+ * serializer-drawn pin can never resolve the same selection differently.
+ * The hour clamps into the rendered window; a requested altitude snaps to
+ * the hour's nearest DRAWN barb (`nearestDrawnBarb`), and an hour whose
+ * column drew no barbs gets column and hairline geometry alone. Null only
+ * for an empty scene.
+ */
+export function resolveSelection(
+  scene: SceneGraph,
+  selection: { hourIndex: number; altitudeM?: number | null },
+): SceneSelection | null {
+  const { plotLeft, plotTop, plotHeight, columnWidth, stripTop, hourCount } = scene.scales;
+  if (hourCount === 0) return null;
+  const hourIndex = Math.min(hourCount - 1, Math.max(0, Math.floor(selection.hourIndex)));
+  let barb: SceneSelection["barb"] = null;
+  if (selection.altitudeM != null) {
+    const nearest = nearestDrawnBarb(scene, hourIndex, yForAltitude(scene, selection.altitudeM));
+    if (nearest !== null) {
+      barb = {
+        x: nearest.x,
+        y: nearest.y,
+        altitudeM: nearest.altitudeM,
+        surface: nearest.surface,
+        scale: nearest.scale,
+      };
+    }
+  }
+  const x = plotLeft + hourIndex * columnWidth;
+  return {
+    hourIndex,
+    x,
+    width: columnWidth,
+    centerX: x + columnWidth / 2,
+    top: stripTop,
+    bottom: plotTop + plotHeight,
+    barb,
+  };
 }
 
 /**

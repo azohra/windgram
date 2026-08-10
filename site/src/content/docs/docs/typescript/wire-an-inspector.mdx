@@ -119,10 +119,12 @@ export function renderPinned(
 
 Pins change on clicks and key presses, so rebuilding on each is cheap.
 Hover previews fire per pointer event; if a rebuild per move measures too
-hot on your target hardware, draw the preview as a consumer overlay
-positioned from the same queries (`xForHour`, `yForAltitude`,
-`scales.surfaceWindY`) and reserve the scene option for the pin — the
-overlay stays honest because its geometry comes from the scene it covers.
+hot on your target hardware, draw the preview as a consumer overlay and
+reserve the scene option for the pin. Position the overlay with
+`resolveSelection(scene, { hourIndex, altitudeM })` — the same function
+`buildScene` runs for its `selection` option — so the preview and the
+serializer-drawn pin resolve through one implementation and cannot
+disagree about where the selection is.
 
 ## Carry or reset across a swap
 
