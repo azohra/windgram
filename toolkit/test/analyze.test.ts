@@ -12,6 +12,7 @@ import {
   type LiftCeilingFinding,
   type QuietDayFinding,
   type TerrainMismatchFinding,
+  type WindDirectionFinding,
   type WindExceedanceFinding,
   type WindSummaryFinding,
 } from "../src/analyze/index.js";
@@ -120,6 +121,7 @@ describe("the analysis envelope", () => {
         "liftCeiling",
         "windSummary",
         "windExceedance",
+        "windDirection",
       ]).toContain(kind);
     }
   });
@@ -929,6 +931,129 @@ describe("windExceedance", () => {
         peakAt: { validAt: "2026-08-08T21:00:00Z", local: "2026-08-08T14:00" },
       },
     ]);
+  });
+});
+
+describe("windDirection", () => {
+  /* S3 candidate 3: direction evolution per thermalWindow, deterministic
+     documents only. Every expectation below is hand-computed with vector
+     math over the raw fixture values — no raw degrees were averaged in
+     the making of these numbers. */
+
+  const winHours = [
+    "2026-08-08T19:00:00Z",
+    "2026-08-08T20:00:00Z",
+    "2026-08-08T21:00:00Z",
+    "2026-08-08T22:00:00Z",
+    "2026-08-08T23:00:00Z",
+    "2026-08-09T00:00:00Z",
+    "2026-08-09T01:00:00Z",
+  ];
+
+  /** The S3 drainage→upvalley rotation stamped onto the Saturday window:
+   * monotone 115° → 242° at a steady 2 m/s (thermal series untouched, so
+   * the window itself is unchanged). */
+  function rotating(): WindgramProfile {
+    const doc = hrrr();
+    const dirs = [115, 126, 141, 165, 195, 216, 242];
+    for (const hour of doc.hours) {
+      const index = winHours.indexOf(hour.validAt);
+      if (index === -1) continue;
+      (hour.surface as { windSpeedMs: number; windDirectionDeg: number }).windSpeedMs = 2;
+      (hour.surface as { windSpeedMs: number; windDirectionDeg: number }).windDirectionDeg =
+        dirs[index];
+    }
+    return doc;
+  }
+
+  it("states the rotation: start, peak-lift, end samples and the net circular veer", () => {
+    const saturday = ofKind<WindDirectionFinding>(
+      analyzeProfile(rotating(), ERIE).findings,
+      "windDirection",
+    ).find((finding) => finding.day === "2026-08-08")!;
+    expect(saturday.window.start.validAt).toBe("2026-08-08T19:00:00Z");
+    expect(saturday.window.end.validAt).toBe("2026-08-09T01:00:00Z");
+    expect(saturday.surface.start).toEqual({ directionDeg: 115, speedMs: 2 });
+    // Peak lift is 23:00Z (16:00 local) — the rotation is established there.
+    expect(saturday.surface.peakLift).toEqual({
+      directionDeg: 195,
+      speedMs: 2,
+      at: { validAt: "2026-08-08T23:00:00Z", local: "2026-08-08T16:00" },
+    });
+    expect(saturday.surface.end).toEqual({ directionDeg: 242, speedMs: 2 });
+    // Net circular displacement 115° → 242°: +127 — the S3 statement.
+    expect(saturday.netVeerDeg).toBe(127);
+    // Vector mean of the seven 2 m/s samples: components sum to
+    // (-1.7477, 9.9957)/7 → 1.4496 m/s from 170.1° (cancellation across
+    // the rotation drops the mean speed below the samples' 2).
+    expect(saturday.surfaceVectorMean).toEqual({ directionDeg: 170, speedMs: 1.45 });
+    expect(saturday.thresholds).toEqual({ directionFloorMs: 1 });
+    expect(saturday.evidence.hours).toEqual(winHours);
+    expect(saturday.evidence.surfaceDirectionDeg).toEqual([115, 126, 141, 165, 195, 216, 242]);
+    expect(saturday.evidence.surfaceSpeedMs).toEqual([2, 2, 2, 2, 2, 2, 2]);
+  });
+
+  it("reads the real document: gentle veer, vector means, and the band mean over 24 level samples", () => {
+    const findings = ofKind<WindDirectionFinding>(
+      analyzeProfile(hrrr(), ERIE).findings,
+      "windDirection",
+    );
+    expect(findings.map((finding) => finding.day)).toEqual(["2026-08-08", "2026-08-09"]);
+    const saturday = findings[0];
+    // Raw fixture surface: 228° @ 1.92 → … → 232° @ 2.32 across the window.
+    expect(saturday.surface.start).toEqual({ directionDeg: 228, speedMs: 1.92 });
+    expect(saturday.surface.end).toEqual({ directionDeg: 232, speedMs: 2.32 });
+    expect(saturday.netVeerDeg).toBe(4);
+    expect(saturday.surfaceVectorMean).toEqual({ directionDeg: 238, speedMs: 2.21 });
+    // 24 in-band level samples (launch 1247 m to each hour's lift top)
+    // vector-average to 2.31 m/s from 262° — the WNW flow aloft.
+    expect(saturday.bandVectorMean).toEqual({ directionDeg: 262, speedMs: 2.31, samples: 24 });
+
+    // Sunday's window is a single clipped hour: start, peak, and end are
+    // the same sample and the net veer is zero by construction.
+    const sunday = findings[1];
+    expect(sunday.surface.start).toEqual({ directionDeg: 220, speedMs: 1.02 });
+    expect(sunday.netVeerDeg).toBe(0);
+    expect(sunday.bandVectorMean).toEqual({ directionDeg: 252, speedMs: 1.25, samples: 2 });
+  });
+
+  it("suppresses direction under the floor — calm has no bearing, and the floor is the caller's", () => {
+    const drifting = rotating();
+    for (const hour of drifting.hours) {
+      if (hour.validAt === "2026-08-08T19:00:00Z") {
+        (hour.surface as { windSpeedMs: number }).windSpeedMs = 0.4;
+      }
+    }
+    const saturday = ofKind<WindDirectionFinding>(
+      analyzeProfile(drifting, ERIE).findings,
+      "windDirection",
+    ).find((finding) => finding.day === "2026-08-08")!;
+    // The 0.4 m/s drift states its speed and no direction; the net veer
+    // loses its start endpoint and is honestly null.
+    expect(saturday.surface.start).toEqual({ directionDeg: null, speedMs: 0.4 });
+    expect(saturday.netVeerDeg).toBeNull();
+    // The floor is a convention: a caller who accepts the measured 0.5 m/s
+    // jitter cliff (S3: medians 20°→7° across it) may lower it.
+    const lowered = ofKind<WindDirectionFinding>(
+      analyzeProfile(drifting, {
+        ...ERIE,
+        thresholds: { windDirection: { directionFloorMs: 0.3 } },
+      }).findings,
+      "windDirection",
+    ).find((finding) => finding.day === "2026-08-08")!;
+    expect(lowered.surface.start).toEqual({ directionDeg: 115, speedMs: 0.4 });
+    expect(lowered.netVeerDeg).toBe(127);
+    expect(lowered.thresholds).toEqual({ directionFloorMs: 0.3 });
+  });
+
+  it("gates itself off ensembles — direction percentiles are not circular statistics", () => {
+    // REPS has real thermalWindows and publishes level directions, and
+    // still says nothing here: a p50 of raw degrees near north is
+    // arithmetic nonsense, and member vectors are not recoverable.
+    const analysis = analyzeProfile(reps(), ERIE);
+    expect(ofKind(analysis.findings, "thermalWindow").length).toBeGreaterThan(0);
+    expect(ofKind(analysis.findings, "windDirection")).toHaveLength(0);
+    expect(ofKind(analyzeProfile(geps(), FLAGPOLE).findings, "windDirection")).toHaveLength(0);
   });
 });
 

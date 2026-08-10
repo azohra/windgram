@@ -17,6 +17,7 @@ import { findLiftCeilings } from "./kinds/lift-ceiling.js";
 import { findQuietDays } from "./kinds/quiet-day.js";
 import { citedInstantFactory, hourStepsOf, stepHoursOf, type Context } from "./kinds/shared.js";
 import { findTerrainMismatch } from "./kinds/terrain-mismatch.js";
+import { findWindDirection } from "./kinds/wind-direction.js";
 import { findWindExceedance } from "./kinds/wind-exceedance.js";
 import { findWindSummaries } from "./kinds/wind-summary.js";
 import {
@@ -75,6 +76,7 @@ export function analyzeProfile(
     ...findCapTiming(context, windows),
     ...findWindSummaries(context, windows),
     ...findWindExceedance(context, windows),
+    ...findWindDirection(context, windows),
     ...findEnsembleMembership(context),
     findDataCaveats(context, timeZoneSource),
   ];
@@ -116,6 +118,7 @@ function mergeThresholds(overrides?: AnalyzeThresholdOverrides): AnalyzeThreshol
     capTiming: { ...DEFAULT_ANALYZE_THRESHOLDS.capTiming, ...overrides.capTiming },
     terrainMismatch: { ...DEFAULT_ANALYZE_THRESHOLDS.terrainMismatch, ...overrides.terrainMismatch },
     windSummary: { ...DEFAULT_ANALYZE_THRESHOLDS.windSummary, ...overrides.windSummary },
+    windDirection: { ...DEFAULT_ANALYZE_THRESHOLDS.windDirection, ...overrides.windDirection },
     ensembleMembership: {
       ...DEFAULT_ANALYZE_THRESHOLDS.ensembleMembership,
       ...overrides.ensembleMembership,

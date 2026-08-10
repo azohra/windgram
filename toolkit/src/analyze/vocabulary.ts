@@ -18,6 +18,7 @@ import type { ThermalWindowFinding } from "./kinds/thermal-window.js";
 import type { LiftCeilingFinding } from "./kinds/lift-ceiling.js";
 import type { QuietDayFinding } from "./kinds/quiet-day.js";
 import type { TerrainMismatchFinding } from "./kinds/terrain-mismatch.js";
+import type { WindDirectionFinding } from "./kinds/wind-direction.js";
 import type { WindExceedanceFinding } from "./kinds/wind-exceedance.js";
 import type { WindSummaryFinding } from "./kinds/wind-summary.js";
 
@@ -78,6 +79,7 @@ export type { ThermalWindowFinding } from "./kinds/thermal-window.js";
 export type { LiftCeilingFinding } from "./kinds/lift-ceiling.js";
 export type { QuietDayFinding } from "./kinds/quiet-day.js";
 export type { TerrainMismatchFinding } from "./kinds/terrain-mismatch.js";
+export type { WindDirectionFinding } from "./kinds/wind-direction.js";
 export type { WindExceedanceFinding } from "./kinds/wind-exceedance.js";
 export type { WindSummaryFinding } from "./kinds/wind-summary.js";
 
@@ -91,7 +93,8 @@ export type WindgramFinding =
   | QuietDayFinding
   | LiftCeilingFinding
   | WindSummaryFinding
-  | WindExceedanceFinding;
+  | WindExceedanceFinding
+  | WindDirectionFinding;
 
 export type FindingKind = WindgramFinding["kind"];
 
@@ -109,6 +112,7 @@ export interface AnalyzeThresholds {
   };
   terrainMismatch: { minAbsDeltaM: number };
   windSummary: { bandMarginM: number; persistenceFractionOfMax: number };
+  windDirection: { directionFloorMs: number };
   ensembleMembership: { wideningRatio: number };
 }
 
@@ -129,6 +133,7 @@ export const DEFAULT_ANALYZE_THRESHOLDS: AnalyzeThresholds = {
   },
   terrainMismatch: { minAbsDeltaM: 250 },
   windSummary: { bandMarginM: 200, persistenceFractionOfMax: 0.8 },
+  windDirection: { directionFloorMs: 1 },
   ensembleMembership: { wideningRatio: 1.5 },
 };
 

@@ -90,6 +90,7 @@ export {
   type TerrainMismatchFinding,
   type ThermalWindowFinding,
   type WindCeilings,
+  type WindDirectionFinding,
   type WindExceedanceFinding,
   type WindgramAnalysis,
   type WindgramFinding,
