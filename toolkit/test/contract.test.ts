@@ -519,12 +519,7 @@ describe("sites.json schema", () => {
     expect(parseSitesCatalogueJson("[]")).toBeNull();
   });
 
-  /* TODO(pipeline, launch-decoupling): the committed repo-root sites.json is
-     still the v1 shape (schemaVersion 1, elevationM per site). The pipeline
-     step — sites.py v2 validation + stripping elevationM from sites.json —
-     regenerates it; until then this drift test is EXPECTED to fail. When the
-     pipeline lands, it.fails will itself fail: flip it back to a plain it. */
-  it.fails("accepts the repository's actual sites.json (v2) — pending the pipeline re-scope", () => {
+  it("accepts the repository's actual sites.json", () => {
     const raw = readFileSync(join(__dirname, "..", "..", "sites.json"), "utf-8");
     expect(parseSitesCatalogueJson(raw)).not.toBeNull();
   });

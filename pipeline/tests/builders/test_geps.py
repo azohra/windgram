@@ -31,7 +31,6 @@ SITE = {
     "name": "Dundee",
     "latitude": DUNDEE[0],
     "longitude": DUNDEE[1],
-    "elevationM": 1485,
 }
 
 
@@ -700,45 +699,14 @@ def test_surface_orography_decametres_publish_as_metres(monkeypatch):
     assert document["site"]["modelElevationM"] == pytest.approx(1536.0)
 
 
-def test_the_builder_refuses_a_terrain_datum_below_every_site(monkeypatch):
-    # 15.36 dam → 153.6 m: the exact datum the decametre bug published, and
-    # what the live file would yield again if the scaling were ever dropped.
-    files = e2e_files(terrain=lambda m: 15.36)
-    monkeypatch.setattr(
-        "windgram.builders.geps.fetch_bytes", lambda url, stats=None: files[url]
-    )
-
-    with pytest.raises(RuntimeError, match="units or indexing error"):
-        _build_documents(
-            "2026-08-07T00:00:00Z",
-            [{"forecastHour": 3, "validAt": "2026-08-07T03:00:00Z"}],
-            [SITE],
-            DownloadStats(),
-        )
-
-
-def test_the_guard_accepts_coarse_grid_smoothing():
-    # The live datum after the fix: 1536 m against the 1485 m site.
+def test_the_guard_accepts_plausible_terrain():
+    # The live datum after the decametre fix: 1536 m smoothed terrain.
     _require_plausible_model_elevation({0: {"dundee": 1536.0}}, [SITE])
 
 
-def test_one_summit_site_towering_over_the_model_surface_is_not_an_error():
-    # A 0.5° grid legitimately smooths a single summit site more than a
-    # kilometre above the model surface; the guard needs EVERY site wildly
-    # below before it calls the datum broken.
-    summit = {**SITE, "slug": "summit", "name": "Summit", "elevationM": 3400}
-    _require_plausible_model_elevation(
-        {0: {"dundee": 1536.0, "summit": 1800.0}}, [SITE, summit]
-    )
-
-
-def test_a_datum_wildly_below_every_site_fails_loudly():
-    with pytest.raises(RuntimeError, match="below the catalogued elevation at every site"):
-        _require_plausible_model_elevation({0: {"dundee": 153.6}}, [SITE])
-
-
 def test_a_datum_above_any_earth_terrain_fails_loudly():
-    # The inverse regression: were ECCC to re-encode the file in genuine
+    # The one direction still checkable without a catalogued elevation
+    # (identity-only sites.json): were ECCC to re-encode the file in genuine
     # metres, the ×10 scaling would publish a ~15 km surface.
     with pytest.raises(RuntimeError, match="higher than any Earth terrain"):
         _require_plausible_model_elevation({0: {"dundee": 15360.0}}, [SITE])

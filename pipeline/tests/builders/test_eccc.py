@@ -40,7 +40,6 @@ DUNDEE = {
     "name": "Dundee",
     "latitude": 49.291977,
     "longitude": -117.183569,
-    "elevationM": 1485,
     "timeZone": "America/Vancouver",
 }
 ERIE = {"slug": "erie", "latitude": 49.204789, "longitude": -117.406951}

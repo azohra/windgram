@@ -481,7 +481,7 @@ def test_missing_terrain_extra_names_the_install_command(monkeypatch):
 
 def test_cli_terrain_dispatches_resolved_paths(tmp_path, monkeypatch):
     sites_path = tmp_path / "sites.json"
-    sites_path.write_text(json.dumps({"schemaVersion": 1, "sites": SITES}))
+    sites_path.write_text(json.dumps({"schemaVersion": 2, "sites": SITES}))
     output = tmp_path / "context" / "site-context.json"
     calls = []
     monkeypatch.setattr(

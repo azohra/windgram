@@ -11,7 +11,6 @@ SITE = {
     "name": "Dundee",
     "latitude": 49.1,
     "longitude": -122.2,
-    "elevationM": 550.0,
     "timeZone": "America/Vancouver",
 }
 

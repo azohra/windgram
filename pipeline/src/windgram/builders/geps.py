@@ -128,13 +128,17 @@ TERRAIN_VARIABLE = "HGT_SFC_0"
 # HGT_ISBL files are genuine geopotential metres (850 hPa at Dundee: 1512);
 # only the surface field carries decametres.
 TERRAIN_DAM_TO_M = 10.0
-# Sanity band for the published terrain datum against the catalogued site
-# elevations. A 0.5° grid legitimately smooths a single summit site far above
-# the model surface, so one low reading proves nothing — but EVERY site
-# sitting more than a kilometre below its catalogued elevation is a units or
-# indexing error, not smoothing (the decametre encoding read 153.6 m at a
-# 1485 m site), and no Earth terrain reaches 9 km in any encoding.
-TERRAIN_DEFICIT_LIMIT_M = 1000.0
+# Ceiling for the published terrain datum: no Earth terrain reaches 9 km in
+# any encoding, so a higher value means the surface-orography encoding
+# changed (a genuine-metre re-encode under the ×10 scaling reads ~15 km).
+# The v1 catalogue also let the builder bound the datum from BELOW against
+# each site's typed-in elevation, which is what actually caught the
+# decametre bug (153.6 m at a 1485 m site); that reference is gone with the
+# launch decoupling — sites.json is identity-only, and no build-time
+# elevation flow exists at all — so a dropped ×10 (everything reading ~1/10
+# of true terrain) is no longer detectable here. A future catalogue-free
+# guard could cross-check the datum against the model's own surface
+# pressure via the barometric relation.
 TERRAIN_CEILING_M = 9000.0
 PRESSURE_FIELDS = {
     "heightM": ("HGT", lambda v: v),
@@ -669,8 +673,9 @@ def _require_plausible_model_elevation(
 ) -> None:
     """Fails loudly when the control member's terrain cannot be terrain —
     the gust hour-max ≥ instantaneous assertion's idiom, applied to the
-    datum every published height derives from. The published 153.6 m at a
-    1485 m mountain site shipped for as long as nothing checked this."""
+    datum every published height derives from. Only the ceiling can be
+    checked now: the identity-only catalogue carries no elevation to bound
+    the datum from below (see the TERRAIN_CEILING_M comment)."""
     control = terrain[0]
     for site in sites:
         elevation = control[site["slug"]]
@@ -680,19 +685,6 @@ def _require_plausible_model_elevation(
                 "higher than any Earth terrain; the surface-orography encoding "
                 "has changed (see TERRAIN_DAM_TO_M)"
             )
-    if all(
-        control[site["slug"]] < site["elevationM"] - TERRAIN_DEFICIT_LIMIT_M
-        for site in sites
-    ):
-        readings = ", ".join(
-            f"{site['name']} {control[site['slug']]:.1f} m (site {site['elevationM']} m)"
-            for site in sites
-        )
-        raise RuntimeError(
-            f"GEPS model elevation sits over {TERRAIN_DEFICIT_LIMIT_M:.0f} m below "
-            f"the catalogued elevation at every site — a units or indexing error, "
-            f"not smoothing: {readings}"
-        )
 
 
 def _empty_hour(valid_at: str) -> dict:
