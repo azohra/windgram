@@ -32,6 +32,33 @@ export interface StripSpec {
   cells?: Array<StripCell | null>;
   /** Row cells without geometry; tops are assigned once the strip has one. */
   rows?: Array<{ label: string; cells: Array<StripCell | null> }>;
+  /** MetricStrip.provenance; absent means "model". */
+  provenance?: MetricStrip["provenance"];
+  /** MetricStrip.sourceLabel — the inline provenance statement. */
+  sourceLabel?: string;
+}
+
+/* Vertical room the provenance divider takes between the model zone and
+   the beside-this-model zone. */
+export const STRIP_DIVIDER_HEIGHT = 16;
+export const STRIP_DIVIDER_LABEL = "beside this model — not in its physics";
+
+const PROVENANCE_RANK: Record<MetricStrip["provenance"], number> = {
+  model: 0,
+  crossModel: 1,
+  measurement: 2,
+};
+
+/** Model strips first (original order), then the foreign zone. */
+export function orderStripSpecs(specs: StripSpec[]): StripSpec[] {
+  return [...specs].sort(
+    (a, b) => PROVENANCE_RANK[a.provenance ?? "model"] - PROVENANCE_RANK[b.provenance ?? "model"],
+  );
+}
+
+/** True when the spec renders below the provenance divider. */
+export function isForeignStrip(spec: { provenance?: MetricStrip["provenance"] }): boolean {
+  return (spec.provenance ?? "model") !== "model";
 }
 
 const finite = (values: Array<number | null>) =>
@@ -46,9 +73,26 @@ export function buildStripSpecs(args: {
   /** Per-rendered-hour smoke (profile block or joined document), scene.ts's
       join; index-aligned with `hours`. Absent/all-null draws no strip. */
   smokeSeries?: ReadonlyArray<{ surfaceUgm3: number; aot: number } | null>;
+  /** The smoke strip's provenance statement (scene.ts decides it from the
+      source and the semantics.smoke coupling claim). */
+  smokeStripSource?: { provenance: MetricStrip["provenance"]; sourceLabel?: string };
+  /** The Sun strip's inline provenance statement. */
+  observationSourceLabel?: string;
+  /** Per-rendered-hour measured irradiance (scene.ts's nearest-instant
+      join); index-aligned with `hours`. Absent/all-null draws no strip. */
+  observationSeries?: ReadonlyArray<{ wm2: number; transmittance: number | null } | null>;
   geometry: StripGeometry;
 }): StripSpec[] {
-  const { hours, overlays, capeClasses, floorM, smokeSeries } = args;
+  const {
+    hours,
+    overlays,
+    capeClasses,
+    floorM,
+    smokeSeries,
+    observationSeries,
+    smokeStripSource,
+    observationSourceLabel,
+  } = args;
   const { marginLeft, columnWidth } = args.geometry;
   const stripSpecs: StripSpec[] = [];
 
@@ -134,6 +178,7 @@ export function buildStripSpecs(args: {
        "the sun is dimmer". */
     const surface = smokeSeries.map((entry) => (entry === null ? null : entry.surfaceUgm3));
     stripSpecs.push({
+      ...(smokeStripSource ?? {}),
       key: "smoke",
       label: "Smoke",
       unit: "µg/m³",
@@ -149,6 +194,40 @@ export function buildStripSpecs(args: {
               width: columnWidth,
               className: "wg-smoke-cell",
               opacity: Number(Math.min(1, entry.aot / 3).toFixed(2)),
+            },
+      ),
+    });
+  }
+  if (
+    overlays.observedIrradiance &&
+    observationSeries &&
+    observationSeries.some((entry) => entry !== null)
+  ) {
+    /* Measured sun: the line is satellite-measured W/m² at the surface —
+       truth beside the forecasts around it — and the shadow behind it
+       deepens as the sky under-delivers against the clear-sky
+       expectation (tint = 1 − observed transmittance). Hours where the
+       ratio means nothing (sun near the horizon) draw the line without
+       a shadow claim. */
+    const measured = observationSeries.map((entry) => (entry === null ? null : entry.wm2));
+    stripSpecs.push({
+      provenance: "measurement",
+      ...(observationSourceLabel ? { sourceLabel: observationSourceLabel } : {}),
+      key: "observedIrradiance",
+      label: "Sun",
+      unit: "W/m²",
+      values: measured,
+      bands: observationSeries.map(() => null),
+      minimum: 0,
+      maximum: Math.max(800, ...finite(measured)),
+      cells: observationSeries.map((entry, index) =>
+        entry === null || entry.transmittance === null || entry.transmittance >= 1
+          ? null
+          : {
+              x: marginLeft + index * columnWidth,
+              width: columnWidth,
+              className: "wg-dim-cell",
+              opacity: Number(Math.min(1, 1 - entry.transmittance).toFixed(2)),
             },
       ),
     });
@@ -247,7 +326,25 @@ export function buildStripSpecs(args: {
     stripSpecs.push(spec);
   }
 
-  return stripSpecs;
+  return orderStripSpecs(stripSpecs);
+}
+
+/** One authority for strip tops, the provenance divider, and stack height. */
+export function stripStackGeometry(
+  specs: ReadonlyArray<{ provenance?: MetricStrip["provenance"] }>,
+): { tops: number[]; dividerY: number | null; height: number } {
+  const tops: number[] = [];
+  let cursor = METRIC_TOP;
+  let dividerY: number | null = null;
+  for (const spec of specs) {
+    if (dividerY === null && isForeignStrip(spec)) {
+      dividerY = cursor + STRIP_DIVIDER_HEIGHT / 2;
+      cursor += STRIP_DIVIDER_HEIGHT;
+    }
+    tops.push(cursor);
+    cursor += METRIC_BAND_HEIGHT + METRIC_BAND_GAP;
+  }
+  return { tops, dividerY, height: cursor };
 }
 
 export function layoutStrips(
@@ -261,8 +358,9 @@ export function layoutStrips(
   const { marginLeft, columnWidth, plotWidth } = args.geometry;
   const xCenter = (index: number) => marginLeft + index * columnWidth + columnWidth / 2;
 
+  const geometry = stripStackGeometry(stripSpecs);
   return stripSpecs.map((spec, stripIndex) => {
-    const top = METRIC_TOP + stripIndex * (METRIC_BAND_HEIGHT + METRIC_BAND_GAP);
+    const top = geometry.tops[stripIndex];
     const bottom = top + METRIC_BAND_HEIGHT;
     const range = Math.max(0.001, spec.maximum - spec.minimum);
     const yOf = (value: number) => {
@@ -303,6 +401,8 @@ export function layoutStrips(
       ...(lastBand ? [{ ...lastBand, x: marginLeft + plotWidth }] : []),
     ]);
     const strip: MetricStrip = {
+      provenance: spec.provenance ?? "model",
+      ...(spec.sourceLabel ? { sourceLabel: spec.sourceLabel } : {}),
       key: spec.key,
       className: `wg-strip-${spec.key}`,
       // Voice is the consumer's; the key stays the identity.

@@ -83,6 +83,35 @@ profile's own fluxes are already smoke-aware
 `cursorReading` include the drawn hour's `smokeSurfaceUgm3` and
 `smokeAot`, so tooltips and pixels cannot disagree.
 
+## Draw measurements beside the forecast
+
+Pass a site's observation document as `options.observations` and the
+**Sun strip** draws: satellite-measured W/m² joined to each rendered
+hour by nearest instant, with a shadow behind the line that deepens as
+the measured sky under-delivers against the clear-sky expectation
+(tint = 1 − observed transmittance). `scene.observationSource` names the
+dataset and its newest measured instant — the strip is another source
+with its own cadence, and renderers must be able to label it; the
+reference key explains the shadow via `KeySpec.measuredDimming`.
+Pointer packets carry `observedIrradianceWm2` and
+`observedTransmittance`, so an inspector reads the measurement where
+the pixels drew it.
+
+**Provenance is structural.** Every strip declares whose data it draws
+(`provenance: "model" | "crossModel" | "measurement"`), and the stack
+splits spatially: the viewed model's own strips render as one group,
+and anything foreign — another model's smoke, a satellite measurement —
+renders below a labeled divider (*"beside this model — not in its
+physics"*, `scene.stripDivider`) with its source and instant written
+inside the strip itself (`sourceLabel`), so even a cropped screenshot
+answers "did the model account for this?". The reference renderer
+always draws the divider when any foreign strip exists. The one subtle
+case is a model's own passive smoke: its data, so it stays above the
+line, but the strip says *"this model's forecast · not in its
+physics"* — position answers whose data, the label answers whether the
+physics felt it. Radiatively coupled smoke (HRRR) carries no statement
+at all: it is ordinary model data.
+
 ## Render continuous field bands
 
 Sampled stability, thermal-index, shear, humidity, vertical-velocity, and

@@ -1,4 +1,4 @@
-import type { SmokeDocument } from "../contract/index.js";
+import type { ObservationDocument, SmokeDocument } from "../contract/index.js";
 import type { FieldNode } from "./field.js";
 
 /* The typed scene graph: everything a serializer or interactive layer needs
@@ -106,6 +106,7 @@ export type OverlayName =
   | "pblHeight"
   | "cloudLayers"
   | "smoke"
+  | "observedIrradiance"
   | "pressure"
   | "precipitation"
   | "boundaryLayerTop"
@@ -138,6 +139,9 @@ export const DEFAULT_OVERLAYS: Readonly<Record<OverlayName, boolean>> = {
   // smoke document supplied via SceneOptions.smoke), so pre-smoke
   // documents render unchanged.
   smoke: true,
+  // Contributes nothing without an observation document supplied via
+  // SceneOptions.observations, so forecast-only renders are unchanged.
+  observedIrradiance: true,
   // Complete-control overlays (see the docblock above): every previously
   // unconditional element, on by default so defaults render byte-identically.
   pressure: true,
@@ -234,6 +238,16 @@ export interface SceneOptions {
    * smoke.
    */
   smokeAdjusted?: boolean;
+  /**
+   * A site's observation document (GOES-18 DSR today), joined per
+   * rendered hour by NEAREST instant (observations live at the
+   * product's native cadence, never on forecast hours): the measured
+   * "Sun" strip draws where a good-quality retrieval sits within half
+   * an hour of the rendered instant. Measurements beside forecasts —
+   * the graph's `observationSource` names the dataset and its newest
+   * instant, which renderers must be able to label.
+   */
+  observations?: ObservationDocument | null;
   /**
    * 1-2-1 smoothing (derive/smooth121) on the cloud-base and usable-lift
    * series — the pipeline's retired pass, now a renderer option. Default
@@ -461,7 +475,8 @@ export interface MetricStrip {
     | "cape"
     | "thermalStrength"
     | "buoyancyShear"
-    | "smoke";
+    | "smoke"
+    | "observedIrradiance";
   className: string;
   label: string;
   unit: string;
@@ -478,6 +493,24 @@ export interface MetricStrip {
   cells?: ReadonlyArray<StripCell | null>;
   /** Stacked sub-rows (cloud layers); such strips draw no line. */
   rows?: ReadonlyArray<StripRow>;
+  /**
+   * Whose data this strip draws — the structural answer to "did the
+   * model account for this?". "model" strips are the viewed model's own
+   * values and render in the main stack; "crossModel" (another model's
+   * forecast joined beside it) and "measurement" (an observation —
+   * nobody's forecast) render BELOW the provenance divider, in the
+   * beside-this-model zone the reference renderer always draws when any
+   * foreign strip exists.
+   */
+  provenance: "model" | "crossModel" | "measurement";
+  /**
+   * The inline provenance statement drawn inside the strip: the source
+   * slug and instant for foreign strips ("raqdps · 2026-08-10 12Z"),
+   * or the in-zone caveat for a model's own passive smoke ("this
+   * model's forecast · not in its physics"). Absent on ordinary model
+   * strips.
+   */
+  sourceLabel?: string;
 }
 
 /**
@@ -631,6 +664,14 @@ export interface HourSampling {
    * altitude-interpolated; null where no smoke was drawn.
    */
   smoke: { surfaceUgm3: number; aot: number } | null;
+  /**
+   * The hour's measured irradiance as the "Sun" strip drew it: W/m²
+   * plus the observed transmittance against the clear-sky expectation
+   * (null near the horizon, where the ratio means nothing). Same
+   * single source as the strip, so tooltips and pixels agree; null
+   * where no observation was drawn.
+   */
+  observation: { wm2: number; transmittance: number | null } | null;
 }
 
 export interface SceneGraph {
@@ -678,6 +719,21 @@ export interface SceneGraph {
    */
   smokeAdjustment: { smokeModel: string; smokeRun: string } | null;
   /**
+   * Where the measured "Sun" strip's data came from: the observation
+   * dataset and its newest measured instant. Observations are another
+   * source with its own cadence, so renderers labeling the strip MUST
+   * show this. Null when no observations were drawn.
+   */
+  observationSource: { model: string; lastObservedAt: string } | null;
+  /**
+   * The provenance divider between the model's own strips and the
+   * beside-this-model zone (cross-model forecasts, measurements) — the
+   * y of the rule and its label. Null when every drawn strip is the
+   * model's own. The reference renderer always draws it when present:
+   * an honest default is the thesis.
+   */
+  stripDivider: { y: number; label: string } | null;
+  /**
    * Whether the serializer draws the selected-hour column highlight —
    * the `selectedHour` overlay. `selectedHourIndex` above stays computed
    * either way, so readouts keep working with the highlight off.
@@ -710,4 +766,12 @@ export interface CursorReading {
   smokeSurfaceUgm3: number | null;
   /** Column aerosol optical thickness for the hour; null without smoke. */
   smokeAot: number | null;
+  /**
+   * Measured downward shortwave for the hour, W/m² — the observation
+   * the "Sun" strip drew (nearest instant), whole-column like the smoke
+   * fields, not altitude-interpolated. Null where none was drawn.
+   */
+  observedIrradianceWm2: number | null;
+  /** Measured/clear-sky transmittance for that observation; null near the horizon or without one. */
+  observedTransmittance: number | null;
 }

@@ -142,3 +142,13 @@ under a plume whose optical depth the
 [smoke document](/docs/reference/smoke-document/) states, held against
 the transmittance the
 [smoke-adjusted derivation](/docs/learn/smoke-and-thermals/) predicts.
+
+The toolkit closes that loop end to end. `nearestObservation` in
+[`windgram/derive`](/docs/typescript/derive/) is the join primitive,
+`clearSkyGhiWm2` (Haurwitz, per Reno, Hansen & Stein 2012) turns a
+measurement into an `observedTransmittance` against the clear-sky
+expectation, and a windgram built with the document as
+[`options.observations`](/docs/typescript/scene/) draws the **Sun
+strip** — measured W/m² with a shadow that deepens as the sky
+under-delivers — labeled from `scene.observationSource`, never
+implying the measurements share the forecast's provenance.

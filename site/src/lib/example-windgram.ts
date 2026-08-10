@@ -124,6 +124,7 @@ export function overlayAvailability(
     pblHeight: series.has("modelPblTop"),
     cloudLayers: strips.has("cloudLayers"),
     smoke: strips.has("smoke"),
+    observedIrradiance: strips.has("observedIrradiance"),
     pressure: strips.has("pressure"),
     precipitation: strips.has("precipitation"),
     boundaryLayerTop: series.has("boundaryLayerTop"),

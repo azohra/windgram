@@ -132,6 +132,10 @@ export const TOKEN_DEFAULTS = {
   // Wildfire smoke: a warm haze brown, apart from the lift gold and the
   // CAPE ambers it shares strip space with.
   smoke: "#8c5a3c",
+  // Measured irradiance: a sun gold apart from the lift ochre, and the
+  // dimming shadow it casts when the sky under-delivers.
+  sun: "#b07a1a",
+  "sun-dim": "#43404a",
   "ti-weak": "#f4e3c0",
   "ti-fair": "#ecc57e",
   "ti-good": "#de9b4e",
@@ -265,6 +269,12 @@ export const DEFAULT_STYLESHEET = `
 .wg-strip-smoke { stroke: ${v("smoke")}; }
 .wg-strip-smoke-area, .wg-strip-smoke-band { fill: ${v("smoke")}; }
 .wg-smoke-cell { fill: ${v("smoke")}; }
+.wg-strip-observedIrradiance { stroke: ${v("sun")}; }
+.wg-strip-observedIrradiance-area, .wg-strip-observedIrradiance-band { fill: ${v("sun")}; }
+.wg-dim-cell { fill: ${v("sun-dim")}; }
+.wg-strip-source { fill: ${v("ink-mute")}; font-size: 8px; font-style: italic; }
+.wg-strip-divider { stroke: ${v("rule")}; stroke-dasharray: 2 3; stroke-width: 0.8; }
+.wg-strip-divider-label { fill: ${v("ink-mute")}; font-size: 8px; font-style: italic; letter-spacing: 0.04em; }
 .wg-strip-cape { stroke: ${v("cape")}; }
 .wg-strip-cape-area, .wg-strip-cape-band { fill: ${v("cape")}; }
 .wg-cape-calm { fill: ${v("cape-calm")}; opacity: 0.6; }

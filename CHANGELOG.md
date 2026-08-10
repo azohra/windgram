@@ -4,10 +4,40 @@ Notable repository and `windgram` package changes are recorded here. Dataset
 schema, npm package, and Python pipeline versions are independent; each release
 entry names the versions it actually changes.
 
-## [Unreleased]
+## [0.16.0] - 2026-08-10
 
-Scenario and site only — no package change. The smoke before/after
-lesson becomes legible.
+`windgram` (npm and JSR) 0.16.0 — the observation loop closes: measured
+sunlight becomes interpretable, joinable, and drawable — plus the smoke
+before/after lesson becoming legible.
+
+### Added
+
+- **`windgram/derive` irradiance**: `clearSkyGhiWm2` (Haurwitz 1945 —
+  the best zenith-only clear-sky model per Reno, Hansen & Stein 2012,
+  SAND2012-2389), `observedTransmittance` (measured over expected;
+  null near the horizon where the ratio means nothing, capped at 1.5
+  where cloud-edge brightening and clean air legitimately beat the
+  sea-level model), and `nearestObservation` — the join primitive for
+  a series that lives at the product's native cadence (GOES scan
+  starts), where an exact-key match against a forecast hour never
+  hits.
+- **The Sun strip**: pass a site's observation document as
+  `SceneOptions.observations` and the windgram draws satellite-measured
+  W/m² beside its forecasts, nearest-instant per rendered hour, with a
+  shadow behind the line that deepens as the measured sky
+  under-delivers (tint = 1 − observed transmittance).
+  `scene.observationSource` names the dataset and newest instant for
+  the mandatory label; `KeySpec.measuredDimming` explains the shadow;
+  `cursorReading` packets carry the measurement.
+- **Provenance zones in the strip stack**: every strip declares whose
+  data it draws (`provenance: "model" | "crossModel" | "measurement"`),
+  and anything foreign renders below a labeled divider ("beside this
+  model — not in its physics", `scene.stripDivider`) with its source
+  and instant written inside the strip (`sourceLabel`) — so the
+  pixels, not just the metadata, answer "did the model account for
+  this?". A model's own passive smoke stays in the model zone but
+  states "this model's forecast · not in its physics"; radiatively
+  coupled smoke carries no statement — it is ordinary model data.
 
 ### Changed
 

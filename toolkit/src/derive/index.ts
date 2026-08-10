@@ -59,6 +59,11 @@ export {
 } from "./project.js";
 export { alignByValidAt, type AlignedHours } from "./align.js";
 export {
+  clearSkyGhiWm2,
+  nearestObservation,
+  observedTransmittance,
+} from "./irradiance.js";
+export {
   cosSolarZenith,
   isSmokeAwareProfile,
   SMOKE_MASS_EXTINCTION_M2_PER_G,

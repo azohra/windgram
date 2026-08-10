@@ -100,6 +100,14 @@ export interface KeySpec {
    * note is how a reference-key consumer satisfies the must-label rule.
    */
   smokeAdjusted: { id: string; label: string } | null;
+  /**
+   * The measured-dimming chip — the "Sun" strip's shadow whose opacity
+   * is how far the measured sky fell short of the clear-sky
+   * expectation; null when no dimming cells were drawn. The strip's
+   * line labels itself ("Sun W/m²") like every strip, so only the
+   * shadow needs the key.
+   */
+  measuredDimming: { id: string; label: string } | null;
 }
 
 export interface KeySpecOptions {
@@ -254,6 +262,10 @@ export function buildKeySpec(scene: SceneGraph, options: KeySpecOptions = {}): K
   const hasSmokeHaze = scene.strips.some(
     (strip) => strip.key === "smoke" && (strip.cells ?? []).some((cell) => cell !== null),
   );
+  const hasMeasuredDimming = scene.strips.some(
+    (strip) =>
+      strip.key === "observedIrradiance" && (strip.cells ?? []).some((cell) => cell !== null),
+  );
 
   return {
     series,
@@ -290,6 +302,14 @@ export function buildKeySpec(scene: SceneGraph, options: KeySpecOptions = {}): K
           label:
             labels["smoke-adjusted"] ??
             `Smoke-adjusted w* and lift — ${scene.smokeAdjustment.smokeModel} ${scene.smokeAdjustment.smokeRun}`,
+        }
+      : null,
+    measuredDimming: hasMeasuredDimming
+      ? {
+          id: "wg-dim-cell",
+          label:
+            labels["wg-dim-cell"] ??
+            "Measured dimming — shadow deepens as the sky under-delivers",
         }
       : null,
   };

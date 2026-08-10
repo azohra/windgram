@@ -127,6 +127,30 @@ export function renderSvg(scene: SceneGraph, options: RenderSvgOptions = {}): st
   );
 
   /* ----- surface metric strips ----- */
+  // The provenance divider: everything above is the viewed model's own;
+  // everything below is another source laid beside it. Drawn whenever any
+  // foreign strip exists — an honest default is the thesis.
+  if (scene.stripDivider) {
+    body.push(
+      el("line", {
+        x1: plotLeft,
+        y1: short(scene.stripDivider.y),
+        x2: plotLeft + plotWidth,
+        y2: short(scene.stripDivider.y),
+        class: "wg-strip-divider",
+      }),
+      text(
+        {
+          x: plotLeft + plotWidth,
+          y: short(scene.stripDivider.y - 3),
+          "text-anchor": "end",
+          class: "wg-strip-divider-label",
+        },
+        scene.stripDivider.label,
+      ),
+    );
+  }
+
   for (const strip of scene.strips) {
     body.push(
       el("rect", {
@@ -221,6 +245,17 @@ export function renderSvg(scene: SceneGraph, options: RenderSvgOptions = {}): st
         strip.unit,
       ),
     );
+    // The inline provenance statement: whose data this strip draws, and
+    // whether the model's physics felt it — readable on the strip itself,
+    // so a cropped screenshot still answers the question.
+    if (strip.sourceLabel) {
+      body.push(
+        text(
+          { x: plotLeft + 6, y: strip.top + 9, class: "wg-strip-source" },
+          strip.sourceLabel,
+        ),
+      );
+    }
     // The strip's scale, at its right edge: maximum up top, minimum at the
     // bottom — without them the strips read as shapes, not numbers. Row
     // strips (cloud layers) put their tags there instead and have no line
@@ -537,6 +572,7 @@ export function renderKeySvg(spec: KeySpec, options: RenderSvgOptions = {}): str
     | { kind: "hatch"; label: string }
     | { kind: "band"; label: string }
     | { kind: "smokeHaze"; label: string }
+    | { kind: "measuredDimming"; label: string }
     | { kind: "note"; label: string }
     | { kind: "ramp"; label: string; classes: ReadonlyArray<string> };
   const items: RowItem[] = [
@@ -549,6 +585,9 @@ export function renderKeySvg(spec: KeySpec, options: RenderSvgOptions = {}): str
     ...(spec.hatch ? [{ kind: "hatch" as const, label: spec.hatch.label }] : []),
     ...(spec.band ? [{ kind: "band" as const, label: spec.band.label }] : []),
     ...(spec.smokeHaze ? [{ kind: "smokeHaze" as const, label: spec.smokeHaze.label }] : []),
+    ...(spec.measuredDimming
+      ? [{ kind: "measuredDimming" as const, label: spec.measuredDimming.label }]
+      : []),
     ...spec.ramps.map((entry) => ({
       kind: "ramp" as const,
       label: entry.label,
@@ -655,6 +694,10 @@ export function renderKeySvg(spec: KeySpec, options: RenderSvgOptions = {}): str
         // The haze chip is the strip's own cell class at a mid tint, so
         // the key's swatch and the chart's columns share one rule.
         chip["class"] = "wg-smoke-cell";
+        chip["opacity"] = 0.5;
+      } else if (item.kind === "measuredDimming") {
+        // Same one-rule discipline as the haze chip.
+        chip["class"] = "wg-dim-cell";
         chip["opacity"] = 0.5;
       } else chip["class"] = "wg-key-band";
       body.push(

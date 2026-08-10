@@ -1,5 +1,6 @@
 import { type WindgramProfile } from "../contract/index.js";
 import { p50 } from "../derive/ensemble.js";
+import { nearestObservation, observedTransmittance } from "../derive/irradiance.js";
 import {
   cosSolarZenith,
   isSmokeAwareProfile,
@@ -25,8 +26,10 @@ import {
   METRIC_BAND_GAP,
   METRIC_BAND_HEIGHT,
   METRIC_TOP,
+  STRIP_DIVIDER_LABEL,
   buildStripSpecs,
   layoutStrips,
+  stripStackGeometry,
   type StripGeometry,
 } from "./strips.js";
 import {
@@ -72,6 +75,15 @@ const BARB_SCALE_MAX_COLUMN = 66;
    the resolved default multiplies by the resolved barb scale. */
 const BARB_MIN_GAP_PX = 24;
 export const M_TO_FT = 3.28084;
+
+/* "2026-08-10T12:00:00Z" -> "2026-08-10 12Z"; keeps minutes when they
+   carry information ("…T01:10:21Z" -> "2026-08-10 01:10Z"). */
+function shortInstant(instant: string): string {
+  const date = instant.slice(0, 10);
+  const hh = instant.slice(11, 13);
+  const mm = instant.slice(14, 16);
+  return mm === "00" ? `${date} ${hh}Z` : `${date} ${hh}:${mm}Z`;
+}
 
 function pitchBarbScale(columnWidth: number): number {
   const span = BARB_SCALE_MAX_COLUMN - BARB_SCALE_MIN_COLUMN;
@@ -411,16 +423,69 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
 
   const plotWidth = columnWidth * Math.max(hours.length, 1);
   const stripGeometry: StripGeometry = { marginLeft: MARGIN_LEFT, columnWidth, plotWidth };
+  /* Measured irradiance, per rendered hour: the nearest good-quality
+     observation within half an hour (observations sit at the product's
+     native cadence — GOES scan starts — never on forecast hours), and
+     its transmittance against the clear-sky expectation at that
+     instant's sun. One source with its own provenance, like smoke:
+     observationSource names it for the mandatory label. */
+  const observationSeries = hours.map((hour) => {
+    if (!options.observations) return null;
+    const nearest = nearestObservation(options.observations, hour.validAt, 30);
+    if (!nearest) return null;
+    const wm2 = nearest.observation.downwardShortwaveWm2;
+    return {
+      wm2,
+      transmittance: observedTransmittance(
+        wm2,
+        cosSolarZenith(hour.validAt, profile.site.latitude, profile.site.longitude),
+      ),
+    };
+  });
+  const observationSource =
+    options.observations && observationSeries.some((entry) => entry !== null)
+      ? {
+          model: options.observations.model,
+          lastObservedAt: options.observations.observed.lastObservedAt,
+        }
+      : null;
+
+  /* The strip stack's provenance statements — the structural answer to
+     "did the model account for this?". The model's own coupled smoke is
+     an ordinary model strip; its own passive smoke stays in the model
+     zone but says so; joined smoke and measurements render below the
+     divider with their source and instant inline. */
+  const smokeStripSource = profileHasSmoke
+    ? profile.semantics?.smoke === "radiativelyCoupled"
+      ? { provenance: "model" as const }
+      : {
+          provenance: "model" as const,
+          sourceLabel: "this model's forecast · not in its physics",
+        }
+    : smokeSource
+      ? {
+          provenance: "crossModel" as const,
+          sourceLabel: `${smokeSource.model} · ${shortInstant(smokeSource.referenceTime)} run`,
+        }
+      : undefined;
+  const observationSourceLabel = observationSource
+    ? `${observationSource.model} · measured to ${shortInstant(observationSource.lastObservedAt)}`
+    : undefined;
+
   const stripSpecs = buildStripSpecs({
     hours,
     overlays,
     capeClasses,
     floorM,
     smokeSeries,
+    observationSeries,
+    smokeStripSource,
+    observationSourceLabel,
     geometry: stripGeometry,
   });
+  const stackGeometry = stripStackGeometry(stripSpecs);
 
-  const plotTop = METRIC_TOP + stripSpecs.length * (METRIC_BAND_HEIGHT + METRIC_BAND_GAP) + PROFILE_GAP;
+  const plotTop = stackGeometry.height + PROFILE_GAP;
   const plotBottom = plotTop + plotHeight;
   const width = MARGIN_LEFT + plotWidth + MARGIN_RIGHT;
   const surfaceTemperatureRow = overlays.surfaceTemperature && hours.length > 0;
@@ -962,6 +1027,7 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
       ],
       verticalVelocityPaS: omegaNodes(hour),
       smoke: overlays.smoke ? smokeSeries[index] : null,
+      observation: overlays.observedIrradiance ? observationSeries[index] : null,
     };
   });
 
@@ -995,6 +1061,11 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
     selection: null,
     smokeSource: overlays.smoke ? smokeSource : null,
     smokeAdjustment,
+    observationSource: overlays.observedIrradiance ? observationSource : null,
+    stripDivider:
+      stackGeometry.dividerY === null
+        ? null
+        : { y: stackGeometry.dividerY, label: STRIP_DIVIDER_LABEL },
     highlightSelectedHour: overlays.selectedHour,
     hourValidAts: hours.map((hour) => hour.validAt),
     sampling,

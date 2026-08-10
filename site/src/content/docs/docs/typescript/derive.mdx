@@ -173,6 +173,46 @@ is the cube root of the heat flux; no flux re-derivation is needed or
 performed. Scope and derivation narrative:
 [Smoke and thermals](/docs/learn/smoke-and-thermals/).
 
+## Interpret measured irradiance
+
+Observation documents carry measured W/m²; three functions make that
+number mean something beside a forecast. `clearSkyGhiWm2` is the cited
+expectation — Haurwitz (1945), chosen per Reno, Hansen & Stein 2012
+(SAND2012-2389) as the best clear-sky model needing only the sun's
+zenith — and `observedTransmittance` is measured over expected: 1 is a
+textbook sky, ~0.85 a moderate smoke plume, well under 0.5 serious
+cloud, null near the horizon where the ratio means nothing.
+`nearestObservation` is the join: observations live at the product's
+native cadence (GOES scan starts), so an exact-key match against a
+forecast `validAt` never hits.
+
+```ts title="measured-transmittance.ts"
+import type { ObservationDocument, WindgramProfile } from "windgram/contract";
+import {
+  cosSolarZenith,
+  nearestObservation,
+  observedTransmittance,
+} from "windgram/derive";
+
+export function transmittanceAtHour(
+  profile: WindgramProfile,
+  observed: ObservationDocument,
+  hourIndex: number,
+): number | null {
+  const hour = profile.hours[hourIndex];
+  const nearest = hour && nearestObservation(observed, hour.validAt);
+  if (!hour || !nearest) return null;
+  return observedTransmittance(
+    nearest.observation.downwardShortwaveWm2,
+    cosSolarZenith(hour.validAt, profile.site.latitude, profile.site.longitude),
+  );
+}
+```
+
+Put that beside `smokeTransmittance(aot)` from the same site's smoke
+document and you are running the comparison the smoke correction's
+constants were fitted from — measurement against claim, per hour.
+
 ## Intersect instants with `alignByValidAt`
 
 `alignByValidAt` returns only the UTC `validAt` instants shared by every input
