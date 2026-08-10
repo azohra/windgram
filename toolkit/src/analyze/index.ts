@@ -80,6 +80,7 @@ export {
   type AnalyzeThresholds,
   type CapTimingFinding,
   type CitedInstant,
+  type ConvectiveDayFinding,
   type DataCaveat,
   type DataCaveatsFinding,
   type EnsembleMembershipFinding,

@@ -6,6 +6,7 @@ import {
   analyzeProfile,
   DEFAULT_ANALYZE_THRESHOLDS,
   type CapTimingFinding,
+  type ConvectiveDayFinding,
   type DataCaveatsFinding,
   type EnsembleMembershipFinding,
   type ThermalWindowFinding,
@@ -199,6 +200,7 @@ describe("the analysis envelope", () => {
         "dataCaveats",
         "ensembleMembership",
         "capTiming",
+        "convectiveDay",
         "thermalWindow",
         "percentileCrossing",
         "quietDay",
@@ -420,21 +422,130 @@ describe("thermalWindow", () => {
   });
 });
 
+describe("quietDay context — the atmospheric WHY beside the arithmetic why", () => {
+  /** Every hrrr day quiet: the impossible W* floor from the tests above. */
+  const QUIET = { ...ERIE, thresholds: { thermalWindow: { wstarMinMs: 99 } } };
+  const quietDays = (profile: WindgramProfile, options: object = QUIET) =>
+    ofKind<QuietDayFinding>(analyzeProfile(profile, options).findings, "quietDay");
+
+  it("stamps forecast lead anchored on the day's peak-W* hour", () => {
+    const byDay = Object.fromEntries(quietDays(hrrr()).map((finding) => [finding.day, finding]));
+    // Run 2026-08-08T18:00Z; Saturday's peak W* (2.16) fires at 22:00Z.
+    expect(byDay["2026-08-08"].peakThermalVelocityAt?.validAt).toBe("2026-08-08T22:00:00Z");
+    expect(byDay["2026-08-08"].leadHours).toBe(4);
+    // Sunday's peak W* (1.1) fires at 18:00Z the next day — 24 h out.
+    expect(byDay["2026-08-09"].leadHours).toBe(24);
+  });
+
+  it("restates cloud, gust, and flux with cited timing — co-timing, never causality", () => {
+    const saturday = quietDays(hrrr()).find((finding) => finding.day === "2026-08-08")!;
+    expect(saturday.context.cloudCoverAtPeakWstarPercent).toBe(100);
+    expect(saturday.context.daytimeCloudCoverPercent).toBe(100); // 19:00-23:00Z all 100 %
+    expect(saturday.context.maxGust).toEqual({
+      gustMs: 3.9,
+      at: { validAt: "2026-08-08T23:00:00Z", local: "2026-08-08T16:00" },
+    });
+    expect(saturday.context.peakSensibleHeatFluxWm2).toEqual({
+      valueWm2: 280,
+      at: { validAt: "2026-08-08T21:00:00Z", local: "2026-08-08T14:00" },
+    });
+    // A dry day carries no precipitation block, and no verdict anywhere.
+    expect(saturday.context.precipitation).toBeUndefined();
+    expect(JSON.stringify(saturday)).not.toMatch(/verdict/i);
+  });
+
+  it("carries BOTH the peak-hour cloud sample and the daytime aggregate — either alone misleads", () => {
+    // S4's live divergence in miniature: the peak W* fires in a clearing
+    // (12 %) while the day sits overcast (85 % on the other daytime hours).
+    const profile = hrrr();
+    for (const hour of profile.hours) {
+      const surface = hour.surface as { cloudCoverPercent: number };
+      if (hour.validAt === "2026-08-08T22:00:00Z") surface.cloudCoverPercent = 12;
+      else if (
+        ["2026-08-08T19:00:00Z", "2026-08-08T20:00:00Z", "2026-08-08T21:00:00Z", "2026-08-08T23:00:00Z"].includes(
+          hour.validAt,
+        )
+      )
+        surface.cloudCoverPercent = 85;
+    }
+    const saturday = quietDays(profile).find((finding) => finding.day === "2026-08-08")!;
+    expect(saturday.peakThermalVelocityAt?.validAt).toBe("2026-08-08T22:00:00Z");
+    expect(saturday.context.cloudCoverAtPeakWstarPercent).toBe(12);
+    // Local 10:00-16:00 covered samples: 19:00-23:00Z → (4×85 + 12) / 5.
+    expect(saturday.context.daytimeCloudCoverPercent).toBe(70.4);
+  });
+
+  it("states the wet day over the embedded floor, with the semantics and step echoes", () => {
+    const profile = hrrr();
+    const rates: Record<string, number> = {
+      "2026-08-08T20:00:00Z": 0.5,
+      "2026-08-08T21:00:00Z": 1.2,
+      "2026-08-08T22:00:00Z": 0.8,
+    };
+    for (const hour of profile.hours) {
+      const rate = rates[hour.validAt];
+      if (rate !== undefined) (hour.surface as { precipitationMmHr: number }).precipitationMmHr = rate;
+    }
+    (profile as { semantics?: object }).semantics = { precipitation: "instantRate" };
+    const parsed = parseWindgramProfile(profile)!;
+    const saturday = quietDays(parsed).find((finding) => finding.day === "2026-08-08")!;
+    expect(saturday.context.precipitation).toEqual({
+      peakMmHr: 1.2,
+      peakAt: { validAt: "2026-08-08T21:00:00Z", local: "2026-08-08T14:00" },
+      firstWetAt: { validAt: "2026-08-08T20:00:00Z", local: "2026-08-08T13:00" },
+      wetHours: 3,
+      minMmHr: DEFAULT_ANALYZE_THRESHOLDS.capTiming.precipMinMmHr,
+      semantics: "instantRate",
+      stepHours: 1,
+    });
+  });
+
+  it("omits maxGust where the model publishes none — absent is not calm", () => {
+    // REPS is gustless; under the impossible floor both its days are quiet.
+    const findings = quietDays(reps());
+    expect(findings.length).toBeGreaterThan(0);
+    for (const finding of findings) {
+      expect(finding.context.maxGust).toBeUndefined();
+      // The flux restatement still rides — REPS publishes it.
+      expect(finding.context.peakSensibleHeatFluxWm2).toBeDefined();
+    }
+  });
+
+  it("reads honestly when empty: no atmospheric suppressor stated, the flux was simply weak", () => {
+    const profile = hrrr();
+    for (const hour of profile.hours) {
+      (hour.surface as { cloudCoverPercent: number }).cloudCoverPercent = 0;
+    }
+    const saturday = quietDays(profile).find((finding) => finding.day === "2026-08-08")!;
+    expect(saturday.context.precipitation).toBeUndefined();
+    expect(saturday.context.cloudCoverAtPeakWstarPercent).toBe(0);
+    expect(saturday.context.daytimeCloudCoverPercent).toBe(0);
+    // Nothing atmospheric is asserted — the published restatements are all
+    // the block says, and none of them names a suppressor.
+  });
+});
+
 describe("liftCeiling", () => {
-  it("attributes the deterministic window's ceiling to sink, with evidence per segment", () => {
+  it("attributes the deterministic window's ceiling to sink, citing the segment's peak", () => {
     const findings = ofKind<LiftCeilingFinding>(analyzeProfile(hrrr(), ERIE).findings, "liftCeiling");
     const saturday = findings.find((finding) => finding.day === "2026-08-08")!;
     expect(saturday.segments).toHaveLength(1);
-    expect(saturday.flips).toBe(0);
     expect(saturday.segments[0].cause).toBe("sinkLimited");
     expect(saturday.segments[0].hoursN).toBe(7);
-    // Cloud base stands 1.4 km above the lift top at the segment's start.
+    // The Tier 0 fix this pins: the 7-hour segment's evidence is its PEAK
+    // hour (23:00Z, top 2905.6), not its first (19:00Z, top 1840.7) — the
+    // pre-v4 frozen-first-hour evidence did not represent the claim. Cloud
+    // base and BL top are sampled at that same cited hour, so the
+    // sinkLimited relation re-derives from the printed row.
     expect(saturday.segments[0].evidence).toEqual({
-      usableLiftTopM: 1840.7,
-      cloudBaseM: 3248,
-      boundaryLayerTopM: 1841.7,
+      peakUsableLiftTopM: 2905.6,
+      peakUsableLiftTopAt: { validAt: "2026-08-08T23:00:00Z", local: "2026-08-08T16:00" },
+      cloudBaseM: 3401.7,
+      boundaryLayerTopM: 2771.2,
     });
     expect(saturday.thresholds).toEqual(DEFAULT_ANALYZE_THRESHOLDS.liftCeiling);
+    // flips was removed at v4: it restated segments.length - 1.
+    expect("flips" in saturday).toBe(false);
   });
 
   it("calls the REPS windows cloud-capped — base sits on (or within 50 m of) the top", () => {
@@ -444,7 +555,7 @@ describe("liftCeiling", () => {
       expect(finding.segments[0].cause).toBe("cloudCapped");
     }
     // Sunday's is exact: usable lift top IS the published cloud base.
-    expect(findings[1].segments[0].evidence.usableLiftTopM).toBe(2543.2);
+    expect(findings[1].segments[0].evidence.peakUsableLiftTopM).toBe(2543.2);
     expect(findings[1].segments[0].evidence.cloudBaseM).toBe(2543.2);
   });
 });
@@ -454,6 +565,8 @@ describe("capTiming", () => {
     const findings = ofKind<CapTimingFinding>(analyzeProfile(hrrr(), ERIE).findings, "capTiming");
     const saturday = findings.find((finding) => finding.day === "2026-08-08")!;
     expect(saturday.verdict).toBe("capBreaks");
+    expect(saturday.cadence).toBe("hourly");
+    expect(saturday.stepHours).toBe(1);
     expect(saturday.peakCapeJkg).toBe(540);
     // |CIN| drops under 25 while CAPE exceeds 200 at 18:00 local — the
     // arithmetic the verdict names, one hour before the window closes.
@@ -461,6 +574,7 @@ describe("capTiming", () => {
       validAt: "2026-08-09T01:00:00Z",
       local: "2026-08-08T18:00",
     });
+    expect(saturday.capBreaksBetween).toBeUndefined(); // hourly = instant verdicts
     expect(saturday.capeAtBreakJkg).toBe(540);
     expect(saturday.thermalWindowEndsAt?.local).toBe("2026-08-08T18:00");
     expect(saturday.thresholds).toEqual(DEFAULT_ANALYZE_THRESHOLDS.capTiming);
@@ -472,11 +586,267 @@ describe("capTiming", () => {
     expect(sunday.peakCapeJkg).toBe(0);
   });
 
-  it("gates itself off ensembles and multi-hour cadences — GEPS says nothing here", () => {
+  it("gates itself off ensembles — the median-CIN gate is untouched at v4", () => {
     // GEPS publishes CAPE and CIN, but as 3-hourly ensemble percentiles:
     // the spike found the member-median CIN bimodal, so no cap story.
     expect(ofKind(analyzeProfile(geps(), FLAGPOLE).findings, "capTiming")).toHaveLength(0);
     expect(ofKind(analyzeProfile(reps(), ERIE).findings, "capTiming")).toHaveLength(0);
+  });
+
+  it("splits the old cappedAllDay: an all-day-open cap under the break floor reads openButWeak", () => {
+    // The live RDPS shape S4 caught twice: CIN ≈ 0 all day (cap physically
+    // open), CAPE 100-190 — instability, but never over the 200 J/kg break
+    // floor. Before v4 this read "cappedAllDay" with the cap wide open.
+    const profile = hrrr();
+    for (const hour of profile.hours) {
+      const surface = hour.surface as { capeJkg: number; cinJkg: number };
+      if (hour.validAt <= "2026-08-09T06:00:00Z") {
+        surface.capeJkg = Math.min(150, surface.capeJkg + 150);
+        surface.cinJkg = -5;
+      }
+    }
+    const saturday = ofKind<CapTimingFinding>(
+      analyzeProfile(profile, ERIE).findings,
+      "capTiming",
+    ).find((finding) => finding.day === "2026-08-08")!;
+    expect(saturday.verdict).toBe("openButWeak");
+    expect(saturday.peakCapeJkg).toBe(150); // >= 100 instability, < 200 break floor
+    expect(saturday.capBreaksAt).toBeUndefined();
+    // Every evidence row agrees: |CIN| under the 25 J/kg threshold all day.
+    for (const cin of saturday.evidence.cinJkg) {
+      expect(Math.abs(cin)).toBeLessThan(saturday.thresholds.brokenCapMaxAbsCinJkg);
+    }
+  });
+
+  it("keeps cappedAllDay for the cap that actually holds", () => {
+    // Same instability, but the cap is real: CIN -80 wherever CAPE lives.
+    const profile = hrrr();
+    for (const hour of profile.hours) {
+      const surface = hour.surface as { capeJkg: number; cinJkg: number };
+      if (hour.validAt <= "2026-08-09T06:00:00Z") {
+        surface.capeJkg = 300;
+        surface.cinJkg = -80;
+      }
+    }
+    const saturday = ofKind<CapTimingFinding>(
+      analyzeProfile(profile, ERIE).findings,
+      "capTiming",
+    ).find((finding) => finding.day === "2026-08-08")!;
+    expect(saturday.verdict).toBe("cappedAllDay");
+  });
+});
+
+describe("capTiming at multi-hour cadence — interval verdicts (v4, S4)", () => {
+  /** The hrrr fixture subsampled to a 3-hourly grid; `offset` picks which
+   * hours survive, so the same hourly truth reads from different grids. */
+  function threeHourly(offset: number, count = 4): WindgramProfile {
+    const doc = JSON.parse(JSON.stringify(fixtures["hrrrConusErie"])) as { hours: unknown[] };
+    doc.hours = Array.from({ length: count }, (_, k) => doc.hours[offset + 3 * k]);
+    const profile = parseWindgramProfile(doc);
+    expect(profile).not.toBeNull();
+    return profile!;
+  }
+
+  it("re-admits 3-hourly days with an interval between adjacent cited steps", () => {
+    // Grid 19:00Z/22:00Z/01:00Z/04:00Z. The hourly truth breaks at 01:00Z
+    // (CAPE 540, CIN -9); the interval CONTAINS it (S4: 16/16 containment,
+    // zero phantom breaks in the subsampling audit).
+    const findings = ofKind<CapTimingFinding>(
+      analyzeProfile(threeHourly(0), ERIE).findings,
+      "capTiming",
+    );
+    const saturday = findings.find((finding) => finding.day === "2026-08-08")!;
+    expect(saturday.verdict).toBe("capBreaks");
+    expect(saturday.cadence).toBe("multiHour");
+    expect(saturday.stepHours).toBe(3);
+    expect(saturday.capBreaksAt).toBeUndefined(); // interval, never an instant
+    expect(saturday.capBreaksBetween).toEqual({
+      after: { validAt: "2026-08-08T22:00:00Z", local: "2026-08-08T15:00" },
+      by: { validAt: "2026-08-09T01:00:00Z", local: "2026-08-08T18:00" },
+    });
+    expect(saturday.capeAtBreakJkg).toBe(540);
+    // Both endpoints are the evidence's own cited steps.
+    expect(saturday.evidence.hours).toContain("2026-08-08T22:00:00Z");
+    expect(saturday.evidence.hours).toContain("2026-08-09T01:00:00Z");
+  });
+
+  it("states the day edge as its own case: cap already open at first covered step", () => {
+    // The document opens ON the broken step (01:00Z): there is no earlier
+    // cited step to bound an interval — the 5-live-GDPS-site-days shape.
+    const doc = JSON.parse(JSON.stringify(fixtures["hrrrConusErie"])) as { hours: unknown[] };
+    doc.hours = [doc.hours[6], doc.hours[9]]; // 01:00Z, 04:00Z — both local 08-08
+    const profile = parseWindgramProfile(doc)!;
+    const findings = ofKind<CapTimingFinding>(analyzeProfile(profile, ERIE).findings, "capTiming");
+    expect(findings).toHaveLength(1);
+    expect(findings[0].verdict).toBe("capBreaks");
+    expect(findings[0].capAlreadyOpenAt).toEqual({
+      validAt: "2026-08-09T01:00:00Z",
+      local: "2026-08-08T18:00",
+    });
+    expect(findings[0].capBreaksBetween).toBeUndefined();
+  });
+
+  it("confesses what a multi-hour cappedAllDay is: no PUBLISHED step was broken", () => {
+    // Grid 20:00Z/23:00Z/02:00Z/05:00Z misses the 01:00Z break entirely:
+    // every published step is capped or weak, so the verdict is
+    // cappedAllDay while the hourly truth breaks — the measured 12.5 %
+    // phantom-cap rate this shape carries (JSDoc), stated as a claim about
+    // published steps via cadence: "multiHour".
+    const findings = ofKind<CapTimingFinding>(
+      analyzeProfile(threeHourly(1), ERIE).findings,
+      "capTiming",
+    );
+    const saturday = findings.find((finding) => finding.day === "2026-08-08")!;
+    expect(saturday.verdict).toBe("cappedAllDay");
+    expect(saturday.cadence).toBe("multiHour");
+    expect(saturday.peakCapeJkg).toBe(350);
+    // The same document's hourly truth: capBreaks at 01:00Z.
+    const hourly = ofKind<CapTimingFinding>(analyzeProfile(hrrr(), ERIE).findings, "capTiming");
+    expect(hourly.find((finding) => finding.day === "2026-08-08")!.verdict).toBe("capBreaks");
+  });
+
+  it("echoes the precipitation semantics beside the threshold it compares against", () => {
+    const doc = JSON.parse(JSON.stringify(fixtures["hrrrConusErie"])) as {
+      semantics?: object;
+      hours: Array<{ surface: { precipitationMmHr: number } }>;
+    };
+    doc.semantics = { precipitation: "windowMeanRate" };
+    doc.hours[5].surface.precipitationMmHr = 0.85; // 00:00Z, local 08-08
+    const profile = parseWindgramProfile(doc)!;
+    const saturday = ofKind<CapTimingFinding>(
+      analyzeProfile(profile, ERIE).findings,
+      "capTiming",
+    ).find((finding) => finding.day === "2026-08-08")!;
+    expect(saturday.precipSemantics).toBe("windowMeanRate");
+    expect(saturday.precipStartsAt?.validAt).toBe("2026-08-09T00:00:00Z");
+    expect(saturday.peakPrecipMmHr).toBe(0.85); // contract 2-dp for mm/h
+  });
+});
+
+describe("convectiveDay — the CIN-less convective story (v4, S4)", () => {
+  const iso = (ms: number) => new Date(ms).toISOString().replace(".000Z", "Z");
+
+  /** An HRDPS-shaped document built from the hrrr fixture: CIN deleted
+   * everywhere (the HRDPS family publishes CAPE with no CIN), hours
+   * re-stamped hourly from `firstValidAt` so full days and horizon
+   * slivers can both be constructed; CAPE optionally overridden. */
+  function cinless(firstValidAt: string, count: number, capes?: number[]): WindgramProfile {
+    const doc = JSON.parse(JSON.stringify(fixtures["hrrrConusErie"])) as {
+      hours: Array<{ validAt: string; surface: { capeJkg?: number; cinJkg?: number } }>;
+    };
+    const start = Date.parse(firstValidAt);
+    doc.hours = doc.hours.slice(0, count).map((hour, k) => {
+      delete hour.surface.cinJkg;
+      if (capes) hour.surface.capeJkg = capes[k];
+      return { ...hour, validAt: iso(start + k * 3_600_000) };
+    });
+    const profile = parseWindgramProfile(doc);
+    expect(profile).not.toBeNull();
+    return profile!;
+  }
+
+  it("states CAPE magnitude and timing where capTiming is mute, refusing the cap question", () => {
+    // A full local day: 24 hourly rows re-stamped 07:00Z-06:00Z, local
+    // 00:00-23:00. The fixture's CAPE ridge (peak 540) lands at index 6.
+    const profile = cinless("2026-08-08T07:00:00Z", 24);
+    const analysis = analyzeProfile(profile, ERIE);
+    // The un-gating: no CIN means capTiming stays silent…
+    expect(ofKind(analysis.findings, "capTiming")).toHaveLength(0);
+    // …and convectiveDay now carries what the model CAN say.
+    const findings = ofKind<ConvectiveDayFinding>(analysis.findings, "convectiveDay");
+    expect(findings).toHaveLength(1);
+    const day = findings[0];
+    expect(day.day).toBe("2026-08-08");
+    expect(day.peakCapeJkg).toBe(540);
+    expect(day.peakCapeAt).toEqual({ validAt: "2026-08-08T13:00:00Z", local: "2026-08-08T06:00" });
+    // The refusal is explicit: absence of CIN is never "no cap".
+    expect(day.capIsJudgeable).toBe(false);
+    expect(day.capNotJudgeableReason).toBe("modelPublishesNoCin");
+    expect(JSON.stringify(day)).not.toMatch(/verdict/i);
+    // Full-day coverage, stated.
+    expect(day.coverage.truncated).toBe(false);
+    expect(day.coverage.hours).toBe(24);
+    expect(day.stepHours).toBe(1);
+    // The window anchor rides along, as on capTiming (this re-stamped day
+    // carries two windows; the anchor is the day's last window's end).
+    expect(day.thermalWindowEndsAt?.validAt).toBe("2026-08-09T06:00:00Z");
+    expect(day.thresholds).toEqual(DEFAULT_ANALYZE_THRESHOLDS.convectiveDay);
+    // Evidence arrays cover exactly the cited hours.
+    expect(day.evidence.hours).toHaveLength(24);
+    expect(day.evidence.capeJkg[6]).toBe(540);
+    expect(day.evidence.precipitationMmHr).toHaveLength(24);
+  });
+
+  it("states the dry forecast positively — a 0.00 series is a forecast, not absence", () => {
+    const day = ofKind<ConvectiveDayFinding>(
+      analyzeProfile(cinless("2026-08-08T07:00:00Z", 24), ERIE).findings,
+      "convectiveDay",
+    )[0];
+    // No covered hour exceeds the floor: the honest positive, and exactly
+    // one of the two precip statements is present.
+    expect(day.noPrecipAboveThreshold).toBe(true);
+    expect(day.precipStartsAt).toBeUndefined();
+    expect(day.peakPrecipMmHr).toBeUndefined();
+  });
+
+  it("carries precip timing over the embedded floor, with the semantics echo", () => {
+    const profile = cinless("2026-08-08T07:00:00Z", 24);
+    const rates: Record<string, number> = {
+      "2026-08-08T15:00:00Z": 0.3,
+      "2026-08-08T16:00:00Z": 1.46,
+      "2026-08-08T17:00:00Z": 0.8,
+    };
+    for (const hour of profile.hours) {
+      const rate = rates[hour.validAt];
+      if (rate !== undefined) (hour.surface as { precipitationMmHr: number }).precipitationMmHr = rate;
+    }
+    (profile as { semantics?: object }).semantics = { precipitation: "windowMeanRate" };
+    const parsed = parseWindgramProfile(profile)!;
+    const day = ofKind<ConvectiveDayFinding>(
+      analyzeProfile(parsed, ERIE).findings,
+      "convectiveDay",
+    )[0];
+    expect(day.precipStartsAt).toEqual({
+      validAt: "2026-08-08T15:00:00Z",
+      local: "2026-08-08T08:00",
+    });
+    expect(day.peakPrecipMmHr).toBe(1.46); // contract 2-dp for mm/h
+    expect(day.noPrecipAboveThreshold).toBeUndefined();
+    expect(day.precipSemantics).toBe("windowMeanRate");
+    // The threshold is caller-movable: raise the floor over the peak and
+    // the same day reads dry, positively.
+    const strict = ofKind<ConvectiveDayFinding>(
+      analyzeProfile(parsed, { ...ERIE, thresholds: { convectiveDay: { precipMinMmHr: 2 } } })
+        .findings,
+      "convectiveDay",
+    )[0];
+    expect(strict.noPrecipAboveThreshold).toBe(true);
+    expect(strict.thresholds.precipMinMmHr).toBe(2);
+  });
+
+  it("confesses the horizon sliver — nocturnal CAPE on a truncated day is not a soaring statement", () => {
+    // S4's live HRDPS 08-12 shape: a 00:00-05:00 local sliver carrying
+    // elevated nocturnal CAPE, day peak cited at 01:00.
+    const sliver = cinless("2026-08-12T07:00:00Z", 6, [100, 294, 250, 180, 120, 100]);
+    const day = ofKind<ConvectiveDayFinding>(
+      analyzeProfile(sliver, ERIE).findings,
+      "convectiveDay",
+    )[0];
+    expect(day.day).toBe("2026-08-12");
+    expect(day.peakCapeJkg).toBe(294);
+    expect(day.peakCapeAt?.local).toBe("2026-08-12T01:00");
+    // The confession that keeps the peak honest: covered hours only, and
+    // a truncated day must not vote in comparisons (see the JSDoc).
+    expect(day.coverage.truncated).toBe(true);
+    expect(day.coverage.hours).toBe(6);
+  });
+
+  it("emits only where the document publishes CAPE and no CIN — the S4-measured family", () => {
+    // hrrr publishes both: the full cap story belongs to capTiming.
+    expect(ofKind(analyzeProfile(hrrr(), ERIE).findings, "convectiveDay")).toHaveLength(0);
+    // geps is an ensemble (and publishes CIN); reps publishes no CAPE.
+    expect(ofKind(analyzeProfile(geps(), FLAGPOLE).findings, "convectiveDay")).toHaveLength(0);
+    expect(ofKind(analyzeProfile(reps(), ERIE).findings, "convectiveDay")).toHaveLength(0);
   });
 });
 
@@ -755,17 +1125,36 @@ describe("mixed cadence — spacing is per-gap, never a document constant", () =
     expect(saturday.stepHours).toBe(3);
   });
 
-  it("gates capTiming per day — a document that merely starts hourly gets no coarse-day cap story", () => {
-    // Baseline: both local days carry a verdict on the hourly document.
-    expect(
-      ofKind<CapTimingFinding>(analyzeProfile(hrrr(), ERIE).findings, "capTiming"),
-    ).toHaveLength(2);
+  it("branches capTiming per day — a day whose rows widen mid-horizon reads interval semantics", () => {
+    // Baseline: both local days carry instant verdicts on the hourly document.
+    for (const finding of ofKind<CapTimingFinding>(
+      analyzeProfile(hrrr(), ERIE).findings,
+      "capTiming",
+    )) {
+      expect(finding.cadence).toBe("hourly");
+    }
     // Widened: day one's CAPE/CIN rows end 3-hourly, day two is entirely
-    // 3-hourly — instant verdicts need hourly sampling AT THE DAY, and
-    // the old leading-pair gate would have admitted both.
-    expect(
-      ofKind<CapTimingFinding>(analyzeProfile(hrrrWidening(), ERIE).findings, "capTiming"),
-    ).toHaveLength(0);
+    // 3-hourly. Before v4 both days went silent; the cadence branch is
+    // judged AT THE DAY (never the leading pair), and multi-hour days now
+    // speak with interval verdicts instead of instants.
+    const widened = ofKind<CapTimingFinding>(
+      analyzeProfile(hrrrWidening(), ERIE).findings,
+      "capTiming",
+    );
+    expect(widened).toHaveLength(2);
+    const saturday = widened.find((finding) => finding.day === "2026-08-08")!;
+    expect(saturday.cadence).toBe("multiHour");
+    expect(saturday.stepHours).toBe(3); // the widest gap between cited rows
+    expect(saturday.verdict).toBe("capBreaks");
+    // The break instant (01:00Z on the hourly truth) becomes an interval
+    // between the adjacent cited rows around it.
+    expect(saturday.capBreaksBetween).toEqual({
+      after: { validAt: "2026-08-09T00:00:00Z", local: "2026-08-08T17:00" },
+      by: { validAt: "2026-08-09T01:00:00Z", local: "2026-08-08T18:00" },
+    });
+    const sunday = widened.find((finding) => finding.day === "2026-08-09")!;
+    expect(sunday.cadence).toBe("multiHour");
+    expect(sunday.verdict).toBe("noInstability");
   });
 
   it("measures wind persistence as covered span — a lone far-horizon sample is as wide as its step", () => {
