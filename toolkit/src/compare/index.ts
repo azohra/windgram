@@ -13,7 +13,9 @@
    that survived; nothing else ships until it earns its place the same
    way.
 
-   THE DISCIPLINE, inherited from analyze/ and extended:
+   THE DISCIPLINE, inherited from analyze/ (no verdict that does not
+   reduce to stated arithmetic over stated, embedded, caller-movable
+   thresholds) and extended:
    - compare statements, not series: members vote through their analyze
      findings, which are already launch-relative, local-day keyed, and
      threshold-embedded — the normalizations the value spike showed a raw

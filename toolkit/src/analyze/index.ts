@@ -35,10 +35,12 @@
    absent, not merely unimplemented.
 
    THE DISCIPLINE every kind obeys:
-   - magnitudes and timing, never judgment words; verdict enums appear ONLY
-     where the verdict is an arithmetic relation over published numbers
-     (max lift top < launch altitude; |CIN| under a stated bound while CAPE
-     exceeds a stated bound);
+   - magnitudes and timing; NO VERDICT THAT DOES NOT REDUCE to stated
+     arithmetic over stated, embedded, caller-movable thresholds (max lift
+     top < launch altitude; |CIN| under a stated bound while CAPE exceeds
+     a stated bound). The rule was never "no judgment words" —
+     flyableWindow and quietDay carry judgment-shaped names under exactly
+     that reduction;
    - any finding that used a threshold EMBEDS it (`thresholds`), defaults
      drawn from the spike whose sensitivity sweep measured them low-impact —
      thresholds are the caller's to move, the finding must confess which
