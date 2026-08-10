@@ -64,6 +64,38 @@ loaders return the typed pair or a discriminated `DocumentMiss`. The
 [first-windgram guide](https://windgram.azohra.com/docs/typescript/render-first-windgram/)
 walks this path step by step and shows the chart it produces.
 
+## Launches are render inputs
+
+A profile document is launch-agnostic: its `site` block records where the
+atmosphere was sampled and what the model's own ground there is
+(`site.modelElevationM`), never a launch elevation — one document serves
+every launch its grid cell covers. To draw the launch marker, supply the
+launch yourself:
+
+```ts
+import { parseSiteContextJson } from "windgram/contract";
+
+// The pipeline measures every catalogued site's ground truth — the
+// elevation pick, terrain, and land cover — into site-context.json,
+// published beside the catalogue. Pull it on your own schedule: it
+// changes only when the site catalogue does, never per model run.
+const contextResponse = await fetch(`${DATA}/site-context.json`);
+const context = parseSiteContextJson(await contextResponse.text());
+if (!context) throw new Error("site-context.json failed contract validation");
+
+const launch = {
+  name: loaded.profile.site.name,
+  elevationM: context.sites["dundee"]!.elevation.elevationM,
+};
+const svg = renderSvg(buildScene(loaded.profile, { timeZone, launch }));
+```
+
+No `launch` option means no marker and no launch-relative statements —
+absence is honest, never an error — and the same seam feeds analysis:
+`AnalyzeOptions.launch` keys the launch-relative findings, and
+`CompareOptions.launch` supplies the one launch a cross-model comparison
+measures against.
+
 ## Entry points
 
 One import subpath per job; each links to its guide.
@@ -106,8 +138,10 @@ TypeScript JSDoc.
 ## Authority boundary
 
 The pipeline (Python) owns stored values that need provider inputs or
-cross-run authority: W\*, boundary-layer top, cloud base, and usable-lift
-top. This package owns pure functions of the published JSON: RH, TI, shear,
+cross-run authority: W\*, boundary-layer top, cloud base, usable-lift
+top, and the measured site ground truth in `site-context.json` (the
+elevation pick, terrain analysis, and land cover). This package owns pure
+functions of the published JSON: RH, TI, shear,
 B/S, lapse, stability, windowing, smoothing, and consumer-parameter
 projections such as a different usable-lift sink rate. A projection does not
 replace the document's published value. The

@@ -210,8 +210,6 @@ def test_all_deterministic_source_transforms_are_explicit_and_repeatable():
     assert first == second
     assert first["referenceTime"] == "2000-01-01T09:00:00Z"
     assert first["hours"][0]["validAt"] == "2000-01-01T15:00:00Z"
-    # The derivation input is launch-agnostic: even a baseline that still
-    # carries a baked v1 launch altitude sheds it before deriving.
     assert "siteAltitudeM" not in first
     assert first["modelElevationM"] == 950
     assert [hour["temperatureC"] for hour in first["hours"]] == [10, 14]
@@ -281,6 +279,21 @@ def test_baselines_cannot_author_derived_values(tmp_path: Path):
 
     with pytest.raises(ScenarioError, match="authors derived values"):
         generate_scenario(minimal_definition(), repository_root=repository)
+
+
+def test_baselines_cannot_carry_a_baked_launch_altitude(tmp_path: Path):
+    # A siteAltitudeM in a baseline means someone hasn't absorbed the launch
+    # decoupling — derivation inputs are launch-agnostic, and the rejection
+    # must direct them to the definition's launch block, not merely refuse.
+    repository = scenario_repository(tmp_path)
+    baseline_path = repository / "scenarios" / "baselines" / "minimal-hourly-core.source.json"
+    baseline = load_json(baseline_path)
+    baseline["siteAltitudeM"] = 1050
+    baseline_path.write_text(json.dumps(baseline))
+
+    with pytest.raises(ScenarioError, match="launch block") as raised:
+        generate_scenario(minimal_definition(), repository_root=repository)
+    assert "siteAltitudeM" in str(raised.value)
 
 
 def test_assertion_failure_names_scenario_hour_field_relation_and_actual():

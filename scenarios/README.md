@@ -60,7 +60,8 @@ Every definition has these required fields:
 - `launch` declares the launch elevation the lesson teaches against. It never
   enters the generated document: the index publishes it, and renderers pass it
   as the toolkit's `SceneOptions.launch`. Assertions read it as
-  `launch.elevationM`;
+  `launch.elevationM`. Baselines are launch-agnostic too — one carrying the
+  retired `siteAltitudeM` is rejected with directions;
 - `clock` fixes the UTC reference, generation, and first-valid instants,
   sampling step, hour count, and random seed;
 - `baseline` names one local source file and, for calibrated material, its

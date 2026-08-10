@@ -40,7 +40,8 @@ commit the regenerated assets.
 | Concern | Authoritative input | Generated or derived output |
 | --- | --- | --- |
 | Profile and catalogue contract | `toolkit/src/contract/index.ts` | `toolkit/schema/*.schema.json` |
-| Launch catalogue | `sites.json` | Sites embedded in manifests and profiles |
+| Site catalogue | `sites.json` — identity and build selection only (slug, name, coordinates, timezone) | Site blocks embedded in manifests and profiles; the catalogue itself published verbatim to the dataset root |
+| Site ground truth | The catalogued coordinates, measured by `windgram terrain` from open elevation and land-cover data | `site-context.json` (the launch elevation pick, terrain analysis, land cover), committed and published beside the catalogue |
 | Model catalogue | `models.json`, checked against builder behaviour and verified provider reference | Model manifests and profiles under `<model>/` in the published dataset |
 | Pipeline derivations | `pipeline/src/windgram/` | `derived.*` values in profile documents |
 | Package derivations and renderer | `toolkit/src/` | `toolkit/dist/`, golden SVG fixtures |
@@ -61,13 +62,28 @@ They move independently.
 
 ## Choose the contribution path
 
-### Add or correct a launch site
+### Add or correct a site
 
 1. Edit the versioned envelope in [`sites.json`](sites.json). The slug is the
-   stable identity; coordinates and `elevationM` are the launch facts in
-   decimal degrees and metres MSL.
-2. Add or update coverage in [`pipeline/tests/test_sites.py`](pipeline/tests/test_sites.py).
-3. Run `uv run --project pipeline pytest pipeline/tests/test_sites.py`, then the full Python suite. Every
+   stable identity; the entry carries identity and build selection only —
+   slug, name, coordinates in decimal degrees, and the IANA timezone. There
+   is no elevation field: humans author WHERE, the pipeline measures WHAT,
+   and the loader rejects a typed-in `elevationM` with directions.
+2. Regenerate the measured ground truth and commit it with the catalogue:
+
+   ```sh
+   uv sync --project pipeline --extra terrain
+   uv run --project pipeline windgram terrain
+   ```
+
+   This rewrites [`site-context.json`](site-context.json) — the site's launch
+   elevation pick (LidarBC 1 m ground returns → MRDEM-30 → GLO-30 as a loud
+   last resort), terrain analysis, and land cover — and prints a one-line
+   summary per site. Read the summaries and any `WARN` lines before
+   committing: a large pick-versus-terrain gap usually means the coordinates
+   are wrong.
+3. Add or update coverage in [`pipeline/tests/test_sites.py`](pipeline/tests/test_sites.py).
+4. Run `uv run --project pipeline pytest pipeline/tests/test_sites.py`, then the full Python suite. Every
    builder reads the same catalogue, so a catalogue change is not isolated to
    one model.
 
@@ -112,7 +128,10 @@ uv run --project pipeline pytest pipeline/tests/test_scenarios.py pipeline/tests
 Commit the definition, any intentional baseline or generator change, the
 generated profile or profiles, and `scenarios/index.json` together. A new
 lesson needs machine-checkable assertions. Never author `derived.*` in a
-definition or baseline; the production derivation is its one home.
+definition or baseline; the production derivation is its one home. The
+launch a scenario teaches against lives in the definition's `launch` block
+and is published in the index entry — never in a baseline or a generated
+document, which are launch-agnostic like production profiles.
 
 ### Add or change a figure
 

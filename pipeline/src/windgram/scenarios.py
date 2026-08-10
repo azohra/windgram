@@ -269,6 +269,13 @@ def _load_baseline(definition: Mapping[str, Any], repository_root: Path) -> dict
         raise ScenarioError(
             f"scenario {definition['id']}: baseline {definition['baseline']['path']} authors derived values"
         )
+    if "siteAltitudeM" in baseline:
+        raise ScenarioError(
+            f"scenario {definition['id']}: baseline {definition['baseline']['path']} "
+            "carries siteAltitudeM — derivation inputs have been launch-agnostic "
+            "since the launch decoupling: delete the field and declare the launch "
+            "in the definition's launch block instead"
+        )
     if definition["baseline"]["type"] == "calibrated":
         provenance = scenarios_root / definition["baseline"]["provenancePath"]
         if not provenance.is_file():
@@ -308,10 +315,6 @@ def _prepare_source(definition: Mapping[str, Any], baseline: Mapping[str, Any]) 
     start = _utc(clock["startAt"], f"scenario {scenario_id} clock.startAt")
     step = timedelta(hours=clock["stepHours"])
     source = copy.deepcopy(dict(baseline))
-    # Pre-decoupling baselines may still carry a baked launch altitude; the
-    # derivation input is launch-agnostic (the launch lives in the definition's
-    # `launch` block and is published in the scenario index, never a document).
-    source.pop("siteAltitudeM", None)
     source.update(
         {
             "referenceTime": clock["referenceTime"],
