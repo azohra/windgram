@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "windgram"
-version = "0.6.0"
+version = "0.6.1"
 description = "Open pipeline for publishing model-derived soaring profiles as static JSON."
 readme = "README.md"
 license = "MIT"
@@ -22,15 +22,13 @@ dependencies = [
     "eccodeslib>=2.48.0.26",
     "h5py>=3.11",
     "jsonschema>=4.25",
-    "netcdf4>=1.7",
+    "numpy>=1.26",
     "requests>=2.32",
 ]
 
 # The one-shot `windgram terrain` catalogue enrichment streams COG windows
 # through rasterio; the cron builds never need it, so it stays out of the
-# default dependency set. numpy is a transitive dependency of netcdf4
-# today, but terrain imports it directly, so it is declared here on its
-# own merits.
+# default dependency set.
 [project.optional-dependencies]
 terrain = [
     "numpy>=1.26",
@@ -46,7 +44,10 @@ Documentation = "https://windgram.azohra.com/docs/"
 windgram = "windgram.cli:main"
 
 [dependency-groups]
-dev = ["pytest>=8"]
+# netcdf4 is TEST-ONLY, and only ever imported in a subprocess
+# (tests/builders/netcdf4_reference.py): its bundled libhdf5 beside
+# h5py's segfaults a shared interpreter at shutdown.
+dev = ["netcdf4>=1.7", "pytest>=8"]
 
 [tool.setuptools]
 package-dir = { "" = "src" }

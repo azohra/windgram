@@ -20,8 +20,9 @@ The build is incremental: granules newer than the published manifest's
 are sampled, merged into each site's rolling ~72 h window, and
 republished. Each granule is read by HTTP Range by default — the four
 sites' pixels live in a handful of HDF5 chunks, a few hundred KiB of a
-9–41 MB file — with an automatic whole-file netCDF4 fallback on any
-ranged-path failure (a fallback is printed, not an error).
+9–41 MB file — with an automatic whole-file fallback on any ranged-path
+failure (a fallback is printed, not an error). Both paths read through
+h5py: one HDF5 stack per process (see _granule).
 
 History: NOAA's own bucket is the permanent granule archive, but each
 observation instant is also archived once — the first time it enters
@@ -35,6 +36,7 @@ times over.
 
 from __future__ import annotations
 
+import io
 import json
 import math
 import os
@@ -47,7 +49,6 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import h5py
-import netCDF4
 import numpy
 import requests
 
@@ -245,10 +246,11 @@ def _granule_samples(
     stats: DownloadStats,
 ) -> tuple[dict[str, tuple[int, int]], dict[str, float], str]:
     """Every site's valid retrieval from one granule: ranged reads by
-    default, whole-file netCDF4 as the safety net on ANY ranged-path
-    failure — a fallback costs one full download, never the build."""
+    default, a whole-file download through the same h5py wrapper as the
+    safety net on ANY ranged-path failure — a fallback costs one full
+    download, never the build."""
     try:
-        with _RangedGranule(url, stats) as granule:
+        with _ranged_granule(url, stats) as granule:
             indices, samples = _sample_sites(granule, product, sites, indices)
         return indices, samples, "ranged"
     except Exception as error:  # noqa: BLE001 — any ranged failure falls back
@@ -284,21 +286,30 @@ def _sample_sites(
     return indices, samples
 
 
-def _granule(payload: bytes) -> netCDF4.Dataset:
-    return netCDF4.Dataset("granule", mode="r", memory=payload)
+def _granule(payload: bytes) -> "_Granule":
+    """The whole-file path: the same h5py wrapper over an in-memory copy.
+
+    Deliberately NOT netCDF4: the h5py and netCDF4 wheels each bundle
+    their own libhdf5, and loading both into one process segfaults the
+    interpreter at shutdown (exit 139 — observed on every Linux CI run
+    of the first 0.6.0 push, after all tests had passed). One HDF5 stack
+    per process is the invariant; netCDF4 survives only as the tests'
+    subprocess-isolated reference implementation."""
+    return _Granule(io.BytesIO(payload))
 
 
-class _RangedGranule:
-    """Just enough of netCDF4.Dataset's surface for sampling and site
-    navigation, over h5py on an HTTP-Range file. The reader never raises
-    inside h5py's driver callbacks (see rangedfile) — instead every
-    operation here re-raises the reader's recorded failure, so a poisoned
-    read can never masquerade as data."""
+class _Granule:
+    """Just enough of a netCDF4.Dataset's surface for sampling and site
+    navigation, over h5py on any seekable file. When the file is a
+    RangedHTTPFile the reader never raises inside h5py's driver callbacks
+    (see rangedfile) — instead every operation here re-raises the
+    reader's recorded failure, so a poisoned read can never masquerade
+    as data."""
 
-    def __init__(self, url: str, stats: DownloadStats) -> None:
-        self._reader = RangedHTTPFile(url, stats)
+    def __init__(self, fileobj) -> None:
+        self._fileobj = fileobj
         try:
-            self._file = h5py.File(self._reader, "r")
+            self._file = h5py.File(fileobj, "r")
         except Exception:
             # A transport failure surfaces as an unparseable file; the
             # recorded error names the real cause.
@@ -307,20 +318,25 @@ class _RangedGranule:
         self._raise_reader_error()
 
     def _raise_reader_error(self) -> None:
-        if self._reader.error is not None:
-            raise self._reader.error
+        error = getattr(self._fileobj, "error", None)
+        if error is not None:
+            raise error
 
     def __getitem__(self, name: str) -> "_RangedVariable":
         variable = _RangedVariable(self._file[name], self._raise_reader_error)
         self._raise_reader_error()
         return variable
 
-    def __enter__(self) -> "_RangedGranule":
+    def __enter__(self) -> "_Granule":
         return self
 
     def __exit__(self, *exc) -> None:
         self._file.close()
-        self._reader.close()
+        self._fileobj.close()
+
+
+def _ranged_granule(url: str, stats: DownloadStats) -> "_Granule":
+    return _Granule(RangedHTTPFile(url, stats))
 
 
 class _RangedVariable:

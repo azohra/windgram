@@ -730,14 +730,14 @@ wheels = [
 
 [[package]]
 name = "windgram"
-version = "0.6.0"
+version = "0.6.1"
 source = { editable = "." }
 dependencies = [
     { name = "eccodes" },
     { name = "eccodeslib" },
     { name = "h5py" },
     { name = "jsonschema" },
-    { name = "netcdf4" },
+    { name = "numpy" },
     { name = "requests" },
 ]
 
@@ -749,6 +749,7 @@ terrain = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "netcdf4" },
     { name = "pytest" },
 ]
 
@@ -758,7 +759,7 @@ requires-dist = [
     { name = "eccodeslib", specifier = ">=2.48.0.26" },
     { name = "h5py", specifier = ">=3.11" },
     { name = "jsonschema", specifier = ">=4.25" },
-    { name = "netcdf4", specifier = ">=1.7" },
+    { name = "numpy", specifier = ">=1.26" },
     { name = "numpy", marker = "extra == 'terrain'", specifier = ">=1.26" },
     { name = "rasterio", marker = "extra == 'terrain'", specifier = ">=1.4" },
     { name = "requests", specifier = ">=2.32" },
@@ -766,4 +767,7 @@ requires-dist = [
 provides-extras = ["terrain"]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=8" }]
+dev = [
+    { name = "netcdf4", specifier = ">=1.7" },
+    { name = "pytest", specifier = ">=8" },
+]

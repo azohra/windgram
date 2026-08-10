@@ -4,6 +4,21 @@ Notable repository and `windgram` package changes are recorded here. Dataset
 schema, npm package, and Python pipeline versions are independent; each release
 entry names the versions it actually changes.
 
+## [0.6.1] - 2026-08-10
+
+`windgram` pipeline (PyPI) 0.6.1 — one HDF5 stack per process. The
+0.18.0 push's CI and PyPI release both died with exit 139: the h5py and
+netCDF4 wheels each bundle their own libhdf5, and loading both into one
+interpreter segfaults it at shutdown — after every test had passed
+(pipeline 0.6.0 was tagged but never reached PyPI; this release carries
+its content). The GOES builder now reads BOTH paths through h5py (the
+whole-file fallback wraps an in-memory copy in the same mask-and-scale
+wrapper as the ranged path), netCDF4 moved to a test-only dev
+dependency whose single importer is a subprocess-isolated reference
+script, the bit-identical regression now compares both h5py paths
+against netCDF4's own reading across a process boundary, and a guard
+test pins the invariant: importing the builder must never load netCDF4.
+
 ## [0.18.0] - 2026-08-10
 
 `windgram` (npm and JSR) 0.18.0 and `windgram` pipeline (PyPI) 0.6.0 —
