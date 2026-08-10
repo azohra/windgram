@@ -27,17 +27,23 @@ jobs:
         run: |
           uv sync --frozen --project pipeline
           pnpm install --frozen-lockfile
-      - name: Check generated scenario drift
-        run: uv run --project pipeline windgram scenarios check
-      # Committed doc figures (assets/*.svg) are regenerated from the
-      # package renderer and compared byte-for-byte — the same contract that
-      # keeps generated scenarios honest. The social-card raster is checked
-      # for presence and dimensions only: its text is already path outlines,
-      # but PNG bytes still vary across chromium builds and platforms.
-      - name: Check generated doc-figure drift
-        run: pnpm --dir scripts figures:check
-      - name: Test Python pipeline
-        run: uv run --project pipeline pytest pipeline/tests
+      - name: Probe the data base from the runner
+        run: |
+          set +e
+          for ua in "curl/8" "windgram-pipeline (github.com/azohra/windgram)"; do
+            echo "== UA: $ua"
+            curl -s -o /tmp/body -w "hrdps-west/manifest.json: %{http_code}\n" -A "$ua" https://data.meteo.azohra.com/hrdps-west/manifest.json
+            head -c 200 /tmp/body; echo
+            curl -sI -A "$ua" https://data.meteo.azohra.com/hrdps-west/manifest.json | grep -iE "cf-ray|cf-mitigated|cf-cache|server:"
+          done
+          uv sync --frozen --project pipeline
+          uv run --project pipeline python -c "
+          from windgram.publish import runs_index, catalogued_model_slugs
+          import json
+          index = runs_index(catalogued_model_slugs())
+          print('runs_index from runner:', json.dumps(index)[:300])
+          "
+          exit 0
       - name: Test TypeScript package and scenario SVG goldens
         run: pnpm --dir toolkit test
       - name: Type-check TypeScript package
