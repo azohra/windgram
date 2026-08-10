@@ -4,10 +4,11 @@ Notable repository and `windgram` package changes are recorded here. Dataset
 schema, npm package, and Python pipeline versions are independent; each release
 entry names the versions it actually changes.
 
-## [Unreleased]
+## [0.15.1] - 2026-08-10
 
-`windgram` (npm and JSR) fixes plus scenario and site repairs: every
-interactive teaching control now visibly moves what it claims to move.
+`windgram` (npm and JSR) 0.15.1 — fixes plus scenario and site repairs:
+every interactive teaching control now visibly moves what it claims to
+move.
 
 ### Fixed
 
