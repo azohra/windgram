@@ -7,6 +7,13 @@ import type { EnsembleValue, WindgramHour, WindgramProfile } from "../src/contra
    everywhere. */
 
 const FLOOR_M = 1072.5;
+
+/* The launch the golden renders draw — a RENDER INPUT (SceneOptions.launch)
+   since the launch-decoupling wave: fixture documents are launch-agnostic,
+   and 1485 m is the elevation the pre-decoupling fixtures baked in, kept so
+   the goldens render byte-identically. */
+export const SCENE_LAUNCH = { elevationM: 1485 } as const;
+
 const LEVEL_PRESSURES = [925, 900, 875, 850, 800];
 const LEVEL_HEIGHTS = [1252.4, 1494.1, 1741.6, 1996.2, 2531.7];
 
@@ -76,7 +83,6 @@ export function deterministicSceneProfile(): WindgramProfile {
       name: "Dundee",
       latitude: 49.291977,
       longitude: -117.183569,
-      altitudeM: 1485,
       modelElevationM: FLOOR_M,
     },
     hours,
@@ -128,7 +134,6 @@ export function ensembleSceneProfile(): WindgramProfile {
       name: "Dundee",
       latitude: 49.291977,
       longitude: -117.183569,
-      altitudeM: 1485,
       modelElevationM: 1573.9,
     },
     hours,
@@ -219,7 +224,6 @@ export function tinySceneProfile(): WindgramProfile {
       name: "Tiny",
       latitude: 49,
       longitude: -117,
-      altitudeM: null,
       modelElevationM: 1000,
     },
     hours: [hour("2026-08-09T18:00:00Z", 20), hour("2026-08-09T19:00:00Z", 22)],

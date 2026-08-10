@@ -305,10 +305,49 @@ describe("barbs and markers", () => {
     expect(scene.markers.map((marker) => marker.kind).sort()).toEqual(["cloud", "wing"]);
   });
 
-  it("skips the launch line when site altitude is unknown", () => {
-    expect(buildScene(tinySceneProfile(), TZ).launch).toBeNull();
-    const withLaunch = buildScene(deterministicSceneProfile(), TZ);
+  it("draws the launch marker from options.launch only — documents carry no launch", () => {
+    // No option, no marker: a missing marker is honest, never an error.
+    expect(buildScene(deterministicSceneProfile(), TZ).launch).toBeNull();
+
+    const withLaunch = buildScene(deterministicSceneProfile(), {
+      ...TZ,
+      launch: { elevationM: 1485 },
+    });
     expect(withLaunch.launch?.label).toBe("launch 1485 m");
+    expect(withLaunch.launch?.altitudeM).toBe(1485);
+    // The marker sits exactly where the shared y-scale puts 1485 m.
+    const { plotTop, plotHeight, floorM, topM } = withLaunch.scales;
+    expect(withLaunch.launch?.y).toBeCloseTo(
+      plotTop + plotHeight * (1 - (1485 - floorM) / (topM - floorM)),
+      6,
+    );
+  });
+
+  it("joins a provided launch name into the label", () => {
+    const named = buildScene(deterministicSceneProfile(), {
+      ...TZ,
+      launch: { name: "Dundee upper", elevationM: 1485 },
+    });
+    expect(named.launch?.label).toBe("Dundee upper 1485 m");
+  });
+
+  it("stretches the altitude domain to a provided launch, and only to a provided one", () => {
+    // 5000 m stands above every drawn series: the domain must grow so the
+    // marker fits (5000 * 1.04), exactly as the old baked field did.
+    const stretched = buildScene(deterministicSceneProfile(), {
+      ...TZ,
+      launch: { elevationM: 5000 },
+    });
+    expect(stretched.scales.topM).toBeCloseTo(5000 * 1.04, 6);
+    expect(stretched.launch?.altitudeM).toBe(5000);
+    // Without the option the domain is the data's own — no phantom headroom.
+    expect(buildScene(deterministicSceneProfile(), TZ).scales.topM).toBeCloseTo(3650 * 1.04, 6);
+  });
+
+  it("skips a launch below the model's ground — outside the drawable domain", () => {
+    // tiny's floor is 1000 m; a launch below it has no honest position.
+    const scene = buildScene(tinySceneProfile(), { ...TZ, launch: { elevationM: 900 } });
+    expect(scene.launch).toBeNull();
   });
 });
 
@@ -386,9 +425,21 @@ describe("complete overlay control", () => {
     expect(scene.scales.topM).toBeCloseTo(3450 * 1.04, 6);
   });
 
-  it("removes the launch line under its toggle", () => {
-    const scene = buildScene(deterministicSceneProfile(), { ...TZ, overlays: { launch: false } });
+  it("removes even a provided launch under its toggle", () => {
+    const scene = buildScene(deterministicSceneProfile(), {
+      ...TZ,
+      launch: { elevationM: 1485 },
+      overlays: { launch: false },
+    });
     expect(scene.launch).toBeNull();
+    // And the hidden launch leaves the altitude-domain scan too: no
+    // headroom for a marker that is not drawn.
+    const hiddenTall = buildScene(deterministicSceneProfile(), {
+      ...TZ,
+      launch: { elevationM: 5000 },
+      overlays: { launch: false },
+    });
+    expect(hiddenTall.scales.topM).toBeCloseTo(3650 * 1.04, 6);
   });
 
   it("suppresses the selected-hour highlight while keeping the index computed", () => {

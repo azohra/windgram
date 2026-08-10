@@ -57,20 +57,9 @@
         "longitude": {
           "type": "number"
         },
-        "altitudeM": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "The launch's surveyed elevation, metres MSL — the same quantity sites.json publishes as elevationM, stored per-profile. Null when unknown."
-        },
         "modelElevationM": {
           "type": "number",
-          "description": "The model's terrain elevation at the site's grid point, metres MSL."
+          "description": "The model's own terrain elevation at the sampled grid point, metres MSL — the plot floor and the physics reference; a fact about the model's sample, not about any launch."
         },
         "timeZone": {
           "description": "The site's IANA timezone (e.g. \"America/Vancouver\"), echoed per-profile from the sites.json catalogue — local time is load-bearing for reading a windgram. Absence means the document predates the echo, never that UTC applies locally.",
@@ -83,9 +72,9 @@
         "name",
         "latitude",
         "longitude",
-        "altitudeM",
         "modelElevationM"
-      ]
+      ],
+      "description": "Sample provenance: where the atmosphere was sampled and the model's own ground there. Launch attributes are deliberately absent — a windgram document is launch-agnostic, and the launch arrives at render time (SceneOptions.launch); a missing launch marker is honest, a baked-in one would bind a grid forecast to one launch."
     },
     "semantics": {
       "type": "object",

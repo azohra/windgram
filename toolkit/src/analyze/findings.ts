@@ -50,12 +50,17 @@ export function analyzeProfile(
       ? "document"
       : "utcFallback";
   const timeZone = options.timeZone ?? profile.site.timeZone ?? "UTC";
+  /* The launch is the caller's (AnalyzeOptions.launch) — documents are
+     launch-agnostic. Without one, launch-relative arithmetic reads against
+     the model's own ground. */
+  const launchElevationM = options.launch?.elevationM ?? null;
   const context: Context = {
     profile,
     timeZone,
     deterministic: isDeterministicProfile(profile),
     stepHours: stepHoursOf(profile),
-    launchReferenceM: profile.site.altitudeM ?? profile.site.modelElevationM,
+    launchElevationM,
+    launchReferenceM: launchElevationM ?? profile.site.modelElevationM,
     cite: citedInstantFactory(timeZone),
     thresholds,
   };
@@ -77,7 +82,7 @@ export function analyzeProfile(
     model: profile.model,
     site: {
       id: profile.site.id,
-      launchAltitudeM: profile.site.altitudeM,
+      launchAltitudeM: launchElevationM,
       modelElevationM: profile.site.modelElevationM,
     },
     run: { referenceTime: profile.run.referenceTime },
@@ -96,6 +101,9 @@ interface Context {
   timeZone: string;
   deterministic: boolean;
   stepHours: number;
+  /** The caller-supplied launch elevation; null when none was supplied. */
+  launchElevationM: number | null;
+  /** launchElevationM, falling back to the model's own ground. */
   launchReferenceM: number;
   cite: (validAt: string) => CitedInstant;
   thresholds: AnalyzeThresholds;
@@ -179,7 +187,9 @@ export function round1(value: number): number {
 
 function findTerrainMismatch(context: Context): TerrainMismatchFinding[] {
   const { profile, thresholds } = context;
-  const launch = profile.site.altitudeM;
+  // Launch vs model ground needs a launch: without AnalyzeOptions.launch
+  // there is no statement to make (documents carry no launch).
+  const launch = context.launchElevationM;
   if (launch === null) return [];
   const delta = profile.site.modelElevationM - launch;
   if (Math.abs(delta) < thresholds.terrainMismatch.minAbsDeltaM) return [];
@@ -212,7 +222,7 @@ function findTerrainMismatch(context: Context): TerrainMismatchFinding[] {
 function findFlyableWindows(context: Context): FlyableWindowFinding[] {
   const { profile, launchReferenceM, thresholds, stepHours } = context;
   const { wstarMinMs, depthMinM } = thresholds.flyableWindow;
-  const launchKnown = profile.site.altitudeM !== null;
+  const launchKnown = context.launchElevationM !== null;
   const ensemble = !context.deterministic;
 
   const flyable = (hour: WindgramHour): boolean => {

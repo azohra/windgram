@@ -58,7 +58,6 @@ export function deterministicProfile(overrides: Partial<WindgramProfile> = {}): 
       name: "Dundee",
       latitude: 49.291977,
       longitude: -117.183569,
-      altitudeM: 1485,
       modelElevationM: 1072.5,
     },
     hours: [deterministicHour()],
@@ -132,14 +131,13 @@ export function manifest(): WindgramManifest {
 
 export function sitesCatalogue(): SitesCatalogue {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     sites: [
       {
         slug: "dundee",
         name: "Dundee",
         latitude: 49.291977,
         longitude: -117.183569,
-        elevationM: 1485,
         timeZone: "America/Vancouver",
       },
       {
@@ -147,7 +145,6 @@ export function sitesCatalogue(): SitesCatalogue {
         name: "Red Mtn",
         latitude: 49.091868,
         longitude: -117.820838,
-        elevationM: 1591,
         timeZone: "America/Vancouver",
       },
     ],

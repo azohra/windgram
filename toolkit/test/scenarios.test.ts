@@ -39,6 +39,8 @@ interface LoadedOutput {
   entry: ScenarioEntry;
   output: ScenarioOutput;
   profile: WindgramProfile;
+  /** The scenario's launch, bridged from the baked v1 field (see loadOutput). */
+  launch: { elevationM: number } | undefined;
   scene: SceneGraph;
   svg: string;
 }
@@ -84,13 +86,24 @@ function loadOutput(entry: ScenarioEntry, output: ScenarioOutput): LoadedOutput 
   expect(profile, `${label} must satisfy parseWindgramProfile`).not.toBeNull();
   expect(profile!.site.id, `${label} site identity`).toBe(entry.site.id);
 
+  /* TODO(pipeline, launch-decoupling): scenarios are pipeline-generated and
+     the committed documents still BAKE a site.altitudeM (a v1 leftover the
+     contract now strips at parse). Launches are render inputs now
+     (SceneOptions.launch), and the scenario generator owns moving the
+     launch into the scenario metadata; until it does, bridge it from the
+     raw JSON so the teaching renders keep their launch line and the goldens
+     stay byte-identical. When the pipeline regenerates scenarios, read the
+     launch from the index entry instead and delete this bridge. */
+  const bakedLaunch = (rawProfile as { site?: { altitudeM?: number | null } }).site?.altitudeM;
+  const launch = typeof bakedLaunch === "number" ? { elevationM: bakedLaunch } : undefined;
+
   assertFiniteNumbers(profile, `${label} profile`);
-  const scene = buildScene(profile!, { timeZone: entry.timeZone });
+  const scene = buildScene(profile!, { timeZone: entry.timeZone, launch });
   assertFiniteNumbers(scene, `${label} scene`);
   const svg = renderSvg(scene, { idPrefix: `scenario-${entry.id}-${output.variant ?? "only"}` });
   validateSvg(svg, label);
 
-  return { entry, output, profile: profile!, scene, svg };
+  return { entry, output, profile: profile!, launch, scene, svg };
 }
 
 function assertFiniteNumbers(value: unknown, label: string, seen = new Set<object>()): void {
@@ -285,6 +298,7 @@ describe("scenario SVG goldens", () => {
     expect(loaded).toBeDefined();
     const scene = buildScene(loaded!.profile, {
       timeZone: loaded!.entry.timeZone,
+      launch: loaded!.launch,
       smokeAdjusted: true,
     });
     // The view must declare itself: the graph carries the derating smoke

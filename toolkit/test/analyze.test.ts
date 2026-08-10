@@ -38,6 +38,13 @@ const hrrr = () => load("hrrrConusErie");
 const geps = () => load("gepsFlagpole");
 const reps = () => load("repsErie");
 
+/* The launches the spike analyzed against — ANALYSIS INPUTS since the
+   launch-decoupling wave: the fixtures baked these as v1 site.altitudeM
+   (which the contract now strips at parse), and AnalyzeOptions.launch is
+   the only source. Same elevations, same expected numbers. */
+const ERIE = { launch: { elevationM: 1247 } };
+const FLAGPOLE = { launch: { elevationM: 1222 } };
+
 function ofKind<T extends { kind: string }>(
   findings: readonly { kind: string }[],
   kind: T["kind"],
@@ -47,7 +54,7 @@ function ofKind<T extends { kind: string }>(
 
 describe("the analysis envelope", () => {
   it("stamps the vocabulary version and the document's identity", () => {
-    const analysis = analyzeProfile(hrrr());
+    const analysis = analyzeProfile(hrrr(), ERIE);
     expect(analysis.vocabularyVersion).toBe(ANALYZE_VOCABULARY_VERSION);
     expect(analysis.model).toBe("hrrr-conus");
     expect(analysis.site).toEqual({ id: "erie", launchAltitudeM: 1247, modelElevationM: 1177.6 });
@@ -57,13 +64,13 @@ describe("the analysis envelope", () => {
   });
 
   it("reads local time from the document's own site.timeZone", () => {
-    const analysis = analyzeProfile(hrrr());
+    const analysis = analyzeProfile(hrrr(), ERIE);
     expect(analysis.timeZone).toBe("America/Vancouver");
     expect(analysis.timeZoneSource).toBe("document");
   });
 
   it("lets the caller override the timezone", () => {
-    const analysis = analyzeProfile(hrrr(), { timeZone: "America/Edmonton" });
+    const analysis = analyzeProfile(hrrr(), { ...ERIE, timeZone: "America/Edmonton" });
     expect(analysis.timeZone).toBe("America/Edmonton");
     expect(analysis.timeZoneSource).toBe("override");
     const window = ofKind<FlyableWindowFinding>(analysis.findings, "flyableWindow")[0];
@@ -80,11 +87,26 @@ describe("the analysis envelope", () => {
     expect(caveats.caveats).toContainEqual({ caveat: "timesAreUtc" });
   });
 
+  it("analyzes launch-free when no launch is supplied — the honest fallback", () => {
+    // Documents are launch-agnostic: without AnalyzeOptions.launch the
+    // envelope carries no launch, launch-relative peaks are null, and the
+    // depth arithmetic reads against the model's own ground.
+    const analysis = analyzeProfile(hrrr());
+    expect(analysis.site.launchAltitudeM).toBeNull();
+    const windows = ofKind<FlyableWindowFinding>(analysis.findings, "flyableWindow");
+    expect(windows.length).toBeGreaterThan(0);
+    for (const window of windows) {
+      expect(window.peakLiftTopAboveLaunchM).toBeNull();
+    }
+  });
+
   it("emits only the version-2 vocabulary — kinds are a closed, versioned set", () => {
     const kinds = new Set(
-      [hrrr(), geps(), reps()].flatMap((profile) =>
-        analyzeProfile(profile).findings.map((finding) => finding.kind),
-      ),
+      [
+        analyzeProfile(hrrr(), ERIE),
+        analyzeProfile(geps(), FLAGPOLE),
+        analyzeProfile(reps(), ERIE),
+      ].flatMap((analysis) => analysis.findings.map((finding) => finding.kind)),
     );
     for (const kind of kinds) {
       expect([
@@ -104,7 +126,7 @@ describe("the analysis envelope", () => {
 describe("flyableWindow", () => {
   it("finds the deterministic afternoon window with local timing and launch-relative peak", () => {
     const findings = ofKind<FlyableWindowFinding>(
-      analyzeProfile(hrrr()).findings,
+      analyzeProfile(hrrr(), ERIE).findings,
       "flyableWindow",
     );
     const saturday = findings.find((finding) => finding.day === "2026-08-08")!;
@@ -126,6 +148,7 @@ describe("flyableWindow", () => {
 
   it("moves with the caller's thresholds — they are conventions, not physics", () => {
     const strict = analyzeProfile(hrrr(), {
+      ...ERIE,
       thresholds: { flyableWindow: { wstarMinMs: 2.1, depthMinM: 1500 } },
     });
     const findings = ofKind<FlyableWindowFinding>(strict.findings, "flyableWindow");
@@ -139,6 +162,7 @@ describe("flyableWindow", () => {
   it("states the negative: a day with no window emits quietDay with the numbers that failed", () => {
     // Impossible W* floor: every day is quiet, and the finding says why.
     const strict = analyzeProfile(hrrr(), {
+      ...ERIE,
       thresholds: { flyableWindow: { wstarMinMs: 99, depthMinM: 300 } },
     });
     expect(ofKind<FlyableWindowFinding>(strict.findings, "flyableWindow")).toHaveLength(0);
@@ -153,7 +177,7 @@ describe("flyableWindow", () => {
   });
 
   it("flags horizon truncation: a quiet call from a sliver of a day is a data boundary", () => {
-    const quiet = ofKind<QuietDayFinding>(analyzeProfile(geps()).findings, "quietDay");
+    const quiet = ofKind<QuietDayFinding>(analyzeProfile(geps(), FLAGPOLE).findings, "quietDay");
     const byDay = Object.fromEntries(quiet.map((finding) => [finding.day, finding]));
     // The fully-covered middle day is a REAL quiet day (the terrain case).
     expect(byDay["2026-08-09"].coverage.truncated).toBe(false);
@@ -166,7 +190,7 @@ describe("flyableWindow", () => {
   });
 
   it("marks windows clipped by the document's own horizon at either edge", () => {
-    const windows = ofKind<FlyableWindowFinding>(analyzeProfile(hrrr()).findings, "flyableWindow");
+    const windows = ofKind<FlyableWindowFinding>(analyzeProfile(hrrr(), ERIE).findings, "flyableWindow");
     const byDay = Object.fromEntries(windows.map((finding) => [finding.day, finding]));
     // The document opens mid-window and ends mid-window: the first
     // window's start and the last window's end are data boundaries.
@@ -177,7 +201,7 @@ describe("flyableWindow", () => {
   });
 
   it("emits no quietDay for a day any window hour touches", () => {
-    const findings = analyzeProfile(hrrr()).findings;
+    const findings = analyzeProfile(hrrr(), ERIE).findings;
     const windowDays = new Set(
       ofKind<FlyableWindowFinding>(findings, "flyableWindow").map((finding) => finding.day),
     );
@@ -188,7 +212,7 @@ describe("flyableWindow", () => {
 
   it("reads ensembles at p50 and carries the p10-p90 lift-top band as evidence", () => {
     const findings = ofKind<FlyableWindowFinding>(
-      analyzeProfile(reps()).findings,
+      analyzeProfile(reps(), ERIE).findings,
       "flyableWindow",
     );
     expect(findings.map((finding) => finding.day)).toEqual(["2026-08-08", "2026-08-09"]);
@@ -199,13 +223,13 @@ describe("flyableWindow", () => {
   });
 
   it("finds nothing at the terrain-mismatch site — lift tops never reach 300 m over launch", () => {
-    expect(ofKind(analyzeProfile(geps()).findings, "flyableWindow")).toHaveLength(0);
+    expect(ofKind(analyzeProfile(geps(), FLAGPOLE).findings, "flyableWindow")).toHaveLength(0);
   });
 });
 
 describe("liftCeiling", () => {
   it("attributes the deterministic window's ceiling to sink, with evidence per segment", () => {
-    const findings = ofKind<LiftCeilingFinding>(analyzeProfile(hrrr()).findings, "liftCeiling");
+    const findings = ofKind<LiftCeilingFinding>(analyzeProfile(hrrr(), ERIE).findings, "liftCeiling");
     const saturday = findings.find((finding) => finding.day === "2026-08-08")!;
     expect(saturday.segments).toHaveLength(1);
     expect(saturday.flips).toBe(0);
@@ -221,7 +245,7 @@ describe("liftCeiling", () => {
   });
 
   it("calls the REPS windows cloud-capped — base sits on (or within 50 m of) the top", () => {
-    const findings = ofKind<LiftCeilingFinding>(analyzeProfile(reps()).findings, "liftCeiling");
+    const findings = ofKind<LiftCeilingFinding>(analyzeProfile(reps(), ERIE).findings, "liftCeiling");
     expect(findings).toHaveLength(2);
     for (const finding of findings) {
       expect(finding.segments[0].cause).toBe("cloudCapped");
@@ -234,7 +258,7 @@ describe("liftCeiling", () => {
 
 describe("capTiming", () => {
   it("tells the deterministic cap story with local timing and full-day evidence", () => {
-    const findings = ofKind<CapTimingFinding>(analyzeProfile(hrrr()).findings, "capTiming");
+    const findings = ofKind<CapTimingFinding>(analyzeProfile(hrrr(), ERIE).findings, "capTiming");
     const saturday = findings.find((finding) => finding.day === "2026-08-08")!;
     expect(saturday.verdict).toBe("capBreaks");
     expect(saturday.peakCapeJkg).toBe(540);
@@ -258,14 +282,14 @@ describe("capTiming", () => {
   it("gates itself off ensembles and multi-hour cadences — GEPS says nothing here", () => {
     // GEPS publishes CAPE and CIN, but as 3-hourly ensemble percentiles:
     // the spike found the member-median CIN bimodal, so no cap story.
-    expect(ofKind(analyzeProfile(geps()).findings, "capTiming")).toHaveLength(0);
-    expect(ofKind(analyzeProfile(reps()).findings, "capTiming")).toHaveLength(0);
+    expect(ofKind(analyzeProfile(geps(), FLAGPOLE).findings, "capTiming")).toHaveLength(0);
+    expect(ofKind(analyzeProfile(reps(), ERIE).findings, "capTiming")).toHaveLength(0);
   });
 });
 
 describe("windSummary", () => {
   it("states gust and band-wind magnitudes and timing for the deterministic day", () => {
-    const findings = ofKind<WindSummaryFinding>(analyzeProfile(hrrr()).findings, "windSummary");
+    const findings = ofKind<WindSummaryFinding>(analyzeProfile(hrrr(), ERIE).findings, "windSummary");
     const saturday = findings.find((finding) => finding.day === "2026-08-08")!;
     expect(saturday.maxGust?.gustMs).toBe(3.9);
     expect(saturday.maxGust?.at.local).toBe("2026-08-08T16:00");
@@ -283,7 +307,7 @@ describe("windSummary", () => {
   });
 
   it("omits maxGust where the model publishes none, and carries the semantics echo where it does", () => {
-    const findings = ofKind<WindSummaryFinding>(analyzeProfile(reps()).findings, "windSummary");
+    const findings = ofKind<WindSummaryFinding>(analyzeProfile(reps(), ERIE).findings, "windSummary");
     expect(findings.length).toBeGreaterThan(0);
     for (const finding of findings) {
       expect(finding.maxGust).toBeUndefined(); // REPS is gustless
@@ -302,7 +326,7 @@ describe("windSummary", () => {
 describe("terrainMismatch", () => {
   it("finds the GEPS flagpole case — model terrain 1,078 m below launch", () => {
     const findings = ofKind<TerrainMismatchFinding>(
-      analyzeProfile(geps()).findings,
+      analyzeProfile(geps(), FLAGPOLE).findings,
       "terrainMismatch",
     );
     expect(findings).toHaveLength(1);
@@ -320,12 +344,18 @@ describe("terrainMismatch", () => {
   it("stays silent where model terrain sits close to launch", () => {
     // hrrr at erie: model terrain 1177.6 m vs launch 1247 m -> 69.4 m under
     // the default 250 m; reps at erie is 0.9 m off.
-    expect(ofKind(analyzeProfile(hrrr()).findings, "terrainMismatch")).toHaveLength(0);
-    expect(ofKind(analyzeProfile(reps()).findings, "terrainMismatch")).toHaveLength(0);
+    expect(ofKind(analyzeProfile(hrrr(), ERIE).findings, "terrainMismatch")).toHaveLength(0);
+    expect(ofKind(analyzeProfile(reps(), ERIE).findings, "terrainMismatch")).toHaveLength(0);
+  });
+
+  it("says nothing without a launch — there is no launch in the document to mismatch", () => {
+    // Even the extreme GEPS terrain deficit is only a statement AGAINST a
+    // launch; launch-free analyses have nothing to compare.
+    expect(ofKind(analyzeProfile(geps()).findings, "terrainMismatch")).toHaveLength(0);
   });
 
   it("moves with the caller's threshold", () => {
-    const loose = analyzeProfile(hrrr(), { thresholds: { terrainMismatch: { minAbsDeltaM: 50 } } });
+    const loose = analyzeProfile(hrrr(), { ...ERIE, thresholds: { terrainMismatch: { minAbsDeltaM: 50 } } });
     const findings = ofKind<TerrainMismatchFinding>(loose.findings, "terrainMismatch");
     expect(findings).toHaveLength(1);
     expect(findings[0].deltaM).toBe(-69.4);
@@ -336,7 +366,7 @@ describe("terrainMismatch", () => {
 describe("ensembleMembership", () => {
   it("surfaces the GEPS CAPE member-dropout landmine per quantity", () => {
     const findings = ofKind<EnsembleMembershipFinding>(
-      analyzeProfile(geps()).findings,
+      analyzeProfile(geps(), FLAGPOLE).findings,
       "ensembleMembership",
     );
     expect(findings).toHaveLength(1);
@@ -354,7 +384,7 @@ describe("ensembleMembership", () => {
 
   it("states band-width magnitude and trend, with no confidence verdicts", () => {
     const finding = ofKind<EnsembleMembershipFinding>(
-      analyzeProfile(reps()).findings,
+      analyzeProfile(reps(), ERIE).findings,
       "ensembleMembership",
     )[0];
     const liftBand = finding.bands.find((entry) => entry.series === "usableLiftTopM")!;
@@ -367,13 +397,13 @@ describe("ensembleMembership", () => {
   });
 
   it("says nothing about deterministic documents", () => {
-    expect(ofKind(analyzeProfile(hrrr()).findings, "ensembleMembership")).toHaveLength(0);
+    expect(ofKind(analyzeProfile(hrrr(), ERIE).findings, "ensembleMembership")).toHaveLength(0);
   });
 });
 
 describe("dataCaveats", () => {
   it("declares what REPS cannot say — the whole science wave absent, threshold-free", () => {
-    const finding = ofKind<DataCaveatsFinding>(analyzeProfile(reps()).findings, "dataCaveats")[0];
+    const finding = ofKind<DataCaveatsFinding>(analyzeProfile(reps(), ERIE).findings, "dataCaveats")[0];
     const absent = finding.caveats.find((caveat) => caveat.caveat === "absentQuantities")!;
     expect(absent.quantities).toEqual(
       expect.arrayContaining(["windGustMs", "capeJkg", "cinJkg", "pblHeightM"]),
@@ -389,7 +419,7 @@ describe("dataCaveats", () => {
   });
 
   it("does not call a science-capable document's fields absent", () => {
-    const finding = ofKind<DataCaveatsFinding>(analyzeProfile(hrrr()).findings, "dataCaveats")[0];
+    const finding = ofKind<DataCaveatsFinding>(analyzeProfile(hrrr(), ERIE).findings, "dataCaveats")[0];
     const absent = finding.caveats.find((caveat) => caveat.caveat === "absentQuantities");
     expect(absent?.quantities ?? []).not.toContain("capeJkg");
     expect(absent?.quantities ?? []).not.toContain("windGustMs");
