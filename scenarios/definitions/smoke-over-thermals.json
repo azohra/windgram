@@ -1,0 +1,97 @@
+{
+  "$schema": "../scenario.schema.json",
+  "schemaVersion": 1,
+  "id": "smoke-over-thermals",
+  "title": "Wildfire smoke thickens over strong thermals",
+  "lesson": "Smoke optical depth climbs through a convective afternoon while the smoke-blind model keeps its heat fluxes and w* strong \u2014 the gap a smoke-adjusted reading corrects.",
+  "kind": "deterministic",
+  "modelShape": "hourly-rich",
+  "timeZone": "Etc/UTC",
+  "site": {
+    "id": "synthetic-smoke-ridge",
+    "name": "Synthetic Smoke Ridge",
+    "synthetic": true,
+    "latitude": 49.3,
+    "longitude": -121.8,
+    "altitudeM": 1050,
+    "modelElevationM": 900
+  },
+  "clock": {
+    "referenceTime": "2000-01-01T06:00:00Z",
+    "generatedAt": "2000-01-01T06:00:00Z",
+    "startAt": "2000-01-01T10:00:00Z",
+    "stepHours": 1,
+    "hourCount": 10,
+    "seed": 14002
+  },
+  "baseline": {
+    "type": "synthetic",
+    "path": "baselines/smoke-over-thermals.source.json"
+  },
+  "transforms": [],
+  "semantics": {
+    "gust": "hourMax",
+    "precipitation": "instantRate",
+    "smoke": "passive"
+  },
+  "capabilities": {
+    "levels": true,
+    "pressureLevels": [
+      925,
+      900,
+      850,
+      800,
+      750,
+      700,
+      650,
+      600
+    ],
+    "verticalVelocity": false,
+    "heatFluxes": true,
+    "gust": "hourMax",
+    "cape": true,
+    "cin": true,
+    "pblHeight": true,
+    "cloudLayers": true,
+    "cloudProfile": false,
+    "smoke": "passive"
+  },
+  "assertions": [
+    {
+      "id": "optical-depth-climbs",
+      "description": "Column optical depth deepens from morning into the afternoon plume.",
+      "actual": {
+        "field": "smoke.aot",
+        "hour": 1
+      },
+      "operator": "less-than",
+      "expected": {
+        "field": "smoke.aot",
+        "hour": 8
+      }
+    },
+    {
+      "id": "surface-smoke-mixes-down",
+      "description": "Near-surface concentration climbs as the plume mixes down.",
+      "actual": {
+        "field": "smoke.surfaceUgm3",
+        "hour": 0
+      },
+      "operator": "less-than",
+      "expected": {
+        "field": "smoke.surfaceUgm3",
+        "hour": 8
+      }
+    },
+    {
+      "id": "model-stays-smoke-blind",
+      "description": "Under the day's thickest smoke the smoke-blind model still derives strong midafternoon thermals \u2014 the contradiction the smoke-adjusted view exists to correct.",
+      "actual": {
+        "field": "derived.thermalVelocityMs",
+        "hour": 6
+      },
+      "operator": "greater-than",
+      "expected": 1.5
+    }
+  ]
+}

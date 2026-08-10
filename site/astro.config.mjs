@@ -121,6 +121,7 @@ export default defineConfig({
             { slug: "docs/data/catalogue", label: "Model catalogue" },
             { slug: "docs/data/manifest", label: "Manifest" },
             { slug: "docs/reference/profile-document", label: "Profile" },
+            { slug: "docs/reference/smoke-document", label: "Smoke document" },
             { slug: "docs/data/ensemble-values", label: "Ensemble values" },
             { slug: "docs/data/history", label: "History" },
             { slug: "docs/data/versioning", label: "Versioning" },
@@ -130,6 +131,7 @@ export default defineConfig({
           label: "Learn",
           items: [
             { slug: "docs/learn/reading-a-windgram", label: "Reading a windgram" },
+            { slug: "docs/learn/smoke-and-thermals", label: "Smoke and thermals" },
             { slug: "docs/learn/synthetic-teaching-data", label: "Synthetic teaching data" },
           ],
         },

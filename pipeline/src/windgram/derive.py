@@ -114,7 +114,7 @@ def _derive_hour(source: dict, model_elevation_m: float) -> dict:
         if field_name in source:
             surface[field_name] = sanitize(source[field_name])
 
-    return {
+    hour = {
         "validAt": source["validAt"],
         "surface": surface,
         "levels": [_derive_level(level) for level in levels],
@@ -129,6 +129,14 @@ def _derive_hour(source: dict, model_elevation_m: float) -> dict:
             "usableLiftTopM": usable_lift_top_m,
         },
     }
+    # Prognostic smoke from the model's own run (contract hours[].smoke):
+    # published untouched next to the derivation — whether `derived` already
+    # feels this smoke is the model's semantics.smoke declaration, not a
+    # transformation applied here. Concentrations and optical thickness are
+    # non-negative by definition.
+    if "smoke" in source:
+        hour["smoke"] = {name: max(0.0, value) for name, value in source["smoke"].items()}
+    return hour
 
 
 # Sanitizers for the optional surface fields, in published (contract) order.

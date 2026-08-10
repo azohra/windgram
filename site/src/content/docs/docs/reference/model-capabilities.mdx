@@ -32,6 +32,22 @@ declares gust *semantics*, not gust presence — an hour-maximum, an instantaneo
 files' own interval metadata could not answer, is in the
 [forecast model feed reference](/docs/reference/forecast-model-feeds/).
 
+## Smoke is a coupling claim, not just a field list
+
+`capabilities.smoke` carries three values because "this model publishes
+smoke" is only half the fact. `"radiativelyCoupled"` (HRRR) means the
+model's forecast smoke attenuates its own shortwave — its published
+fluxes, and every thermal quantity derived from them, are **already
+smoke-aware**, so applying a smoke correction on top would double-count
+the plume. `"passive"` means smoke rides along without touching the
+model's radiation, and a correction is legitimate. `false` means no
+smoke at all — for those models smoke arrives, if anywhere, as a
+separate [smoke document](/docs/reference/smoke-document/) from another
+model, never inside the profile. Documents echo the token as
+`semantics.smoke`, and the renderer's smoke-adjusted view refuses to run
+wherever the declaration says the base picture already did the
+arithmetic — see [Smoke and thermals](/docs/learn/smoke-and-thermals/).
+
 ## Surface-based CAPE
 
 NOAA publishes a menu of CAPE variants — several parcel definitions, each answering a different

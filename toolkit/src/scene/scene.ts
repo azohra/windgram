@@ -1,4 +1,13 @@
 import { type WindgramProfile } from "../contract/index.js";
+import { p50 } from "../derive/ensemble.js";
+import {
+  cosSolarZenith,
+  isSmokeAwareProfile,
+  smokeAdjustedThermalVelocityMs,
+  smokeAotFromColumn,
+  smokeHoursByValidAt,
+  smokeTransmittance,
+} from "../derive/smoke.js";
 import { lapseRateCPer1000Ft, surfaceLapseCPer1000Ft } from "../derive/lapse.js";
 import { dewPointDepressionC, relativeHumidityPercent } from "../derive/moisture.js";
 import { vectorShearMs } from "../derive/shear.js";
@@ -202,10 +211,90 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
   // nulls where an hour had no renderable state; the nulls drop here.
   const allHours = profile.hours.map(resolveHour);
   const hourIndices = resolveHourIndices(profile, options);
-  const hours = (
+  let hours = (
     hourIndices ? hourIndices.map((index) => allHours[index]) : allHours
   ).filter((hour): hour is ResolvedHour => hour != null);
   const overlays: Record<OverlayName, boolean> = { ...DEFAULT_OVERLAYS, ...options.overlays };
+
+  /* Smoke, per rendered hour — ONE source per strip, never a blend: a
+     strip carries one provenance label, so mixing two models' hours under
+     it would lie. The profile's own block wins (same-run provenance, and
+     its published AOT); only a profile with no smoke at all falls back to
+     the supplied smoke document through the validAt join, AOT derived
+     from the plume column. smokeSource records whichever model fed the
+     drawn strip. */
+  const profileHasSmoke = hours.some((hour) => hour.smoke !== null);
+  const joinedSmoke =
+    !profileHasSmoke && options.smoke ? smokeHoursByValidAt(options.smoke) : null;
+  const smokeSeries = hours.map((hour) => {
+    if (profileHasSmoke) {
+      return hour.smoke ? { surfaceUgm3: hour.smoke.surfaceUgm3, aot: hour.smoke.aot } : null;
+    }
+    const documentHour = joinedSmoke?.get(hour.validAt);
+    if (!documentHour) return null;
+    const surfaceUgm3 = p50(documentHour.smokePlumeSurfaceUgm3);
+    const columnMgm2 = p50(documentHour.smokePlumeColumnMgm2);
+    if (surfaceUgm3 === null || columnMgm2 === null) return null;
+    return { surfaceUgm3, aot: smokeAotFromColumn(columnMgm2) };
+  });
+  const smokeSource = profileHasSmoke
+    ? { model: profile.model, referenceTime: profile.run.referenceTime }
+    : options.smoke && smokeSeries.some((entry) => entry !== null)
+      ? { model: options.smoke.model, referenceTime: options.smoke.run.referenceTime }
+      : null;
+
+  /* The smoke-adjusted alternate view: derate each hour's w* by the
+     cube root of the slant-path transmittance and re-derive its lift
+     envelope, BEFORE anything downstream reads the hours — the strip,
+     the usable-lift series, the best-hour pick, and any sink-rate
+     recompute all see one coherent view. Never applied to a profile
+     whose fluxes already feel smoke (semantics.smoke
+     "radiativelyCoupled"): the request quietly no-ops and
+     smokeAdjustment stays null, which is the renderer's signal that the
+     base picture is already smoke-aware. On ensembles the medians and
+     the w* envelope scale (quantile-safe: × ∛f is monotone); the
+     lift-top envelope cannot be re-derived from percentiles alone, so
+     it drops rather than lies. */
+  let smokeAdjustment: SceneGraph["smokeAdjustment"] = null;
+  if (options.smokeAdjusted && smokeSource && !isSmokeAwareProfile(profile)) {
+    hours = hours.map((hour, index) => {
+      const entry = smokeSeries[index];
+      if (!entry || entry.aot <= 0) return hour;
+      const transmittance = smokeTransmittance(
+        entry.aot,
+        cosSolarZenith(hour.validAt, profile.site.latitude, profile.site.longitude),
+      );
+      if (transmittance >= 1) return hour;
+      const adjustedW = smokeAdjustedThermalVelocityMs(
+        hour.derived.thermalVelocityMs,
+        transmittance,
+      );
+      const scale = Math.cbrt(transmittance);
+      const wBand = hour.bands.thermalVelocityMs;
+      return {
+        ...hour,
+        derived: {
+          ...hour.derived,
+          thermalVelocityMs: adjustedW,
+          usableLiftTopM: usableLiftTopM({
+            modelElevationM: profile.site.modelElevationM,
+            boundaryLayerTopM: hour.derived.boundaryLayerTopM,
+            thermalVelocityMs: adjustedW,
+            cloudBaseM: hour.derived.cloudBaseM,
+            levels: hour.levels,
+          }),
+        },
+        bands: {
+          ...hour.bands,
+          thermalVelocityMs: wBand
+            ? { p25: wBand.p25 * scale, p75: wBand.p75 * scale }
+            : null,
+          usableLiftTopM: null,
+        },
+      };
+    });
+    smokeAdjustment = { smokeModel: smokeSource.model, smokeRun: smokeSource.referenceTime };
+  }
   const smooth = options.smooth !== false;
   const capeClasses = options.capeClasses ?? DEFAULT_CAPE_CLASSES;
   /* Container fit: widthPx states the consumer's intent (fill this panel)
@@ -297,6 +386,7 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
     overlays,
     capeClasses,
     floorM,
+    smokeSeries,
     geometry: stripGeometry,
   });
 
@@ -832,6 +922,7 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
         })),
       ],
       verticalVelocityPaS: omegaNodes(hour),
+      smoke: overlays.smoke ? smokeSeries[index] : null,
     };
   });
 
@@ -863,6 +954,8 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
     launch,
     selectedHourIndex,
     selection: null,
+    smokeSource: overlays.smoke ? smokeSource : null,
+    smokeAdjustment,
     highlightSelectedHour: overlays.selectedHour,
     hourValidAts: hours.map((hour) => hour.validAt),
     sampling,

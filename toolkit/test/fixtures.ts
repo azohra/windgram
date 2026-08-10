@@ -196,6 +196,7 @@ export function catalogue(): ModelCatalogue {
           pblHeight: true,
           cloudLayers: false,
           cloudProfile: false,
+          smoke: false,
         },
       },
       {
@@ -220,6 +221,7 @@ export function catalogue(): ModelCatalogue {
           pblHeight: false,
           cloudLayers: false,
           cloudProfile: false,
+          smoke: false,
         },
       },
     ],

@@ -155,6 +155,14 @@ def validate_definition(
             f"scenario {scenario_id}: semantics.gust must exactly match capabilities.gust"
         )
 
+    smoke_capability = definition["capabilities"].get("smoke", False)
+    smoke_semantics = definition["semantics"].get("smoke")
+    expected_smoke_semantics = smoke_capability if smoke_capability is not False else None
+    if smoke_semantics != expected_smoke_semantics:
+        raise ScenarioError(
+            f"scenario {scenario_id}: semantics.smoke must exactly match capabilities.smoke"
+        )
+
     hour_count = definition["clock"]["hourCount"]
     kind = definition["kind"]
     variants = definition.get("comparison", {}).get("variants", [])
@@ -640,6 +648,8 @@ def _validate_capabilities(definition: Mapping[str, Any], source: Mapping[str, A
         for field in _CLOUD_LAYER_FIELDS:
             if (field in hour) != capabilities["cloudLayers"]:
                 raise ScenarioError(f"{label}: {field} presence does not match capabilities.cloudLayers")
+        if ("smoke" in hour) != (capabilities.get("smoke", False) is not False):
+            raise ScenarioError(f"{label}: smoke presence does not match capabilities.smoke")
         vertical_expected = set(capabilities.get("verticalVelocityLevels", []))
         for level in retained:
             expected = capabilities["verticalVelocity"] is not False and level["pressureHpa"] in vertical_expected
@@ -835,6 +845,10 @@ def _resolve_metric(profile: Mapping[str, Any], reference: Mapping[str, Any]) ->
         hour = profile["hours"][hour_index]
         if block in {"surface", "derived"}:
             container = hour[block]
+        elif block == "smoke":
+            # The optional per-hour block: an absent block reads as the
+            # field being absent, the same statement the contract makes.
+            container = hour.get("smoke", {})
         else:
             levels = hour["levels"]
             selector = reference["level"]

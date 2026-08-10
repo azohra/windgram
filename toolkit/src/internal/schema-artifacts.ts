@@ -9,6 +9,7 @@ import {
   modelCatalogueSchema,
   runsIndexSchema,
   sitesCatalogueSchema,
+  smokeDocumentSchema,
   windgramManifestSchema,
   windgramProfileSchema,
 } from "../contract/index.js";
@@ -24,6 +25,11 @@ export const schemaArtifacts: readonly SchemaArtifact[] = [
     fileName: "profile.schema.json",
     title: "Windgram profile document",
     schema: windgramProfileSchema,
+  },
+  {
+    fileName: "smoke.schema.json",
+    title: "Windgram smoke document",
+    schema: smokeDocumentSchema,
   },
   {
     fileName: "manifest.schema.json",

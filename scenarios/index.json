@@ -419,6 +419,51 @@
       ]
     },
     {
+      "id": "smoke-over-thermals",
+      "title": "Wildfire smoke thickens over strong thermals",
+      "lesson": "Smoke optical depth climbs through a convective afternoon while the smoke-blind model keeps its heat fluxes and w* strong \u2014 the gap a smoke-adjusted reading corrects.",
+      "kind": "deterministic",
+      "modelShape": "hourly-rich",
+      "timeZone": "Etc/UTC",
+      "site": {
+        "id": "synthetic-smoke-ridge",
+        "name": "Synthetic Smoke Ridge",
+        "latitude": 49.3,
+        "longitude": -121.8,
+        "altitudeM": 1050,
+        "modelElevationM": 900,
+        "timeZone": "Etc/UTC"
+      },
+      "capabilities": {
+        "levels": true,
+        "pressureLevels": [
+          925,
+          900,
+          850,
+          800,
+          750,
+          700,
+          650,
+          600
+        ],
+        "verticalVelocity": false,
+        "heatFluxes": true,
+        "gust": "hourMax",
+        "cape": true,
+        "cin": true,
+        "pblHeight": true,
+        "cloudLayers": true,
+        "cloudProfile": false,
+        "smoke": "passive"
+      },
+      "outputs": [
+        {
+          "path": "generated/smoke-over-thermals.profile.json",
+          "sha256": "3bac0adb4e08603c94382e921ad6d5bdac060b222af73864206b9e8cc999ebe6"
+        }
+      ]
+    },
+    {
       "id": "three-hourly-sampling",
       "title": "A genuinely three-hourly profile",
       "lesson": "Sparse forecast samples retain their three-hour cadence and do not imply invented intermediate model hours.",

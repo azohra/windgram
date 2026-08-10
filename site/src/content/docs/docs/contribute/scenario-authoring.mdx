@@ -138,6 +138,16 @@ The scenario's `semantics` maps its synthetic transport into the same public
 v0.3 vocabulary used by profiles. It does not borrow semantics from a
 production model name.
 
+Smoke follows the same discipline: a baseline hour may carry a `smoke`
+block (`surfaceUgm3`, `columnMgm2`, `aot`), and every hour must agree
+with `capabilities.smoke` — `"passive"` for a synthetic profile whose
+smoke should accept the renderer's smoke-adjusted view,
+`"radiativelyCoupled"` to teach the already-smoke-aware case, `false`
+(or omission) with no smoke blocks anywhere. `semantics.smoke` must
+exactly match, like gust. Assertions can reference `smoke.surfaceUgm3`,
+`smoke.columnMgm2`, and `smoke.aot`; the `smoke-over-thermals` recipe is
+the working example.
+
 ## Author source changes
 
 The transform vocabulary is closed. It supports surface-field

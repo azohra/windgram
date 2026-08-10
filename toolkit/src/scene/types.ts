@@ -1,3 +1,4 @@
+import type { SmokeDocument } from "../contract/index.js";
 import type { FieldNode } from "./field.js";
 
 /* The typed scene graph: everything a serializer or interactive layer needs
@@ -104,6 +105,7 @@ export type OverlayName =
   | "gusts"
   | "pblHeight"
   | "cloudLayers"
+  | "smoke"
   | "pressure"
   | "precipitation"
   | "boundaryLayerTop"
@@ -132,6 +134,10 @@ export const DEFAULT_OVERLAYS: Readonly<Record<OverlayName, boolean>> = {
   gusts: true,
   pblHeight: true,
   cloudLayers: true,
+  // Contributes nothing without smoke data (the model's own block or a
+  // smoke document supplied via SceneOptions.smoke), so pre-smoke
+  // documents render unchanged.
+  smoke: true,
   // Complete-control overlays (see the docblock above): every previously
   // unconditional element, on by default so defaults render byte-identically.
   pressure: true,
@@ -200,6 +206,31 @@ export interface SceneOptions {
    */
   hours?: ReadonlyArray<{ validAt: string }> | { timeZone: string; dateKey: string };
   overlays?: Partial<Record<OverlayName, boolean>>;
+  /**
+   * A smoke document (RAQDPS) for the same site, joined per hour by
+   * validAt to feed the smoke strip where the profile model publishes no
+   * smoke of its own. The profile's own smoke block wins where both
+   * exist (same-run provenance beats a cross-model join). The graph's
+   * `smokeSource` names whichever model and run the drawn strip came
+   * from — a DIFFERENT model and cadence than the profile's, which
+   * renderers must be able to label.
+   */
+  smoke?: SmokeDocument | null;
+  /**
+   * Render the smoke-adjusted ALTERNATE VIEW: each hour's w* derated by
+   * the cube root of the slant-path smoke transmittance and its
+   * usable-lift envelope re-derived, coherently through the strip, the
+   * series, and the best-hour pick. The stored document never changes;
+   * this is a read-time re-derivation, and the graph declares it in
+   * `smokeAdjustment` — WHICH RENDERERS MUST LABEL. Quietly no-ops
+   * (smokeAdjustment stays null) when there is no smoke data or the
+   * profile's fluxes are already smoke-aware (semantics.smoke
+   * "radiativelyCoupled" — deriving again would double-count). Scope:
+   * boundary-layer depth and cloud base are NOT re-derived, so the
+   * adjusted view is a partial correction, still optimistic in heavy
+   * smoke.
+   */
+  smokeAdjusted?: boolean;
   /**
    * 1-2-1 smoothing (derive/smooth121) on the cloud-base and usable-lift
    * series — the pipeline's retired pass, now a renderer option. Default
@@ -427,7 +458,8 @@ export interface MetricStrip {
     | "cloudLayers"
     | "cape"
     | "thermalStrength"
-    | "buoyancyShear";
+    | "buoyancyShear"
+    | "smoke";
   className: string;
   label: string;
   unit: string;
@@ -584,6 +616,13 @@ export interface HourSampling {
   windU: ReadonlyArray<FieldNode>;
   windV: ReadonlyArray<FieldNode>;
   verticalVelocityPaS: ReadonlyArray<FieldNode>;
+  /**
+   * The hour's smoke as the strip drew it — the same single source
+   * (profile block or joined document, never blended), so a tooltip can
+   * never disagree with the pixels. Whole-column values, not
+   * altitude-interpolated; null where no smoke was drawn.
+   */
+  smoke: { surfaceUgm3: number; aot: number } | null;
 }
 
 export interface SceneGraph {
@@ -613,6 +652,24 @@ export interface SceneGraph {
    */
   selection: SceneSelection | null;
   /**
+   * Where the smoke strip's data came from: the profile model itself
+   * (its own smoke block) or the joined smoke document's model and run.
+   * A cross-model source runs on its own cadence, so renderers labeling
+   * the strip MUST show this rather than implying same-run provenance.
+   * Null when no smoke strip was drawn.
+   */
+  smokeSource: { model: string; referenceTime: string } | null;
+  /**
+   * Present exactly when this scene IS the smoke-adjusted alternate view
+   * (SceneOptions.smokeAdjusted honored): the smoke model and run whose
+   * optical thickness derated the drawn w* and lift envelope. Renderers
+   * MUST surface this label — an adjusted view that looks like the base
+   * forecast is the failure mode this field exists to prevent. Null on
+   * the base view, including when the adjustment was requested but
+   * no-opped (no smoke data, or the profile is already smoke-aware).
+   */
+  smokeAdjustment: { smokeModel: string; smokeRun: string } | null;
+  /**
    * Whether the serializer draws the selected-hour column highlight —
    * the `selectedHour` overlay. `selectedHourIndex` above stays computed
    * either way, so readouts keep working with the highlight off.
@@ -637,4 +694,12 @@ export interface CursorReading {
   windSpeedMs: number | null;
   windDirectionDeg: number | null;
   verticalVelocityPaS: number | null;
+  /**
+   * Near-surface smoke, µg/m³ — the hour's whole-column value as the
+   * smoke strip drew it (same source, so tooltip and pixels agree), not
+   * an altitude interpolation. Null where no smoke was drawn.
+   */
+  smokeSurfaceUgm3: number | null;
+  /** Column aerosol optical thickness for the hour; null without smoke. */
+  smokeAot: number | null;
 }

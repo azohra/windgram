@@ -257,6 +257,19 @@ Verified facts:
   instantaneous, no sentinels. The pipeline publishes the surface-based
   pair, the one variant every capable model shares.
 - `HPBL:surface` is paramId 159 `blh`, metres AGL.
+- **Prognostic wildfire smoke ships in the same files** (verified
+  2026-08-09 in both `wrfprs` and `wrfsfc` indexes): `MASSDEN` at
+  8 m AGL (kg/m³ → published µg/m³), `COLMD` column mass (kg/m² →
+  mg/m²), and `AOTK` column aerosol optical thickness — three extra
+  ranged fetches per hour, published as the profile's per-hour `smoke`
+  block. HRRRv4's only prognostic aerosol is smoke, so `AOTK` is
+  effectively smoke optical depth. The smoke is **radiatively
+  coupled** — forecast smoke attenuates the model's own shortwave, so
+  published fluxes and derived w* are already smoke-aware (Dowell et
+  al. 2022, WAF, §2d; declared `smoke: "radiativelyCoupled"` in the
+  catalogue and echoed per document). Caveat: 2023-season evaluation
+  (Chace et al. 2026, WAF) found HRRR underpredicts AOD for aged
+  long-range smoke.
 - **Layered cloud exists**: `LCDC`/`MCDC`/`HCDC`, instantaneous %, on
   NCEP's terrain-following sigma layers (fixed-surface types 214/224/234;
   low σ 1.0–0.642, middle 0.642–0.35, high 0.35–0.15 of surface pressure —
@@ -514,6 +527,17 @@ Verified facts (2026-08-08):
 - Cost: ~150 MB per step for the windgram field set (36 all-members files)
   — **~14 GiB per run** over 96 steps, twice daily. The heaviest feed in
   the pipeline, which is why the workflow builds it last.
+
+## RAQDPS 10 km — supported, smoke documents
+
+ECCC's Regional Air Quality Deterministic Prediction System (GEM-MACH):
+10 km, runs 00Z and 12Z, hourly to 72 h, standard Datamart transport
+shared with the models above. It feeds no wind profiles — it is the
+source of the per-site **[smoke documents](/docs/reference/smoke-document/)**,
+where its verified paths, fields, units, and join semantics live. The
+catalogue lists it under `smokeModels`, separate from `models` so
+pre-smoke consumers keep parsing. Fetch cost is the lightest of any
+ECCC feed: three whole-domain files per hour, ~43 MB per run.
 
 ## ECMWF IFS open data — evaluated, not adopted
 

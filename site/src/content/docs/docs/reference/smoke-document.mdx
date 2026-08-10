@@ -1,0 +1,91 @@
+---
+title: Smoke document
+description: The per-site wildfire-smoke time series from RAQDPS — fields, units, cadence, verified provider facts, and how it joins a profile.
+---
+
+The smoke document is the contract's first non-profile document kind: a
+per-site, per-run time series of wildfire smoke from an air-quality
+model — ECCC's RAQDPS (GEM-MACH) today. It exists because the
+wind-profile models this dataset publishes for Canada are smoke-blind,
+and folding another model's smoke into their profiles would break the
+one-model-per-document rule. Consumers join a smoke document to a
+profile by site and `validAt` instead, and label the join with both
+models' runs.
+
+Published at `raqdps/sites/<site-slug>.json`, validated by
+[`smoke.schema.json`](https://github.com/azohra/windgram/blob/main/toolkit/schema/smoke.schema.json),
+guarded by `parseSmokeDocument` in
+[`windgram/contract`](/docs/typescript/contract/). Discovery is the
+catalogue's `smokeModels` array — deliberately separate from `models`,
+so consumers that predate smoke keep parsing the catalogue untouched.
+
+## Shape and units
+
+```json
+{
+  "schemaVersion": 1,
+  "model": "raqdps",
+  "run": { "referenceTime": "2026-08-10T00:00:00Z", "generatedAt": "2026-08-10T02:12:41Z" },
+  "site": { "id": "dundee", "name": "Dundee", "latitude": 49.1, "longitude": -122.26, "timeZone": "America/Vancouver" },
+  "hours": [
+    {
+      "validAt": "2026-08-10T01:00:00Z",
+      "pm25Ugm3": 37.5,
+      "smokePlumeSurfaceUgm3": 37.5,
+      "smokePlumeColumnMgm2": 4.8
+    }
+  ]
+}
+```
+
+| Field | Unit | Meaning |
+| --- | --- | --- |
+| `pm25Ugm3` | µg/m³ | Total near-surface PM2.5, all sources — the air-quality number. |
+| `smokePlumeSurfaceUgm3` | µg/m³ | The wildfire-smoke share of that PM2.5 at the surface. |
+| `smokePlumeColumnMgm2` | mg/m² | Vertically integrated wildfire-smoke PM2.5 — the mass input for optics-based derivations. |
+
+The site block carries identity and the timezone echo only — no
+elevations, because terrain is a profile concern, not an air-quality
+one. Hours are all forecast hours, chronological, like a profile's.
+
+RAQDPS publishes **no optical-depth field** (verified 2026-08-09: the
+live Datamart tree carries concentration and column-mass files only), so
+optical thickness is derived downstream from the column through a cited
+mass-extinction efficiency — see
+[`smokeAotFromColumn` in `windgram/derive`](/docs/typescript/derive/)
+and the narrative in [Smoke and thermals](/docs/learn/smoke-and-thermals/).
+
+## Provider facts — verified 2026-08-09
+
+- The Datamart folds the wildfire products into the plain
+  `model_raqdps` tree: there is **no `model_raqdps-fw/` directory**,
+  whatever older MSC documentation implies. Files live under
+  `https://dd.weather.gc.ca/YYYYMMDD/WXO-DD/model_raqdps/10km/grib2/HH/hhh/`
+  with the usual MSC one-message-per-file naming
+  (`…_MSC_RAQDPS_PM2.5-WildfireSmokePlume_Sfc_RLatLon0.09_PThhhH.grib2`).
+- Grid `RLatLon0.09` (~10 km), runs **00Z and 12Z**, hourly steps to
+  **72 h**; the `hpfx.collab.science.gc.ca` mirror serves identical
+  paths. A PM10 wildfire-plume pair exists alongside the PM2.5 one
+  (not currently published here), plus NO2, NO, O3, SO2, and plain
+  PM10/PM2.5.
+- The GRIB messages carry **no units metadata**. The SI base units were
+  established from live field statistics: surface concentrations arrive
+  in kg/m³ and the column in kg/m² (that day's national maxima — 1.4×10⁻⁶
+  and 1.2×10⁻⁴ — are physically plausible only in kg-based units). The
+  builder converts to µg/m³ and mg/m² at fetch.
+- Fetch cost: three whole-domain files per forecast hour, ~0.6 MB
+  together — roughly 43 MB per run, 86 MB per day.
+
+## Joining a smoke document to a profile
+
+The two models run on different schedules — RAQDPS twice daily, HRDPS
+four times — so a joined pair usually mixes runs. RAQDPS's 72 h horizon
+covers HRDPS's 48 h at the worst offset (12 + 48 = 60 < 72), so the join
+never runs dry, but any view built on it must surface the smoke run's
+`referenceTime` beside the profile's rather than implying same-run
+provenance. `smokeHoursByValidAt` in
+[`windgram/derive`](/docs/typescript/derive/) does the alignment; the
+scene graph's `smokeSource` carries the label. Models that publish their
+own smoke (HRRR) never need the join — their profiles carry a
+same-run [`smoke` block](/docs/reference/profile-document/) instead, and
+when both exist the profile's own block wins.

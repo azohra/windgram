@@ -272,11 +272,29 @@ describe("generated teaching scenarios", () => {
 describe("scenario SVG goldens", () => {
   // Intentional renderer changes update these with:
   // pnpm --dir toolkit exec vitest run test/scenarios.test.ts --update
-  for (const id of ["convective-cycle", "ensemble-wide"] as const) {
+  for (const id of ["convective-cycle", "ensemble-wide", "smoke-over-thermals"] as const) {
     it(`matches the ${id} golden`, async () => {
       const loaded = outputs.find(({ entry }) => entry.id === id);
       expect(loaded, `missing selected golden scenario ${id}`).toBeDefined();
       await expect(loaded!.svg).toMatchFileSnapshot(`golden/scenario-${id}.svg`);
     });
   }
+
+  it("matches the smoke-over-thermals ADJUSTED golden — the alternate view is a render option, not a different profile", async () => {
+    const loaded = outputs.find(({ entry }) => entry.id === "smoke-over-thermals");
+    expect(loaded).toBeDefined();
+    const scene = buildScene(loaded!.profile, {
+      timeZone: loaded!.entry.timeZone,
+      smokeAdjusted: true,
+    });
+    // The view must declare itself: the graph carries the derating smoke
+    // model + run, and the reference key renders that label.
+    expect(scene.smokeAdjustment).toEqual({
+      smokeModel: loaded!.profile.model,
+      smokeRun: loaded!.profile.run.referenceTime,
+    });
+    const svg = renderSvg(scene, { idPrefix: "scenario-smoke-over-thermals-adjusted" });
+    validateSvg(svg, "smoke-over-thermals adjusted view");
+    await expect(svg).toMatchFileSnapshot("golden/scenario-smoke-over-thermals-adjusted.svg");
+  });
 });

@@ -10,6 +10,7 @@ from windgram.builders.hrrr import (
     OMEGA_LEVELS,
     OPTIONAL_SURFACE_FIELDS,
     PRESSURE_LEVELS,
+    SMOKE_FIELDS,
     _build_profiles,
     _earth_wind,
     _grid_rotation_deg,
@@ -61,6 +62,15 @@ def test_every_science_record_exists_in_the_wrfprs_index():
         find_record(records, variable, level, "24 hour fcst")
 
 
+def test_every_smoke_record_exists_in_the_wrfprs_index():
+    # HRRRv4's prognostic smoke: MASSDEN (8 m AGL), COLMD and AOTK (entire
+    # atmosphere) all live in the one wrfprs file the builder already reads —
+    # verified against the live feed on 2026-08-09 (wrfprs and wrfsfc both).
+    records = parse_idx((FIXTURES / "hrrr.t12z.wrfprsf24.excerpt.idx").read_text())
+    for field_name, (variable, level, _convert) in SMOKE_FIELDS.items():
+        find_record(records, variable, level, "24 hour fcst")
+
+
 def test_vvel_exists_at_every_curated_level_in_the_wrfprs_index():
     # wrfprs carries omega (VVEL, Pa/s, instantaneous) at all nine curated
     # levels — verified against the live feed on 2026-08-08 at f00/f01/f24/f48.
@@ -79,7 +89,15 @@ def test_models_json_matches_the_hrrr_builder_configuration():
     # PRATE is an instantaneous rate at the valid time (×3600 → mm/h), and
     # the documents' own semantics block says the same.
     assert capabilities["precipitation"] == "instantRate"
-    assert hrrr.SEMANTICS == {"gust": "instant", "precipitation": "instantRate"}
+    # HRRRv4's prognostic smoke attenuates its own shortwave (Dowell et al.
+    # 2022, WAF, §2d), so the fluxes — and everything derived from them —
+    # are already smoke-aware: the catalogue and the documents both say so.
+    assert capabilities["smoke"] == "radiativelyCoupled"
+    assert hrrr.SEMANTICS == {
+        "gust": "instant",
+        "precipitation": "instantRate",
+        "smoke": "radiativelyCoupled",
+    }
     assert capabilities["cape"] is True and capabilities["cin"] is True
     assert capabilities["pblHeight"] is True
     assert capabilities["cloudLayers"] is True
@@ -127,6 +145,12 @@ def _fake_index(forecast_hour: int) -> list[IdxRecord]:
         ("MSLMA", "mean sea level"),
         ("SHTFL", "surface"),
     ]
+    rows.append(("MASSDEN", "8 m above ground"))
+    rows.append(("COLMD", "entire atmosphere (considered as a single layer)"))
+    # Hour 2's AOTK is missing from the index: the smoke block is
+    # all-or-nothing, so that hour must publish no smoke at all.
+    if forecast_hour != 2:
+        rows.append(("AOTK", "entire atmosphere (considered as a single layer)"))
     for level in PRESSURE_LEVELS:
         for variable in ("TMP", "DPT", "HGT", "UGRD", "VGRD"):
             rows.append((variable, f"{level} mb"))
@@ -144,6 +168,12 @@ def _fake_index(forecast_hour: int) -> list[IdxRecord]:
 def _fake_value(variable: str, level: str) -> float:
     if variable == "VVEL":
         return OMEGA_PA_S
+    if variable == "MASSDEN":
+        return 2.5e-8  # kg/m³ — the builder publishes µg/m³
+    if variable == "COLMD":
+        return 1.5e-4  # kg/m² — the builder publishes mg/m²
+    if variable == "AOTK":
+        return 0.75  # dimensionless, exactly representable: verbatim flow
     if level == "2 m above ground":
         return 293.15 if variable == "TMP" else 283.15
     if variable == "HGT":
@@ -189,8 +219,18 @@ def test_build_profiles_publishes_omega_and_tolerates_its_absence(monkeypatch):
 
     (profile,) = result["profiles"]
     assert profile["site"]["timeZone"] == "America/Denver"  # the catalogue echo
-    assert profile["semantics"] == {"gust": "instant", "precipitation": "instantRate"}
+    assert profile["semantics"] == {
+        "gust": "instant",
+        "precipitation": "instantRate",
+        "smoke": "radiativelyCoupled",
+    }
     first, second = profile["hours"]
+    # Hour 1 publishes the full smoke block in contract units; hour 2, whose
+    # AOTK record is absent, publishes no block at all (all-or-nothing).
+    assert first["smoke"]["surfaceUgm3"] == pytest.approx(25.0)  # 2.5e-8 kg/m³ → µg/m³
+    assert first["smoke"]["columnMgm2"] == pytest.approx(150.0)  # 1.5e-4 kg/m² → mg/m²
+    assert first["smoke"]["aot"] == 0.75
+    assert "smoke" not in second
     # Every curated level carries the sampled omega verbatim: Pa/s in,
     # Pa/s out, no unit conversion anywhere in the flow.
     assert [level["pressureHpa"] for level in first["levels"]] == sorted(

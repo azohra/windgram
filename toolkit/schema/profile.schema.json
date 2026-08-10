@@ -105,6 +105,14 @@
             "instantRate",
             "windowMeanRate"
           ]
+        },
+        "smoke": {
+          "description": "Smoke semantics for hours[].smoke: \"radiativelyCoupled\" = the model's radiation is attenuated by this smoke, so fluxes and derived quantities are ALREADY smoke-aware (a downstream derate would double-count); \"passive\" = smoke rides along without radiative feedback, so derived quantities are smoke-blind. Mirrors models.json capabilities.smoke.",
+          "type": "string",
+          "enum": [
+            "radiativelyCoupled",
+            "passive"
+          ]
         }
       },
       "description": "Per-document echo of the provider semantics models.json declares for this model, so a stored profile stays interpretable without the catalogue. Absence of the block or a field means the document predates the tag, never that a default applies."
@@ -2726,6 +2734,290 @@
               "thermalVelocityMs",
               "cloudBaseM",
               "usableLiftTopM"
+            ]
+          },
+          "smoke": {
+            "description": "Prognostic wildfire smoke from the profile model's own run — present only where models.json capabilities.smoke is not false. Absence means \"not published\", never clear air. Whether derived is already smoke-aware is declared in capabilities.smoke and echoed in semantics.smoke.",
+            "type": "object",
+            "properties": {
+              "surfaceUgm3": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                          },
+                          "p10": {
+                            "type": "number"
+                          },
+                          "p25": {
+                            "type": "number"
+                          },
+                          "p50": {
+                            "type": "number"
+                          },
+                          "p75": {
+                            "type": "number"
+                          },
+                          "p90": {
+                            "type": "number"
+                          },
+                          "ceiledMembers": {
+                            "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "number",
+                            "const": 0,
+                            "description": "Zero members contributed to this position — full dropout, a published fact."
+                          },
+                          "p10": {
+                            "type": "null"
+                          },
+                          "p25": {
+                            "type": "null"
+                          },
+                          "p50": {
+                            "type": "null"
+                          },
+                          "p75": {
+                            "type": "null"
+                          },
+                          "p90": {
+                            "type": "null"
+                          },
+                          "ceiledMembers": {
+                            "description": "Zero of zero contributing members were ceiling-capped.",
+                            "type": "number",
+                            "const": 0
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
+                      }
+                    ],
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
+                  }
+                ],
+                "description": "Near-surface smoke mass concentration, µg/m³ — the visibility/health number. HRRR publishes it at 8 m above ground (MASSDEN)."
+              },
+              "columnMgm2": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                          },
+                          "p10": {
+                            "type": "number"
+                          },
+                          "p25": {
+                            "type": "number"
+                          },
+                          "p50": {
+                            "type": "number"
+                          },
+                          "p75": {
+                            "type": "number"
+                          },
+                          "p90": {
+                            "type": "number"
+                          },
+                          "ceiledMembers": {
+                            "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "number",
+                            "const": 0,
+                            "description": "Zero members contributed to this position — full dropout, a published fact."
+                          },
+                          "p10": {
+                            "type": "null"
+                          },
+                          "p25": {
+                            "type": "null"
+                          },
+                          "p50": {
+                            "type": "null"
+                          },
+                          "p75": {
+                            "type": "null"
+                          },
+                          "p90": {
+                            "type": "null"
+                          },
+                          "ceiledMembers": {
+                            "description": "Zero of zero contributing members were ceiling-capped.",
+                            "type": "number",
+                            "const": 0
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
+                      }
+                    ],
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
+                  }
+                ],
+                "description": "Vertically integrated smoke mass, mg/m² (column mass density) — total smoke over the site regardless of the layer it rides in."
+              },
+              "aot": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "integer",
+                            "exclusiveMinimum": 0,
+                            "maximum": 9007199254740991,
+                            "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                          },
+                          "p10": {
+                            "type": "number"
+                          },
+                          "p25": {
+                            "type": "number"
+                          },
+                          "p50": {
+                            "type": "number"
+                          },
+                          "p75": {
+                            "type": "number"
+                          },
+                          "p90": {
+                            "type": "number"
+                          },
+                          "ceiledMembers": {
+                            "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 9007199254740991
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "members": {
+                            "type": "number",
+                            "const": 0,
+                            "description": "Zero members contributed to this position — full dropout, a published fact."
+                          },
+                          "p10": {
+                            "type": "null"
+                          },
+                          "p25": {
+                            "type": "null"
+                          },
+                          "p50": {
+                            "type": "null"
+                          },
+                          "p75": {
+                            "type": "null"
+                          },
+                          "p90": {
+                            "type": "null"
+                          },
+                          "ceiledMembers": {
+                            "description": "Zero of zero contributing members were ceiling-capped.",
+                            "type": "number",
+                            "const": 0
+                          }
+                        },
+                        "required": [
+                          "members",
+                          "p10",
+                          "p25",
+                          "p50",
+                          "p75",
+                          "p90"
+                        ]
+                      }
+                    ],
+                    "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
+                  }
+                ],
+                "description": "Column aerosol optical thickness, dimensionless — the sun-dimming number and the optics input for smoke-adjusted derivations. HRRRv4's only prognostic aerosol is wildfire smoke, so its AOT is effectively smoke optical depth."
+              }
+            },
+            "required": [
+              "surfaceUgm3",
+              "columnMgm2",
+              "aot"
             ]
           }
         },

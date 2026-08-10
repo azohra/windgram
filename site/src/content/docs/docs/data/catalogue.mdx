@@ -39,6 +39,15 @@ export function modelLabels(text: string): string[] {
 }
 ```
 
+Non-profile datasets discover separately: the optional `smokeModels`
+array lists smoke-document models (RAQDPS today) with the same identity
+and cadence metadata but no profile capabilities. It is deliberately not
+part of `models` — a capabilities-less entry there would fail every
+already-deployed catalogue guard, while an unknown top-level key is
+stripped harmlessly. Absence of the array means the catalogue predates
+smoke documents; see the
+[smoke document reference](/docs/reference/smoke-document/).
+
 A new catalogue entry is not a package enum change.
 
 ## Absence and semantics are declarations

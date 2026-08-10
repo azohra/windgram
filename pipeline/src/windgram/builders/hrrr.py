@@ -84,6 +84,17 @@ OPTIONAL_SURFACE_FIELDS = {
     "midCloudPercent": ("MCDC", "middle cloud layer"),
     "highCloudPercent": ("HCDC", "high cloud layer"),
 }
+# Prognostic wildfire smoke (contract hours[].smoke), all three in wrfprs:
+# MASSDEN is near-surface concentration at 8 m AGL (kg/m³ → µg/m³), COLMD
+# the column mass density (kg/m² → mg/m²), AOTK the column aerosol optical
+# thickness (dimensionless — HRRRv4's only prognostic aerosol is smoke).
+# The block is all-or-nothing per hour: a missing record publishes no smoke
+# for that hour, never a partial block.
+SMOKE_FIELDS = {
+    "surfaceUgm3": ("MASSDEN", "8 m above ground", lambda v: v * 1e9),
+    "columnMgm2": ("COLMD", "entire atmosphere (considered as a single layer)", lambda v: v * 1e6),
+    "aot": ("AOTK", "entire atmosphere (considered as a single layer)", lambda v: v),
+}
 PRESSURE_LEVELS = (925, 900, 875, 850, 800, 750, 700, 650, 600)
 # wrfprs carries VVEL (omega, Pa/s, instantaneous) at every curated level;
 # models.json declares verticalVelocity: "omega" with these levels. The
@@ -94,8 +105,10 @@ OMEGA_LEVELS = PRESSURE_LEVELS
 # The document's transport-semantics declaration (contract "semantics"):
 # GUST is NOAA's instantaneous diagnostic gust at the valid time;
 # precipitation is PRATE — an instantaneous rate (×3600 → mm/h), not a
-# window mean.
-SEMANTICS = {"gust": "instant", "precipitation": "instantRate"}
+# window mean. Smoke is radiatively coupled: HRRRv4's prognostic smoke
+# attenuates its own shortwave (Dowell et al. 2022, WAF, §2d), so the
+# published fluxes and derived thermal quantities are already smoke-aware.
+SEMANTICS = {"gust": "instant", "precipitation": "instantRate", "smoke": "radiativelyCoupled"}
 
 
 def _out_dir() -> Path:
@@ -269,6 +282,29 @@ def _build_profiles(run: dict, reference_time: str, sites: list[dict], stats: Do
 
         return run_task
 
+    def smoke_task(hour_index: int):
+        def run_task() -> None:
+            forecast_hour = forecast_slots[hour_index]["forecastHour"]
+            try:
+                values_by_field = {
+                    field_name: (record_values(forecast_hour, variable, level), convert)
+                    for field_name, (variable, level, convert) in SMOKE_FIELDS.items()
+                }
+            except MissingRecordError:
+                return  # all-or-nothing block: absence stays out of the document
+            for site in sites:
+                slug = site["slug"]
+                block = {}
+                for field_name, (values, convert) in values_by_field.items():
+                    value = values[slug].value
+                    if value is None:
+                        break
+                    block[field_name] = convert(value)
+                if len(block) == len(SMOKE_FIELDS):
+                    hours_by_site[slug][hour_index]["smoke"] = block
+
+        return run_task
+
     def pressure_task(hour_index: int, pressure_hpa: int):
         def run_task() -> None:
             forecast_hour = forecast_slots[hour_index]["forecastHour"]
@@ -315,6 +351,7 @@ def _build_profiles(run: dict, reference_time: str, sites: list[dict], stats: Do
             optional_surface_task(hour_index, field_name, variable, level)
             for field_name, (variable, level) in OPTIONAL_SURFACE_FIELDS.items()
         ]
+        tasks.append(smoke_task(hour_index))
         tasks += [pressure_task(hour_index, level) for level in PRESSURE_LEVELS]
         return tasks
 

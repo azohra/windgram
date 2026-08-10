@@ -333,6 +333,37 @@ export const windgramDerivedSchema = z.object({
 });
 export type WindgramDerived = z.infer<typeof windgramDerivedSchema>;
 
+/* Wildfire smoke from the profile model's OWN run — never another model's
+   (cross-model smoke lives in its own document kind, joined by consumers).
+   Whether the model's radiation already feels this smoke is declared in
+   models.json capabilities.smoke and echoed in semantics.smoke. */
+export const windgramSmokeSchema = z.object({
+  /**
+   * Near-surface smoke mass concentration, µg/m³ — the visibility and
+   * health number. HRRR publishes it at 8 m above ground (MASSDEN).
+   */
+  surfaceUgm3: scalarSchema.describe(
+    "Near-surface smoke mass concentration, µg/m³ — the visibility/health number. HRRR publishes it at 8 m above ground (MASSDEN).",
+  ),
+  /**
+   * Vertically integrated smoke mass, mg/m² (column mass density, COLMD) —
+   * the total smoke over the site regardless of the layer it rides in.
+   */
+  columnMgm2: scalarSchema.describe(
+    "Vertically integrated smoke mass, mg/m² (column mass density) — total smoke over the site regardless of the layer it rides in.",
+  ),
+  /**
+   * Column aerosol optical thickness, dimensionless (AOTK) — the
+   * sun-dimming number, the optics input for smoke-adjusted derivations.
+   * HRRRv4's only prognostic aerosol is wildfire smoke (no dust or
+   * anthropogenic aerosols), so its AOT is effectively smoke optical depth.
+   */
+  aot: scalarSchema.describe(
+    "Column aerosol optical thickness, dimensionless — the sun-dimming number and the optics input for smoke-adjusted derivations. HRRRv4's only prognostic aerosol is wildfire smoke, so its AOT is effectively smoke optical depth.",
+  ),
+});
+export type WindgramSmoke = z.infer<typeof windgramSmokeSchema>;
+
 export const windgramHourSchema = z.object({
   validAt: utcInstantSchema.describe("Forecast valid time, UTC instant."),
   surface: windgramSurfaceSchema,
@@ -344,6 +375,19 @@ export const windgramHourSchema = z.object({
       "Isobaric levels, ascending height; only levels with heightM > modelElevationM + 20. Empty for models whose capabilities.levels is false.",
     ),
   derived: windgramDerivedSchema,
+  /**
+   * Prognostic wildfire smoke from the profile model's own run — present
+   * only on models whose models.json `capabilities.smoke` is not false
+   * (HRRR today). Absence means "not published", never clear air. Whether
+   * the model's radiation and fluxes already feel this smoke — i.e.
+   * whether `derived` is already smoke-aware — is declared in
+   * `capabilities.smoke` and echoed in `semantics.smoke`.
+   */
+  smoke: windgramSmokeSchema
+    .optional()
+    .describe(
+      'Prognostic wildfire smoke from the profile model\'s own run — present only where models.json capabilities.smoke is not false. Absence means "not published", never clear air. Whether derived is already smoke-aware is declared in capabilities.smoke and echoed in semantics.smoke.',
+    ),
 });
 export type WindgramHour = z.infer<typeof windgramHourSchema>;
 
@@ -439,6 +483,22 @@ export const windgramSemanticsSchema = z
       .describe(
         'Precipitation-rate semantics for surface.precipitationMmHr: "instantRate" = instantaneous rate diagnostic at validAt; "windowMeanRate" = accumulation over the step window ending at validAt divided by the window length. Mirrors models.json capabilities.precipitation.',
       ),
+    /**
+     * Smoke semantics for `hours[].smoke`: "radiativelyCoupled" = the
+     * model's own radiation is attenuated by this smoke, so the published
+     * fluxes and everything derived from them are ALREADY smoke-aware — a
+     * downstream smoke derate would double-count; "passive" = the smoke
+     * rides along without feeding back on the model's radiation, so
+     * derived quantities are smoke-blind. Mirrors models.json
+     * `capabilities.smoke`; present exactly when the document carries
+     * smoke blocks.
+     */
+    smoke: z
+      .enum(["radiativelyCoupled", "passive"])
+      .optional()
+      .describe(
+        'Smoke semantics for hours[].smoke: "radiativelyCoupled" = the model\'s radiation is attenuated by this smoke, so fluxes and derived quantities are ALREADY smoke-aware (a downstream derate would double-count); "passive" = smoke rides along without radiative feedback, so derived quantities are smoke-blind. Mirrors models.json capabilities.smoke.',
+      ),
   })
   .describe(
     "Per-document echo of the provider semantics models.json declares for this model, so a stored profile stays interpretable without the catalogue. Absence of the block or a field means the document predates the tag, never that a default applies.",
@@ -463,6 +523,75 @@ export const windgramProfileSchema = z
     "Windgram profile document, published at data/<model-slug>/sites/<site-slug>.json; history lines are the same document, one per line.",
   );
 export type WindgramProfile = z.infer<typeof windgramProfileSchema>;
+
+/* ---------------------------------------------------------- smoke document */
+
+/* The first non-profile document kind: a per-site wildfire-smoke time
+   series from an air-quality model (RAQDPS today). A different model than
+   the wind-profile feeds — consumers join it to a profile by site and
+   validAt; nothing from it is ever folded into a profile document. */
+
+export const smokeDocumentHourSchema = z.object({
+  validAt: utcInstantSchema.describe("Forecast valid time, UTC instant."),
+  /**
+   * Total near-surface PM2.5, µg/m³ — all sources, the air-quality number.
+   */
+  pm25Ugm3: scalarSchema.describe("Total near-surface PM2.5, µg/m³ — all sources."),
+  /**
+   * Near-surface PM2.5 attributed to wildfire smoke, µg/m³ (RAQDPS
+   * PM2.5-WildfireSmokePlume_Sfc) — the wildfire share of pm25Ugm3.
+   */
+  smokePlumeSurfaceUgm3: scalarSchema.describe(
+    "Near-surface PM2.5 attributed to wildfire smoke, µg/m³ — the wildfire share of pm25Ugm3.",
+  ),
+  /**
+   * Vertically integrated wildfire-smoke PM2.5, mg/m² (RAQDPS
+   * PM2.5-WildfireSmokePlume_EAtm) — total smoke over the site regardless
+   * of the layer it rides in; the mass input for optics-based derivations.
+   */
+  smokePlumeColumnMgm2: scalarSchema.describe(
+    "Vertically integrated wildfire-smoke PM2.5, mg/m² — total smoke over the site regardless of the layer it rides in; the mass input for optics-based derivations.",
+  ),
+});
+export type SmokeDocumentHour = z.infer<typeof smokeDocumentHourSchema>;
+
+export const smokeDocumentSiteSchema = z.object({
+  id: slugSchema,
+  name: z.string().min(1),
+  latitude: z.number(),
+  longitude: z.number(),
+  /** The site's IANA timezone, echoed from the catalogue like the profile's. */
+  timeZone: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("The site's IANA timezone, echoed from the sites.json catalogue."),
+});
+export type SmokeDocumentSite = z.infer<typeof smokeDocumentSiteSchema>;
+
+export const smokeDocumentSchema = z
+  .object({
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    model: slugSchema,
+    run: windgramRunSchema,
+    site: smokeDocumentSiteSchema,
+    hours: z
+      .array(smokeDocumentHourSchema)
+      .describe("ALL forecast hours, chronological — same convention as profile documents."),
+  })
+  .describe(
+    "Per-site wildfire-smoke time series from an air-quality model (RAQDPS), published at <model-slug>/sites/<site-slug>.json — a different model than the wind-profile feeds; consumers join it to a profile by site and validAt.",
+  );
+export type SmokeDocument = z.infer<typeof smokeDocumentSchema>;
+
+export function parseSmokeDocument(value: unknown): SmokeDocument | null {
+  const result = smokeDocumentSchema.safeParse(value);
+  return result.success ? result.data : null;
+}
+
+export function parseSmokeDocumentJson(text: string): SmokeDocument | null {
+  return parseSmokeDocument(tryParseJson(text));
+}
 
 /* ------------------------------------------- deterministic narrowing */
 
@@ -665,6 +794,22 @@ export const modelCapabilitiesSchema = z.object({
   cloudProfile: z
     .boolean()
     .describe("Whether the model publishes a per-level cloud fraction (levels[].cloudFractionPercent)."),
+  /**
+   * Smoke semantics, not just presence: "radiativelyCoupled" = the model
+   * publishes prognostic smoke (hours[].smoke) whose direct radiative
+   * effect attenuates its own shortwave, so the published fluxes and the
+   * derived thermal quantities are ALREADY smoke-aware — a downstream
+   * smoke derate would double-count (HRRRv4: Dowell et al. 2022, WAF,
+   * doi:10.1175/WAF-D-21-0151.1, §2d); "passive" = smoke published
+   * without radiative feedback, so derived quantities are smoke-blind
+   * and a derate applies; false = no smoke fields published. Echoed per
+   * document in the profile's `semantics.smoke`.
+   */
+  smoke: z
+    .union([z.enum(["radiativelyCoupled", "passive"]), z.literal(false)])
+    .describe(
+      'Smoke semantics, not just presence: "radiativelyCoupled" = prognostic smoke whose radiative effect attenuates the model\'s own shortwave, so fluxes and derived thermal quantities are ALREADY smoke-aware and a downstream derate would double-count (HRRRv4: Dowell et al. 2022, doi:10.1175/WAF-D-21-0151.1); "passive" = smoke published without radiative feedback (derived quantities are smoke-blind, a derate applies); false = no smoke published. Echoed in the profile\'s semantics.smoke.',
+    ),
 });
 export type ModelCapabilities = z.infer<typeof modelCapabilitiesSchema>;
 
@@ -711,12 +856,48 @@ export const modelEntrySchema = z.object({
 });
 export type ModelEntry = z.infer<typeof modelEntrySchema>;
 
+/**
+ * A smoke-document model (RAQDPS today): the same identity and cadence
+ * metadata as a profile entry, without profile capabilities — it publishes
+ * smoke documents, not wind profiles. Deliberately NOT an entry in
+ * `models`: adding a capabilities-less entry there would make every
+ * already-deployed catalogue guard reject the whole file, so non-profile
+ * datasets live in their own top-level array that older parsers strip.
+ */
+export const smokeModelEntrySchema = z.object({
+  slug: slugSchema,
+  label: z.string().min(1).describe("The only place prose model names live."),
+  provider: z.string().min(1),
+  gridKm: z.number().positive(),
+  stepHours: z.number().positive(),
+  horizonHours: z.number().positive(),
+  runIntervalHours: z
+    .number()
+    .positive()
+    .describe("Hours between published runs — freshness metadata, like the profile entries'."),
+  kind: z.enum(["deterministic", "ensemble"]),
+  experimental: z.boolean(),
+});
+export type SmokeModelEntry = z.infer<typeof smokeModelEntrySchema>;
+
 /* data/models.json — hand-maintained, the discovery catalogue. Frontends
    render what a model declares instead of hardcoding model lists. */
 export const modelCatalogueSchema = z
   .object({
     schemaVersion: z.literal(SCHEMA_VERSION),
     models: z.array(modelEntrySchema),
+    /**
+     * Smoke-document models (RAQDPS today). Optional and separate from
+     * `models` so pre-smoke consumers — whose guards require profile
+     * capabilities on every `models` entry — keep parsing the catalogue
+     * untouched. Absence means the catalogue predates smoke documents.
+     */
+    smokeModels: z
+      .array(smokeModelEntrySchema)
+      .optional()
+      .describe(
+        "Smoke-document models (RAQDPS today) — separate from models so pre-smoke consumers keep parsing the catalogue. Absence means the catalogue predates smoke documents.",
+      ),
   })
   .describe(
     "data/models.json — the hand-maintained discovery catalogue. Frontends render what a model declares instead of hardcoding model lists.",

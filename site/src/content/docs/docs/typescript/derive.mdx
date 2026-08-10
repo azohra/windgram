@@ -121,6 +121,47 @@ Selecting fields produces `ProjectedWindgramProfile`, whose hour blocks are
 partial by design. Do not pass that partial projection back through the full
 profile parser or into `buildScene`.
 
+## Derate thermals for smoke
+
+`windgram/derive` carries the smoke-correction chain as small pure
+functions over published values, with the physics constants exported as
+named, cited claims (`SMOKE_MASS_EXTINCTION_M2_PER_G` — Reid et al.
+2005; `SMOKE_TRANSMITTANCE_K_MIDDAY` / `K_VERTICAL` — Donaldson 2021,
+Chubarova 2012, McKendry 2019):
+
+```ts
+import {
+  cosSolarZenith,
+  isSmokeAwareProfile,
+  smokeAdjustedThermalVelocityMs,
+  smokeAotFromColumn,
+  smokeHoursByValidAt,
+  smokeTransmittance,
+} from "windgram/derive";
+
+if (!isSmokeAwareProfile(profile)) {
+  const smokeByHour = smokeHoursByValidAt(smokeDocument);
+  const hour = profile.hours[i];
+  const joined = smokeByHour.get(hour.validAt);
+  if (joined) {
+    const aot = smokeAotFromColumn(p50(joined.smokePlumeColumnMgm2)!);
+    const f = smokeTransmittance(
+      aot,
+      cosSolarZenith(hour.validAt, profile.site.latitude, profile.site.longitude),
+    );
+    const adjusted = smokeAdjustedThermalVelocityMs(p50(hour.derived.thermalVelocityMs)!, f);
+  }
+}
+```
+
+The guard comes first for a reason: on models whose fluxes already feel
+their own smoke (`isSmokeAwareProfile` — HRRR), the published w* is
+already derated and applying the correction again double-counts. The
+adjustment itself is one multiply — `w* × ∛f` — because Deardorff's w*
+is the cube root of the heat flux; no flux re-derivation is needed or
+performed. Scope and derivation narrative:
+[Smoke and thermals](/docs/learn/smoke-and-thermals/).
+
 ## Intersect instants with `alignByValidAt`
 
 `alignByValidAt` returns only the UTC `validAt` instants shared by every input
