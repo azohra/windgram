@@ -88,9 +88,12 @@ export interface KeySpec {
   band: { id: string; label: string } | null;
   /**
    * The smoke-haze chip — the column tint whose opacity is optical
-   * depth; null when the scene drew no smoke cells. The strip's line
-   * labels itself ("Smoke µg/m³") like every strip, so only the tint
-   * needs the key.
+   * depth; null when the scene drew no haze cells. Covers the forecast
+   * smoke strip AND the measured "AOT" strip alike: both tint with the
+   * same cell class on the same scale (full tint at AOT 3), so one
+   * explanation is the truth for both. The strips' lines label
+   * themselves ("Smoke µg/m³", "AOT") like every strip, so only the
+   * tint needs the key.
    */
   smokeHaze: { id: string; label: string } | null;
   /**
@@ -259,8 +262,12 @@ export function buildKeySpec(scene: SceneGraph, options: KeySpecOptions = {}): K
   );
   const hasStability = scene.fields.some((field) => field.key === "stability");
   const hasBand = scene.series.some((entry) => entry.bandPath !== null);
+  // The forecast smoke strip and the measured AOT strip share one haze
+  // encoding (same cell class, same scale), so either satisfies the chip.
   const hasSmokeHaze = scene.strips.some(
-    (strip) => strip.key === "smoke" && (strip.cells ?? []).some((cell) => cell !== null),
+    (strip) =>
+      (strip.key === "smoke" || strip.key === "observedAot") &&
+      (strip.cells ?? []).some((cell) => cell !== null),
   );
   const hasMeasuredDimming = scene.strips.some(
     (strip) =>

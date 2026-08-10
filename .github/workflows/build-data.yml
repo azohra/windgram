@@ -63,13 +63,18 @@ jobs:
       # Each model uploads as soon as it finishes: a completed model stays
       # published even if a later builder or the job's timeout kills the
       # run — an end-of-job upload would lose all of it to the timeout.
-      # GOES first: at the 15-minute tick it usually finds exactly one new
-      # 10-minute granule, so the freshest observations publish before the
-      # heavier forecast builders start.
+      # GOES first: at the 15-minute tick each product usually finds
+      # exactly one new 10-minute granule, read by byte range, so the
+      # freshest observations publish before the heavier forecast
+      # builders start.
       - name: Build GOES-18 DSR observations (failure must not block the others)
         run: uv run --no-dev --project pipeline windgram build --model goes18-dsr || echo "::warning::GOES-18 DSR build failed"
       - name: Publish GOES-18 DSR
         run: .github/scripts/upload-data.sh goes18-dsr
+      - name: Build GOES-18 AOD observations (failure must not block the others)
+        run: uv run --no-dev --project pipeline windgram build --model goes18-aod || echo "::warning::GOES-18 AOD build failed"
+      - name: Publish GOES-18 AOD
+        run: .github/scripts/upload-data.sh goes18-aod
       - name: Build HRRR 3 km (failure must not block the others)
         run: uv run --no-dev --project pipeline windgram build --model hrrr-conus || echo "::warning::HRRR build failed"
       - name: Publish HRRR

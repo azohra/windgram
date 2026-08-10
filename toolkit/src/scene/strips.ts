@@ -81,6 +81,12 @@ export function buildStripSpecs(args: {
   /** Per-rendered-hour measured irradiance (scene.ts's nearest-instant
       join); index-aligned with `hours`. Absent/all-null draws no strip. */
   observationSeries?: ReadonlyArray<{ wm2: number; transmittance: number | null } | null>;
+  /** The AOT strip's inline provenance statement. */
+  aotObservationSourceLabel?: string;
+  /** Per-rendered-hour measured optical thickness (scene.ts's
+      nearest-instant join); index-aligned with `hours`. Absent/all-null
+      draws no strip. */
+  aotObservationSeries?: ReadonlyArray<{ aot: number } | null>;
   geometry: StripGeometry;
 }): StripSpec[] {
   const {
@@ -90,8 +96,10 @@ export function buildStripSpecs(args: {
     floorM,
     smokeSeries,
     observationSeries,
+    aotObservationSeries,
     smokeStripSource,
     observationSourceLabel,
+    aotObservationSourceLabel,
   } = args;
   const { marginLeft, columnWidth } = args.geometry;
   const stripSpecs: StripSpec[] = [];
@@ -228,6 +236,40 @@ export function buildStripSpecs(args: {
               width: columnWidth,
               className: "wg-dim-cell",
               opacity: Number(Math.min(1, 1 - entry.transmittance).toFixed(2)),
+            },
+      ),
+    });
+  }
+  if (
+    overlays.observedAot &&
+    aotObservationSeries &&
+    aotObservationSeries.some((entry) => entry !== null)
+  ) {
+    /* Measured smoke: satellite-retrieved aerosol optical thickness at
+       550 nm — the same quantity the smoke document forecasts as `aot`,
+       measured. The line carries the AOT number and the haze behind it
+       is the forecast smoke strip's own tint (same cell class, full
+       tint at AOT 3), so "forecast smoke" and "measured smoke" compare
+       at a glance. */
+    const measuredAot = aotObservationSeries.map((entry) => (entry === null ? null : entry.aot));
+    stripSpecs.push({
+      provenance: "measurement",
+      ...(aotObservationSourceLabel ? { sourceLabel: aotObservationSourceLabel } : {}),
+      key: "observedAot",
+      label: "AOT",
+      unit: "550 nm",
+      values: measuredAot,
+      bands: aotObservationSeries.map(() => null),
+      minimum: 0,
+      maximum: Math.max(3, ...finite(measuredAot)),
+      cells: aotObservationSeries.map((entry, index) =>
+        entry === null || entry.aot <= 0
+          ? null
+          : {
+              x: marginLeft + index * columnWidth,
+              width: columnWidth,
+              className: "wg-smoke-cell",
+              opacity: Number(Math.min(1, entry.aot / 3).toFixed(2)),
             },
       ),
     });

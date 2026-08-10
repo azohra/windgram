@@ -33,6 +33,7 @@ MODEL_SLUGS = (
     "geps",
     "raqdps",
     "goes18-dsr",
+    "goes18-aod",
 )
 _DATAMART_MODELS = {
     "hrdps-continental": "HRDPS",
@@ -169,10 +170,10 @@ def _run_builder(model_slug: str, max_steps: int | None) -> None:
         from .builders import raqdps
 
         raqdps.main()
-    elif model_slug == "goes18-dsr":
+    elif model_slug in {"goes18-dsr", "goes18-aod"}:
         from .builders import goes
 
-        goes.main()
+        goes.main(goes.PRODUCTS[model_slug])
     elif model_slug == "gfs":
         from .builders import gfs
 

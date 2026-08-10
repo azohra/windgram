@@ -4,6 +4,63 @@ Notable repository and `windgram` package changes are recorded here. Dataset
 schema, npm package, and Python pipeline versions are independent; each release
 entry names the versions it actually changes.
 
+## [0.18.0] - 2026-08-10
+
+`windgram` (npm and JSR) 0.18.0 and `windgram` pipeline (PyPI) 0.6.0 —
+smoke gets its measured third opinion, observations stop discarding
+their own record, and GOES ingest drops ~47× to read only the pixels it
+publishes.
+
+### Added
+
+- **`goes18-aod` observation dataset**: GOES-18 ABI L2 Aerosol Optical
+  Depth (full disk, 10-minute, same fixed grid as DSR — one navigation
+  serves both), published per site as `{observedAt, aot}` — the same
+  field name and 550 nm wavelength the smoke document forecasts, so
+  forecast and measurement compare with no translation. Quality gate
+  DQF ≤ 1 (high+medium — Zhang, Kondragunta et al. 2020 measured
+  high-only as very conservative; top-2 scores bias 0.04, RMSE 0.09 vs
+  AERONET). Honest absences: night is fill+DQF 3, thick plume cores
+  can fail cloud tests, winter snow suppresses land retrievals —
+  absence means "not measured", never clear air. The observation
+  contract's `observations[]` becomes a union of the DSR and AOT entry
+  shapes; consumers narrow with a key check.
+- **The measured-AOT strip**: pass the AOD document as
+  `SceneOptions.aotObservations` and the windgram draws measured AOT
+  in the measurement zone below the provenance divider, beside the Sun
+  strip, labeled via `scene.aotObservationSource`. The haze tint
+  behind the line is the forecast smoke strip's own cell encoding at
+  the same scale (full tint at AOT 3) — "forecast smoke" and "measured
+  smoke" read against each other at a glance, and one key chip
+  explains both. Overlay `observedAot` (default on); `cursorReading`
+  packets carry `observedAot`.
+- **Observation history archives** (both GOES datasets):
+  `<slug>/history/<site>/<YYYY-MM>.jsonl.gz`, one observation object
+  per JSON line, archived exactly once when the instant first enters
+  the rolling window, under the month of its own `observedAt`. The
+  line grammar deliberately differs from profile history (whole
+  documents per run there): the window republishes every ~15 minutes,
+  so document-grained archives would store each instant ~400 times.
+  NOAA's bucket remains the deep granule archive; this is the curated
+  per-site record of exactly what was published.
+
+### Changed
+
+- **GOES granules are read by HTTP byte range** (h5py over a seekable
+  ranged reader): the value variables are full-row chunk bands and the
+  catalogued sites span two of them, so a build moves ~757 KB per AOD
+  granule instead of 40.6 MB (54×) and ~849 KB per DSR granule instead
+  of 39.7 MB (47×) — about 230 MB/day at full cadence instead of
+  ~11 GB. Extracted values are regression-tested bit-identical to the
+  whole-file netCDF4 path, which remains as an automatic fallback on
+  any ranged-path failure (a fallback is logged, never an error). The
+  ranged reader never raises inside h5py's driver callbacks — a
+  failure poisons the reader and is re-raised outside, so a poisoned
+  read can never masquerade as data.
+- The GOES builder is product-parameterized (one module, N products);
+  `windgram build --model goes18-aod` joins the CLI and the scheduled
+  NOAA job builds AOD right after DSR.
+
 ## [0.17.0] - 2026-08-10
 
 `windgram` (npm and JSR) 0.17.0 and `windgram` pipeline (PyPI) 0.5.0 —

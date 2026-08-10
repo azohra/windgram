@@ -272,6 +272,8 @@ export const DEFAULT_STYLESHEET = `
 .wg-strip-observedIrradiance { stroke: ${v("sun")}; }
 .wg-strip-observedIrradiance-area, .wg-strip-observedIrradiance-band { fill: ${v("sun")}; }
 .wg-dim-cell { fill: ${v("sun-dim")}; }
+.wg-strip-observedAot { stroke: ${v("smoke")}; }
+.wg-strip-observedAot-area, .wg-strip-observedAot-band { fill: ${v("smoke")}; }
 .wg-strip-source { fill: ${v("ink-mute")}; font-size: 8px; font-style: italic; }
 .wg-strip-divider { stroke: ${v("rule")}; stroke-dasharray: 2 3; stroke-width: 0.8; }
 .wg-strip-divider-label { fill: ${v("ink-mute")}; font-size: 8px; font-style: italic; letter-spacing: 0.04em; }

@@ -101,17 +101,43 @@ def append_history(profile: dict, history_dir: Path) -> None:
     appended as an independent gzip member: existing bytes are never
     rewritten, and any gzip reader sees one JSON line per model run.
     """
-    month = profile["run"]["referenceTime"][:7]
-    directory = history_dir / profile["site"]["id"]
-    directory.mkdir(parents=True, exist_ok=True)
-    archive_path = directory / f"{month}.jsonl.gz"
-    if not archive_path.exists():
-        archive_path.write_bytes(
-            published_history(profile["model"], profile["site"]["id"], month)
-        )
+    archive_path = _seeded_month_archive(
+        profile["model"],
+        profile["site"]["id"],
+        profile["run"]["referenceTime"][:7],
+        history_dir,
+    )
     line = compact_json(profile) + "\n"
     with archive_path.open("ab") as archive:
         archive.write(gzip.compress(line.encode()))
+
+
+def append_history_lines(
+    model: str, site_id: str, month: str, lines: list[dict], history_dir: Path
+) -> None:
+    """Archives arbitrary JSON lines under <history_dir>/<site>/<month>
+    .jsonl.gz — the same first-touch seeding and independent-gzip-member
+    append as append_history, but the caller chooses the line grammar and
+    the month (observation datasets archive one observation instant per
+    line, not one document per run)."""
+    if not lines:
+        return
+    archive_path = _seeded_month_archive(model, site_id, month, history_dir)
+    payload = "".join(compact_json(line) + "\n" for line in lines)
+    with archive_path.open("ab") as archive:
+        archive.write(gzip.compress(payload.encode()))
+
+
+def _seeded_month_archive(model: str, site_id: str, month: str, history_dir: Path) -> Path:
+    """The site's month archive path, seeded from the published month's
+    bytes on its first touch in this build (an unpublished month seeds
+    empty — the site's first archive of the month)."""
+    directory = history_dir / site_id
+    directory.mkdir(parents=True, exist_ok=True)
+    archive_path = directory / f"{month}.jsonl.gz"
+    if not archive_path.exists():
+        archive_path.write_bytes(published_history(model, site_id, month))
+    return archive_path
 
 
 def manifest_stats(download_stats, started_at_monotonic: float) -> dict:

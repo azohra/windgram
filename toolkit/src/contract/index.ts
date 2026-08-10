@@ -604,10 +604,12 @@ export function parseSmokeDocumentJson(text: string): SmokeDocument | null {
    (measured irradiance under a smoke plume against the smoke-adjusted
    derivation's transmittance claim). */
 
-export const observationSchema = z.object({
-  observedAt: utcInstantSchema.describe(
-    "Observation instant, UTC — the product's own timestamp, at its native cadence.",
-  ),
+const observedAtSchema = utcInstantSchema.describe(
+  "Observation instant, UTC — the product's own timestamp, at its native cadence.",
+);
+
+export const dsrObservationSchema = z.object({
+  observedAt: observedAtSchema,
   /**
    * Measured downward shortwave flux at the surface, W/m² (GOES-R ABI
    * L2 DSR). A DAYTIME product: instants with no good-quality retrieval
@@ -620,6 +622,31 @@ export const observationSchema = z.object({
       'Measured downward shortwave flux at the surface, W/m² (GOES-R ABI L2 DSR). Daytime product: instants without a good-quality retrieval are absent from the series — "not measured", never zero.',
     ),
 });
+export type DsrObservation = z.infer<typeof dsrObservationSchema>;
+
+export const aotObservationSchema = z.object({
+  observedAt: observedAtSchema,
+  /**
+   * Measured aerosol optical thickness at 550 nm (GOES-R ABI L2 AOD,
+   * high+medium quality retrievals) — dimensionless, the same quantity
+   * and wavelength a smoke document forecasts as `aot`, so the two
+   * compare directly. A daytime, clear-line-of-sight product: instants
+   * with no accepted retrieval — night, cloud, failed quality tests —
+   * are simply absent. Absence means "not measured", never clear air.
+   */
+  aot: z
+    .number()
+    .describe(
+      'Measured aerosol optical thickness at 550 nm (GOES-R ABI L2 AOD, high+medium quality) — the same quantity and wavelength a smoke document forecasts as aot. Daytime product: instants without an accepted retrieval are absent — "not measured", never clear air.',
+    ),
+});
+export type AotObservation = z.infer<typeof aotObservationSchema>;
+
+/* One entry shape per product: a document's `model` names the dataset,
+   and every entry in it carries that product's single measurement field.
+   A union rather than one object with optional fields, so an entry can
+   never be empty and a consumer narrows with a key check. */
+export const observationSchema = z.union([dsrObservationSchema, aotObservationSchema]);
 export type Observation = z.infer<typeof observationSchema>;
 
 export const observationDocumentSiteSchema = z.object({

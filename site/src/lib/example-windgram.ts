@@ -125,6 +125,7 @@ export function overlayAvailability(
     cloudLayers: strips.has("cloudLayers"),
     smoke: strips.has("smoke"),
     observedIrradiance: strips.has("observedIrradiance"),
+    observedAot: strips.has("observedAot"),
     pressure: strips.has("pressure"),
     precipitation: strips.has("precipitation"),
     boundaryLayerTop: series.has("boundaryLayerTop"),

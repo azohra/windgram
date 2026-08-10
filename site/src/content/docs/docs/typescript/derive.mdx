@@ -201,7 +201,8 @@ export function transmittanceAtHour(
 ): number | null {
   const hour = profile.hours[hourIndex];
   const nearest = hour && nearestObservation(observed, hour.validAt);
-  if (!hour || !nearest) return null;
+  // Entry shapes differ by product; transmittance wants the DSR kind.
+  if (!hour || !nearest || !("downwardShortwaveWm2" in nearest.observation)) return null;
   return observedTransmittance(
     nearest.observation.downwardShortwaveWm2,
     cosSolarZenith(hour.validAt, profile.site.latitude, profile.site.longitude),

@@ -75,22 +75,45 @@
     "observations": {
       "type": "array",
       "items": {
-        "type": "object",
-        "properties": {
-          "observedAt": {
-            "type": "string",
-            "format": "date-time",
-            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
-            "description": "Observation instant, UTC — the product's own timestamp, at its native cadence."
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "observedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                "description": "Observation instant, UTC — the product's own timestamp, at its native cadence."
+              },
+              "downwardShortwaveWm2": {
+                "type": "number",
+                "description": "Measured downward shortwave flux at the surface, W/m² (GOES-R ABI L2 DSR). Daytime product: instants without a good-quality retrieval are absent from the series — \"not measured\", never zero."
+              }
+            },
+            "required": [
+              "observedAt",
+              "downwardShortwaveWm2"
+            ]
           },
-          "downwardShortwaveWm2": {
-            "type": "number",
-            "description": "Measured downward shortwave flux at the surface, W/m² (GOES-R ABI L2 DSR). Daytime product: instants without a good-quality retrieval are absent from the series — \"not measured\", never zero."
+          {
+            "type": "object",
+            "properties": {
+              "observedAt": {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                "description": "Observation instant, UTC — the product's own timestamp, at its native cadence."
+              },
+              "aot": {
+                "type": "number",
+                "description": "Measured aerosol optical thickness at 550 nm (GOES-R ABI L2 AOD, high+medium quality) — the same quantity and wavelength a smoke document forecasts as aot. Daytime product: instants without an accepted retrieval are absent — \"not measured\", never clear air."
+              }
+            },
+            "required": [
+              "observedAt",
+              "aot"
+            ]
           }
-        },
-        "required": [
-          "observedAt",
-          "downwardShortwaveWm2"
         ]
       },
       "description": "Chronological measured instants at product cadence. Gaps are real: an absent instant had no good-quality retrieval (night, quality flags, scan gaps)."

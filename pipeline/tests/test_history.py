@@ -4,8 +4,10 @@ import os
 
 from pathlib import Path
 
+import pytest
+
 from windgram import publish
-from windgram.publish import append_history, compact_json
+from windgram.publish import append_history, append_history_lines, compact_json
 
 
 def profile(site_id: str, reference_time: str) -> dict:
@@ -80,6 +82,49 @@ def test_appends_one_readable_json_line_per_run_without_refetching(tmp_path, mon
         "2026-08-07T12:00:00Z",
         "2026-08-07T18:00:00Z",
     ]
+
+
+def test_history_lines_seed_from_the_published_month_then_append(tmp_path, monkeypatch):
+    """Observation datasets archive one observation object per line —
+    same first-touch seeding as profile history, caller-chosen grammar."""
+    fetched = []
+
+    def published_history(model: str, site_id: str, month: str) -> bytes:
+        fetched.append((model, site_id, month))
+        return archived_line({"observedAt": "2026-08-09T19:50:21Z", "aot": 1.1})
+
+    monkeypatch.setattr(publish, "published_history", published_history)
+
+    append_history_lines(
+        "goes18-aod",
+        "dundee",
+        "2026-08",
+        [
+            {"observedAt": "2026-08-09T20:00:21Z", "aot": 1.934},
+            {"observedAt": "2026-08-09T20:10:21Z", "aot": 2.906},
+        ],
+        tmp_path / "history",
+    )
+
+    assert fetched == [("goes18-aod", "dundee", "2026-08")]
+    with gzip.open(tmp_path / "history/dundee/2026-08.jsonl.gz", "rt") as handle:
+        assert [json.loads(line)["observedAt"] for line in handle] == [
+            "2026-08-09T19:50:21Z",  # the seeded published line survives
+            "2026-08-09T20:00:21Z",
+            "2026-08-09T20:10:21Z",
+        ]
+
+
+def test_history_lines_with_nothing_new_touch_nothing(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        publish,
+        "published_history",
+        lambda *args: pytest.fail("an empty batch must not fetch or seed"),
+    )
+
+    append_history_lines("goes18-aod", "dundee", "2026-08", [], tmp_path / "history")
+
+    assert not (tmp_path / "history").exists()
 
 
 def test_rotates_archives_by_reference_month(tmp_path, monkeypatch):

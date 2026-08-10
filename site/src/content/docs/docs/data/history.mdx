@@ -1,15 +1,24 @@
 ---
-title: Forecast history
-description: Consume append-only monthly gzip archives of published profiles.
+title: History archives
+description: Consume append-only monthly gzip archives of published profiles and observations.
 ---
 
-Each successful new run appends the complete site profile to a monthly gzip
-archive:
+Every dataset archives what it publishes to monthly gzip archives at one
+path shape:
 
 ```text
 <model>/history/<site>/<YYYY-MM>.jsonl.gz
 ```
 
+The path shape is shared; **the line grammar is not**. Profile history
+archives whole documents per run; observation history archives single
+observation objects per instant. Know which kind of dataset an archive
+belongs to before reading it — a line from one grammar does not parse as
+the other.
+
+## Profile history — one document per line
+
+Each successful new run appends the complete site profile as one line.
 The month comes from `run.referenceTime`. Each line is the same profile
 document accepted by `parseWindgramProfile`; the archive has no reduced
 history-only shape.
@@ -24,12 +33,36 @@ history-only shape.
 - Current catalogue values do not retroactively reinterpret an archived
   profile.
 
+## Observation history — one observation per line
+
+The [observation datasets](/docs/reference/observation-document/)
+(`goes18-dsr`, `goes18-aod`) use the same path shape and the same
+independent-gzip-member appends, but each line is a **single observation
+object** — `{"observedAt": …, "downwardShortwaveWm2": …}` or
+`{"observedAt": …, "aot": …}` — not an observation document, and
+`parseObservationDocument` does not accept a line.
+
+The grammar differs because the publish cadence does: a profile is
+published once per run, but an observation document is a rolling window
+rebuilt every ~15 minutes, so archiving whole documents would store each
+instant roughly 400 times over. Instead each instant is archived exactly
+once — when it first enters the window — under the month of its own
+`observedAt`, so an instant near a month boundary lands in its own
+month, not the build's.
+
+The provider's bucket remains the deep archive of raw granules; this
+archive is the curated per-site record of exactly what was published —
+gate, rounding, and absences included.
+
 ## Read for analysis
 
 ```sh title="Terminal"
 curl -sS https://data.meteo.azohra.com/nam/history/dundee/2026-08.jsonl.gz \
   | gzip -cd | jq -r '.run.referenceTime'
 ```
+
+For an observation archive, the same pipeline works with `.observedAt` —
+each line is one measured instant, not one run.
 
 Use an equivalent gzip reader when `gzip` or `jq` is unavailable. Applications
 should stream lines rather than inflate an entire long archive into memory.

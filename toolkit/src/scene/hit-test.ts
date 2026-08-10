@@ -243,5 +243,6 @@ export function cursorReading(scene: SceneGraph, x: number, y: number): CursorRe
     observedIrradianceWm2: sampling.observation === null ? null : sampling.observation.wm2,
     observedTransmittance:
       sampling.observation === null ? null : sampling.observation.transmittance,
+    observedAot: sampling.aotObservation === null ? null : sampling.aotObservation.aot,
   };
 }

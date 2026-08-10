@@ -444,6 +444,14 @@
       "gridKm": 3,
       "cadenceMinutes": 10,
       "experimental": true
+    },
+    {
+      "slug": "goes18-aod",
+      "label": "GOES-18 aerosol optical depth",
+      "provider": "NOAA",
+      "gridKm": 3,
+      "cadenceMinutes": 10,
+      "experimental": true
     }
   ]
 }

@@ -107,6 +107,7 @@ export type OverlayName =
   | "cloudLayers"
   | "smoke"
   | "observedIrradiance"
+  | "observedAot"
   | "pressure"
   | "precipitation"
   | "boundaryLayerTop"
@@ -142,6 +143,9 @@ export const DEFAULT_OVERLAYS: Readonly<Record<OverlayName, boolean>> = {
   // Contributes nothing without an observation document supplied via
   // SceneOptions.observations, so forecast-only renders are unchanged.
   observedIrradiance: true,
+  // Same degrade-to-nothing default: no document (or no joinable
+  // instants) via SceneOptions.aotObservations draws no strip.
+  observedAot: true,
   // Complete-control overlays (see the docblock above): every previously
   // unconditional element, on by default so defaults render byte-identically.
   pressure: true,
@@ -248,6 +252,19 @@ export interface SceneOptions {
    * instant, which renderers must be able to label.
    */
   observations?: ObservationDocument | null;
+  /**
+   * A site's measured-AOT observation document (GOES-18 AOD), joined per
+   * rendered hour by nearest instant exactly like `observations` — a
+   * SECOND observation input, never folded into the first: each document
+   * carries one product, and each strip carries one provenance label.
+   * The "AOT" strip draws the measured optical thickness beside the
+   * forecast smoke strip's — the measured third opinion on smoke, on the
+   * same tint scale, so the two compare at a glance. Entries that are
+   * not AOT-shaped contribute nothing. The graph's `aotObservationSource`
+   * names the dataset and its newest instant, which renderers must be
+   * able to label.
+   */
+  aotObservations?: ObservationDocument | null;
   /**
    * 1-2-1 smoothing (derive/smooth121) on the cloud-base and usable-lift
    * series — the pipeline's retired pass, now a renderer option. Default
@@ -476,7 +493,8 @@ export interface MetricStrip {
     | "thermalStrength"
     | "buoyancyShear"
     | "smoke"
-    | "observedIrradiance";
+    | "observedIrradiance"
+    | "observedAot";
   className: string;
   label: string;
   unit: string;
@@ -672,6 +690,13 @@ export interface HourSampling {
    * where no observation was drawn.
    */
   observation: { wm2: number; transmittance: number | null } | null;
+  /**
+   * The hour's measured aerosol optical thickness as the "AOT" strip
+   * drew it (nearest instant, whole-column like the smoke fields, not
+   * altitude-interpolated). Same single source as the strip, so
+   * tooltips and pixels agree; null where no observation was drawn.
+   */
+  aotObservation: { aot: number } | null;
 }
 
 export interface SceneGraph {
@@ -726,6 +751,14 @@ export interface SceneGraph {
    */
   observationSource: { model: string; lastObservedAt: string } | null;
   /**
+   * Where the measured "AOT" strip's data came from: the AOD observation
+   * dataset and its newest measured instant — its own field beside
+   * `observationSource`, because the two strips draw two documents and a
+   * renderer must be able to label each. Null when no measured AOT was
+   * drawn.
+   */
+  aotObservationSource: { model: string; lastObservedAt: string } | null;
+  /**
    * The provenance divider between the model's own strips and the
    * beside-this-model zone (cross-model forecasts, measurements) — the
    * y of the rule and its label. Null when every drawn strip is the
@@ -774,4 +807,10 @@ export interface CursorReading {
   observedIrradianceWm2: number | null;
   /** Measured/clear-sky transmittance for that observation; null near the horizon or without one. */
   observedTransmittance: number | null;
+  /**
+   * Measured aerosol optical thickness for the hour — the observation
+   * the "AOT" strip drew (nearest instant), whole-column like the smoke
+   * fields, not altitude-interpolated. Null where none was drawn.
+   */
+  observedAot: number | null;
 }

@@ -97,11 +97,24 @@ Pointer packets carry `observedIrradianceWm2` and
 `observedTransmittance`, so an inspector reads the measurement where
 the pixels drew it.
 
+Pass an AOD observation document as `options.aotObservations` and the
+**AOT strip** draws beside it: satellite-measured aerosol optical
+thickness at 550 nm — the same quantity, wavelength, and field name the
+smoke document forecasts as `aot` — joined to each rendered hour by
+nearest instant, with `scene.aotObservationSource` naming the dataset
+and its newest measured instant. The haze behind the line is
+deliberately the forecast smoke strip's own cell encoding, same class
+and same scale (full tint at AOT 3), so forecast smoke and measured
+smoke compare at a glance and one key chip — `KeySpec.smokeHaze` —
+explains both tints. The `observedAot` overlay defaults on, a document
+whose entries are not AOT-shaped contributes nothing, and pointer
+packets carry `observedAot`.
+
 **Provenance is structural.** Every strip declares whose data it draws
 (`provenance: "model" | "crossModel" | "measurement"`), and the stack
 splits spatially: the viewed model's own strips render as one group,
-and anything foreign — another model's smoke, a satellite measurement —
-renders below a labeled divider (*"beside this model — not in its
+and anything foreign — another model's smoke, the Sun and AOT
+measurement strips — renders below a labeled divider (*"beside this model — not in its
 physics"*, `scene.stripDivider`) with its source and instant written
 inside the strip itself (`sourceLabel`), so even a cropped screenshot
 answers "did the model account for this?". The reference renderer

@@ -1,27 +1,31 @@
 ---
 title: Observation document
-description: The per-site measured shortwave time series from GOES-18 — the observed window, validity discipline, verified product facts, and what the measurements are for.
+description: The per-site measured time series from GOES-18 — downward shortwave and aerosol optical depth — the observed window, validity discipline, verified product facts, and what the measurements are for.
 ---
 
 The observation document is the contract's third document kind, and its
 first **measurements**: a per-site time series of satellite observations —
-GOES-18's downward shortwave radiation today. Every other document here
-predicts; this one records. It exists because the
-[smoke-adjusted derivation](/docs/learn/smoke-and-thermals/) makes a
+GOES-18's downward shortwave radiation and aerosol optical depth today.
+Every other document here predicts; this one records. It exists because
+the [smoke-adjusted derivation](/docs/learn/smoke-and-thermals/) makes a
 physical claim — smoke of a stated optical depth transmits a computable
-fraction of the sun — and measured irradiance under a known plume is the
-direct test of that claim. Consumers join an observation series to
-profile or smoke documents by instant, truth beside prediction.
+fraction of the sun — and measurement tests both halves of it: measured
+irradiance under a known plume tests the transmittance, and measured
+optical depth tests the premise, whether the stated plume is there at
+all. Consumers join an observation series to profile or smoke documents
+by instant, truth beside prediction.
 
-Published at `goes18-dsr/sites/<site-slug>.json`, validated by
+Each dataset publishes at `<model-slug>/sites/<site-slug>.json` —
+`goes18-dsr` and `goes18-aod` today — validated by
 [`observation.schema.json`](https://github.com/azohra/windgram/blob/main/toolkit/schema/observation.schema.json),
 guarded by `parseObservationDocument` in
 [`windgram/contract`](/docs/typescript/contract/). Discovery is the
 catalogue's `observationModels` array — separate from `models` for the
 same reason as `smokeModels`, so consumers that predate observations keep
-parsing the catalogue untouched. The entry carries no run scheduling:
-`cadenceMinutes` (10) is the freshness yardstick instead, and `gridKm`
-(3) is the nominal resolution at the sites, not the instrument's finest.
+parsing the catalogue untouched. The entries carry no run scheduling:
+`cadenceMinutes` (10 for both) is the freshness yardstick instead, and
+`gridKm` (3) is the nominal resolution at the sites, not the
+instrument's finest.
 
 ## Shape and units
 
@@ -50,11 +54,18 @@ currently holds and the generation instant. The dataset manifest's
 | Field | Unit | Meaning |
 | --- | --- | --- |
 | `observedAt` | UTC instant | The product's own timestamp, at its native 10-minute cadence. |
-| `downwardShortwaveWm2` | W/m² | Instantaneous measured downward shortwave flux at the surface — the irradiance the thermal derivation's transmittance claim is about. |
+| `downwardShortwaveWm2` | W/m² | Instantaneous measured downward shortwave flux at the surface — the irradiance the thermal derivation's transmittance claim is about. DSR entries only. |
+| `aot` | dimensionless | Measured aerosol optical thickness at 550 nm — the same quantity, wavelength, and field name a [smoke document](/docs/reference/smoke-document/) forecasts as `aot`, so forecast and measurement compare with no translation. AOD entries only. |
+
+`observations[]` is a **union of two entry shapes** — the DSR dataset's
+`{ observedAt, downwardShortwaveWm2 }` and the AOD dataset's
+`{ observedAt, aot }`. Any one document carries one shape throughout,
+but the schema and the parser accept both, so consumers narrow with a
+key check before reading the value — as the fence below does.
 
 Observations are chronological, and **gaps are real**: an absent instant
 had no good-quality retrieval — night, quality-flagged pixels, scan
-gaps — and means "not measured", never zero. This is a daytime product;
+gaps — and means "not measured", never zero. Both are daytime products;
 a series that goes silent overnight is behaving, not broken.
 
 ```ts title="read-observations.ts"
@@ -64,13 +75,16 @@ export function measuredInstants(text: string): string[] {
   const document = parseObservationDocumentJson(text);
   if (!document) throw new Error("unsupported observation document");
 
-  return document.observations.map(
-    (observation) => `${observation.observedAt}: ${observation.downwardShortwaveWm2} W/m²`,
+  // Entry shapes differ by product — narrow before reading the value.
+  return document.observations.map((observation) =>
+    "downwardShortwaveWm2" in observation
+      ? `${observation.observedAt}: ${observation.downwardShortwaveWm2} W/m²`
+      : `${observation.observedAt}: AOT ${observation.aot}`,
   );
 }
 ```
 
-## Product facts — verified 2026-08-10
+## DSR product facts — verified 2026-08-10
 
 The product is GOES-R ABI L2 Downward Shortwave Radiation, full disk
 (`ABI-L2-DSRF` on the anonymous `noaa-goes18` bucket): instantaneous
@@ -103,7 +117,7 @@ Facts measured live from the granules themselves:
   4.1 km north–south. The oft-quoted 2 km is nadir-nominal, which is why
   the catalogue entry declares `gridKm: 3`.
 
-## What a published value claims
+## What a published DSR value claims
 
 The quality conditions come from the Enterprise SRB ATBD v5.0 (Laszlo,
 Kim & Liu 2020), Tables 2-1/2-2, matched against the threshold variables
@@ -133,14 +147,83 @@ in the files themselves [verified 2026-08-10]:
   itself separate smoke from thin cloud. Attribution needs the smoke
   documents beside it — which is the join this kind exists for.
 
-## Rolling window, provider archive
+## AOD product facts — verified 2026-08-10
+
+The second dataset measures the plume itself: GOES-R ABI L2 Aerosol
+Optical Depth, full disk (`ABI-L2-AODF` on the same anonymous
+`noaa-goes18` bucket) — aerosol optical thickness at 550 nm,
+dimensionless. Feed-level facts — cadence, latency, granule sizes, and
+the February 2024 algorithm transition — live in the
+[forecast model feed reference](/docs/reference/forecast-model-feeds/).
+Facts measured live from the granules themselves:
+
+- **Same grid, same navigation.** AODF granules use the identical 5424²
+  ABI fixed grid and projection attributes as DSRF, so one navigation —
+  the PUG forward equations above, site indices located once — serves
+  both products, and the DSR geometry facts (view zenith, effective
+  ground cell) apply unchanged.
+- **The AOD variable is uint16**, scale factor 7.706 × 10⁻⁵, offset
+  −0.05, spanning −0.05 to +5.0 — and unlike DSR, its `_FillValue`
+  (65535) sits **outside** `valid_range` ([0, 65530]), so range masking
+  alone separates fill from data. The builder applies the shared
+  unmasked-**and**-quality gate anyway: it is one code path for both
+  products, and it can only reject more.
+- **DQF is graded, not binary**: 0 high, 1 medium, 2 low quality, 3 no
+  retrieval. Night pixels are fill **with DQF 3** — the honest
+  no-retrieval flag that DSR's night-fill-with-DQF-0 lacks.
+
+## What a published AOT claims
+
+The quality gate and its accuracy rest on the Enterprise (EPS) aerosol
+algorithm's validation record [verified 2026-08-10]:
+
+- **Published values pass DQF ≤ 1** — high plus medium quality. NOAA's
+  product ReadMe recommends high-only for strict quantitative use, but
+  the operational smoke literature measured high-only as "very
+  conservative": the top-two set scores r = 0.87 with bias 0.04 and
+  RMSE 0.09 against AERONET (Zhang, Kondragunta et al. 2020,
+  [AMT 13:5955](https://doi.org/10.5194/amt-13-5955-2020)), and it is
+  the smoke-event choice — and smoke events are what this dataset
+  exists for.
+- **The Enterprise algorithm is why the dataset exists at all.**
+  Operational since 2024-02-06, it raised the quantitative view-zenith
+  limit from the Baseline algorithm's 60° to 78.5°. The catalogued
+  sites' ≈59° view zenith left the old bound no margin — the Baseline
+  cutoff excluded the western-US view geometry — while the Enterprise
+  limit gives the same geometry nearly 20° to spare.
+- **Accuracy over land against AERONET**: bias below 0.06 / 0.04 / 0.12
+  with σ below 0.13 / 0.25 / 0.35 for AOD < 0.04, 0.04–0.8, and > 0.8
+  respectively — smoke events live in the > 0.8 bin.
+- **Validity is honest — even in daylight**: one live smoky
+  afternoon gave accepted retrievals in 17–58 % of granules per site
+  (pooled ~40 %), winter snow suppresses retrievals over land, and a
+  thick plume core can fail the algorithm's cloud tests — the strongest
+  smoke is exactly what can go unmeasured. An absent instant means "not
+  measured", never clear air. The builder's first live run, at night,
+  correctly published nothing.
+
+The entry shape is `{ observedAt, aot }` — deliberately the same field
+name and wavelength the smoke document forecasts as `aot`, so a measured
+value sits beside a forecast one with no unit, wavelength, or naming
+translation between them.
+
+## Rolling window, history archive
 
 Each document holds a rolling ~72-hour window; the build is incremental,
-merging granules newer than the published `lastObservedAt`. There are no
-history archives in v1 — NOAA's own bucket is the permanent record, so
-archiving it again would duplicate a public archive without adding
-provenance. A consumer who wants last month reads the bucket; a consumer
-who wants the recent sky beside today's forecast reads this document.
+merging granules newer than the published `lastObservedAt`. Behind the
+window, both datasets keep [history archives](/docs/data/history/) at
+`<model-slug>/history/<site>/<YYYY-MM>.jsonl.gz` — the same seeded
+gzip-member mechanics as profile history, but a deliberately different
+line grammar: **one observation object per line**, each instant archived
+exactly once, when it first enters the window, in the month of its own
+`observedAt`. Archiving whole documents, profile-style, would be
+pathological here — the window is rebuilt every ~15 minutes, so each
+instant would be stored about 400 times over. NOAA's own bucket remains
+the deep archive — every granule, every pixel — while the history
+archive is the curated per-site record of exactly what was published. A
+consumer who wants raw granules reads the bucket; a consumer who wants
+the published series for a month reads the archive; a consumer who wants
+the recent sky beside today's forecast reads this document.
 
 ## Joining observations to forecasts
 
@@ -162,4 +245,9 @@ expectation, and a windgram built with the document as
 [`options.observations`](/docs/typescript/scene/) draws the **Sun
 strip** — measured W/m² with a shadow that deepens as the sky
 under-delivers — labeled from `scene.observationSource`, never
-implying the measurements share the forecast's provenance.
+implying the measurements share the forecast's provenance. The AOD
+dataset closes the same loop for the plume itself: passed as
+[`options.aotObservations`](/docs/typescript/scene/), it draws the
+**AOT strip** — measured optical depth rendered with the forecast smoke
+strip's own haze encoding, so the two read against each other at a
+glance — labeled from `scene.aotObservationSource`.

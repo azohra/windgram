@@ -15,7 +15,7 @@ and field semantics vary by model; each model's curated pressure-level set
 and science-field capabilities are declared in
 [`models.json`](https://github.com/azohra/windgram/blob/main/models.json).
 
-Measurements use live service responses checked through 2026-08-08. When provider
+Measurements use live service responses checked through 2026-08-10. When provider
 documentation and live capabilities disagree, use the live response and update
 the verification date.
 
@@ -539,24 +539,28 @@ catalogue lists it under `smokeModels`, separate from `models` so
 pre-smoke consumers keep parsing. Fetch cost is the lightest of any
 ECCC feed: three whole-domain files per hour, ~43 MB per run.
 
-## GOES-18 DSR — supported, observations
+## GOES-18 DSR and AOD — supported, observations
 
-NOAA's GOES-18 (GOES-West) supplies the dataset's first measurements:
-the ABI L2 Downward Shortwave Radiation full-disk product, anonymous
-NetCDF on the `noaa-goes18` bucket under `ABI-L2-DSRF`. It feeds no wind
-profiles — it is the source of the per-site
-**[observation documents](/docs/reference/observation-document/)**, where
-the product's decode, quality, and geometry facts live. The catalogue
-lists it under `observationModels`, separate from `models` like
-`smokeModels`. Feed facts (verified 2026-08-10):
+NOAA's GOES-18 (GOES-West) supplies the dataset's measurements: two ABI
+L2 full-disk products, anonymous NetCDF on the `noaa-goes18` bucket —
+Downward Shortwave Radiation under `ABI-L2-DSRF` and Aerosol Optical
+Depth under `ABI-L2-AODF`. They feed no wind profiles — each is the
+source of a per-site
+**[observation dataset](/docs/reference/observation-document/)**
+(`goes18-dsr`, `goes18-aod`), where the products' decode, quality, and
+geometry facts live. The catalogue lists them under `observationModels`,
+separate from `models` like `smokeModels`. Feed facts (verified
+2026-08-10):
 
-- **Six granules per hour** (scan Mode 6, starts at :00/:10/…), landing
-  on the bucket ~6–7 minutes after scan end — roughly 16 minutes after
-  scan start. No runs, no forecast hours: the builder fetches whole
+- **Six granules per hour** for both products (scan Mode 6, starts at
+  :00/:10/…). DSRF lands on the bucket ~6–7 minutes after scan end —
+  roughly 16 minutes after scan start; AODF is quicker at ~3.3 minutes
+  after scan end. No runs, no forecast hours: the builder fetches
   granules newer than the last published instant.
-- Granule sizes run 9 MB (night) to 40 MB (full daylight) — ~3.5 GB/day
-  at full cadence.
-- **The bucket's archive changes character in April 2024** (last legacy
+- Granule sizes track daylight on the disk: DSRF runs 9 MB (night) to
+  40 MB (full daylight), AODF 0.6–1 MB at night and 32–41 MB in
+  daylight.
+- **The DSRF archive changes character in April 2024** (last legacy
   day 2024-04-16, first new day 2024-04-17, NOAA OSPO message
   MSG_20240307_1955): the Baseline algorithm's **hourly** full-disk DSR
   on a 0.5° lat/lon grid was replaced by the Enterprise algorithm's
@@ -564,6 +568,24 @@ lists it under `observationModels`, separate from `models` like
   documentation — including the PUG Volume 5 DSR chapter — describes the
   legacy product; the operative authorities are the file metadata and
   the Enterprise SRB ATBD v5.0 (Laszlo, Kim & Liu 2020).
+- **AODF switched algorithms on 2024-02-06**, when the Enterprise (EPS)
+  aerosol retrieval became operational. The file format did not break
+  the way DSRF's did, but the retrieval did change — most consequentially
+  the quantitative view-zenith limit, raised from 60° to 78.5°; what
+  that means for a published value lives in the
+  [observation document reference](/docs/reference/observation-document/).
+  Older documentation describes the Baseline aerosol algorithm.
+- **Ingest is byte-ranged by default** [verified 2026-08-10, live]: both
+  products' value variables are gzip+shuffle uint16 in (24, 5424)
+  chunks — full-row bands — and the four catalogued sites span rows
+  470–481, exactly two value chunks plus two DQF chunks per granule.
+  Reading only those over HTTP Range (h5py on a seekable ranged reader)
+  costs ~757 KB per AODF granule against 40.6 MB whole-file (54×) and
+  ~849 KB against 39.7 MB for DSRF (47×) — about 230 MB/day for both
+  products at full cadence instead of ~11 GB. Ranged values are
+  bit-identical to the whole-file decode path (regression-tested), and
+  any ranged-path failure falls back to the whole file automatically — a
+  fallback is logged, never an error.
 
 ## ECMWF IFS open data — evaluated, not adopted
 

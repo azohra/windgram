@@ -432,7 +432,9 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
   const observationSeries = hours.map((hour) => {
     if (!options.observations) return null;
     const nearest = nearestObservation(options.observations, hour.validAt, 30);
-    if (!nearest) return null;
+    // Entry shapes differ by product; the Sun strip draws only measured
+    // irradiance, so any other observation kind contributes nothing here.
+    if (!nearest || !("downwardShortwaveWm2" in nearest.observation)) return null;
     const wm2 = nearest.observation.downwardShortwaveWm2;
     return {
       wm2,
@@ -447,6 +449,27 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
       ? {
           model: options.observations.model,
           lastObservedAt: options.observations.observed.lastObservedAt,
+        }
+      : null;
+
+  /* Measured optical thickness, per rendered hour: the nearest accepted
+     AOD retrieval within half an hour — the measured third opinion on
+     smoke, joined exactly like the Sun strip. A second observation
+     document with its own provenance: aotObservationSource names it for
+     the mandatory label. */
+  const aotObservationSeries = hours.map((hour) => {
+    if (!options.aotObservations) return null;
+    const nearest = nearestObservation(options.aotObservations, hour.validAt, 30);
+    // Entry shapes differ by product; the AOT strip draws only measured
+    // optical thickness, so any other observation kind contributes nothing.
+    if (!nearest || !("aot" in nearest.observation)) return null;
+    return { aot: nearest.observation.aot };
+  });
+  const aotObservationSource =
+    options.aotObservations && aotObservationSeries.some((entry) => entry !== null)
+      ? {
+          model: options.aotObservations.model,
+          lastObservedAt: options.aotObservations.observed.lastObservedAt,
         }
       : null;
 
@@ -471,6 +494,9 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
   const observationSourceLabel = observationSource
     ? `${observationSource.model} · measured to ${shortInstant(observationSource.lastObservedAt)}`
     : undefined;
+  const aotObservationSourceLabel = aotObservationSource
+    ? `${aotObservationSource.model} · measured to ${shortInstant(aotObservationSource.lastObservedAt)}`
+    : undefined;
 
   const stripSpecs = buildStripSpecs({
     hours,
@@ -479,8 +505,10 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
     floorM,
     smokeSeries,
     observationSeries,
+    aotObservationSeries,
     smokeStripSource,
     observationSourceLabel,
+    aotObservationSourceLabel,
     geometry: stripGeometry,
   });
   const stackGeometry = stripStackGeometry(stripSpecs);
@@ -1028,6 +1056,7 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
       verticalVelocityPaS: omegaNodes(hour),
       smoke: overlays.smoke ? smokeSeries[index] : null,
       observation: overlays.observedIrradiance ? observationSeries[index] : null,
+      aotObservation: overlays.observedAot ? aotObservationSeries[index] : null,
     };
   });
 
@@ -1062,6 +1091,7 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
     smokeSource: overlays.smoke ? smokeSource : null,
     smokeAdjustment,
     observationSource: overlays.observedIrradiance ? observationSource : null,
+    aotObservationSource: overlays.observedAot ? aotObservationSource : null,
     stripDivider:
       stackGeometry.dividerY === null
         ? null

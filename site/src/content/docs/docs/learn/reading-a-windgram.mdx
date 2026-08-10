@@ -51,6 +51,7 @@ layer strip:
 | **Layers · %** | Low, middle, and high cloud fraction, on models that publish them. | The rows are terrain-following model layers, not fixed altitudes. |
 | **Smoke · µg/m³** | Near-surface wildfire smoke, with a haze tint that deepens with column optical depth. The label names the smoke model — it can be a different model than the profile's. | Surface air can be clean under an elevated plume (line low, tint deep) and vice versa; see [Smoke and thermals](/docs/learn/smoke-and-thermals/). |
 | **Sun · W/m²** | Satellite-measured surface sunlight (GOES-18), with a shadow that deepens as the sky under-delivers against a clear-sky expectation. | A measurement, never a forecast — it always renders below the provenance divider. |
+| **AOT · 550 nm** | Satellite-measured aerosol optical thickness (GOES-18) — the same sun-dimming number the smoke strip forecasts, tinted with the same haze encoding so the two compare directly. | A measurement, never a forecast — below the divider, daytime only; a missing hour means no accepted retrieval, not clear air. |
 
 Strips below the dashed divider — labeled *beside this model — not in
 its physics* — come from another source entirely: a different model's
