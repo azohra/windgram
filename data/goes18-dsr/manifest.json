@@ -1,0 +1,33 @@
+{
+  "firstObservedAt": "2026-08-10T00:40:21Z",
+  "generatedAt": "2026-08-10T05:32:11.354Z",
+  "lastObservedAt": "2026-08-10T01:00:21Z",
+  "model": "goes18-dsr",
+  "observationCount": 12,
+  "referenceTime": "2026-08-10T01:00:21Z",
+  "schemaVersion": 1,
+  "sites": [
+    {
+      "name": "Dundee",
+      "slug": "dundee"
+    },
+    {
+      "name": "Erie",
+      "slug": "erie"
+    },
+    {
+      "name": "Flagpole",
+      "slug": "flagpole"
+    },
+    {
+      "name": "Red Mtn",
+      "slug": "red-mountain"
+    }
+  ],
+  "stats": {
+    "downloadBytes": 598300535,
+    "downloads": 34,
+    "durationMs": 48745,
+    "retries": 0
+  }
+}

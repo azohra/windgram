@@ -272,6 +272,50 @@
           "experimental"
         ]
       }
+    },
+    "observationModels": {
+      "description": "Observation datasets (GOES-18 DSR today) — separate from models so pre-observation consumers keep parsing the catalogue. Absence means the catalogue predates observations.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "description": "Lowercase hyphenated slug — the identity of models and sites everywhere."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The only place prose model names live."
+          },
+          "provider": {
+            "type": "string",
+            "minLength": 1
+          },
+          "gridKm": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "Nominal product resolution at the sites, km — not the instrument's finest."
+          },
+          "cadenceMinutes": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "Native observation cadence, minutes — the freshness yardstick."
+          },
+          "experimental": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "slug",
+          "label",
+          "provider",
+          "gridKm",
+          "cadenceMinutes",
+          "experimental"
+        ]
+      }
     }
   },
   "required": [

@@ -4,6 +4,41 @@ Notable repository and `windgram` package changes are recorded here. Dataset
 schema, npm package, and Python pipeline versions are independent; each release
 entry names the versions it actually changes.
 
+## [0.15.0] - 2026-08-10
+
+`windgram` (npm and JSR) 0.15.0 · `windgram` Python pipeline 0.4.0.
+The dataset's first measurements: GOES-18 satellite irradiance beside
+the forecasts — the smoke correction's constants now have a
+measurement stream to answer to. All schema changes are additive.
+
+### Added
+
+- **A third document kind — observation**: per-site measured time
+  series at `goes18-dsr/sites/<site>.json` (`observation.schema.json`,
+  `parseObservationDocument`), carrying GOES-18 ABI L2 Downward
+  Shortwave Radiation at the catalogued sites. Measurements, not
+  forecasts: no run block — an `observed` window instead — and an
+  absent instant means "not measured" (night, quality flags), never
+  zero. The window rolls (~72 h); NOAA's own bucket is the permanent
+  archive. Discovery via a new optional catalogue `observationModels`
+  array (same pre-existing-parser compatibility as `smokeModels`).
+- **An eighth builder** for the full-disk Enterprise DSR (2 km,
+  10-minute granules — the product NOAA swapped in during April 2024;
+  older docs describing hourly 0.5° DSR are about its predecessor).
+  Incremental fetches at the 15-minute build tick, sites located on
+  the ABI fixed grid through the PUG Volume 3 forward equations with
+  the visibility inequality, and validity requiring both an unmasked
+  DSR value AND good DQF — the two live-verified traps (fill inside
+  valid_range; DQF 0 on night fill pixels) are documented in the
+  builder.
+
+### Fixed
+
+- `runs.json` now indexes every dataset the catalogue declares —
+  profile models plus `smokeModels` and `observationModels`. It had
+  silently skipped raqdps since 0.13.0, hiding exactly the feeds whose
+  freshness matters most.
+
 ## [0.14.0] - 2026-08-09
 
 `windgram` (npm and JSR) 0.14.0 — coincident height markers render

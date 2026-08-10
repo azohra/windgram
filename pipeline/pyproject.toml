@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "windgram"
-version = "0.3.0"
+version = "0.4.0"
 description = "Open pipeline for publishing model-derived soaring profiles as static JSON."
 readme = "README.md"
 license = "MIT"
@@ -21,6 +21,7 @@ dependencies = [
     "eccodes>=2.47.0",
     "eccodeslib>=2.48.0.26",
     "jsonschema>=4.25",
+    "netcdf4>=1.7",
     "requests>=2.32",
 ]
 

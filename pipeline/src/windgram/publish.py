@@ -25,6 +25,7 @@ _FIELD_DECIMALS = {
     "cloudFractionPercent": 1,
     "columnMgm2": 1,
     "dewPointC": 2,
+    "downwardShortwaveWm2": 1,
     "heightM": 1,
     "highCloudPercent": 1,
     "latentHeatFluxWm2": 1,
@@ -132,8 +133,17 @@ def runs_index(model_slugs: list[str]) -> dict:
 
 
 def catalogued_model_slugs(models_path: Path = Path("models.json")) -> list[str]:
-    """The model list for the runs index, from the authored catalogue."""
-    return [model["slug"] for model in json.loads(models_path.read_text())["models"]]
+    """Every published dataset the catalogue declares, for the runs index:
+    profile models plus the smoke and observation datasets — a freshness
+    index that skipped the non-profile kinds would hide exactly the feeds
+    whose staleness matters most (observations judge lateness against
+    cadence, smoke against its runs)."""
+    catalogue = json.loads(models_path.read_text())
+    return [
+        entry["slug"]
+        for key in ("models", "smokeModels", "observationModels")
+        for entry in catalogue.get(key, [])
+    ]
 
 
 def write_runs_index(

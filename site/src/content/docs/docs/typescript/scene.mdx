@@ -29,7 +29,7 @@ export function sceneAndFirstReading(profile: WindgramProfile, olderProfileTimeZ
     barbStride: "auto",
     markerStride: {
       cloudBase: { every: 2 },
-      usableLiftTop: { every: 2, offset: 1 },
+      usableLiftTop: { every: 2 },
     },
     stripLabels: { thermalStrength: "LIFT" },
   });
@@ -134,9 +134,10 @@ for hit-testing instead of assuming the plot floor.
 
 `markerStride` can draw cloud and wing marker trains along `cloudBase` and
 `usableLiftTop`. A number draws every n hours from the selected-hour anchor;
-`{ every, offset }` shifts one train so coincident cloud and wing markers can
-alternate. Each train follows its own overlay. With no stride, each line keeps
-one marker at the selected hour.
+`{ every }` is the object form. Each train follows its own overlay, and where
+usable lift reaches cloud base the coincident cloud and wing render as one
+stacked symbol — trains never need phasing apart. With no stride, each line
+keeps one marker at the selected hour.
 
 The scene reads pipeline-authored `derived.*` values by default. `sinkRateMs`
 can recompute only the usable-lift series from published inputs for a

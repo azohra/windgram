@@ -122,6 +122,7 @@ export default defineConfig({
             { slug: "docs/data/manifest", label: "Manifest" },
             { slug: "docs/reference/profile-document", label: "Profile" },
             { slug: "docs/reference/smoke-document", label: "Smoke document" },
+            { slug: "docs/reference/observation-document", label: "Observation document" },
             { slug: "docs/data/ensemble-values", label: "Ensemble values" },
             { slug: "docs/data/history", label: "History" },
             { slug: "docs/data/versioning", label: "Versioning" },

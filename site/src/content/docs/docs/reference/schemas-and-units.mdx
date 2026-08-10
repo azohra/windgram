@@ -5,8 +5,8 @@ description: Locate the executable contract and resolve the unit boundaries most
 
 The zod schemas in `toolkit/src/contract/index.ts` are behavioural
 authority. Generated JSON Schema artifacts ship with the npm package and live
-under `toolkit/schema/` for profile, manifest, model, site, and run
-index documents. Regenerate them with the package command; never edit generated
+under `toolkit/schema/` for profile, smoke, observation, manifest,
+model, site, and run index documents. Regenerate them with the package command; never edit generated
 schemas by hand.
 
 ## Unit boundary map
@@ -25,6 +25,7 @@ schemas by hand.
 | Cloud and cloud layers | percent | Replacing unavailable fields with 0% |
 | CAPE/CIN | J/kg | Treating absent CIN as zero inhibition |
 | Smoke concentrations | µg/m³ at the surface, mg/m² for columns; optical thickness dimensionless | Assuming provider units — RAQDPS GRIBs carry kg/m³ and kg/m² with no units metadata; builders convert at fetch |
+| Measured shortwave (observations) | W/m², instantaneous at the surface | Treating an absent instant as zero output, or provider DQF 0 as validity — night pixels are fill with DQF 0 |
 
 The contract JSDoc and generated schemas define each field. The
 [profile guide](/docs/reference/profile-document/)

@@ -539,6 +539,32 @@ catalogue lists it under `smokeModels`, separate from `models` so
 pre-smoke consumers keep parsing. Fetch cost is the lightest of any
 ECCC feed: three whole-domain files per hour, ~43 MB per run.
 
+## GOES-18 DSR — supported, observations
+
+NOAA's GOES-18 (GOES-West) supplies the dataset's first measurements:
+the ABI L2 Downward Shortwave Radiation full-disk product, anonymous
+NetCDF on the `noaa-goes18` bucket under `ABI-L2-DSRF`. It feeds no wind
+profiles — it is the source of the per-site
+**[observation documents](/docs/reference/observation-document/)**, where
+the product's decode, quality, and geometry facts live. The catalogue
+lists it under `observationModels`, separate from `models` like
+`smokeModels`. Feed facts (verified 2026-08-10):
+
+- **Six granules per hour** (scan Mode 6, starts at :00/:10/…), landing
+  on the bucket ~6–7 minutes after scan end — roughly 16 minutes after
+  scan start. No runs, no forecast hours: the builder fetches whole
+  granules newer than the last published instant.
+- Granule sizes run 9 MB (night) to 40 MB (full daylight) — ~3.5 GB/day
+  at full cadence.
+- **The bucket's archive changes character in April 2024** (last legacy
+  day 2024-04-16, first new day 2024-04-17, NOAA OSPO message
+  MSG_20240307_1955): the Baseline algorithm's **hourly** full-disk DSR
+  on a 0.5° lat/lon grid was replaced by the Enterprise algorithm's
+  **10-minute** product at 2 km on the ABI fixed grid. Much older
+  documentation — including the PUG Volume 5 DSR chapter — describes the
+  legacy product; the operative authorities are the file metadata and
+  the Enterprise SRB ATBD v5.0 (Laszlo, Kim & Liu 2020).
+
 ## ECMWF IFS open data — evaluated, not adopted
 
 ECMWF's open-data IFS offers a 15-day horizon (360 h at 00/12Z since cycle
@@ -613,9 +639,9 @@ catalogue can revisit.
 - **ECCC** (HRDPS, RDPS, GDPS, REPS, GEPS): used under the
   [Environment and Climate Change Canada Data Server End-use Licence](https://eccc-msc.github.io/open-data/licence/readme_en/).
   Derived profiles carry the attribution requirement.
-- **NOAA** (HRRR, GFS, NAM — and RAP/RRFS if adopted): U.S. government open
-  data. Attribution is requested, and use implies no NOAA endorsement of
-  this project.
+- **NOAA** (HRRR, GFS, NAM, GOES-18 — and RAP/RRFS if adopted): U.S.
+  government open data. Attribution is requested, and use implies no NOAA
+  endorsement of this project.
 - **ECMWF** open data is CC-BY-4.0 — relevant only if an IFS-based leg is
   adopted later.
 - **DWD** open data is CC-BY 4.0 — relevant only if an ICON leg is adopted
@@ -628,5 +654,6 @@ Provider overviews: [HRDPS](https://eccc-msc.github.io/open-data/msc-data/nwp_hr
 [GEPS](https://eccc-msc.github.io/open-data/msc-data/nwp_geps/readme_geps_en/),
 [HRRR](https://registry.opendata.aws/noaa-hrrr-pds/),
 [GFS](https://registry.opendata.aws/noaa-gfs-bdp-pds/),
-[NAM](https://registry.opendata.aws/noaa-nam/), and
-[RRFS](https://registry.opendata.aws/noaa-rrfs/).
+[NAM](https://registry.opendata.aws/noaa-nam/),
+[RRFS](https://registry.opendata.aws/noaa-rrfs/), and
+[GOES](https://registry.opendata.aws/noaa-goes/).

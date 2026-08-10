@@ -593,6 +593,92 @@ export function parseSmokeDocumentJson(text: string): SmokeDocument | null {
   return parseSmokeDocument(tryParseJson(text));
 }
 
+/* ---------------------------------------------------- observation document */
+
+/* The contract's third document kind: MEASUREMENTS, not forecasts — a
+   per-site time series of satellite observations (GOES-18 downward
+   shortwave today). Instants are the past at product cadence, so there is
+   no run block and no forecast hours; the `observed` block carries the
+   window and the generation instant instead. Consumers join observations
+   to forecasts by instant — the natural use is truth beside prediction
+   (measured irradiance under a smoke plume against the smoke-adjusted
+   derivation's transmittance claim). */
+
+export const observationSchema = z.object({
+  observedAt: utcInstantSchema.describe(
+    "Observation instant, UTC — the product's own timestamp, at its native cadence.",
+  ),
+  /**
+   * Measured downward shortwave flux at the surface, W/m² (GOES-R ABI
+   * L2 DSR). A DAYTIME product: instants with no good-quality retrieval
+   * — night, quality-flagged pixels, scan gaps — are simply absent from
+   * the series. Absence means "not measured", never zero.
+   */
+  downwardShortwaveWm2: z
+    .number()
+    .describe(
+      'Measured downward shortwave flux at the surface, W/m² (GOES-R ABI L2 DSR). Daytime product: instants without a good-quality retrieval are absent from the series — "not measured", never zero.',
+    ),
+});
+export type Observation = z.infer<typeof observationSchema>;
+
+export const observationDocumentSiteSchema = z.object({
+  id: slugSchema,
+  name: z.string().min(1),
+  latitude: z.number(),
+  longitude: z.number(),
+  /** The site's IANA timezone, echoed from the catalogue like the profile's. */
+  timeZone: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("The site's IANA timezone, echoed from the sites.json catalogue."),
+});
+export type ObservationDocumentSite = z.infer<typeof observationDocumentSiteSchema>;
+
+export const observationDocumentSchema = z
+  .object({
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    model: slugSchema,
+    /**
+     * The observation window and generation instant — the observation
+     * kind's replacement for a forecast document's `run` block: there is
+     * no model initialization, only the measured span this document
+     * currently holds (a rolling window; the provider's own archive is
+     * the permanent record).
+     */
+    observed: z
+      .object({
+        firstObservedAt: utcInstantSchema,
+        lastObservedAt: utcInstantSchema,
+        generatedAt: utcInstantSchema.describe(
+          "When the pipeline generated this document, UTC.",
+        ),
+      })
+      .describe(
+        "The observation window and generation instant — the observation kind's replacement for a run block. The window rolls; the provider's own archive is the permanent record.",
+      ),
+    site: observationDocumentSiteSchema,
+    observations: z
+      .array(observationSchema)
+      .describe(
+        "Chronological measured instants at product cadence. Gaps are real: an absent instant had no good-quality retrieval (night, quality flags, scan gaps).",
+      ),
+  })
+  .describe(
+    "Per-site satellite observation time series (GOES-18 ABI L2 downward shortwave today), published at <model-slug>/sites/<site-slug>.json — measurements, not forecasts; join to profile or smoke documents by instant.",
+  );
+export type ObservationDocument = z.infer<typeof observationDocumentSchema>;
+
+export function parseObservationDocument(value: unknown): ObservationDocument | null {
+  const result = observationDocumentSchema.safeParse(value);
+  return result.success ? result.data : null;
+}
+
+export function parseObservationDocumentJson(text: string): ObservationDocument | null {
+  return parseObservationDocument(tryParseJson(text));
+}
+
 /* ------------------------------------------- deterministic narrowing */
 
 /* Recursively replaces every Scalar position with its number arm. Mapped
@@ -880,6 +966,31 @@ export const smokeModelEntrySchema = z.object({
 });
 export type SmokeModelEntry = z.infer<typeof smokeModelEntrySchema>;
 
+/**
+ * An observation dataset (GOES-18 DSR today): satellite measurements at
+ * the catalogued sites. Identity and provenance metadata only — there is
+ * no forecast horizon or run interval; `cadenceMinutes` is the product's
+ * native observation cadence, the freshness yardstick (an observation
+ * series whose newest instant is much older than a few cadences during
+ * daylight is genuinely late). Like `smokeModels`, deliberately NOT an
+ * entry in `models`.
+ */
+export const observationModelEntrySchema = z.object({
+  slug: slugSchema,
+  label: z.string().min(1).describe("The only place prose model names live."),
+  provider: z.string().min(1),
+  gridKm: z
+    .number()
+    .positive()
+    .describe("Nominal product resolution at the sites, km — not the instrument's finest."),
+  cadenceMinutes: z
+    .number()
+    .positive()
+    .describe("Native observation cadence, minutes — the freshness yardstick."),
+  experimental: z.boolean(),
+});
+export type ObservationModelEntry = z.infer<typeof observationModelEntrySchema>;
+
 /* data/models.json — hand-maintained, the discovery catalogue. Frontends
    render what a model declares instead of hardcoding model lists. */
 export const modelCatalogueSchema = z
@@ -897,6 +1008,18 @@ export const modelCatalogueSchema = z
       .optional()
       .describe(
         "Smoke-document models (RAQDPS today) — separate from models so pre-smoke consumers keep parsing the catalogue. Absence means the catalogue predates smoke documents.",
+      ),
+    /**
+     * Observation datasets (GOES-18 DSR today). Optional and separate
+     * from `models` for the same compatibility reason as `smokeModels`:
+     * older parsers strip the unknown key and keep working. Absence
+     * means the catalogue predates observations.
+     */
+    observationModels: z
+      .array(observationModelEntrySchema)
+      .optional()
+      .describe(
+        "Observation datasets (GOES-18 DSR today) — separate from models so pre-observation consumers keep parsing the catalogue. Absence means the catalogue predates observations.",
       ),
   })
   .describe(

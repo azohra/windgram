@@ -1,0 +1,144 @@
+---
+title: Observation document
+description: The per-site measured shortwave time series from GOES-18 — the observed window, validity discipline, verified product facts, and what the measurements are for.
+---
+
+The observation document is the contract's third document kind, and its
+first **measurements**: a per-site time series of satellite observations —
+GOES-18's downward shortwave radiation today. Every other document here
+predicts; this one records. It exists because the
+[smoke-adjusted derivation](/docs/learn/smoke-and-thermals/) makes a
+physical claim — smoke of a stated optical depth transmits a computable
+fraction of the sun — and measured irradiance under a known plume is the
+direct test of that claim. Consumers join an observation series to
+profile or smoke documents by instant, truth beside prediction.
+
+Published at `goes18-dsr/sites/<site-slug>.json`, validated by
+[`observation.schema.json`](https://github.com/azohra/windgram/blob/main/toolkit/schema/observation.schema.json),
+guarded by `parseObservationDocument` in
+[`windgram/contract`](/docs/typescript/contract/). Discovery is the
+catalogue's `observationModels` array — separate from `models` for the
+same reason as `smokeModels`, so consumers that predate observations keep
+parsing the catalogue untouched. The entry carries no run scheduling:
+`cadenceMinutes` (10) is the freshness yardstick instead, and `gridKm`
+(3) is the nominal resolution at the sites, not the instrument's finest.
+
+## Shape and units
+
+Measurements have no model initialization, so there is no `run` block:
+the `observed` block replaces it, carrying the window this document
+currently holds and the generation instant. The dataset manifest's
+`referenceTime` equals `lastObservedAt`, so the shared
+[freshness machinery](/docs/data/manifest/) holds unchanged.
+
+```json
+{
+  "schemaVersion": 1,
+  "model": "goes18-dsr",
+  "observed": {
+    "firstObservedAt": "2026-08-06T22:50:00Z",
+    "lastObservedAt": "2026-08-09T22:50:00Z",
+    "generatedAt": "2026-08-09T23:07:12Z"
+  },
+  "site": { "id": "dundee", "name": "Dundee", "latitude": 49.291977, "longitude": -117.183569, "timeZone": "America/Vancouver" },
+  "observations": [
+    { "observedAt": "2026-08-09T22:50:00Z", "downwardShortwaveWm2": 624.7 }
+  ]
+}
+```
+
+| Field | Unit | Meaning |
+| --- | --- | --- |
+| `observedAt` | UTC instant | The product's own timestamp, at its native 10-minute cadence. |
+| `downwardShortwaveWm2` | W/m² | Instantaneous measured downward shortwave flux at the surface — the irradiance the thermal derivation's transmittance claim is about. |
+
+Observations are chronological, and **gaps are real**: an absent instant
+had no good-quality retrieval — night, quality-flagged pixels, scan
+gaps — and means "not measured", never zero. This is a daytime product;
+a series that goes silent overnight is behaving, not broken.
+
+```ts title="read-observations.ts"
+import { parseObservationDocumentJson } from "windgram/contract";
+
+export function measuredInstants(text: string): string[] {
+  const document = parseObservationDocumentJson(text);
+  if (!document) throw new Error("unsupported observation document");
+
+  return document.observations.map(
+    (observation) => `${observation.observedAt}: ${observation.downwardShortwaveWm2} W/m²`,
+  );
+}
+```
+
+## Product facts — verified 2026-08-10
+
+The product is GOES-R ABI L2 Downward Shortwave Radiation, full disk
+(`ABI-L2-DSRF` on the anonymous `noaa-goes18` bucket): instantaneous
+surface downward shortwave flux over 0.2–4.0 µm, W/m², CF standard name
+`surface_downwelling_shortwave_flux_in_air`. Feed-level facts — cadence,
+latency, granule sizes, and the April 2024 product transition every
+archive consumer must know about — live in the
+[forecast model feed reference](/docs/reference/forecast-model-feeds/).
+Facts measured live from the granules themselves:
+
+- **The DSR variable is uint16**, scale factor 0.02289028, spanning
+  0–1500 W/m² — and its `_FillValue` (65535) sits **inside**
+  `valid_range`, so range checks alone cannot separate fill from data.
+- **DQF has only two working states** — 0 good, 1 degraded/invalid, plus
+  255 for space — and **DQF = 0 does not imply a retrieval**: night
+  pixels are fill with DQF 0. A value is valid only when the DSR pixel is
+  unmasked **and** DQF is 0; the builder
+  ([`goes.py`](https://github.com/azohra/windgram/blob/main/pipeline/src/windgram/builders/goes.py))
+  publishes anything else as absence.
+- **The files carry no lat/lon arrays.** Pixels are addressed on the ABI
+  fixed grid — x/y scan angles in radians plus a
+  `goes_imager_projection` — so sites are located through the GOES-R PUG
+  Volume 3 forward equations, using each granule's own projection
+  attributes. The equations' visibility inequality is not optional:
+  without it, a point on the far side of the earth maps to plausible
+  scan angles.
+- **Geometry at the catalogued sites** (49°N, 117.2–117.8°W): the view
+  (local) zenith angle is ≈ 58.7–58.9° — inside the ≤ 70° good-quality
+  bound below — and the effective ground cell is ≈ 2.4 km east–west ×
+  4.1 km north–south. The oft-quoted 2 km is nadir-nominal, which is why
+  the catalogue entry declares `gridKm: 3`.
+
+## What a published value claims
+
+The quality conditions come from the Enterprise SRB ATBD v5.0 (Laszlo,
+Kim & Liu 2020), Tables 2-1/2-2, matched against the threshold variables
+in the files themselves [verified 2026-08-10]:
+
+- Retrievals are attempted to solar and local zenith angles below 90°,
+  but **good quality is claimed only below 70°** — the catalogued sites
+  sit inside the bound with about 11° to spare.
+- The accuracy specification applies at solar elevation above 25°:
+  65 W/m² in the typical 200–500 W/m² range, 85 above it, 110 below.
+  The ATBD states overall accuracy better than ~2 % with ~17 % precision
+  against SURFRAD/SOLRAD/CERES. For independent tower-scale use of the
+  product, see Losos, Hoffman & Stoy 2024
+  ([doi:10.1038/s41597-024-03071-z](https://doi.org/10.1038/s41597-024-03071-z)).
+- **The measurement is attenuation-agnostic**: a dimmed value cannot by
+  itself separate smoke from thin cloud. Attribution needs the smoke
+  documents beside it — which is the join this kind exists for.
+
+## Rolling window, provider archive
+
+Each document holds a rolling ~72-hour window; the build is incremental,
+merging granules newer than the published `lastObservedAt`. There are no
+history archives in v1 — NOAA's own bucket is the permanent record, so
+archiving it again would duplicate a public archive without adding
+provenance. A consumer who wants last month reads the bucket; a consumer
+who wants the recent sky beside today's forecast reads this document.
+
+## Joining observations to forecasts
+
+Observations arrive every 10 minutes; forecasts are hourly. Join by
+instant — an observation belongs beside the forecast hour containing it —
+and label the join with the forecast's run and the observation's
+`generatedAt`, exactly as smoke-to-profile joins surface both runs. The
+natural use is the one the kind was built for: measured surface shortwave
+under a plume whose optical depth the
+[smoke document](/docs/reference/smoke-document/) states, held against
+the transmittance the
+[smoke-adjusted derivation](/docs/learn/smoke-and-thermals/) predicts.

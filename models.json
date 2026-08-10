@@ -435,5 +435,15 @@
       "kind": "deterministic",
       "experimental": true
     }
+  ],
+  "observationModels": [
+    {
+      "slug": "goes18-dsr",
+      "label": "GOES-18 downward shortwave",
+      "provider": "NOAA",
+      "gridKm": 3,
+      "cadenceMinutes": 10,
+      "experimental": true
+    }
   ]
 }

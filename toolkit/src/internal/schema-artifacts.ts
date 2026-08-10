@@ -7,6 +7,7 @@
 import { z } from "zod";
 import {
   modelCatalogueSchema,
+  observationDocumentSchema,
   runsIndexSchema,
   sitesCatalogueSchema,
   smokeDocumentSchema,
@@ -30,6 +31,11 @@ export const schemaArtifacts: readonly SchemaArtifact[] = [
     fileName: "smoke.schema.json",
     title: "Windgram smoke document",
     schema: smokeDocumentSchema,
+  },
+  {
+    fileName: "observation.schema.json",
+    title: "Windgram observation document",
+    schema: observationDocumentSchema,
   },
   {
     fileName: "manifest.schema.json",
