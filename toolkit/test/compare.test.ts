@@ -52,6 +52,14 @@ describe("compareProfiles guards", () => {
   it("refuses an empty member list", () => {
     expect(() => compareProfiles([], { timeZone: TZ })).toThrow(/no members/);
   });
+
+  it("refuses two runs of one model — one comparison, one run per model", () => {
+    // Analyses are keyed by model slug: a duplicate would silently replace
+    // the first run's analysis while both runs stayed in the member ledger.
+    expect(() => compareProfiles([hrrr(), hrrr()], { timeZone: TZ })).toThrow(
+      /duplicate member \(hrrr-conus\) — one comparison, one run per model/,
+    );
+  });
 });
 
 describe("the member ledger", () => {

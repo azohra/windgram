@@ -206,9 +206,12 @@ export interface WindgramComparison {
 /**
  * Compares one site's documents across models at the findings level.
  * Every profile must describe the same site (same `site.id`) — mixing
- * sites is a programming error and throws. Members are analyzed here,
- * with the comparison's single timeZone and threshold set, so votes are
- * apples-to-apples by construction.
+ * sites is a programming error and throws. So is passing two runs of one
+ * model: member identity is the model slug, so a duplicate would silently
+ * replace the first run's analysis while both stayed in the ledger
+ * (holding two runs of one model is the compare-v2 identity change).
+ * Members are analyzed here, with the comparison's single timeZone and
+ * threshold set, so votes are apples-to-apples by construction.
  */
 export function compareProfiles(
   profiles: ReadonlyArray<WindgramProfile>,
@@ -216,12 +219,19 @@ export function compareProfiles(
 ): WindgramComparison {
   if (profiles.length === 0) throw new Error("compareProfiles: no members");
   const siteId = profiles[0].site.id;
+  const seen = new Set<string>();
   for (const profile of profiles) {
     if (profile.site.id !== siteId) {
       throw new Error(
         `compareProfiles: mixed sites (${siteId} vs ${profile.site.id}) — one comparison, one site`,
       );
     }
+    if (seen.has(profile.model)) {
+      throw new Error(
+        `compareProfiles: duplicate member (${profile.model}) — one comparison, one run per model`,
+      );
+    }
+    seen.add(profile.model);
   }
 
   const thresholds = resolveAnalyzeThresholds(options.thresholds);
