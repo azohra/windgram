@@ -526,7 +526,12 @@ def e2e_hour_fields() -> list[str]:
 
 
 def e2e_files(terrain=E2E_SURFACE["HGT_SFC_0"]) -> dict[str, bytes]:
-    files = {_file_url("HGT_SFC_0", "20260807", "00", 0): ensemble_file(terrain)}
+    files = {
+        _file_url("HGT_SFC_0", "20260807", "00", 0): ensemble_file(terrain),
+        # The model's own PT000 surface pressure that vouches for the
+        # terrain barometrically: 853 hPa implies ~1452 m.
+        _file_url("PRES_SFC_0", "20260807", "00", 0): ensemble_file(lambda m: 85300.0),
+    }
     for name in e2e_hour_fields():
         files[_file_url(name, "20260807", "00", 3)] = e2e_file(name, 3)
     return files
@@ -550,11 +555,15 @@ def test_a_forecast_step_flows_from_datamart_files_to_the_ensemble_document(monk
     )
 
     # Every file fetched exactly once; hour 000 — which has no flux or
-    # precipitation files — is touched only for terrain.
+    # precipitation files — is touched only for terrain and the surface
+    # pressure that vouches for it.
     assert sorted(fetched) == sorted(files)
-    assert [url for url in fetched if "_P000_" in url] == [
-        _file_url("HGT_SFC_0", "20260807", "00", 0)
-    ]
+    assert sorted(url for url in fetched if "_P000_" in url) == sorted(
+        [
+            _file_url("HGT_SFC_0", "20260807", "00", 0),
+            _file_url("PRES_SFC_0", "20260807", "00", 0),
+        ]
+    )
 
     (document,) = result["documents"]
     # 145.0 decametres in the file → 1450 m published.
@@ -626,7 +635,8 @@ def test_a_six_hourly_tail_step_differences_accumulations_across_its_own_window(
         "APCP_SFC_0": lambda m: 5.0,
     }
     files = {
-        _file_url("HGT_SFC_0", "20260807", "00", 0): ensemble_file(E2E_SURFACE["HGT_SFC_0"])
+        _file_url("HGT_SFC_0", "20260807", "00", 0): ensemble_file(E2E_SURFACE["HGT_SFC_0"]),
+        _file_url("PRES_SFC_0", "20260807", "00", 0): ensemble_file(lambda m: 85300.0),
     }
     for name, accumulated in baseline.items():
         files[_file_url(name, "20260807", "00", 192)] = ensemble_file(
@@ -678,6 +688,15 @@ def test_a_six_hourly_tail_step_differences_accumulations_across_its_own_window(
 # terrain everywhere, Himalaya 579.8 → 5798 m; ×1 puts the whole planet below
 # 600 m). The builder scales the field to metres and then refuses a published
 # datum that cannot be terrain — every published height derives from it.
+# Catalogue-free, the datum is held to the model's OWN PT000 surface
+# pressure (PRES_SFC, genuine pascals — verified 2026-08-10: Dundee control
+# 845.9 hPa against the 1535.6 m scaled terrain, barometrically ~13 m apart)
+# via p = p0·exp(−z/H): honest weather moves the implied elevation well
+# under the 1,000 m tolerance, a dropped ×10 leaves a ≥1.3 km gap at a
+# mountain site, a gained ×10 a ~13 km one.
+
+# The live control-member surface pressure at Dundee, 2026-08-10: 845.9 hPa.
+DUNDEE_PRESSURE = {0: {"dundee": 84586.0}}
 
 
 def test_surface_orography_decametres_publish_as_metres(monkeypatch):
@@ -700,13 +719,56 @@ def test_surface_orography_decametres_publish_as_metres(monkeypatch):
 
 
 def test_the_guard_accepts_plausible_terrain():
-    # The live datum after the decametre fix: 1536 m smoothed terrain.
-    _require_plausible_model_elevation({0: {"dundee": 1536.0}}, [SITE])
+    # The live pair after the decametre fix: 1536 m smoothed terrain against
+    # 845.9 hPa — the barometric relation puts the surface ~13 m away.
+    _require_plausible_model_elevation({0: {"dundee": 1536.0}}, DUNDEE_PRESSURE, [SITE])
+
+
+def test_the_guard_accepts_sea_level():
+    _require_plausible_model_elevation(
+        {0: {"dundee": 2.0}}, {0: {"dundee": 101325.0}}, [SITE]
+    )
+
+
+def test_honest_pressure_extremes_never_trip_the_guard():
+    # ±40 hPa is a deep low or a strong high — real weather, not an encoding
+    # change; the implied elevation moves ~±400 m, well inside the 1,000 m
+    # tolerance.
+    for elevation, pressure_pa in (
+        (2.0, 97325.0),  # deep sea-level low
+        (2.0, 105325.0),  # strong sea-level high
+        (1536.0, 80586.0),  # the same ±40 hPa swings at the mountain site
+        (1536.0, 88586.0),
+    ):
+        _require_plausible_model_elevation(
+            {0: {"dundee": elevation}}, {0: {"dundee": pressure_pa}}, [SITE]
+        )
+
+
+def test_a_ten_times_datum_is_barometrically_impossible():
+    # A genuine-metre re-encode under the ×10 scaling: a ~15 km datum while
+    # the model's own surface pressure sits at 845.9 hPa (~1.5 km) — the
+    # failure names both numbers.
+    with pytest.raises(RuntimeError, match=r"15360\.0 m.*845\.9 hPa"):
+        _require_plausible_model_elevation(
+            {0: {"dundee": 15360.0}}, DUNDEE_PRESSURE, [SITE]
+        )
+
+
+def test_a_tenth_scale_datum_is_barometrically_impossible():
+    # The v1 decametre bug's shape — raw decametres published as metres: a
+    # 153.6 m datum against 845.9 hPa (~1.5 km implied) is exactly what the
+    # deleted catalogued-elevation bound used to catch.
+    with pytest.raises(RuntimeError, match=r"153\.6 m.*845\.9 hPa"):
+        _require_plausible_model_elevation(
+            {0: {"dundee": 153.6}}, DUNDEE_PRESSURE, [SITE]
+        )
 
 
 def test_a_datum_above_any_earth_terrain_fails_loudly():
-    # The one direction still checkable without a catalogued elevation
-    # (identity-only sites.json): were ECCC to re-encode the file in genuine
-    # metres, the ×10 scaling would publish a ~15 km surface.
+    # The ceiling backstop: a 9.5 km datum with barometrically consistent
+    # pressure is still refused — nothing on Earth is that high.
     with pytest.raises(RuntimeError, match="higher than any Earth terrain"):
-        _require_plausible_model_elevation({0: {"dundee": 15360.0}}, [SITE])
+        _require_plausible_model_elevation(
+            {0: {"dundee": 9500.0}}, {0: {"dundee": 32845.0}}, [SITE]
+        )

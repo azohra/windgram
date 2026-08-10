@@ -39,10 +39,11 @@ window seconds, and the build publishes the mean over the window ending at
 each valid time. Precipitation is likewise a run-total accumulation,
 differenced per window into mm/h. Hour 000 publishes neither (nothing has
 accumulated), so the first step's baseline is seeded at zero; terrain
-(HGT_SFC, per member) exists at PT000 only, is the sole hour-0 download,
-and arrives in decametres despite metadata claiming metres (verified
-2026-08-08; see TERRAIN_DAM_TO_M) — the pressure-level heights are genuine
-metres. Moisture is RH everywhere (no dew point in any form). A full
+(HGT_SFC, per member) exists at PT000 only and arrives in decametres
+despite metadata claiming metres (verified 2026-08-08; see
+TERRAIN_DAM_TO_M) — the pressure-level heights are genuine metres — and
+the only other hour-0 download is the PT000 surface pressure (PRES_SFC,
+genuine pascals) that holds that datum to account barometrically. Moisture is RH everywhere (no dew point in any form). A full
 run moves ~14 GiB — the heaviest feed in the pipeline — so files stream:
 fetched into memory, sampled for all 21 members, and dropped.
 """
@@ -128,18 +129,34 @@ TERRAIN_VARIABLE = "HGT_SFC_0"
 # HGT_ISBL files are genuine geopotential metres (850 hPa at Dundee: 1512);
 # only the surface field carries decametres.
 TERRAIN_DAM_TO_M = 10.0
+# The model's own surface pressure — PRES_SFC, paramId 134, genuine pascals
+# with no decametre-style unit lie (verified 2026-08-10: Dundee control
+# 845.9 hPa against the 1535.6 m scaled terrain, barometrically ~13 m
+# apart; global range 499.9–1045.5 hPa). Fetched at PT000 solely to anchor
+# the terrain guard below.
+SURFACE_PRESSURE_VARIABLE = "PRES_SFC_0"
 # Ceiling for the published terrain datum: no Earth terrain reaches 9 km in
 # any encoding, so a higher value means the surface-orography encoding
 # changed (a genuine-metre re-encode under the ×10 scaling reads ~15 km).
-# The v1 catalogue also let the builder bound the datum from BELOW against
-# each site's typed-in elevation, which is what actually caught the
-# decametre bug (153.6 m at a 1485 m site); that reference is gone with the
-# launch decoupling — sites.json is identity-only, and no build-time
-# elevation flow exists at all — so a dropped ×10 (everything reading ~1/10
-# of true terrain) is no longer detectable here. A future catalogue-free
-# guard could cross-check the datum against the model's own surface
-# pressure via the barometric relation.
+# The v1 catalogue once also bounded the datum from BELOW against each
+# site's typed-in elevation, which is what actually caught the decametre
+# bug (153.6 m at a 1485 m site); sites.json is identity-only now, so the
+# guard instead holds the datum to the model's OWN surface pressure via the
+# barometric relation: the elevation implied by p = p0·exp(−z/H) must sit
+# within TERRAIN_PRESSURE_TOLERANCE_M of the datum. Honest weather moves
+# the implied elevation ~±410 m (±40 hPa synoptic swings) plus ~±200 m of
+# non-standard-atmosphere temperature at these site elevations; a dropped
+# ×10 leaves a ≥1.3 km gap at a 1,500 m site and a gained ×10 a ~13 km
+# one, so 1,000 m splits honest weather from either scaling with margin on
+# both sides. Note the contract's pressurePa cannot anchor this check — it
+# is PRMSL, ~1013 hPa at any elevation.
 TERRAIN_CEILING_M = 9000.0
+# ICAO standard atmosphere: sea-level pressure and the isothermal scale
+# height that make p = p0·exp(−z/H) good to well under the tolerance at
+# site elevations.
+STANDARD_SEA_LEVEL_PA = 101325.0
+BAROMETRIC_SCALE_HEIGHT_M = 8434.0
+TERRAIN_PRESSURE_TOLERANCE_M = 1000.0
 PRESSURE_FIELDS = {
     "heightM": ("HGT", lambda v: v),
     "relativeHumidityPercent": ("RH", lambda v: v),
@@ -306,11 +323,10 @@ def _build_documents(
         )
         return _sample_scalar_members(data, sites, field)
 
-    # Model terrain per member (HGT_SFC exists at PT000 only; every other
-    # download is a forecast-hour file). The raw file is decametres — see
-    # TERRAIN_DAM_TO_M — scaled to metres here and then sanity-checked
-    # against the catalogued site elevations, because every published height
-    # derives from this datum.
+    # Model terrain per member (HGT_SFC exists at PT000 only). The raw file
+    # is decametres — see TERRAIN_DAM_TO_M — scaled to metres here and then
+    # held to the model's own PT000 surface pressure via the barometric
+    # relation, because every published height derives from this datum.
     terrain = {
         member: {
             slug: value * TERRAIN_DAM_TO_M for slug, value in member_values.items()
@@ -319,7 +335,8 @@ def _build_documents(
             TERRAIN_VARIABLE, 0, "model elevation"
         ).items()
     }
-    _require_plausible_model_elevation(terrain, sites)
+    surface_pressure = fetch_members(SURFACE_PRESSURE_VARIABLE, 0, "surface pressure")
+    _require_plausible_model_elevation(terrain, surface_pressure, sites)
 
     # hours[slug][member][hour_index] → a windgram source hour in the making.
     hours: dict[str, dict[int, list[dict]]] = {
@@ -669,16 +686,30 @@ def _require_all_members(members: dict[int, dict], field: str) -> None:
 
 
 def _require_plausible_model_elevation(
-    terrain: dict[int, dict[str, float]], sites: list[dict]
+    terrain: dict[int, dict[str, float]],
+    surface_pressure: dict[int, dict[str, float]],
+    sites: list[dict],
 ) -> None:
     """Fails loudly when the control member's terrain cannot be terrain —
     the gust hour-max ≥ instantaneous assertion's idiom, applied to the
-    datum every published height derives from. Only the ceiling can be
-    checked now: the identity-only catalogue carries no elevation to bound
-    the datum from below (see the TERRAIN_CEILING_M comment)."""
-    control = terrain[0]
+    datum every published height derives from. Catalogue-free: the datum is
+    held to the model's OWN PT000 surface pressure through the barometric
+    relation (the tolerance arithmetic lives with TERRAIN_CEILING_M), with
+    the no-Earth-terrain ceiling kept as a backstop."""
     for site in sites:
-        elevation = control[site["slug"]]
+        elevation = terrain[0][site["slug"]]
+        pressure_pa = surface_pressure[0][site["slug"]]
+        implied_m = BAROMETRIC_SCALE_HEIGHT_M * math.log(
+            STANDARD_SEA_LEVEL_PA / pressure_pa
+        )
+        if abs(implied_m - elevation) > TERRAIN_PRESSURE_TOLERANCE_M:
+            raise RuntimeError(
+                f"GEPS model elevation for {site['name']} is {elevation:.1f} m, "
+                f"but its own {pressure_pa / 100:.1f} hPa surface pressure puts "
+                f"the surface near {implied_m:.0f} m — further apart than any "
+                "weather allows; the surface-orography encoding has changed "
+                "(see TERRAIN_DAM_TO_M)"
+            )
         if elevation > TERRAIN_CEILING_M:
             raise RuntimeError(
                 f"GEPS model elevation for {site['name']} is {elevation:.1f} m — "
