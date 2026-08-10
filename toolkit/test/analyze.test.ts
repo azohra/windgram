@@ -11,10 +11,18 @@ import {
   type ThermalWindowFinding,
   type LiftCeilingFinding,
   type QuietDayFinding,
+  type SmokeImpactFinding,
+  type SmokeImpactJoinedFinding,
+  type SmokeImpactProfileFinding,
   type TerrainMismatchFinding,
   type WindSummaryFinding,
 } from "../src/analyze/index.js";
-import { parseWindgramProfile, type WindgramProfile } from "../src/contract/index.js";
+import {
+  parseSmokeDocument,
+  parseWindgramProfile,
+  type SmokeDocument,
+  type WindgramProfile,
+} from "../src/contract/index.js";
 
 /* The fixtures are trimmed REAL published documents captured during the
    2026-08-08/09 evidence spike (provenance in the fixture file's note):
@@ -117,6 +125,7 @@ describe("the analysis envelope", () => {
         "thermalWindow",
         "quietDay",
         "liftCeiling",
+        "smokeImpact",
         "windSummary",
       ]).toContain(kind);
     }
@@ -625,6 +634,220 @@ describe("mixed cadence — spacing is per-gap, never a document constant", () =
     // the leading cadence would have said 3.
     expect(sunday.maxWindInBand?.at.validAt).toBe("2026-08-09T15:00:00Z");
     expect(sunday.maxWindInBand?.persistenceHours).toBe(6);
+  });
+});
+
+describe("smokeImpact", () => {
+  /* The S2 shape in miniature (2026-08-10 memo): a smoke-carrying profile
+     whose day-peak AOT falls OUTSIDE the window while the surface peak
+     falls inside it (the erie 08-11 divergence), and a RAQDPS-like joined
+     document whose horizon covers day one fully and day two by a single
+     hour (S2 Q4: every join miss is horizon, never cadence). Values are
+     hand-placed on the real hrrr fixture's hours; the windows they read
+     against are the fixture's own (08-08: 19:00Z-01:00Z; 08-09: 18:00Z). */
+
+  const iso = (ms: number) => new Date(ms).toISOString().replace(".000Z", "Z");
+
+  /** The hrrr fixture wearing S2-shaped smoke blocks and the contract's
+   * radiativelyCoupled tag. Two raw-precision values (154.24 µg/m³,
+   * AOT 0.9174) pin the contract rounding: µg/m³ at one decimal, aot at
+   * three (the pipeline's publish table). */
+  function smokyHrrr(): WindgramProfile {
+    const doc = JSON.parse(JSON.stringify(fixtures["hrrrConusErie"])) as {
+      semantics?: object;
+      hours: Array<{ validAt: string; smoke?: object }>;
+    };
+    doc.semantics = { smoke: "radiativelyCoupled" };
+    const blocks: Record<string, { surfaceUgm3: number; columnMgm2: number; aot: number }> = {
+      // Local day 08-08 (19:00Z-06:00Z at UTC-7); window 19:00Z-01:00Z.
+      "2026-08-08T19:00:00Z": { surfaceUgm3: 92.4, columnMgm2: 98.6, aot: 0.755 },
+      "2026-08-08T21:00:00Z": { surfaceUgm3: 154.24, columnMgm2: 173.1, aot: 0.9174 },
+      "2026-08-09T01:00:00Z": { surfaceUgm3: 130.6, columnMgm2: 151.9, aot: 0.622 },
+      "2026-08-09T05:00:00Z": { surfaceUgm3: 88.1, columnMgm2: 260.4, aot: 1.383 }, // 22:00 local
+      // Local day 08-09; window is the single hour 18:00Z (11:00 local).
+      "2026-08-09T15:00:00Z": { surfaceUgm3: 15.3, columnMgm2: 40.2, aot: 0.213 },
+      "2026-08-09T18:00:00Z": { surfaceUgm3: 19.0, columnMgm2: 38.7, aot: 0.201 },
+    };
+    for (const hour of doc.hours) {
+      const block = blocks[hour.validAt];
+      if (block) hour.smoke = block;
+    }
+    const profile = parseWindgramProfile(doc);
+    expect(profile, "the smoke-carrying construction must satisfy the contract").not.toBeNull();
+    return profile!;
+  }
+
+  /** A RAQDPS-shaped smoke document: hourly 19:00Z-07:00Z, so it covers
+   * all 12 profile hours of local 08-08 and exactly one of 08-09 — the
+   * horizon confession under test. Run 12Z against the profile's 18Z
+   * (the routine 6 h gap S2 measured). */
+  function raqdpsErie(): SmokeDocument {
+    const start = Date.parse("2026-08-08T19:00:00Z");
+    const rows: Array<[number, number]> = [
+      [90.4, 5.2], // 19:00Z
+      [93.1, 6.0],
+      [111.0, 9.8], // 21:00Z - surface day-peak, in-window
+      [105.5, 12.1],
+      [99.9, 14.0],
+      [96.2, 15.3],
+      [94.0, 16.8], // 01:00Z - the window's last hour
+      [92.5, 18.5], // 02:00Z - column day-peak, 19:00 local, OUTSIDE the window
+      [60.3, 15.0],
+      [40.8, 11.2],
+      [30.1, 8.4],
+      [22.6, 6.1],
+      [12.7, 3.9], // 07:00Z - local 08-09's only covered hour
+    ];
+    const parsed = parseSmokeDocument({
+      schemaVersion: 1,
+      model: "raqdps",
+      run: { referenceTime: "2026-08-08T12:00:00Z", generatedAt: "2026-08-08T16:05:00Z" },
+      site: {
+        id: "erie",
+        name: "Erie",
+        latitude: 49.43,
+        longitude: -117.28,
+        timeZone: "America/Vancouver",
+      },
+      hours: rows.map(([smokePlumeSurfaceUgm3, smokePlumeColumnMgm2], k) => ({
+        validAt: iso(start + k * 3_600_000),
+        pm25Ugm3: smokePlumeSurfaceUgm3 + 4.5,
+        smokePlumeSurfaceUgm3,
+        smokePlumeColumnMgm2,
+      })),
+    });
+    expect(parsed, "the smoke-document construction must satisfy the contract").not.toBeNull();
+    return parsed!;
+  }
+
+  it("republishes the profile's own smoke per day — day peaks AND during-window maxima, both", () => {
+    const findings = ofKind<SmokeImpactFinding>(
+      analyzeProfile(smokyHrrr(), ERIE).findings,
+      "smokeImpact",
+    );
+    expect(findings.map((finding) => finding.day)).toEqual(["2026-08-08", "2026-08-09"]);
+    const saturday = findings[0] as SmokeImpactProfileFinding;
+    expect(saturday.source).toBe("profile");
+    expect(saturday.semantics).toBe("radiativelyCoupled");
+    // The S2 divergence: the surface peak sits in-window at 14:00 local...
+    expect(saturday.peakSurfaceUgm3).toBe(154.2); // 154.24 raw - contract 1-dp
+    expect(saturday.peakSurfaceAt).toEqual({
+      validAt: "2026-08-08T21:00:00Z",
+      local: "2026-08-08T14:00",
+    });
+    // ...while the day's AOT peak falls at 22:00 local, outside the window.
+    expect(saturday.peakAot).toBe(1.383);
+    expect(saturday.peakAotAt).toEqual({
+      validAt: "2026-08-09T05:00:00Z",
+      local: "2026-08-08T22:00",
+    });
+    // The during-window maxima are the materially different facts: max AOT
+    // inside 12:00-18:00 local is 0.917 (raw 0.9174 - contract 3-dp aot).
+    expect(saturday.duringWindow).toEqual({ maxSurfaceUgm3: 154.2, maxAot: 0.917 });
+    // Evidence is scoped to exactly the smoke-carrying hours, at contract
+    // precision, aligned per hour.
+    expect(saturday.evidence.hours).toEqual([
+      "2026-08-08T19:00:00Z",
+      "2026-08-08T21:00:00Z",
+      "2026-08-09T01:00:00Z",
+      "2026-08-09T05:00:00Z",
+    ]);
+    expect(saturday.evidence.surfaceUgm3).toEqual([92.4, 154.2, 130.6, 88.1]);
+    expect(saturday.evidence.aot).toEqual([0.755, 0.917, 0.622, 1.383]);
+    // Profile source: the model's own AOT, no joined-source fields.
+    expect("peakColumnMgm2" in saturday).toBe(false);
+    expect("smokeRun" in saturday).toBe(false);
+    expect("coverage" in saturday).toBe(false);
+
+    const sunday = findings[1] as SmokeImpactProfileFinding;
+    // The single-hour window at 18:00Z catches only its own hour's smoke.
+    expect(sunday.peakSurfaceUgm3).toBe(19);
+    expect(sunday.peakAot).toBe(0.213);
+    expect(sunday.peakAotAt.validAt).toBe("2026-08-09T15:00:00Z");
+    expect(sunday.duringWindow).toEqual({ maxSurfaceUgm3: 19, maxAot: 0.201 });
+  });
+
+  it("joins a smoke document onto a smoke-blind profile and confesses the horizon", () => {
+    const findings = ofKind<SmokeImpactFinding>(
+      analyzeProfile(hrrr(), { ...ERIE, smoke: raqdpsErie() }).findings,
+      "smokeImpact",
+    );
+    expect(findings.map((finding) => finding.day)).toEqual(["2026-08-08", "2026-08-09"]);
+    const saturday = findings[0] as SmokeImpactJoinedFinding;
+    expect(saturday.source).toBe("joined");
+    // A joined day is passive by construction: the profile's lift numbers
+    // never felt this smoke.
+    expect(saturday.semantics).toBe("passive");
+    // Both reference times: the smoke run's 12Z beside the envelope's 18Z.
+    expect(saturday.smokeRun).toEqual({
+      model: "raqdps",
+      referenceTime: "2026-08-08T12:00:00Z",
+    });
+    // Full coverage on day one: all 12 local-day hours matched by validAt.
+    expect(saturday.coverage).toEqual({ joinedHours: 12, profileHours: 12 });
+    expect(saturday.peakSurfaceUgm3).toBe(111);
+    expect(saturday.peakSurfaceAt.validAt).toBe("2026-08-08T21:00:00Z");
+    // The column peak (18.5 at 19:00 local) falls outside the window; the
+    // in-window column max is the window's last hour.
+    expect(saturday.peakColumnMgm2).toBe(18.5);
+    expect(saturday.peakColumnAt).toEqual({
+      validAt: "2026-08-09T02:00:00Z",
+      local: "2026-08-08T19:00",
+    });
+    expect(saturday.duringWindow).toEqual({ maxSurfaceUgm3: 111, maxColumnMgm2: 16.8 });
+    expect(saturday.evidence.hours).toHaveLength(12);
+    expect(saturday.evidence.surfaceUgm3[2]).toBe(111);
+    expect(saturday.evidence.columnMgm2[7]).toBe(18.5);
+    // NO aot, anywhere: the RAQDPS column is quarantined from derived
+    // optics (S2 caveat 5), so a joined day republishes the column only.
+    expect("peakAot" in saturday).toBe(false);
+    expect("aot" in saturday.evidence).toBe(false);
+    expect(JSON.stringify(saturday)).not.toMatch(/aot/i);
+
+    const sunday = findings[1] as SmokeImpactJoinedFinding;
+    // The horizon confession: the smoke document reaches one hour into the
+    // second local day (07:00Z), and the numbers read over that hour only.
+    expect(sunday.coverage).toEqual({ joinedHours: 1, profileHours: 12 });
+    expect(sunday.peakSurfaceUgm3).toBe(12.7);
+    expect(sunday.peakColumnMgm2).toBe(3.9);
+    expect(sunday.evidence.hours).toEqual(["2026-08-09T07:00:00Z"]);
+    // The day HAS a window (18:00Z), but no joined hour lands on it: the
+    // during-window block is null, and coverage says why.
+    expect(sunday.duringWindow).toBeNull();
+  });
+
+  it("says nothing without smoke — no blocks, no document, no finding", () => {
+    expect(ofKind(analyzeProfile(hrrr(), ERIE).findings, "smokeImpact")).toHaveLength(0);
+  });
+
+  it("prefers the profile's own smoke over a joined document — one sky, stated once", () => {
+    const findings = ofKind<SmokeImpactFinding>(
+      analyzeProfile(smokyHrrr(), { ...ERIE, smoke: raqdpsErie() }).findings,
+      "smokeImpact",
+    );
+    expect(findings.length).toBeGreaterThan(0);
+    for (const finding of findings) {
+      expect(finding.source).toBe("profile");
+    }
+  });
+
+  it("echoes the semantics tag, and reads an untagged smoke block as passive", () => {
+    // The tag is load-bearing: radiativelyCoupled says the analysis's own
+    // lift numbers already feel this smoke; its absence must read as
+    // passive - derive/'s isSmokeAwareProfile convention, never a default
+    // toward "already accounted for".
+    const untagged = JSON.parse(JSON.stringify(fixtures["hrrrConusErie"])) as {
+      semantics?: object;
+      hours: Array<{ validAt: string; smoke?: object }>;
+    };
+    untagged.hours[0].smoke = { surfaceUgm3: 45.7, columnMgm2: 61.3, aot: 0.412 };
+    const profile = parseWindgramProfile(untagged)!;
+    const finding = ofKind<SmokeImpactFinding>(
+      analyzeProfile(profile, ERIE).findings,
+      "smokeImpact",
+    )[0];
+    expect(finding.source).toBe("profile");
+    expect(finding.semantics).toBe("passive");
   });
 });
 

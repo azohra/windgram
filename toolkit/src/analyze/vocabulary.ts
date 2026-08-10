@@ -11,12 +11,14 @@
    extractor line in findings.ts — keep each on its own line so parallel
    kind work merges without conflict. */
 
+import type { SmokeDocument } from "../contract/index.js";
 import type { CapTimingFinding } from "./kinds/cap-timing.js";
 import type { DataCaveatsFinding } from "./kinds/data-caveats.js";
 import type { EnsembleMembershipFinding } from "./kinds/ensemble-membership.js";
 import type { ThermalWindowFinding } from "./kinds/thermal-window.js";
 import type { LiftCeilingFinding } from "./kinds/lift-ceiling.js";
 import type { QuietDayFinding } from "./kinds/quiet-day.js";
+import type { SmokeImpactFinding } from "./kinds/smoke-impact.js";
 import type { TerrainMismatchFinding } from "./kinds/terrain-mismatch.js";
 import type { WindSummaryFinding } from "./kinds/wind-summary.js";
 
@@ -76,6 +78,7 @@ export type { EnsembleMembershipFinding } from "./kinds/ensemble-membership.js";
 export type { ThermalWindowFinding } from "./kinds/thermal-window.js";
 export type { LiftCeilingFinding } from "./kinds/lift-ceiling.js";
 export type { QuietDayFinding } from "./kinds/quiet-day.js";
+export type { SmokeImpactFinding, SmokeImpactJoinedFinding, SmokeImpactProfileFinding } from "./kinds/smoke-impact.js";
 export type { TerrainMismatchFinding } from "./kinds/terrain-mismatch.js";
 export type { WindSummaryFinding } from "./kinds/wind-summary.js";
 
@@ -88,6 +91,7 @@ export type WindgramFinding =
   | ThermalWindowFinding
   | QuietDayFinding
   | LiftCeilingFinding
+  | SmokeImpactFinding
   | WindSummaryFinding;
 
 export type FindingKind = WindgramFinding["kind"];
@@ -159,6 +163,16 @@ export interface AnalyzeOptions {
   launch?: { elevationM: number } | null;
   /** Per-kind threshold overrides, merged over the defaults per kind. */
   thresholds?: AnalyzeThresholdOverrides;
+  /**
+   * A same-site smoke document (RAQDPS) to join by validAt for
+   * smoke-blind profiles — an ANALYSIS INPUT like `launch`: the
+   * `smokeImpact` kind republishes its surface and column magnitudes with
+   * a coverage confession and the smoke run's own referenceTime beside
+   * the envelope's. Ignored when the profile carries its own
+   * `hours[].smoke` (the model's own smoke wins); absent, a smoke-blind
+   * analysis says so via the `dataCaveats` `"smoke"` family token.
+   */
+  smoke?: SmokeDocument | null;
 }
 
 /* ---------------------------------------------------------------- envelope */

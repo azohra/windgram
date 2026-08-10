@@ -16,6 +16,7 @@ import { findThermalWindows } from "./kinds/thermal-window.js";
 import { findLiftCeilings } from "./kinds/lift-ceiling.js";
 import { findQuietDays } from "./kinds/quiet-day.js";
 import { citedInstantFactory, hourStepsOf, stepHoursOf, type Context } from "./kinds/shared.js";
+import { findSmokeImpact } from "./kinds/smoke-impact.js";
 import { findTerrainMismatch } from "./kinds/terrain-mismatch.js";
 import { findWindSummaries } from "./kinds/wind-summary.js";
 import {
@@ -65,12 +66,14 @@ export function analyzeProfile(
   };
 
   const windows = findThermalWindows(context);
+  const smokeImpacts = findSmokeImpact(context, windows, options.smoke ?? null);
   const findings: WindgramFinding[] = [
     ...findTerrainMismatch(context),
     ...windows,
     ...findQuietDays(context, windows),
     ...findLiftCeilings(context, windows),
     ...findCapTiming(context, windows),
+    ...smokeImpacts,
     ...findWindSummaries(context),
     ...findEnsembleMembership(context),
     findDataCaveats(context, timeZoneSource),
