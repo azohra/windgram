@@ -58,12 +58,18 @@ A new catalogue entry is not a package enum change.
 
 `site-context.json` is the third catalogue-root file, published at the
 dataset root beside `models.json` and `sites.json`: static,
-machine-generated terrain and land-cover context for every catalogued
-site. Fetch it once, guard it with `parseSiteContextJson`, and join its
-entries against `sites.json` by slug — it echoes no coordinates or
-surveyed elevations of its own. It has no cadence and no runs; it changes
-only when the site catalogue does. Its shape, sources, and licences live
-in the [site context reference](/docs/reference/site-context-document/).
+machine-measured ground truth for every catalogued site — the launch
+`elevation` pick, terrain analysis, and land cover. The division of labour
+is deliberate: `sites.json` (schemaVersion 2) is **identity only** — slug,
+name, coordinates, timezone, published verbatim — and everything physical
+is measured from those coordinates by `windgram terrain` and published
+here. Adding a site is authoring identity plus one terrain run, committed
+together — the [configure-launches guide](/docs/publish/configure-launches/)
+is the flow. Fetch the context once, guard it with `parseSiteContextJson`,
+and join its entries against `sites.json` by slug — it echoes no
+coordinates of its own. It has no cadence and no runs; it changes only
+when the site catalogue does. Its shape, sources, and licences live in the
+[site context reference](/docs/reference/site-context-document/).
 
 ## Absence and semantics are declarations
 

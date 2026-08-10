@@ -72,6 +72,7 @@ atmosphere was sampled and what the model's own ground there is
 every launch its grid cell covers. To draw the launch marker, supply the
 launch yourself:
 
+<!-- windgram-doc-fence: ignore — continues the fence above (DATA, loaded, timeZone, imports) -->
 ```ts
 import { parseSiteContextJson } from "windgram/contract";
 

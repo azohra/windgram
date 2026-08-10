@@ -99,8 +99,10 @@ clock properties that should be obvious in review:
     "synthetic": true,
     "latitude": 49,
     "longitude": -123,
-    "altitudeM": 1050,
     "modelElevationM": 900
+  },
+  "launch": {
+    "elevationM": 1050
   },
   "clock": {
     "referenceTime": "2000-01-01T06:00:00Z",
@@ -116,6 +118,13 @@ clock properties that should be obvious in review:
 This excerpt omits required fields. Copy a
 committed valid recipe so required baseline, transform, semantics, capability,
 and assertion fields are not guessed.
+
+The top-level `launch` block is the launch the scenario teaches against,
+and it is deliberately not part of `site`: the site block is sample
+provenance (`modelElevationM` is the model's own ground, a document fact),
+while the launch never enters the generated document — documents are
+launch-agnostic. The generator publishes it in `scenarios/index.json`, and
+scenario-driven figures pass it at render time as `SceneOptions.launch`.
 
 ## Model shape and capabilities
 

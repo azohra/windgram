@@ -3,31 +3,32 @@ import { CONTEXT_SITES, sourceById } from "../../lib/site-context";
 import Figure from "../figure/Figure.astro";
 
 /* Generated from site-context.json and sites.json at build time (the
-   CapabilityMatrix single-source pattern): per site, the surveyed launch
-   elevation, the best bare-earth lidar/DTM elevation, and the GLO-30
-   surface-model elevation on one fine metre scale. The lesson is the
-   agreement — three independent answers land within metres — while the
+   CapabilityMatrix single-source pattern): per site, the catalogue's
+   measured elevation pick (site-context's `elevation` — lidarbc →
+   mrdem30 → glo30 by priority) and the GLO-30 surface-model elevation
+   on one fine metre scale. The lesson is the agreement — independent
+   ground measurements land within metres of each other — while the
    weather model's own terrain (site.modelElevationM, live in every
    profile and deliberately not in the static file) sits far off this
    scale. */
 
 const X0 = 300;
 const X1 = 950;
-const BLOCK_H = 128;
-const LANE_DY = [40, 62, 84];
+const BLOCK_H = 106;
+const LANE_DY = [40, 62];
 
 const format = (value: number) =>
   value.toLocaleString("en-CA", { maximumFractionDigits: 1 });
-const delta = (value: number, surveyed: number) => {
-  const difference = value - surveyed;
+const delta = (value: number, reference: number) => {
+  const difference = value - reference;
   return `${difference >= 0 ? "+" : "−"}${format(Math.abs(difference))} m`;
 };
 
 const blocks = CONTEXT_SITES.map(({ site, context }, index) => {
-  const surveyed = site.elevationM;
+  const pick = context.elevation;
+  const pickSource = sourceById(pick.source);
   const glo30 = context.terrain.elevationM;
-  const bareEarth = context.bareEarth ?? null;
-  const values = [surveyed, glo30, ...(bareEarth ? [bareEarth.elevationM] : [])];
+  const values = [pick.elevationM, glo30];
 
   // Domain: 5 m-rounded bounds with at least a 30 m span, so every site's
   // scale reads at comparable zoom.
@@ -41,35 +42,29 @@ const blocks = CONTEXT_SITES.map(({ site, context }, index) => {
   const ticks: number[] = [];
   for (let tick = lo; tick <= hi; tick += 5) ticks.push(tick);
 
-  const bareEarthSource = bareEarth ? sourceById(bareEarth.source) : null;
   const lanes = [
-    { label: "surveyed launch", sub: "sites.json", value: surveyed, kind: "surveyed" },
-    ...(bareEarth && bareEarthSource
-      ? [
-          {
-            label: `bare earth · ${bareEarthSource.resolutionM} m`,
-            sub: bareEarth.source,
-            value: bareEarth.elevationM,
-            kind: "bare-earth",
-          },
-        ]
-      : []),
+    {
+      label: `catalogue · ${pick.source} · ${pickSource.resolutionM} m`,
+      sub: "site-context.json elevation",
+      value: pick.elevationM,
+      kind: "pick",
+    },
     { label: "GLO-30 surface", sub: "canopy included", value: glo30, kind: "surface" },
   ].map((lane, laneIndex) => ({
     ...lane,
     y: index * BLOCK_H + LANE_DY[laneIndex],
     x: px(lane.value),
     text:
-      lane.kind === "surveyed"
+      lane.kind === "pick"
         ? `${format(lane.value)} m`
-        : `${format(lane.value)} m (${delta(lane.value, surveyed)})`,
+        : `${format(lane.value)} m (${delta(lane.value, pick.elevationM)})`,
   }));
 
   return {
     site,
     top: index * BLOCK_H,
-    axisY: index * BLOCK_H + 104,
-    surveyedX: px(surveyed),
+    axisY: index * BLOCK_H + 82,
+    pickX: px(pick.elevationM),
     laneTop: index * BLOCK_H + LANE_DY[0] - 10,
     ticks: ticks.map((tick) => ({ value: tick, x: px(tick) })),
     lanes,
@@ -92,11 +87,11 @@ const attributions = ["glo30", "lidarbc", "mrdem30"].map(
 
 <Figure
   id="elevation-ladder"
-  title="Three answers within metres — and one far away"
-  lesson="Surveyed launch, bare-earth lidar, and the GLO-30 surface model agree within metres; a weather model's terrain does not."
+  title="Measured answers within metres — and one far away"
+  lesson="The catalogue's measured elevation pick and the GLO-30 surface model agree within metres; a weather model's terrain does not."
   description={`Per-site elevation ladder on a fine metre scale. ${description} Each profile's site.modelElevationM — the weather model's smoothed terrain — is live data and typically sits tens to hundreds of metres off these scales.`}
-  caption="Elevations are read from site-context.json and sites.json on every build. The weather model's own terrain is deliberately absent: it is live data — read site.modelElevationM from any profile and place it against this ladder yourself."
-  units="elevation m MSL · deltas vs the surveyed launch"
+  caption="Elevations are read from site-context.json on every build: the catalogue lane is the measured elevation pick (lidarbc → mrdem30 → glo30 by priority) — the launch elevation consumers render with. The weather model's own terrain is deliberately absent: it is live data — read site.modelElevationM from any profile and place it against this ladder yourself."
+  units="elevation m MSL · deltas vs the catalogue pick"
 >
   <div class="wg-scroll wg-scroll--plate graphic-scroll" role="region" tabindex="0" aria-label="Scrollable per-site elevation ladder">
     <svg
@@ -105,11 +100,11 @@ const attributions = ["glo30", "lidarbc", "mrdem30"].map(
       aria-labelledby="elevation-ladder-svg-title elevation-ladder-svg-desc"
     >
       <title id="elevation-ladder-svg-title">
-        Surveyed, bare-earth, and GLO-30 elevations per site on a fine metre scale
+        Catalogue elevation pick and GLO-30 surface elevation per site on a fine metre scale
       </title>
       <desc id="elevation-ladder-svg-desc">{description}</desc>
 
-      {blocks.map(({ site, top, axisY, surveyedX, laneTop, ticks, lanes }) => (
+      {blocks.map(({ site, top, axisY, pickX, laneTop, ticks, lanes }) => (
         <g>
           <text x="24" y={top + 24} class="el-name">{site.name}</text>
           <text x="24" y={top + 40} class="el-name-sub">{site.slug}</text>
@@ -124,20 +119,18 @@ const attributions = ["glo30", "lidarbc", "mrdem30"].map(
             </>
           ))}
 
-          <line x1={surveyedX} y1={laneTop} x2={surveyedX} y2={axisY} class="el-ref" />
+          <line x1={pickX} y1={laneTop} x2={pickX} y2={axisY} class="el-ref" />
 
           {lanes.map((lane) => (
             <g>
               <text x="150" y={lane.y + 4} class="el-lane-label">{lane.label}</text>
               <text x="150" y={lane.y + 15} class="el-lane-sub">{lane.sub}</text>
               <line x1={X0} y1={lane.y} x2={X1} y2={lane.y} class="el-lane" />
-              {lane.kind === "surveyed" ? (
+              {lane.kind === "pick" ? (
                 <path
                   d={`M ${lane.x} ${lane.y - 6} L ${lane.x + 6} ${lane.y} L ${lane.x} ${lane.y + 6} L ${lane.x - 6} ${lane.y} Z`}
-                  class="el-surveyed"
+                  class="el-pick"
                 />
-              ) : lane.kind === "bare-earth" ? (
-                <circle cx={lane.x} cy={lane.y} r="5" class="el-bare" />
               ) : (
                 <rect x={lane.x - 4.5} y={lane.y - 4.5} width="9" height="9" class="el-surface" />
               )}
@@ -157,8 +150,7 @@ const attributions = ["glo30", "lidarbc", "mrdem30"].map(
   </div>
 
   <div slot="legend" class="el-legend">
-    <span><i class="el-key el-key--surveyed" aria-hidden="true"></i> surveyed launch</span>
-    <span><i class="el-key el-key--bare" aria-hidden="true"></i> bare-earth DTM</span>
+    <span><i class="el-key el-key--pick" aria-hidden="true"></i> catalogue elevation pick</span>
     <span><i class="el-key el-key--surface" aria-hidden="true"></i> GLO-30 surface (DSM)</span>
     <span class="el-legend-note">
       model terrain (<code>site.modelElevationM</code>): live per profile, off these scales
@@ -183,15 +175,13 @@ const attributions = ["glo30", "lidarbc", "mrdem30"].map(
   .el-ref { stroke: var(--ink-mute); stroke-width: 1; stroke-dasharray: 2 3; }
   .el-axis { stroke: var(--rule-strong); stroke-width: 1; }
   .el-axis-label { fill: var(--ink-mute); font-size: 9.5px; text-anchor: middle; }
-  .el-surveyed { fill: var(--ink); }
-  .el-bare { fill: var(--model-1); }
+  .el-pick { fill: var(--ink); }
   .el-surface { fill: var(--accent); }
   .el-value { fill: var(--ink); font-size: 10.5px; font-weight: 600; }
   .el-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; font: 11px/1.4 var(--mono); color: var(--ink-mute); }
   .el-legend code { font-family: var(--mono); }
   .el-key { display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; }
-  .el-key--surveyed { background: var(--ink); transform: rotate(45deg); border-radius: 1px; }
-  .el-key--bare { background: var(--model-1); border-radius: 50%; }
+  .el-key--pick { background: var(--ink); transform: rotate(45deg); border-radius: 1px; }
   .el-key--surface { background: var(--accent); }
   .el-legend-note { color: var(--ink-soft); }
   .catalogue-source { margin: 0; padding: 9px 14px; color: var(--ink-mute); font: 11px/1.45 var(--mono); border-top: 1px solid var(--rule); }

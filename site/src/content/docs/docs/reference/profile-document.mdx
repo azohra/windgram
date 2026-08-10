@@ -12,7 +12,7 @@ remain consumer choices, with the site's timezone echoed for new documents.
 profile
 ├── schemaVersion + model
 ├── run { referenceTime, generatedAt, members? }
-├── site { identity, coordinates, launch altitude, model elevation, timeZone? }
+├── site { identity, coordinates, model elevation, timeZone? }
 ├── semantics? { gust?, precipitation? }
 └── hours[]
     ├── validAt
@@ -35,9 +35,16 @@ profile
 publication. Ensemble documents also declare total membership once at
 `run.members`.
 
-`site.altitudeM` is surveyed launch elevation (nullable in stored profiles);
-`site.modelElevationM` is grid terrain. Keep both because derived column values
-and display launch lines answer different questions.
+The `site` block is **sample provenance**: where the atmosphere was sampled
+(`id`, `name`, `latitude`, `longitude`, optional `timeZone`) and what the
+model thinks the ground there is (`site.modelElevationM` — the plot floor and
+physics reference). It carries no launch elevation: the launch-decoupling
+redesign removed `altitudeM`, because a baked-in launch silently bound a
+grid forecast to one launch. The measured launch elevation lives in
+[site-context.json](/docs/reference/site-context-document/)'s `elevation`
+pick, and consumers pass it at render time as `SceneOptions.launch` — one
+document serves every launch its cell covers. Documents published before
+the removal may still carry the field; current parsers ignore it.
 
 The v0.4 publication wave added optional `site.timeZone`, echoed from the
 site catalogue's required IANA zone. New documents therefore carry their own

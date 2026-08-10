@@ -84,6 +84,7 @@ cell covers. To draw a launch marker, pass the launch as a render input,
 with the measured elevation from the published
 [`site-context.json`](site-context.json):
 
+<!-- windgram-doc-fence: ignore — continues the fence above (profile, imports) -->
 ```ts
 buildScene(profile, {
   timeZone: "America/Vancouver",

@@ -964,6 +964,24 @@ export const modelEntrySchema = z.object({
       "Hours between the runs this dataset publishes — the model's own schedule where every run is built, or the built subset where it is not (HRRR declares 6, its published synoptic subset). Freshness metadata: a run older than about twice this interval is genuinely late. Required since 0.3.0.",
     ),
   /**
+   * The upper end of NORMAL for this dataset's publish of a run after its
+   * referenceTime, hours: the provider's complete-availability time plus
+   * pipeline overhead (a ≤15 min poll plus the build), rounded up. A run
+   * younger than `runIntervalHours + typicalPublicationLagHours` may be
+   * the newest that can exist; older, and its successor is late. The fact
+   * lives here; how much lateness a consumer tolerates is a threshold the
+   * consumer owns (see derive's `runFreshness`). Seeded 2026-08-10 from
+   * the dated [verified] provider availability in the portal's
+   * forecast-model-feeds reference page; to be re-verified against the
+   * accumulated run archive around September 2026.
+   */
+  typicalPublicationLagHours: z
+    .number()
+    .positive()
+    .describe(
+      "Upper end of normal for THIS dataset's publish of a run after its referenceTime, hours: provider complete-availability plus pipeline overhead (≤15 min poll + build), rounded up. Judge freshness against runIntervalHours + this; thresholds stay consumer-owned. Seeded 2026-08-10 from the dated [verified] availability times in the portal's forecast-model-feeds reference; re-verify against the accumulated run archive ~September 2026.",
+    ),
+  /**
    * Machine-readable retirement notice: no runs are expected after `date`
    * (UTC calendar date, YYYY-MM-DD). `successor` names the catalogue slug
    * that replaces this model, or null for end-of-life with no replacement.

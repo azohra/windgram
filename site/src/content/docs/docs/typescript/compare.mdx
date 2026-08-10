@@ -24,6 +24,9 @@ export function compareSite(
 ): WindgramComparison {
   return compareProfiles(profiles, {
     timeZone,
+    // ONE launch for the whole comparison — typically site-context.json's
+    // elevation pick. Every member's analysis reads against it.
+    launch: { elevationM: 1591 },
     thresholds: {
       flyableWindow: { wstarMinMs: 1.0, depthMinM: 350 },
     },
@@ -36,6 +39,16 @@ Every profile must carry the same `site.id`. The function throws for an empty
 input or mixed sites. The output records the resolved thresholds and retains
 each model's source analysis under `analyses`.
 
+`launch` is optional and is **one launch for the whole comparison**, passed
+to every member's analysis (`AnalyzeOptions.launch`): documents are
+launch-agnostic, and launch-relative votes compare only when every member
+reads against the same launch. Without one the comparison degrades
+gracefully — each member's reference falls back to its model's own ground,
+the ledger's `elevationDeltaM` is null, no member is benched for terrain
+mismatch, and the launch-relative `heightSpread` finding is not emitted.
+The envelope echoes the launch it used as `site.launchAltitudeM` (`null`
+when none was supplied).
+
 ## Read the member ledger
 
 Each `ComparisonMemberLedger` states the facts that affect comparability:
@@ -45,8 +58,8 @@ Each `ComparisonMemberLedger` states the facts that affect comparability:
 | `kind` | Deterministic or ensemble document shape |
 | `referenceTime` / `runAgeHours` | Run identity and age relative to the newest member |
 | `stepHours` / `hours` | Forecast cadence and published horizon |
-| `modelElevationM` / `elevationDeltaM` | Grid terrain and its launch-relative difference |
-| `benched` | A terrain mismatch whose published lift never reaches launch |
+| `modelElevationM` / `elevationDeltaM` | Grid terrain and its difference from the comparison's launch (null without a launch) |
+| `benched` | A terrain mismatch whose published lift never reaches the comparison's launch |
 
 Transport misses belong in `options.unavailable`, preserving the expected
 model roster even when a document is absent or invalid.

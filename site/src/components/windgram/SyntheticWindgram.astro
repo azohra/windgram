@@ -61,6 +61,7 @@ const source: SyntheticScenarioSource | null = interactive
       ...(scenario.variant === undefined ? {} : { variant: scenario.variant }),
       profile: scenario.profile,
       timeZone: scenario.timeZone,
+      launch: scenario.launch,
     }
   : null;
 const clientOptions = JSON.stringify({

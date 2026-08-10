@@ -13,7 +13,7 @@ from their authorities when the site builds, so they cannot go stale here.
 
 | Axis | Current value | Authority | What it versions |
 | --- | ---: | --- | --- |
-| Published JSON schema | <code>{SCHEMA_VERSION}</code> | `SCHEMA_VERSION` and the zod contract in `toolkit/src/contract/index.ts` | Profiles, manifests, and the model, site, and run-index document families |
+| Published JSON schema | <code>{SCHEMA_VERSION}</code> | `SCHEMA_VERSION` and the zod contract in `toolkit/src/contract/index.ts` | Profiles, manifests, and the model and run-index document families; the site catalogue and site context carry their own `schemaVersion: 2` (`SITES_SCHEMA_VERSION`, `SITE_CONTEXT_SCHEMA_VERSION`) |
 | npm package | <code>{WINDGRAM_PACKAGE_VERSION}</code> | `toolkit/package.json` | Contract guards, derivations, single-profile analysis, cross-model comparison, transport, scene graph, SVG renderer, tokens, and scene-derived key |
 | Python pipeline | <code>{PIPELINE_VERSION}</code> | `pipeline/pyproject.toml` | The repository's provider ingestion, derivation, and publication implementation |
 
@@ -29,8 +29,9 @@ independent of the published dataset schema.
 
 ## Published document compatibility
 
-Every current profile, manifest, model catalogue, site catalogue, and run index
-uses `schemaVersion: 1`. The generated JSON Schemas under
+Every current profile, manifest, model catalogue, and run index uses
+`schemaVersion: 1`; `sites.json` and `site-context.json` use
+`schemaVersion: 2` since the launch-decoupling wave. The generated JSON Schemas under
 `toolkit/schema/` describe the inputs accepted by the released
 package (npm <code>{WINDGRAM_PACKAGE_VERSION}</code>); the zod schemas and
 their parse guards are the behavioural authority.
@@ -54,16 +55,25 @@ From the 0.3 contract onward, compatibility follows these rules:
   timezone echo. Consumers do not reinterpret old files using later catalogue
   values.
 
-Version 1 has two historical compatibility boundaries:
+Version 1 has three historical compatibility boundaries:
 
 - npm 0.3.0 accepts pre-0.3 profiles because `semantics` and ensemble
   `run.members` remain optional, but rejects the old unversioned bare-array
   `sites.json` and model catalogues that lack `runIntervalHours` or
-  precipitation semantics; and
+  precipitation semantics;
 - npm 0.4.0 still accepts pre-0.4 profiles because profile `site.timeZone` is
   optional, but rejects site catalogues whose entries lack the now-required
   IANA `timeZone`. The [profile reference](/docs/reference/profile-document/#run-site-and-semantics)
-  defines the timezone echo's semantics.
+  defines the timezone echo's semantics; and
+- the launch-decoupling wave removed `site.altitudeM` from the profile
+  contract while keeping `schemaVersion: 1` — a deliberate, documented
+  exception to the removal rule above, taken while this repository was the
+  contract's only consumer. Older stored profiles still parse (the guard
+  strips the retired field); the launch elevation now lives in
+  `site-context.json`'s `elevation` pick and is supplied at render time.
+  The same wave replaced `sites.json` with the identity-only
+  `schemaVersion: 2` (v1 is rejected by its version literal) and advanced
+  `site-context.json` to `schemaVersion: 2`.
 
 The published catalogues changed in the matching `v0.3.0` and `v0.4.0`
 repository states. Therefore `schemaVersion: 1` identifies the document

@@ -14,9 +14,9 @@ const wide = scenarioById("ensemble-wide");
 const censored = scenarioById("ensemble-column-censored");
 const initialKey = "tight";
 const sources: Record<"tight" | "wide" | "censored", LabScenarioSource> = {
-  tight: { profile: tight.profile, timeZone: tight.timeZone },
-  wide: { profile: wide.profile, timeZone: wide.timeZone },
-  censored: { profile: censored.profile, timeZone: censored.timeZone },
+  tight: { profile: tight.profile, timeZone: tight.timeZone, launch: tight.launch },
+  wide: { profile: wide.profile, timeZone: wide.timeZone, launch: wide.launch },
+  censored: { profile: censored.profile, timeZone: censored.timeZone, launch: censored.launch },
 };
 
 const initialSummary = ensembleSpreadSummary(tight.profile);

@@ -12,7 +12,10 @@ import { scenarioById } from "../../lib/scenarios";
 const scenario = scenarioById("convective-cycle");
 const idPrefix = "ts-analyze-findings";
 const { scene, svg } = renderSyntheticWindgram(scenario, {}, idPrefix);
-const analysis = analyzeProfile(scenario.profile);
+/* The launch is the caller's, not the document's: the scenario index
+   supplies the same launch here as the chart above draws, so the
+   launch-relative findings and the marker read against one ground. */
+const analysis = analyzeProfile(scenario.profile, { launch: scenario.launch });
 
 const window = analysis.findings.find((finding) => finding.kind === "flyableWindow");
 if (!window) {
@@ -35,12 +38,11 @@ if (startIndex < 0 || endIndex < 0) {
 const half = scene.scales.columnWidth / 2;
 const bandLeft = xForHour(scene, startIndex) - half;
 const bandRight = xForHour(scene, endIndex) + half;
-const launchM = scenario.profile.site.altitudeM;
-const peak =
-  launchM === null ? null : {
-    x: xForHour(scene, scene.hourValidAts.indexOf(window.peakLiftTopAt.validAt)),
-    y: yForAltitude(scene, launchM + peakAboveLaunchM),
-  };
+const launchM = scenario.launch.elevationM;
+const peak = {
+  x: xForHour(scene, scene.hourValidAts.indexOf(window.peakLiftTopAt.validAt)),
+  y: yForAltitude(scene, launchM + peakAboveLaunchM),
+};
 
 const capTiming = analysis.findings.find((finding) => finding.kind === "capTiming");
 const windSummary = analysis.findings.find((finding) => finding.kind === "windSummary");

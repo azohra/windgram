@@ -100,16 +100,16 @@ pins. Their pieces:
 | `windgramSurfaceSchema` (`WindgramSurface`) | An hour's surface block, optional capability fields absent-not-zero | `parseWindgramProfile(Json)` |
 | `windgramLevelSchema` (`WindgramLevel`) | One pressure-level entry in an hour's ascending `levels` array | `parseWindgramProfile(Json)` |
 | `windgramDerivedSchema` (`WindgramDerived`) | The pipeline-owned `derived` block of an hour | `parseWindgramProfile(Json)` |
-| `windgramSiteSchema` (`WindgramSite`) | Site identity, coordinates, elevations, and the optional timezone echo | `parseWindgramProfile(Json)` |
+| `windgramSiteSchema` (`WindgramSite`) | Sample provenance: identity, coordinates, the model's own terrain (`modelElevationM`), and the optional timezone echo — no launch elevation | `parseWindgramProfile(Json)` |
 | `windgramRunSchema` (`WindgramRun`) | Publication identity: `referenceTime`, `generatedAt`, optional `members` | `parseWindgramProfile(Json)` |
 | `windgramSemanticsSchema` (`WindgramSemantics`) | The optional gust/precipitation meaning tag stored with a document | `parseWindgramProfile(Json)` |
 | `windgramManifestSiteSchema` (`WindgramManifestSite`) | One published site name/slug pair in a manifest | `parseWindgramManifest(Json)` |
 | `windgramManifestStatsSchema` (`WindgramManifestStats`) | The stable accounting core plus open numeric extension keys | `parseWindgramManifest(Json)` |
 | `modelEntrySchema` (`ModelEntry`) | One model catalogue entry: slug, cadence, levels, lifecycle | `parseModelCatalogue(Json)` |
 | `modelCapabilitiesSchema` (`ModelCapabilities`) | A model's declared capability set, absences included | `parseModelCatalogue(Json)` |
-| `siteCatalogueEntrySchema` (`SiteCatalogueEntry`) | One launch entry, IANA `timeZone` required since v0.4 | `parseSitesCatalogue(Json)` |
+| `siteCatalogueEntrySchema` (`SiteCatalogueEntry`) | One catalogued site — identity only since sites schemaVersion 2 (slug, name, coordinates, required IANA `timeZone`; nothing physical) | `parseSitesCatalogue(Json)` |
 | `siteContextSourceSchema` (`SiteContextSource`) | One upstream terrain/land-cover source, with the licence attribution that travels with its values | `parseSiteContext(Json)` |
-| `siteContextEntrySchema` (`SiteContextEntry`) | One site's terrain, optional bare-earth, and land-cover context, joined to `sites.json` by slug | `parseSiteContext(Json)` |
+| `siteContextEntrySchema` (`SiteContextEntry`) | One site's measured ground truth — the launch `elevation` pick, terrain, and land cover — joined to `sites.json` by slug | `parseSiteContext(Json)` |
 | `runsIndexEntrySchema` (`RunsIndexEntry`) | One model's current `(referenceTime, generatedAt)` pair | `parseRunsIndex(Json)` |
 
 `DeterministicWindgramProfile` is the narrowed profile type

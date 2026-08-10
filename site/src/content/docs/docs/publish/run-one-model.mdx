@@ -76,17 +76,26 @@ curl -sS -o public/data/hrdps-continental/manifest.json \
   https://data.meteo.azohra.com/hrdps-continental/manifest.json
 curl -sS -o public/data/hrdps-continental/sites/dundee.json \
   https://data.meteo.azohra.com/hrdps-continental/sites/dundee.json
+curl -sS -o public/data/site-context.json \
+  https://data.meteo.azohra.com/site-context.json
 pnpm add windgram
 ```
 
-Then `render.mjs` is the whole publisher: validate both documents against the
-contract, confirm they describe the same model run, build the scene in the
-launch's own declared timezone, and write a self-contained page.
+Then `render.mjs` is the whole publisher: validate the documents against the
+contract, confirm manifest and profile describe the same model run, build the
+scene in the launch's own declared timezone with the measured launch
+elevation from the site context, and write a self-contained page. The
+profile carries no launch elevation — documents are launch-agnostic — so the
+renderer supplies it from `site-context.json`'s `elevation` pick.
 
 ```ts
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 
-import { parseWindgramManifestJson, parseWindgramProfileJson } from "windgram/contract";
+import {
+  parseSiteContextJson,
+  parseWindgramManifestJson,
+  parseWindgramProfileJson,
+} from "windgram/contract";
 import { buildKeySpec, buildScene } from "windgram/scene";
 import { renderKeySvg, renderSvg } from "windgram/svg";
 import { runsConsistent } from "windgram/transport";
@@ -107,10 +116,21 @@ if (!runsConsistent(manifest, profile)) {
   throw new Error("manifest and profile do not describe the same model run");
 }
 
+const context = parseSiteContextJson(
+  await readFile("public/data/site-context.json", "utf8"),
+);
+if (!context) throw new Error("site context failed the windgram contract");
+const ground = context.sites[launch];
+if (!ground) throw new Error(`site-context.json has no entry for ${launch}`);
+
 const timeZone = profile.site.timeZone;
 if (!timeZone) throw new Error("profile does not declare the launch timezone");
 
-const scene = buildScene(profile, { timeZone, widthPx: 1080 });
+const scene = buildScene(profile, {
+  timeZone,
+  launch: { name: profile.site.name, elevationM: ground.elevation.elevationM },
+  widthPx: 1080,
+});
 await mkdir("public/assets", { recursive: true });
 await writeFile(`public/assets/${profile.site.id}.svg`, `${renderSvg(scene)}\n`);
 await writeFile(

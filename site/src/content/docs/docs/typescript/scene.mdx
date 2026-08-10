@@ -21,6 +21,9 @@ export function sceneAndFirstReading(profile: WindgramProfile, olderProfileTimeZ
   if (!timeZone) throw new Error("older profile needs an explicit IANA timezone");
   const scene = buildScene(profile, {
     timeZone,
+    // The launch is yours, not the document's — typically site-context.json's
+    // elevation pick. Omit it and no launch marker draws.
+    launch: { name: "Red Mtn", elevationM: 1591 },
     hours: profile.hours.slice(0, 8),
     overlays: { thermalIndex: true, windShear: true },
     widthPx: 900,
@@ -42,6 +45,23 @@ export function sceneAndFirstReading(profile: WindgramProfile, olderProfileTimeZ
   return { scene, reading };
 }
 ```
+
+## Supply the launch
+
+Documents are launch-agnostic samples: a profile records where the atmosphere
+was sampled and what the model thinks the ground there is
+(`site.modelElevationM`) — it carries no launch elevation, because one grid
+sample serves every launch its cell covers. The launch is a **render input**:
+
+- `launch: { elevationM }` draws the launch line at that elevation, labelled
+  `launch <n> m`; add `name` and the label becomes `<name> <n> m`. The number
+  is the consumer's — typically the `elevation` pick from
+  [site-context.json](/docs/reference/site-context-document/).
+- No `launch` option → `scene.launch` is null and no marker draws. That
+  absence is honest — the document never knew a launch — and it is not an
+  error.
+- The `launch` **overlay** keeps its meaning as a display toggle: off, it
+  hides even a provided launch.
 
 ## Select hours explicitly
 

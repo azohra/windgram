@@ -37,6 +37,9 @@ what it produces:
    if (!timeZone) throw new Error("older profile needs an explicit IANA timezone");
    const scene = buildScene(profile, {
      timeZone,
+     // The launch marker is a render input — documents are launch-agnostic.
+     // Use site-context.json's measured elevation pick; omit for no marker.
+     launch: { elevationM: 1591 },
      widthPx: 960,
      hourLabel: "12h",
    });

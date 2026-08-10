@@ -19,6 +19,7 @@ const scenario = scenarioById("gusts-after-heating");
 const source: LabScenarioSource = {
   profile: scenario.profile,
   timeZone: scenario.timeZone,
+  launch: scenario.launch,
 };
 const initialSinkRateMs = 1;
 const initialSummary = usableLiftSummary(source.profile, initialSinkRateMs);

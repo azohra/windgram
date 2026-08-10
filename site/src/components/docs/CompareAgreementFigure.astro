@@ -20,7 +20,13 @@ const members = [
   relabel(earlier.profile, "timing-earlier"),
   relabel(later.profile, "timing-later"),
 ];
-const comparison = compareProfiles(members, { timeZone: earlier.timeZone });
+/* ONE launch for the whole comparison (CompareOptions.launch) — the same
+   launch the panels render with, from the scenario index. Documents are
+   launch-agnostic; without it the launch-relative findings degrade. */
+const comparison = compareProfiles(members, {
+  timeZone: earlier.timeZone,
+  launch: earlier.launch,
+});
 const agreement = comparison.findings.find((finding) => finding.kind === "windowAgreement");
 if (!agreement) {
   throw new Error(

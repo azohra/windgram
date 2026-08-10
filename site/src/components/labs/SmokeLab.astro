@@ -13,6 +13,7 @@ const scenario = scenarioById("smoke-over-thermals");
 const source: LabScenarioSource = {
   profile: scenario.profile,
   timeZone: scenario.timeZone,
+  launch: scenario.launch,
 };
 const initialAot = 1;
 const initialSummary = smokeLabSummary(source.profile, initialAot);

@@ -149,9 +149,10 @@ The builder downloads each whole-domain file before sampling the catalogue.
 The 1 km feed keeps the old GRIB tokens for the science fields —
 `GUST_TGL_10`/`GUST_MAX_TGL_10`, `CAPE_ETAL_10000` (eta 1.0: surface-based,
 −1 sentinel, no CIN), `HPBL_SFC_0` — with the shared ECCC semantics above.
-One launch elevation is **1,485 m**; model terrain elevation
+One launch's measured elevation (site-context's `elevation` pick) is
+**1,476 m**; model terrain elevation
 is **1,311 m** at 1 km and **1,072 m** at 2.5 km.
-The 1 km grid reduces the terrain error from 413 m to 174 m. That 239 m shift
+The 1 km grid reduces the terrain error from 404 m to 165 m. That 239 m shift
 propagates into cloud base, boundary-layer top, and which pressure levels lie
 above model terrain.
 
