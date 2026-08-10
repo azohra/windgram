@@ -86,6 +86,8 @@ export {
   type FindingKind,
   type LiftCeilingFinding,
   type LocalDayKey,
+  type PercentileCrossingFinding,
+  type PercentileToken,
   type QuietDayFinding,
   type TerrainMismatchFinding,
   type ThermalWindowFinding,

@@ -10,6 +10,7 @@ import {
   type EnsembleMembershipFinding,
   type ThermalWindowFinding,
   type LiftCeilingFinding,
+  type PercentileCrossingFinding,
   type QuietDayFinding,
   type TerrainMismatchFinding,
   type WindSummaryFinding,
@@ -115,6 +116,7 @@ describe("the analysis envelope", () => {
         "ensembleMembership",
         "capTiming",
         "thermalWindow",
+        "percentileCrossing",
         "quietDay",
         "liftCeiling",
         "windSummary",
@@ -625,6 +627,189 @@ describe("mixed cadence — spacing is per-gap, never a document constant", () =
     // the leading cadence would have said 3.
     expect(sunday.maxWindInBand?.at.validAt).toBe("2026-08-09T15:00:00Z");
     expect(sunday.maxWindInBand?.persistenceHours).toBe(6);
+  });
+});
+
+describe("percentileCrossing", () => {
+  /* A synthetic ensemble document with hand-authored percentile blocks, so
+     every expectation below is checkable by hand against the floors
+     (w* >= 0.9, depth >= 300 over the 1247 m erie launch — lift top must
+     reach 1547). Hours are cloned from the real reps fixture (contract
+     shape) and re-stamped: 3-hourly through 08-10T12:00Z, then a 6-hourly
+     tail — S1's live GEPS cadence switch in miniature.
+
+     Local days (America/Vancouver, UTC−7):
+     - 2026-08-09 (h1–h5): quiet except 21:00Z (14:00 local), where p25
+       through p90 clear both floors and p10 fails both — the fragile day:
+       p50 passes, p10 disagrees, minimal token p25.
+     - 2026-08-10 (h6–h10): quiet at p10/p25/p50 everywhere; p75 and p90
+       clear at 18:00Z (11:00 local, 18 contributing lift members), p90
+       alone also at 08-11T00:00Z (17:00 local, ceiledMembers 1) — the
+       upside day, minimal token p75.
+     - 2026-08-11 (h11–h12): 18:00Z clears both floors at EVERY
+       percentile — all-agree, nothing to state. */
+
+  type Ev = {
+    members: number;
+    p10: number;
+    p25: number;
+    p50: number;
+    p75: number;
+    p90: number;
+    ceiledMembers?: number;
+  };
+  function ev(
+    p10: number,
+    p25: number,
+    p50: number,
+    p75: number,
+    p90: number,
+    members = 21,
+    ceiledMembers?: number,
+  ): Ev {
+    const value: Ev = { members, p10, p25, p50, p75, p90 };
+    if (ceiledMembers !== undefined) value.ceiledMembers = ceiledMembers;
+    return value;
+  }
+  const quietWstar = () => ev(0.1, 0.15, 0.2, 0.3, 0.4);
+  const quietTop = () => ev(1300, 1350, 1400, 1450, 1500);
+
+  function crossingFixture(): WindgramProfile {
+    const doc = JSON.parse(JSON.stringify(fixtures["repsErie"])) as {
+      hours: Array<{ validAt: string; derived: Record<string, unknown> }>;
+    };
+    const template = JSON.stringify(doc.hours[0]);
+    const hour = (validAt: string, wstar: Ev, top: Ev) => {
+      const clone = JSON.parse(template) as (typeof doc.hours)[number];
+      clone.validAt = validAt;
+      clone.derived.thermalVelocityMs = wstar;
+      clone.derived.usableLiftTopM = top;
+      return clone;
+    };
+    doc.hours = [
+      hour("2026-08-09T18:00:00Z", quietWstar(), quietTop()),
+      hour("2026-08-09T21:00:00Z", ev(0.5, 0.95, 1.2, 1.5, 1.8), ev(1500, 1600, 1900, 2200, 2500, 21, 0)),
+      hour("2026-08-10T00:00:00Z", quietWstar(), quietTop()),
+      hour("2026-08-10T03:00:00Z", quietWstar(), quietTop()),
+      hour("2026-08-10T06:00:00Z", quietWstar(), quietTop()),
+      hour("2026-08-10T09:00:00Z", quietWstar(), quietTop()),
+      hour("2026-08-10T12:00:00Z", quietWstar(), quietTop()),
+      hour("2026-08-10T18:00:00Z", ev(0.3, 0.5, 0.7, 1.1, 1.4), ev(1200, 1300, 1400, 1800, 2200, 18, 0)),
+      hour("2026-08-11T00:00:00Z", ev(0.2, 0.4, 0.6, 0.85, 1.0), ev(1100, 1200, 1300, 1900, 2000, 21, 1)),
+      hour("2026-08-11T06:00:00Z", quietWstar(), quietTop()),
+      hour("2026-08-11T12:00:00Z", quietWstar(), quietTop()),
+      hour("2026-08-11T18:00:00Z", ev(1.0, 1.2, 1.5, 1.8, 2.0), ev(1600, 1700, 1900, 2100, 2300)),
+    ];
+    const profile = parseWindgramProfile(doc);
+    expect(profile).not.toBeNull();
+    return profile!;
+  }
+
+  const crossings = () =>
+    ofKind<PercentileCrossingFinding>(
+      analyzeProfile(crossingFixture(), ERIE).findings,
+      "percentileCrossing",
+    );
+
+  it("states the upside day the median suppresses — p50 quiet, p75/p90 clear, minimal token p75", () => {
+    const upside = crossings().find((finding) => finding.day === "2026-08-10")!;
+    expect(upside.minimalPassingPercentile).toBe("p75");
+    // The p50 zeros are load-bearing: the median said quiet.
+    expect(upside.perPercentile.p10).toEqual({
+      passingSteps: 0,
+      hours: [],
+      membersMin: null,
+      ceiledMembersMax: null,
+    });
+    expect(upside.perPercentile.p50.passingSteps).toBe(0);
+    // p75 clears at one cited instant — 11:00 local, a midday convective
+    // hour, over 12 contributing lift members' worth of dilution (18/21).
+    expect(upside.perPercentile.p75).toEqual({
+      passingSteps: 1,
+      hours: ["2026-08-10T18:00:00Z"],
+      membersMin: 18,
+      ceiledMembersMax: 0,
+    });
+    // p90 clears at two instants; the min/max echoes span BOTH cited
+    // hours (members dip 18 at the first, ceiling touches 1 at the second).
+    expect(upside.perPercentile.p90).toEqual({
+      passingSteps: 2,
+      hours: ["2026-08-10T18:00:00Z", "2026-08-11T00:00:00Z"],
+      membersMin: 18,
+      ceiledMembersMax: 1,
+    });
+    expect(upside.thresholds).toEqual({ wstarMinMs: 0.9, depthMinM: 300 });
+  });
+
+  it("states the robust mirror on the same shape — p50 passes, p10 fails, minimal token p25", () => {
+    const fragile = crossings().find((finding) => finding.day === "2026-08-09")!;
+    expect(fragile.minimalPassingPercentile).toBe("p25");
+    expect(fragile.perPercentile.p10.passingSteps).toBe(0);
+    for (const q of ["p25", "p50", "p75", "p90"] as const) {
+      expect(fragile.perPercentile[q].passingSteps).toBe(1);
+      expect(fragile.perPercentile[q].hours).toEqual(["2026-08-09T21:00:00Z"]);
+      expect(fragile.perPercentile[q].membersMin).toBe(21);
+    }
+    // The day ALSO carries a thermalWindow (p50 passes): the crossing
+    // adds the band's disagreement beside it, not instead of it.
+    const windows = ofKind<ThermalWindowFinding>(
+      analyzeProfile(crossingFixture(), ERIE).findings,
+      "thermalWindow",
+    );
+    expect(windows.some((finding) => finding.day === "2026-08-09")).toBe(true);
+  });
+
+  it("emits nothing for a day where every percentile agrees with the median", () => {
+    // 2026-08-11 clears both floors down to p10 — robust everywhere, no
+    // crossing to state; the all-quiet hours of other days likewise never
+    // appear as findings of their own.
+    expect(crossings().map((finding) => finding.day).sort()).toEqual([
+      "2026-08-09",
+      "2026-08-10",
+    ]);
+  });
+
+  it("anchors leadHours on the minimal percentile's peak-lift hour and confesses cited spacing per-gap", () => {
+    const byDay = Object.fromEntries(crossings().map((finding) => [finding.day, finding]));
+    // Run 2026-08-08T18:00Z. The fragile day's one cited hour is 27 h out,
+    // on the 3-hourly head: stepHours 3.
+    expect(byDay["2026-08-09"].leadHours).toBe(27);
+    expect(byDay["2026-08-09"].stepHours).toBe(3);
+    // The upside day's minimal (p75) peak-lift hour is 18:00Z, 48 h out;
+    // its cited hours sit on the 6-hourly tail — the spacing echo reads
+    // the actual gaps (S1's live GEPS switch), never the leading cadence.
+    expect(byDay["2026-08-10"].leadHours).toBe(48);
+    expect(byDay["2026-08-10"].stepHours).toBe(6);
+  });
+
+  it("moves with the caller's thermalWindow floors — one test, one threshold home", () => {
+    // Raising the depth floor to 700 m (lift top 1947) kills the fragile
+    // day's p25/p50 (1600/1900) but keeps p75/p90 (2200/2500): the same
+    // day re-reads as an upside crossing under the caller's convention.
+    const strict = ofKind<PercentileCrossingFinding>(
+      analyzeProfile(crossingFixture(), {
+        ...ERIE,
+        thresholds: { thermalWindow: { depthMinM: 700 } },
+      }).findings,
+      "percentileCrossing",
+    );
+    const fragile = strict.find((finding) => finding.day === "2026-08-09")!;
+    expect(fragile.minimalPassingPercentile).toBe("p75");
+    expect(fragile.perPercentile.p50.passingSteps).toBe(0);
+    expect(fragile.thresholds).toEqual({ wstarMinMs: 0.9, depthMinM: 700 });
+  });
+
+  it("stays silent on deterministic documents and on real ensembles without a crossing day", () => {
+    // Deterministic: no percentiles, nothing to cross.
+    expect(ofKind(analyzeProfile(hrrr(), ERIE).findings, "percentileCrossing")).toHaveLength(0);
+    // Real reps at erie: both local days agree at every percentile (the
+    // window day is robust down to p10). Real geps at flagpole: no
+    // percentile's lift top ever reaches 300 m over launch (max p90
+    // 809.4 m vs 1222 m launch) — quiet at every percentile.
+    expect(ofKind(analyzeProfile(reps(), ERIE).findings, "percentileCrossing")).toHaveLength(0);
+    expect(
+      ofKind(analyzeProfile(geps(), FLAGPOLE).findings, "percentileCrossing"),
+    ).toHaveLength(0);
   });
 });
 

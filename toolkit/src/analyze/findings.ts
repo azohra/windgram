@@ -14,6 +14,7 @@ import { findDataCaveats } from "./kinds/data-caveats.js";
 import { findEnsembleMembership } from "./kinds/ensemble-membership.js";
 import { findThermalWindows } from "./kinds/thermal-window.js";
 import { findLiftCeilings } from "./kinds/lift-ceiling.js";
+import { findPercentileCrossings } from "./kinds/percentile-crossing.js";
 import { findQuietDays } from "./kinds/quiet-day.js";
 import { citedInstantFactory, hourStepsOf, stepHoursOf, type Context } from "./kinds/shared.js";
 import { findTerrainMismatch } from "./kinds/terrain-mismatch.js";
@@ -68,6 +69,7 @@ export function analyzeProfile(
   const findings: WindgramFinding[] = [
     ...findTerrainMismatch(context),
     ...windows,
+    ...findPercentileCrossings(context),
     ...findQuietDays(context, windows),
     ...findLiftCeilings(context, windows),
     ...findCapTiming(context, windows),
