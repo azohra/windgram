@@ -9,6 +9,7 @@
    line so parallel kind work merges without conflict. */
 
 import { isDeterministicProfile, type WindgramProfile } from "../contract/index.js";
+import { findBandShear } from "./kinds/band-shear.js";
 import { findCapTiming } from "./kinds/cap-timing.js";
 import { findConvectiveDays } from "./kinds/convective-day.js";
 import { findDataCaveats } from "./kinds/data-caveats.js";
@@ -20,6 +21,8 @@ import { findQuietDays } from "./kinds/quiet-day.js";
 import { citedInstantFactory, hourStepsOf, stepHoursOf, type Context } from "./kinds/shared.js";
 import { findSmokeImpact } from "./kinds/smoke-impact.js";
 import { findTerrainMismatch } from "./kinds/terrain-mismatch.js";
+import { findWindDirection } from "./kinds/wind-direction.js";
+import { findWindExceedance } from "./kinds/wind-exceedance.js";
 import { findWindSummaries } from "./kinds/wind-summary.js";
 import {
   ANALYZE_VOCABULARY_VERSION,
@@ -65,6 +68,7 @@ export function analyzeProfile(
     launchReferenceM: launchElevationM ?? profile.site.modelElevationM,
     cite: citedInstantFactory(timeZone),
     thresholds,
+    ...(options.windCeilings ? { windCeilings: options.windCeilings } : {}),
   };
 
   const windows = findThermalWindows(context);
@@ -78,7 +82,10 @@ export function analyzeProfile(
     ...findCapTiming(context, windows),
     ...findConvectiveDays(context, windows),
     ...smokeImpacts,
-    ...findWindSummaries(context),
+    ...findWindSummaries(context, windows),
+    ...findWindExceedance(context, windows),
+    ...findWindDirection(context, windows),
+    ...findBandShear(context, windows),
     ...findEnsembleMembership(context),
     findDataCaveats(context, timeZoneSource, smokeImpacts.length > 0),
   ];
@@ -121,5 +128,7 @@ function mergeThresholds(overrides?: AnalyzeThresholdOverrides): AnalyzeThreshol
     convectiveDay: { ...DEFAULT_ANALYZE_THRESHOLDS.convectiveDay, ...overrides.convectiveDay },
     terrainMismatch: { ...DEFAULT_ANALYZE_THRESHOLDS.terrainMismatch, ...overrides.terrainMismatch },
     windSummary: { ...DEFAULT_ANALYZE_THRESHOLDS.windSummary, ...overrides.windSummary },
+    windDirection: { ...DEFAULT_ANALYZE_THRESHOLDS.windDirection, ...overrides.windDirection },
+    bandShear: { ...DEFAULT_ANALYZE_THRESHOLDS.bandShear, ...overrides.bandShear },
   };
 }

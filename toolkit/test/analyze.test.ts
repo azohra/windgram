@@ -5,6 +5,7 @@ import {
   ANALYZE_VOCABULARY_VERSION,
   analyzeProfile,
   DEFAULT_ANALYZE_THRESHOLDS,
+  type BandShearFinding,
   type CapTimingFinding,
   type ConvectiveDayFinding,
   type DataCaveatsFinding,
@@ -17,6 +18,8 @@ import {
   type SmokeImpactJoinedFinding,
   type SmokeImpactProfileFinding,
   type TerrainMismatchFinding,
+  type WindDirectionFinding,
+  type WindExceedanceFinding,
   type WindSummaryFinding,
 } from "../src/analyze/index.js";
 import {
@@ -207,6 +210,9 @@ describe("the analysis envelope", () => {
         "liftCeiling",
         "smokeImpact",
         "windSummary",
+        "windExceedance",
+        "windDirection",
+        "bandShear",
       ]).toContain(kind);
     }
   });
@@ -1495,6 +1501,509 @@ describe("percentileCrossing", () => {
     expect(
       ofKind(analyzeProfile(geps(), FLAGPOLE).findings, "percentileCrossing"),
     ).toHaveLength(0);
+  });
+});
+
+describe("windSummary.duringWindow", () => {
+  /* S3 (2026-08-10): the whole-day maxGust cited an hour OUTSIDE the day's
+     window in 29.9 % of corpus rows. The block scopes the same numbers to
+     the thermalWindow's cited hours and stops discarding the per-hour band
+     maxima the extractor already computed. */
+
+  it("scopes gust and band wind to the window's hours and keeps the whole-day numbers", () => {
+    const saturday = ofKind<WindSummaryFinding>(
+      analyzeProfile(hrrr(), ERIE).findings,
+      "windSummary",
+    ).find((finding) => finding.day === "2026-08-08")!;
+    // Whole-day block untouched.
+    expect(saturday.maxGust?.gustMs).toBe(3.9);
+    // The scope is the Saturday window's seven cited hours, 19:00Z-01:00Z.
+    expect(saturday.duringWindow?.windowHours).toHaveLength(7);
+    expect(saturday.duringWindow?.windowHours[0]).toBe("2026-08-08T19:00:00Z");
+    expect(saturday.duringWindow?.windowHours[6]).toBe("2026-08-09T01:00:00Z");
+    // On this document the day's strongest gust falls INSIDE the window —
+    // both blocks cite 16:00 local, and now say which question they answer.
+    expect(saturday.duringWindow?.maxGust).toEqual({
+      gustMs: 3.9,
+      meanWindMs: 2.72,
+      at: { validAt: "2026-08-08T23:00:00Z", local: "2026-08-08T16:00" },
+    });
+    expect(saturday.duringWindow?.maxWindInBand).toEqual({
+      windMs: 4.28,
+      directionDeg: 289,
+      heightM: 2581.5,
+      at: { validAt: "2026-08-08T23:00:00Z", local: "2026-08-08T16:00" },
+    });
+    // The per-hour series over exactly the scope hours (published gusts;
+    // hand-computed climb-band maxima, launch 1247 ± 200 m to top + 200 m).
+    expect(saturday.duringWindow?.evidence.hours).toEqual(saturday.duringWindow?.windowHours);
+    expect(saturday.duringWindow?.evidence.windGustMs).toEqual([
+      2.33, 2.15, 2.59, 3.23, 3.9, 3.74, 3.46,
+    ]);
+    expect(saturday.duringWindow?.evidence.bandMaxWindMs).toEqual([
+      1.87, 2.06, 3.19, 3.65, 4.28, 3.77, 3.49,
+    ]);
+  });
+
+  it("pins the 02:00 divergence — the whole-day gust cites an hour nobody is airborne", () => {
+    // The S3 briefing-changer in miniature (nam@red-mountain 08-12: 7.23
+    // m/s at 02:00 local vs 2.23 in-window): plant a 7.23 m/s nocturnal
+    // gust at 09:00Z = 02:00 local Sunday and read both blocks.
+    const gusty = hrrr();
+    for (const hour of gusty.hours) {
+      if (hour.validAt === "2026-08-09T09:00:00Z") {
+        (hour.surface as { windGustMs: number }).windGustMs = 7.23;
+      }
+    }
+    const sunday = ofKind<WindSummaryFinding>(
+      analyzeProfile(gusty, ERIE).findings,
+      "windSummary",
+    ).find((finding) => finding.day === "2026-08-09")!;
+    // Whole-day: the nocturnal spike, at an hour with w* 0 and no lift top.
+    expect(sunday.maxGust?.gustMs).toBe(7.23);
+    expect(sunday.maxGust?.at.local).toBe("2026-08-09T02:00");
+    // During the window (its single hour, 11:00 local): less than half that.
+    expect(sunday.duringWindow?.windowHours).toEqual(["2026-08-09T18:00:00Z"]);
+    expect(sunday.duringWindow?.maxGust?.gustMs).toBe(3.05);
+    expect(sunday.duringWindow?.maxGust?.at.local).toBe("2026-08-09T11:00");
+    expect(sunday.duringWindow?.evidence.windGustMs).toEqual([3.05]);
+    expect(sunday.duringWindow?.evidence.bandMaxWindMs).toEqual([1.51]);
+  });
+
+  it("is absent on quiet days — the scope is the thermalWindow, and there is none", () => {
+    // An impossible w* floor makes every day quiet; the wind summaries
+    // still state whole-day magnitudes, but there is no scope to report.
+    const analysis = analyzeProfile(hrrr(), {
+      ...ERIE,
+      thresholds: { thermalWindow: { wstarMinMs: 99 } },
+    });
+    expect(ofKind(analysis.findings, "thermalWindow")).toHaveLength(0);
+    const findings = ofKind<WindSummaryFinding>(analysis.findings, "windSummary");
+    expect(findings.length).toBeGreaterThan(0);
+    for (const finding of findings) {
+      expect(finding.maxGust).toBeDefined();
+      expect(finding.duringWindow).toBeUndefined();
+    }
+  });
+
+  it("carries the gust semantics echo, and gustless models read null gust evidence", () => {
+    // REPS publishes no gust: the block still scopes the band wind, and the
+    // gust evidence says null per hour rather than pretending calm.
+    const saturday = ofKind<WindSummaryFinding>(
+      analyzeProfile(reps(), ERIE).findings,
+      "windSummary",
+    ).find((finding) => finding.day === "2026-08-08")!;
+    expect(saturday.duringWindow?.windowHours).toEqual(["2026-08-08T21:00:00Z"]);
+    expect(saturday.duringWindow?.maxGust).toBeUndefined();
+    expect(saturday.duringWindow?.evidence.windGustMs).toEqual([null]);
+    expect(saturday.duringWindow?.evidence.bandMaxWindMs).toEqual([1.78]);
+    // Whole-day and in-window band maxima diverge here too: the day's
+    // strongest in-band wind (2.01 m/s at 17:00 local) is after the window.
+    expect(saturday.maxWindInBand?.windMs).toBe(2.01);
+    expect(saturday.duringWindow?.maxWindInBand?.windMs).toBe(1.78);
+
+    const tagged = hrrr();
+    (tagged as { semantics?: object }).semantics = {
+      gust: "instant",
+      precipitation: "instantRate",
+    };
+    const summary = ofKind<WindSummaryFinding>(
+      analyzeProfile(parseWindgramProfile(tagged)!, ERIE).findings,
+      "windSummary",
+    )[0];
+    expect(summary.duringWindow?.maxGust?.semantics).toBe("instant");
+  });
+
+  it("states pressureHpa as null under full ensemble dropout — no more NaN under a number type", () => {
+    // Tier 0 #2: `?? NaN` serialized to null under JSON while the type said
+    // number. Drop the winning level's pressure to full dropout (members 0,
+    // every percentile null) and the field is honestly null in the object.
+    const doc = JSON.parse(JSON.stringify(fixtures["repsErie"])) as {
+      hours: Array<{ levels: Array<{ pressureHpa: unknown }> }>;
+    };
+    // 15:00Z carries Sunday's strongest in-band wind (1.58 m/s at 1511.9 m).
+    doc.hours[6].levels[0].pressureHpa = {
+      members: 0,
+      p10: null,
+      p25: null,
+      p50: null,
+      p75: null,
+      p90: null,
+    };
+    const sunday = ofKind<WindSummaryFinding>(
+      analyzeProfile(parseWindgramProfile(doc)!, ERIE).findings,
+      "windSummary",
+    ).find((finding) => finding.day === "2026-08-09")!;
+    expect(sunday.maxWindInBand?.windMs).toBe(1.58);
+    expect(sunday.maxWindInBand?.pressureHpa).toBeNull();
+    expect(Number.isNaN(sunday.maxWindInBand?.pressureHpa)).toBe(false);
+  });
+});
+
+describe("windExceedance", () => {
+  /* S3 candidate 2: caller-thresholded absolute runs over window hours.
+     The package never owns a ceiling; the caller's value is echoed
+     verbatim; gust ceilings are per semantics class, never reused. */
+
+  const tagged = () => {
+    const doc = hrrr();
+    (doc as { semantics?: object }).semantics = {
+      gust: "hourMax",
+      precipitation: "instantRate",
+    };
+    return parseWindgramProfile(doc)!;
+  };
+
+  it("emits nothing without caller ceilings — no defaults exist anywhere", () => {
+    const findings = ofKind(analyzeProfile(tagged(), ERIE).findings, "windExceedance");
+    expect(findings).toHaveLength(0);
+    // An empty ceilings object supplies no quantity either.
+    expect(
+      ofKind(analyzeProfile(tagged(), { ...ERIE, windCeilings: {} }).findings, "windExceedance"),
+    ).toHaveLength(0);
+  });
+
+  it("finds maximal runs per day and quantity over window hours, threshold echoed verbatim", () => {
+    const findings = ofKind<WindExceedanceFinding>(
+      analyzeProfile(tagged(), {
+        ...ERIE,
+        windCeilings: { surfaceMs: 2.5, gust: { hourMaxMs: 3 }, bandMs: 4 },
+      }).findings,
+      "windExceedance",
+    );
+    // Saturday: gust, surface, and band all exceed; Sunday: gust only
+    // (its window hour reads surface 1.02, band 1.51).
+    expect(
+      findings.map((finding) => [finding.day, finding.quantity]).sort(),
+    ).toEqual([
+      ["2026-08-08", "bandWind"],
+      ["2026-08-08", "gust"],
+      ["2026-08-08", "surfaceWind"],
+      ["2026-08-09", "gust"],
+    ]);
+
+    const gust = findings.find(
+      (finding) => finding.day === "2026-08-08" && finding.quantity === "gust",
+    )!;
+    // Window gusts [2.33, 2.15, 2.59, 3.23, 3.9, 3.74, 3.46]: one maximal
+    // run, 22:00Z-01:00Z, peaking 3.9 at 16:00 local.
+    expect(gust.thresholdMs).toBe(3);
+    expect(gust.gustSemantics).toBe("hourMax");
+    expect(gust.stepHours).toBe(1);
+    expect(gust.runs).toEqual([
+      {
+        start: { validAt: "2026-08-08T22:00:00Z", local: "2026-08-08T15:00" },
+        end: { validAt: "2026-08-09T01:00:00Z", local: "2026-08-08T18:00" },
+        hours: 4,
+        peakMs: 3.9,
+        peakAt: { validAt: "2026-08-08T23:00:00Z", local: "2026-08-08T16:00" },
+      },
+    ]);
+    expect(gust.evidence.hours).toHaveLength(7);
+    expect(gust.evidence.valueMs).toEqual([2.33, 2.15, 2.59, 3.23, 3.9, 3.74, 3.46]);
+
+    const surface = findings.find(
+      (finding) => finding.day === "2026-08-08" && finding.quantity === "surfaceWind",
+    )!;
+    // Surface winds [1.92, 1.56, 2.11, 2.59, 2.72, 2.47, 2.32]: 22:00Z and
+    // 23:00Z stand at/above 2.5; 00:00Z (2.47) ends the run.
+    expect(surface.gustSemantics).toBeUndefined();
+    expect(surface.runs).toEqual([
+      {
+        start: { validAt: "2026-08-08T22:00:00Z", local: "2026-08-08T15:00" },
+        end: { validAt: "2026-08-08T23:00:00Z", local: "2026-08-08T16:00" },
+        hours: 2,
+        peakMs: 2.72,
+        peakAt: { validAt: "2026-08-08T23:00:00Z", local: "2026-08-08T16:00" },
+      },
+    ]);
+
+    const band = findings.find(
+      (finding) => finding.day === "2026-08-08" && finding.quantity === "bandWind",
+    )!;
+    // Band maxima [1.87, 2.06, 3.19, 3.65, 4.28, 3.77, 3.49]: 23:00Z alone.
+    expect(band.runs).toHaveLength(1);
+    expect(band.runs[0].hours).toBe(1);
+    expect(band.runs[0].peakMs).toBe(4.28);
+
+    const sundayGust = findings.find(
+      (finding) => finding.day === "2026-08-09" && finding.quantity === "gust",
+    )!;
+    expect(sundayGust.runs).toEqual([
+      {
+        start: { validAt: "2026-08-09T18:00:00Z", local: "2026-08-09T11:00" },
+        end: { validAt: "2026-08-09T18:00:00Z", local: "2026-08-09T11:00" },
+        hours: 1,
+        peakMs: 3.05,
+        peakAt: { validAt: "2026-08-09T18:00:00Z", local: "2026-08-09T11:00" },
+      },
+    ]);
+  });
+
+  it("refuses across gust semantics classes — an instant ceiling reads nothing from an hourMax document", () => {
+    // The caller supplied only the OTHER class's ceiling: silence, never a
+    // silently misread threshold (S3: the class gap is a factor ~1.8-2.8).
+    const wrongClass = analyzeProfile(tagged(), {
+      ...ERIE,
+      windCeilings: { gust: { instantMs: 3 } },
+    });
+    expect(ofKind(wrongClass.findings, "windExceedance")).toHaveLength(0);
+    // An UNTAGGED document declares no gust semantics: no ceiling matches,
+    // whichever classes the caller supplies.
+    const untagged = analyzeProfile(hrrr(), {
+      ...ERIE,
+      windCeilings: { gust: { hourMaxMs: 3, instantMs: 3 } },
+    });
+    expect(ofKind(untagged.findings, "windExceedance")).toHaveLength(0);
+  });
+
+  it("breaks runs at scope gaps — two same-day windows never bridge into one run", () => {
+    // The dip splits Saturday into two windows (19:00Z-21:00Z and
+    // 23:00Z-01:00Z); every scope hour gusts >= 2, but the out-of-scope
+    // 22:00Z hour keeps the runs apart.
+    const dipped = tagged();
+    for (const hour of dipped.hours) {
+      if (hour.validAt === "2026-08-08T22:00:00Z") {
+        (hour.derived as { thermalVelocityMs: number }).thermalVelocityMs = 0.85;
+      }
+    }
+    const saturday = ofKind<WindExceedanceFinding>(
+      analyzeProfile(dipped, { ...ERIE, windCeilings: { gust: { hourMaxMs: 2 } } }).findings,
+      "windExceedance",
+    ).find((finding) => finding.day === "2026-08-08")!;
+    expect(saturday.evidence.hours).toHaveLength(6);
+    expect(saturday.runs.map((run) => [run.start.validAt, run.end.validAt, run.hours])).toEqual([
+      ["2026-08-08T19:00:00Z", "2026-08-08T21:00:00Z", 3],
+      ["2026-08-08T23:00:00Z", "2026-08-09T01:00:00Z", 3],
+    ]);
+  });
+
+  it("reads ensembles at p50 and confesses coarse cadence in run lengths", () => {
+    // REPS is gustless (no gust runs whatever the ceilings), but its band
+    // wind exceeds a 1.5 m/s ceiling on Saturday's single-sample window —
+    // a run whose covered span is the 3-hour step, stated.
+    const findings = ofKind<WindExceedanceFinding>(
+      analyzeProfile(reps(), {
+        ...ERIE,
+        windCeilings: { gust: { hourMaxMs: 1, instantMs: 1 }, bandMs: 1.5 },
+      }).findings,
+      "windExceedance",
+    );
+    expect(findings).toHaveLength(1);
+    const band = findings[0];
+    expect(band.day).toBe("2026-08-08");
+    expect(band.quantity).toBe("bandWind");
+    expect(band.stepHours).toBe(3);
+    expect(band.runs).toEqual([
+      {
+        start: { validAt: "2026-08-08T21:00:00Z", local: "2026-08-08T14:00" },
+        end: { validAt: "2026-08-08T21:00:00Z", local: "2026-08-08T14:00" },
+        hours: 3,
+        peakMs: 1.78,
+        peakAt: { validAt: "2026-08-08T21:00:00Z", local: "2026-08-08T14:00" },
+      },
+    ]);
+  });
+});
+
+describe("windDirection", () => {
+  /* S3 candidate 3: direction evolution per thermalWindow, deterministic
+     documents only. Every expectation below is hand-computed with vector
+     math over the raw fixture values — no raw degrees were averaged in
+     the making of these numbers. */
+
+  const winHours = [
+    "2026-08-08T19:00:00Z",
+    "2026-08-08T20:00:00Z",
+    "2026-08-08T21:00:00Z",
+    "2026-08-08T22:00:00Z",
+    "2026-08-08T23:00:00Z",
+    "2026-08-09T00:00:00Z",
+    "2026-08-09T01:00:00Z",
+  ];
+
+  /** The S3 drainage→upvalley rotation stamped onto the Saturday window:
+   * monotone 115° → 242° at a steady 2 m/s (thermal series untouched, so
+   * the window itself is unchanged). */
+  function rotating(): WindgramProfile {
+    const doc = hrrr();
+    const dirs = [115, 126, 141, 165, 195, 216, 242];
+    for (const hour of doc.hours) {
+      const index = winHours.indexOf(hour.validAt);
+      if (index === -1) continue;
+      (hour.surface as { windSpeedMs: number; windDirectionDeg: number }).windSpeedMs = 2;
+      (hour.surface as { windSpeedMs: number; windDirectionDeg: number }).windDirectionDeg =
+        dirs[index];
+    }
+    return doc;
+  }
+
+  it("states the rotation: start, peak-lift, end samples and the net circular veer", () => {
+    const saturday = ofKind<WindDirectionFinding>(
+      analyzeProfile(rotating(), ERIE).findings,
+      "windDirection",
+    ).find((finding) => finding.day === "2026-08-08")!;
+    expect(saturday.window.start.validAt).toBe("2026-08-08T19:00:00Z");
+    expect(saturday.window.end.validAt).toBe("2026-08-09T01:00:00Z");
+    expect(saturday.surface.start).toEqual({ directionDeg: 115, speedMs: 2 });
+    // Peak lift is 23:00Z (16:00 local) — the rotation is established there.
+    expect(saturday.surface.peakLift).toEqual({
+      directionDeg: 195,
+      speedMs: 2,
+      at: { validAt: "2026-08-08T23:00:00Z", local: "2026-08-08T16:00" },
+    });
+    expect(saturday.surface.end).toEqual({ directionDeg: 242, speedMs: 2 });
+    // Net circular displacement 115° → 242°: +127 — the S3 statement.
+    expect(saturday.netVeerDeg).toBe(127);
+    // Vector mean of the seven 2 m/s samples: components sum to
+    // (-1.7477, 9.9957)/7 → 1.4496 m/s from 170.1° (cancellation across
+    // the rotation drops the mean speed below the samples' 2).
+    expect(saturday.surfaceVectorMean).toEqual({ directionDeg: 170, speedMs: 1.45 });
+    expect(saturday.thresholds).toEqual({ directionFloorMs: 1 });
+    expect(saturday.evidence.hours).toEqual(winHours);
+    expect(saturday.evidence.surfaceDirectionDeg).toEqual([115, 126, 141, 165, 195, 216, 242]);
+    expect(saturday.evidence.surfaceSpeedMs).toEqual([2, 2, 2, 2, 2, 2, 2]);
+  });
+
+  it("reads the real document: gentle veer, vector means, and the band mean over 24 level samples", () => {
+    const findings = ofKind<WindDirectionFinding>(
+      analyzeProfile(hrrr(), ERIE).findings,
+      "windDirection",
+    );
+    expect(findings.map((finding) => finding.day)).toEqual(["2026-08-08", "2026-08-09"]);
+    const saturday = findings[0];
+    // Raw fixture surface: 228° @ 1.92 → … → 232° @ 2.32 across the window.
+    expect(saturday.surface.start).toEqual({ directionDeg: 228, speedMs: 1.92 });
+    expect(saturday.surface.end).toEqual({ directionDeg: 232, speedMs: 2.32 });
+    expect(saturday.netVeerDeg).toBe(4);
+    expect(saturday.surfaceVectorMean).toEqual({ directionDeg: 238, speedMs: 2.21 });
+    // 24 in-band level samples (launch 1247 m to each hour's lift top)
+    // vector-average to 2.31 m/s from 262° — the WNW flow aloft.
+    expect(saturday.bandVectorMean).toEqual({ directionDeg: 262, speedMs: 2.31, samples: 24 });
+
+    // Sunday's window is a single clipped hour: start, peak, and end are
+    // the same sample and the net veer is zero by construction.
+    const sunday = findings[1];
+    expect(sunday.surface.start).toEqual({ directionDeg: 220, speedMs: 1.02 });
+    expect(sunday.netVeerDeg).toBe(0);
+    expect(sunday.bandVectorMean).toEqual({ directionDeg: 252, speedMs: 1.25, samples: 2 });
+  });
+
+  it("suppresses direction under the floor — calm has no bearing, and the floor is the caller's", () => {
+    const drifting = rotating();
+    for (const hour of drifting.hours) {
+      if (hour.validAt === "2026-08-08T19:00:00Z") {
+        (hour.surface as { windSpeedMs: number }).windSpeedMs = 0.4;
+      }
+    }
+    const saturday = ofKind<WindDirectionFinding>(
+      analyzeProfile(drifting, ERIE).findings,
+      "windDirection",
+    ).find((finding) => finding.day === "2026-08-08")!;
+    // The 0.4 m/s drift states its speed and no direction; the net veer
+    // loses its start endpoint and is honestly null.
+    expect(saturday.surface.start).toEqual({ directionDeg: null, speedMs: 0.4 });
+    expect(saturday.netVeerDeg).toBeNull();
+    // The floor is a convention: a caller who accepts the measured 0.5 m/s
+    // jitter cliff (S3: medians 20°→7° across it) may lower it.
+    const lowered = ofKind<WindDirectionFinding>(
+      analyzeProfile(drifting, {
+        ...ERIE,
+        thresholds: { windDirection: { directionFloorMs: 0.3 } },
+      }).findings,
+      "windDirection",
+    ).find((finding) => finding.day === "2026-08-08")!;
+    expect(lowered.surface.start).toEqual({ directionDeg: 115, speedMs: 0.4 });
+    expect(lowered.netVeerDeg).toBe(127);
+    expect(lowered.thresholds).toEqual({ directionFloorMs: 0.3 });
+  });
+
+  it("gates itself off ensembles — direction percentiles are not circular statistics", () => {
+    // REPS has real thermalWindows and publishes level directions, and
+    // still says nothing here: a p50 of raw degrees near north is
+    // arithmetic nonsense, and member vectors are not recoverable.
+    const analysis = analyzeProfile(reps(), ERIE);
+    expect(ofKind(analysis.findings, "thermalWindow").length).toBeGreaterThan(0);
+    expect(ofKind(analysis.findings, "windDirection")).toHaveLength(0);
+    expect(ofKind(analyzeProfile(geps(), FLAGPOLE).findings, "windDirection")).toHaveLength(0);
+  });
+});
+
+describe("bandShear", () => {
+  /* S3 candidate 4: adjacent-level layer shear inside launch→lift-top,
+     analyze-only (rates are not comparable across level densities). All
+     layer numbers below are hand-computed component-wise from the raw
+     fixture winds. */
+
+  it("finds the day's strongest layer with mandatory bounds and endpoint winds", () => {
+    const findings = ofKind<BandShearFinding>(
+      analyzeProfile(hrrr(), ERIE).findings,
+      "bandShear",
+    );
+    const saturday = findings.find((finding) => finding.day === "2026-08-08")!;
+    // 20:00Z (13:00 local): 1.39 m/s @ 214° against 2.06 m/s @ 265° across
+    // the 1525.6-2040.5 m layer — 1.6 m/s of vector shear over 514.9 m.
+    expect(saturday.maxShear.ratePerKm).toBe(3.11);
+    expect(saturday.maxShear.shearMs).toBe(1.6);
+    expect(saturday.maxShear.layer).toEqual({ fromM: 1525.6, toM: 2040.5, thicknessM: 514.9 });
+    expect(saturday.maxShear.at).toEqual({
+      validAt: "2026-08-08T20:00:00Z",
+      local: "2026-08-08T13:00",
+    });
+    expect(saturday.maxShear.lower).toEqual({ speedMs: 1.39, directionDeg: 214, heightM: 1525.6 });
+    expect(saturday.maxShear.upper).toEqual({ speedMs: 2.06, directionDeg: 265, heightM: 2040.5 });
+    expect(saturday.levelsInBand).toBe(3);
+    expect(saturday.bothEndpointsUnderFloorMs).toBe(false); // 2.06 stands over the 2 m/s floor
+    expect(saturday.thresholds).toEqual({ minLayerThicknessM: 30, endpointFloorMs: 2 });
+    // Per window hour, the hour's own max layer rate.
+    expect(saturday.evidence.hours).toHaveLength(7);
+    expect(saturday.evidence.maxRatePerKm).toEqual([1.19, 3.11, 2.48, 2.18, 2.21, 1.95, 1.97]);
+  });
+
+  it("flags a layer whose endpoints are both light wind — an arithmetic relation, no verdict", () => {
+    // Sunday's single-hour window is the S3 12 % case live: 1.01 m/s @ 245°
+    // against 1.51 m/s @ 257° reads 2.27 m/s/km, and both endpoints sit
+    // under the 2 m/s floor — the number is a direction difference between
+    // light winds, and the finding says exactly that relation.
+    const sunday = ofKind<BandShearFinding>(
+      analyzeProfile(hrrr(), ERIE).findings,
+      "bandShear",
+    ).find((finding) => finding.day === "2026-08-09")!;
+    expect(sunday.maxShear.ratePerKm).toBe(2.27);
+    expect(sunday.maxShear.layer).toEqual({ fromM: 1258.4, toM: 1506.4, thicknessM: 248 });
+    expect(sunday.levelsInBand).toBe(2);
+    expect(sunday.bothEndpointsUnderFloorMs).toBe(true);
+    expect(JSON.stringify(sunday)).not.toMatch(/hazard|quality|suspect/i);
+  });
+
+  it("is absent when the column offers fewer than two in-band levels — too sparse to state", () => {
+    // Strip every hour to its lowest level: one in-band level has no
+    // layer, so the kind says nothing (absence means "column too sparse
+    // to state", the honest GEPS/REPS behaviour S3 measured at 0.4-6 %).
+    const sparse = hrrr();
+    for (const hour of sparse.hours) {
+      (hour as { levels: unknown[] }).levels = hour.levels.slice(0, 1);
+    }
+    expect(ofKind(analyzeProfile(sparse, ERIE).findings, "bandShear")).toHaveLength(0);
+    // The thickness floor is a caller convention too: demanding thicker
+    // layers than the column publishes silences the kind the same way.
+    expect(
+      ofKind(
+        analyzeProfile(hrrr(), {
+          ...ERIE,
+          thresholds: { bandShear: { minLayerThicknessM: 600 } },
+        }).findings,
+        "bandShear",
+      ),
+    ).toHaveLength(0);
+  });
+
+  it("gates itself off ensembles — level direction percentiles are no more circular than surface ones", () => {
+    // REPS has thermalWindows and publishes level winds; the gate holds.
+    const analysis = analyzeProfile(reps(), ERIE);
+    expect(ofKind(analysis.findings, "thermalWindow").length).toBeGreaterThan(0);
+    expect(ofKind(analysis.findings, "bandShear")).toHaveLength(0);
+    expect(ofKind(analyzeProfile(geps(), FLAGPOLE).findings, "bandShear")).toHaveLength(0);
   });
 });
 

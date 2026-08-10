@@ -5,7 +5,7 @@
    the vocabulary surface. */
 
 import type { WindgramProfile } from "../../contract/index.js";
-import type { AnalyzeThresholds } from "../vocabulary.js";
+import type { AnalyzeThresholds, WindCeilings } from "../vocabulary.js";
 
 /** An instant a finding cites: the document's own UTC `validAt` (so the
  * claim joins back to the published hour) plus its local clock reading
@@ -53,6 +53,9 @@ export interface Context {
   launchReferenceM: number;
   cite: (validAt: string) => CitedInstant;
   thresholds: AnalyzeThresholds;
+  /** The caller's wind ceilings (`AnalyzeOptions.windCeilings`) — absent
+   * means windExceedance emits nothing; no defaults exist anywhere. */
+  windCeilings?: WindCeilings;
 }
 
 /**

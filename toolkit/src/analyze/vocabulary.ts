@@ -12,6 +12,7 @@
    kind work merges without conflict. */
 
 import type { SmokeDocument } from "../contract/index.js";
+import type { BandShearFinding } from "./kinds/band-shear.js";
 import type { CapTimingFinding } from "./kinds/cap-timing.js";
 import type { ConvectiveDayFinding } from "./kinds/convective-day.js";
 import type { DataCaveatsFinding } from "./kinds/data-caveats.js";
@@ -22,6 +23,8 @@ import type { PercentileCrossingFinding } from "./kinds/percentile-crossing.js";
 import type { QuietDayFinding } from "./kinds/quiet-day.js";
 import type { SmokeImpactFinding } from "./kinds/smoke-impact.js";
 import type { TerrainMismatchFinding } from "./kinds/terrain-mismatch.js";
+import type { WindDirectionFinding } from "./kinds/wind-direction.js";
+import type { WindExceedanceFinding } from "./kinds/wind-exceedance.js";
 import type { WindSummaryFinding } from "./kinds/wind-summary.js";
 
 /**
@@ -74,6 +77,7 @@ export const ANALYZE_VOCABULARY_VERSION = 4;
 export type { CitedInstant, LocalDayKey } from "./kinds/shared.js";
 
 /* Per-kind types — one line per kind. */
+export type { BandShearFinding } from "./kinds/band-shear.js";
 export type { CapTimingFinding } from "./kinds/cap-timing.js";
 export type { ConvectiveDayFinding } from "./kinds/convective-day.js";
 export type { DataCaveat, DataCaveatsFinding } from "./kinds/data-caveats.js";
@@ -84,6 +88,8 @@ export type { PercentileCrossingFinding, PercentileToken } from "./kinds/percent
 export type { QuietDayFinding } from "./kinds/quiet-day.js";
 export type { SmokeImpactFinding, SmokeImpactJoinedFinding, SmokeImpactProfileFinding } from "./kinds/smoke-impact.js";
 export type { TerrainMismatchFinding } from "./kinds/terrain-mismatch.js";
+export type { WindDirectionFinding } from "./kinds/wind-direction.js";
+export type { WindExceedanceFinding } from "./kinds/wind-exceedance.js";
 export type { WindSummaryFinding } from "./kinds/wind-summary.js";
 
 /* The union — one member line per kind. */
@@ -98,7 +104,10 @@ export type WindgramFinding =
   | QuietDayFinding
   | LiftCeilingFinding
   | SmokeImpactFinding
-  | WindSummaryFinding;
+  | WindSummaryFinding
+  | WindExceedanceFinding
+  | WindDirectionFinding
+  | BandShearFinding;
 
 export type FindingKind = WindgramFinding["kind"];
 
@@ -117,6 +126,8 @@ export interface AnalyzeThresholds {
   convectiveDay: { precipMinMmHr: number };
   terrainMismatch: { minAbsDeltaM: number };
   windSummary: { bandMarginM: number; persistenceFractionOfMax: number };
+  windDirection: { directionFloorMs: number };
+  bandShear: { minLayerThicknessM: number; endpointFloorMs: number };
 }
 
 /**
@@ -137,6 +148,8 @@ export const DEFAULT_ANALYZE_THRESHOLDS: AnalyzeThresholds = {
   convectiveDay: { precipMinMmHr: 0.2 },
   terrainMismatch: { minAbsDeltaM: 250 },
   windSummary: { bandMarginM: 200, persistenceFractionOfMax: 0.8 },
+  windDirection: { directionFloorMs: 1 },
+  bandShear: { minLayerThicknessM: 30, endpointFloorMs: 2 },
 };
 
 /**
@@ -179,6 +192,25 @@ export interface AnalyzeOptions {
    * analysis says so via the `dataCaveats` `"smoke"` family token.
    */
   smoke?: SmokeDocument | null;
+  /**
+   * Caller-owned wind ceilings for `windExceedance` — deliberately NOT in
+   * `thresholds`, because NO DEFAULTS EXIST: the package never owns a
+   * "safe wind" number, and without a ceiling the kind emits nothing.
+   * Gust ceilings are per semantics class (`hourMaxMs` / `instantMs`,
+   * never reused across classes — S3 measured the gap at a factor
+   * ~1.8-2.8 at matched means); each supplied value is echoed verbatim in
+   * the findings it produces.
+   */
+  windCeilings?: WindCeilings;
+}
+
+/** See `AnalyzeOptions.windCeilings` — caller conventions, no defaults. */
+export interface WindCeilings {
+  surfaceMs?: number;
+  /** Per gust-semantics class; a document only reads the ceiling matching
+   * its own declared `semantics.gust`. */
+  gust?: { hourMaxMs?: number; instantMs?: number };
+  bandMs?: number;
 }
 
 /* ---------------------------------------------------------------- envelope */
