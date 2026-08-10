@@ -67,8 +67,10 @@
    anchor the other findings reference; they add no information a consumer
    reading every hour would miss.
 
-   The vocabulary (finding types, thresholds, envelope) lives in
-   vocabulary.ts; the extractors live in findings.ts. */
+   The vocabulary barrel (the kind set, thresholds, envelope) lives in
+   vocabulary.ts; each kind's type and extractor live together in
+   kinds/<kind>.ts over the shared context in kinds/shared.ts; the
+   extraction entry point lives in findings.ts. */
 
 export {
   ANALYZE_VOCABULARY_VERSION,

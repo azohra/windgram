@@ -52,7 +52,7 @@ import {
   type QuietDayFinding,
   type WindgramAnalysis,
 } from "../analyze/index.js";
-import { round1 } from "../analyze/findings.js";
+import { round1 } from "../analyze/kinds/shared.js";
 
 /**
  * The comparison-kind set this module can emit. Version 1 ships exactly
