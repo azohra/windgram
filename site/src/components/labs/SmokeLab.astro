@@ -1,0 +1,130 @@
+---
+import ControlGroup from "../figure/ControlGroup.astro";
+import Figure from "../figure/Figure.astro";
+import Legend from "../figure/Legend.astro";
+import {
+  renderSmokeLabChart,
+  smokeLabSummary,
+  type LabScenarioSource,
+} from "../../lib/labs";
+import { scenarioById } from "../../lib/scenarios";
+
+const scenario = scenarioById("smoke-over-thermals");
+const source: LabScenarioSource = {
+  profile: scenario.profile,
+  timeZone: scenario.timeZone,
+};
+const initialAot = 1;
+const initialSummary = smokeLabSummary(source.profile, initialAot);
+const { scene: initialScene, svg: initialSvg } = renderSmokeLabChart(source, initialAot);
+---
+
+<Figure
+  id="smoke-lab"
+  title="Drag a plume over the day"
+  lesson="Change only smoke optical depth while the column, fluxes, and winds stay fixed: thermals fade far more gently than the sky darkens."
+  description="An interactive windgram applying the package's smoke-adjusted derivation to the smoke teaching scenario at a uniform optical depth chosen by a slider."
+  caption="The slider replaces the scenario's smoke arc with one uniform optical depth (column mass kept consistent through the package's cited 4.7 m²/g extinction efficiency) and rebuilds the smoke-adjusted scene — the same windgram/scene option downstream apps use."
+  units="optical depth τ (mid-visible) · w* m/s · smoke µg/m³ · haze tint = τ"
+  {scenario}
+>
+  <ControlGroup slot="controls" label="Smoke laboratory controls">
+    <label for="smoke-lab-aot">
+      Smoke optical depth
+      <span class="wg-lab__range-row">
+        <input
+          id="smoke-lab-aot"
+          data-smoke-aot
+          type="range"
+          min="0"
+          max="5"
+          value={initialAot}
+          step="0.1"
+        />
+        <output for="smoke-lab-aot" data-smoke-aot-output>
+          τ {initialAot.toFixed(1)}
+        </output>
+      </span>
+    </label>
+  </ControlGroup>
+
+  <div class="wg-lab" data-smoke-lab>
+    <script
+      is:inline
+      type="application/json"
+      data-smoke-source
+      set:html={JSON.stringify(source)}
+    />
+    <div class="wg-lab__readout" aria-live="polite" aria-atomic="true">
+      <span>Sunlight reaching the ground <strong data-smoke-transmittance>{initialSummary.transmittancePercent.toFixed(0)} %</strong></span>
+      <span>Thermal strength kept <strong data-smoke-kept>{initialSummary.wStarKeptPercent.toFixed(0)} %</strong></span>
+      <span>Peak adjusted w* <strong data-smoke-peak>{initialSummary.peakAdjustedMs.toFixed(1)} m/s</strong></span>
+    </div>
+    <div
+      class="wg-lab__chart-scroll"
+      tabindex="0"
+      role="region"
+      aria-label="Scrollable smoke-adjusted windgram"
+    >
+      <div
+        class="wg-lab__mount"
+        data-smoke-mount
+        style={`--wg-lab-scene-width: ${initialScene.width}px`}
+        set:html={initialSvg}
+      />
+    </div>
+    <p class="wg-lab__conclusion">
+      <strong>Conclusion.</strong> Even at a severe τ of 2, the derived thermals keep roughly nine
+      tenths of their strength — the cube root is doing the compressing. What the slider cannot
+      show is what the correction deliberately leaves out: a real plume also shallows the boundary
+      layer and cuts visibility, which is why the adjusted view is labeled a partial correction.
+    </p>
+  </div>
+
+  <Legend
+    slot="legend"
+    label="Smoke lab legend"
+    items={[
+      { label: "Smoke haze (tint = τ)", color: "#8c5a3c", mark: "area" },
+      { label: "w* thermal strip", color: "var(--chart-lift, #9a7500)", mark: "line" },
+      { label: "Usable lift top", color: "var(--chart-usable)", mark: "line" },
+    ]}
+  />
+</Figure>
+
+<script>
+  import { renderSmokeLabChart, smokeLabSummary, type LabScenarioSource } from "../../lib/labs";
+
+  for (const figure of document.querySelectorAll<HTMLElement>("#smoke-lab[data-figure]")) {
+    if (figure.dataset.smokeReady === "true") continue;
+    figure.dataset.smokeReady = "true";
+    const source = figure.querySelector<HTMLScriptElement>("[data-smoke-source]");
+    const slider = figure.querySelector<HTMLInputElement>("[data-smoke-aot]");
+    const output = figure.querySelector<HTMLOutputElement>("[data-smoke-aot-output]");
+    const transmittance = figure.querySelector<HTMLElement>("[data-smoke-transmittance]");
+    const kept = figure.querySelector<HTMLElement>("[data-smoke-kept]");
+    const peak = figure.querySelector<HTMLElement>("[data-smoke-peak]");
+    const mount = figure.querySelector<HTMLElement>("[data-smoke-mount]");
+    if (!source?.textContent || !slider || !output || !transmittance || !kept || !peak || !mount)
+      continue;
+
+    const scenario = Object.freeze(
+      JSON.parse(source.textContent),
+    ) as Readonly<LabScenarioSource>;
+
+    const render = () => {
+      const aot = Number(slider.value);
+      output.value = `τ ${aot.toFixed(1)}`;
+      const summary = smokeLabSummary(scenario.profile, aot);
+      transmittance.textContent = `${summary.transmittancePercent.toFixed(0)} %`;
+      kept.textContent = `${summary.wStarKeptPercent.toFixed(0)} %`;
+      peak.textContent = `${summary.peakAdjustedMs.toFixed(1)} m/s`;
+      const { scene, svg } = renderSmokeLabChart(scenario, aot);
+      mount.innerHTML = svg;
+      mount.style.setProperty("--wg-lab-scene-width", `${scene.width}px`);
+    };
+
+    slider.addEventListener("input", render);
+    figure.addEventListener("figure:reset", render);
+  }
+</script>

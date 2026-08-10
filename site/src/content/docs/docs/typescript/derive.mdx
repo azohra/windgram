@@ -121,6 +121,58 @@ Selecting fields produces `ProjectedWindgramProfile`, whose hour blocks are
 partial by design. Do not pass that partial projection back through the full
 profile parser or into `buildScene`.
 
+## Derate thermals for smoke
+
+`windgram/derive` carries the smoke-correction chain as small pure
+functions over published values, with the physics constants exported as
+named, cited claims (`SMOKE_MASS_EXTINCTION_M2_PER_G` — Reid et al.
+2005; `SMOKE_TRANSMITTANCE_K_MIDDAY` / `K_VERTICAL` — Donaldson 2021,
+Chubarova 2012, McKendry 2019):
+
+```ts title="smoke-adjusted-w.ts"
+import type { SmokeDocument, WindgramProfile } from "windgram/contract";
+import {
+  cosSolarZenith,
+  isSmokeAwareProfile,
+  p50,
+  smokeAdjustedThermalVelocityMs,
+  smokeAotFromColumn,
+  smokeHoursByValidAt,
+  smokeTransmittance,
+} from "windgram/derive";
+
+export function adjustedWStar(
+  profile: WindgramProfile,
+  smoke: SmokeDocument,
+  hourIndex: number,
+): number | null {
+  // Already smoke-aware (HRRR): the published w* includes the model's own
+  // smoke attenuation, and derating it again would double-count.
+  if (isSmokeAwareProfile(profile)) return null;
+  const hour = profile.hours[hourIndex];
+  const joined = hour && smokeHoursByValidAt(smoke).get(hour.validAt);
+  if (!hour || !joined) return null;
+
+  const columnMgm2 = p50(joined.smokePlumeColumnMgm2);
+  const wStar = p50(hour.derived.thermalVelocityMs);
+  if (columnMgm2 === null || wStar === null) return null;
+
+  const transmittance = smokeTransmittance(
+    smokeAotFromColumn(columnMgm2),
+    cosSolarZenith(hour.validAt, profile.site.latitude, profile.site.longitude),
+  );
+  return smokeAdjustedThermalVelocityMs(wStar, transmittance);
+}
+```
+
+The guard comes first for a reason: on models whose fluxes already feel
+their own smoke (`isSmokeAwareProfile` — HRRR), the published w* is
+already derated and applying the correction again double-counts. The
+adjustment itself is one multiply — `w* × ∛f` — because Deardorff's w*
+is the cube root of the heat flux; no flux re-derivation is needed or
+performed. Scope and derivation narrative:
+[Smoke and thermals](/docs/learn/smoke-and-thermals/).
+
 ## Intersect instants with `alignByValidAt`
 
 `alignByValidAt` returns only the UTC `validAt` instants shared by every input

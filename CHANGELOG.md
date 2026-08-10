@@ -4,10 +4,10 @@ Notable repository and `windgram` package changes are recorded here. Dataset
 schema, npm package, and Python pipeline versions are independent; each release
 entry names the versions it actually changes.
 
-## [Unreleased]
+## [0.14.0] - 2026-08-09
 
-Dataset hosting, plus `windgram` marker rendering — no schema or
-derivation change.
+`windgram` (npm and JSR) 0.14.0 — coincident height markers render
+honestly.
 
 ### Changed
 
@@ -21,6 +21,53 @@ derivation change.
 - The wing marker glyph is a paraglider read whole — canopy arc,
   suspension lines, pilot pod — replacing the bare crescent, which
   disappeared entirely under a coincident cloud.
+
+### Removed
+
+- `MarkerTrainStride.offset` — the phase control existed to shift marker
+  trains apart so coincident glyphs would not stack, and the scene now
+  renders coincidence itself; the workaround surface goes with the
+  workaround. Breaking for callers passing `{ every, offset }`; the
+  `{ every }` object and bare-number forms are unchanged.
+
+## [0.13.0] - 2026-08-09
+
+`windgram` (npm and JSR) 0.13.0 · `windgram` Python pipeline 0.3.0.
+Wildfire smoke lands across every layer, plus the dataset-hosting move.
+All schema changes are additive; documents and catalogues that predate
+smoke parse unchanged.
+
+### Added
+
+- **Profiles carry smoke where the model does**: an optional per-hour
+  `smoke` block (`surfaceUgm3`, `columnMgm2`, `aot`) on models declaring
+  `capabilities.smoke` — HRRR today, whose three smoke records ship in the
+  files the builder already reads. The token is a coupling claim, not a
+  boolean: HRRR declares `"radiativelyCoupled"` because its forecast smoke
+  attenuates its own shortwave (fluxes and derived w* are already
+  smoke-aware), echoed per document as `semantics.smoke`.
+- **A new document kind**: per-site wildfire-smoke time series from ECCC's
+  RAQDPS (`raqdps/sites/<site>.json`, `smoke.schema.json`,
+  `parseSmokeDocument`), built by a seventh builder — 00Z/12Z, hourly to
+  72 h. The catalogue lists it in a new optional `smokeModels` array,
+  separate from `models` so pre-smoke consumers keep parsing untouched.
+- **`windgram/derive` smoke corrections**: cited constants
+  (`SMOKE_MASS_EXTINCTION_M2_PER_G`, `SMOKE_TRANSMITTANCE_K_MIDDAY`/
+  `K_VERTICAL`), `smokeAotFromColumn`, `smokeTransmittance`,
+  `smokeAdjustedThermalVelocityMs` (= w* × ∛f over published values),
+  `smokeHoursByValidAt`, `isSmokeAwareProfile`, and `cosSolarZenith`.
+- **Scene and SVG**: a `smoke` overlay strip (concentration line, haze
+  cells whose opacity is optical depth) fed by the profile's own block or
+  a joined smoke document — one source per strip, never blended, named in
+  `scene.smokeSource`; a `smokeAdjusted` render option building the
+  labeled alternate view (`scene.smokeAdjustment`, `KeySpec.smokeAdjusted`,
+  haze chip `KeySpec.smokeHaze`); smoke in `cursorReading` packets.
+- **Teaching scenario** `smoke-over-thermals` with base and adjusted SVG
+  goldens, and two portal pages: *Smoke and thermals* (learn) and the
+  *Smoke document* reference.
+
+### Changed
+
 - The published dataset moved out of git to public object storage: model
   manifests, current profiles, history archives, and `runs.json` are served
   from <https://data.meteo.azohra.com>, with the authored catalogues
@@ -37,11 +84,6 @@ derivation change.
 
 ### Removed
 
-- `MarkerTrainStride.offset` — the phase control existed to shift marker
-  trains apart so coincident glyphs would not stack, and the scene now
-  renders coincidence itself; the workaround surface goes with the
-  workaround. Breaking for callers passing `{ every, offset }`; the
-  `{ every }` object and bare-number forms are unchanged.
 - The scheduled workflow's commit-and-rebase publishing machinery
   (`.github/scripts/commit-data.sh`); the run index converges by
   regeneration from the published manifests instead.

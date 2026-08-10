@@ -49,6 +49,7 @@ layer strip:
 | **w\* · m/s** | Thermal velocity derived from surface heat flux and boundary-layer depth. | It is an energy scale, not a predicted glider climb rate. |
 | **CAPE · J/kg** | Surface-based CAPE at the grid cell. | Fuel for overdevelopment, not a storm forecast; a dimmed cell means a CIN cap is holding it down. |
 | **Layers · %** | Low, middle, and high cloud fraction, on models that publish them. | The rows are terrain-following model layers, not fixed altitudes. |
+| **Smoke · µg/m³** | Near-surface wildfire smoke, with a haze tint that deepens with column optical depth. The label names the smoke model — it can be a different model than the profile's. | Surface air can be clean under an elevated plume (line low, tint deep) and vice versa; see [Smoke and thermals](/docs/learn/smoke-and-thermals/). |
 
 Each vertical slice of the main panel is one atmospheric column at the local time printed below it.
 The left axis gives metres above sea level and the right axis gives feet above sea level. The launch

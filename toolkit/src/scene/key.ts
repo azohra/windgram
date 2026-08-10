@@ -86,6 +86,20 @@ export interface KeySpec {
   } | null;
   /** The p25-p75 envelope note; null unless some series carries a band. */
   band: { id: string; label: string } | null;
+  /**
+   * The smoke-haze chip — the column tint whose opacity is optical
+   * depth; null when the scene drew no smoke cells. The strip's line
+   * labels itself ("Smoke µg/m³") like every strip, so only the tint
+   * needs the key.
+   */
+  smokeHaze: { id: string; label: string } | null;
+  /**
+   * The smoke-adjusted view's label, carrying the smoke model and run
+   * that derated the drawn w* and lift — present exactly when the scene
+   * IS the adjusted view (SceneGraph.smokeAdjustment). Rendering this
+   * note is how a reference-key consumer satisfies the must-label rule.
+   */
+  smokeAdjusted: { id: string; label: string } | null;
 }
 
 export interface KeySpecOptions {
@@ -237,6 +251,9 @@ export function buildKeySpec(scene: SceneGraph, options: KeySpecOptions = {}): K
   );
   const hasStability = scene.fields.some((field) => field.key === "stability");
   const hasBand = scene.series.some((entry) => entry.bandPath !== null);
+  const hasSmokeHaze = scene.strips.some(
+    (strip) => strip.key === "smoke" && (strip.cells ?? []).some((cell) => cell !== null),
+  );
 
   return {
     series,
@@ -260,6 +277,20 @@ export function buildKeySpec(scene: SceneGraph, options: KeySpecOptions = {}): K
       : null,
     band: hasBand
       ? { id: "band", label: labels["band"] ?? "p25–p75 ensemble spread" }
+      : null,
+    smokeHaze: hasSmokeHaze
+      ? {
+          id: "wg-smoke-cell",
+          label: labels["wg-smoke-cell"] ?? "Smoke haze — tint deepens with optical depth",
+        }
+      : null,
+    smokeAdjusted: scene.smokeAdjustment
+      ? {
+          id: "smoke-adjusted",
+          label:
+            labels["smoke-adjusted"] ??
+            `Smoke-adjusted w* and lift — ${scene.smokeAdjustment.smokeModel} ${scene.smokeAdjustment.smokeRun}`,
+        }
       : null,
   };
 }

@@ -1,0 +1,379 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 624" role="img" aria-label="Windgram for Synthetic Smoke Ridge, model smoke-over-thermals, 2000-01-01 10:00 to 19:00 (Etc/UTC): surface metric strips above a time-height field; derived series, isotherms, shading overlays and winds aloft are drawn over the profile." class="wg">
+<style>
+.wg text { font-family: var(--wg-font, "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif); }
+.wg .wg-mono { font-family: var(--wg-font-mono, "IBM Plex Mono", ui-monospace, monospace); }
+.wg-frame { fill: var(--wg-surface, #fffdf8); stroke: var(--wg-rule, #776956); }
+.wg-strip-frame { fill: var(--wg-strip-bg, #f2f4f1); stroke: var(--wg-rule, #776956); }
+.wg-gridline { stroke: var(--wg-rule, #776956); }
+.wg-hourline { stroke: var(--wg-ink, #152529); }
+.wg-text { fill: var(--wg-ink, #152529); }
+.wg-text-soft { fill: var(--wg-ink-soft, #2f454a); }
+.wg-text-mute { fill: var(--wg-ink-mute, #40565a); }
+.wg-strip-name { fill: var(--wg-ink, #152529); font-size: var(--wg-text-strip-name, 10.5px); font-weight: 700; }
+.wg-strip-unit { fill: var(--wg-ink-mute, #40565a); font-size: var(--wg-text-strip-unit, 9.5px); }
+.wg-strip-scale { fill: var(--wg-ink-mute, #40565a); font-size: var(--wg-text-strip-scale, 8px); }
+.wg-tick { fill: var(--wg-ink-mute, #40565a); font-size: var(--wg-text-tick, 10.5px); }
+.wg-hour-tick { fill: var(--wg-ink-mute, #40565a); font-size: var(--wg-text-hour-tick, 11px); }
+.wg-series-label { font-size: var(--wg-text-series-label, 10.5px); font-weight: 700; }
+.wg-launch-label { fill: var(--wg-ink, #152529); font-size: var(--wg-text-launch, 10.5px); font-weight: 600; }
+.wg-surface-temp { fill: var(--wg-temp, #913b0c); font-size: var(--wg-text-surface-temp, 9.5px); font-weight: 700; }
+.wg-haloed-text { stroke: var(--wg-halo-text, var(--wg-halo, #fffdf8)); paint-order: stroke; }
+.wg-halo { stroke: var(--wg-halo-series, transparent); }
+.wg-selected-column { fill: var(--wg-accent, #913b0c); opacity: 0.05; }
+.wg-selected-line { stroke: var(--wg-accent, #913b0c); }
+.wg-selection-column { fill: var(--wg-selection, #913b0c); opacity: 0.07; }
+.wg-selection-line { stroke: var(--wg-selection, #913b0c); }
+.wg-selection-ring { stroke: var(--wg-selection, #913b0c); }
+.wg-launch-line { stroke: var(--wg-ink, #152529); }
+.wg-strip-pressure { stroke: var(--wg-pressure, #963f36); }
+.wg-strip-pressure-area, .wg-strip-pressure-band { fill: var(--wg-pressure, #963f36); }
+.wg-strip-precipitation { stroke: var(--wg-rain, #207a83); }
+.wg-strip-precipitation-area, .wg-strip-precipitation-band { fill: var(--wg-rain, #207a83); }
+.wg-strip-cloudCover { stroke: var(--wg-cloud, #5b6969); }
+.wg-strip-cloudCover-area, .wg-strip-cloudCover-band { fill: var(--wg-cloud, #5b6969); }
+.wg-strip-thermalStrength { stroke: var(--wg-lift, #9a7500); }
+.wg-strip-thermalStrength-area, .wg-strip-thermalStrength-band { fill: var(--wg-lift, #9a7500); }
+.wg-strip-buoyancyShear { stroke: var(--wg-bs, #6d597a); }
+.wg-strip-buoyancyShear-area, .wg-strip-buoyancyShear-band { fill: var(--wg-bs, #6d597a); }
+.wg-strip-smoke { stroke: var(--wg-smoke, #8c5a3c); }
+.wg-strip-smoke-area, .wg-strip-smoke-band { fill: var(--wg-smoke, #8c5a3c); }
+.wg-smoke-cell { fill: var(--wg-smoke, #8c5a3c); }
+.wg-strip-cape { stroke: var(--wg-cape, #8a4a08); }
+.wg-strip-cape-area, .wg-strip-cape-band { fill: var(--wg-cape, #8a4a08); }
+.wg-cape-calm { fill: var(--wg-cape-calm, #dde3d5); opacity: 0.6; }
+.wg-cape-watch { fill: var(--wg-cape-watch, #e7c46c); opacity: 0.6; }
+.wg-cape-risk { fill: var(--wg-cape-risk, #d98243); opacity: 0.6; }
+.wg-cape-severe { fill: var(--wg-cape-severe, #c04f3a); opacity: 0.6; }
+.wg-cape-capped { opacity: 0.28; }
+.wg-bs-unopposed { fill: var(--wg-bs, #6d597a); opacity: 0.18; }
+.wg-cloud-cell { fill: var(--wg-cloud, #5b6969); }
+.wg-strip-row-label { fill: var(--wg-ink-mute, #40565a); font-size: var(--wg-text-row-tag, 7.5px); }
+.wg-gust { fill: var(--wg-gust, #355963); font-size: var(--wg-text-gust, 9.5px); font-weight: 700; }
+.wg-series-pbl { stroke: var(--wg-pbl, #56609b); }
+.wg-series-pbl-band { fill: var(--wg-pbl, #56609b); opacity: 0.16; }
+.wg-stab-very-unstable { fill: var(--wg-stab-very-unstable, #d95f52); }
+.wg-stab-unstable { fill: var(--wg-stab-unstable, #de8f3a); }
+.wg-stab-conditional-strong { fill: var(--wg-stab-conditional-strong, #c67eb6); }
+.wg-stab-conditional { fill: var(--wg-stab-conditional, #aeaad9); }
+.wg-stab-near-neutral { fill: var(--wg-stab-near-neutral, #d7b29b); }
+.wg-stab-stable { fill: var(--wg-stab-stable, #768bb9); }
+.wg-stab-inverted { fill: var(--wg-stab-inverted, #9aa19d); }
+.wg-stab-strong-inversion { fill: var(--wg-stab-strong-inversion, #b3b9b6); }
+.wg-cloud-hatch-line { stroke: var(--wg-ink-soft, #2f454a); }
+.wg-cloud-medium { fill: var(--wg-cloud, #5b6969); opacity: 0.22; }
+.wg-cloud-light { fill: var(--wg-cloud, #5b6969); opacity: 0.1; }
+.wg-ti-weak { fill: var(--wg-ti-weak, #f4e3c0); opacity: 0.55; }
+.wg-ti-fair { fill: var(--wg-ti-fair, #ecc57e); opacity: 0.55; }
+.wg-ti-good { fill: var(--wg-ti-good, #de9b4e); opacity: 0.55; }
+.wg-ti-strong { fill: var(--wg-ti-strong, #c96a33); opacity: 0.55; }
+.wg-shear-light { fill: var(--wg-shear-light, #cfc3de); opacity: 0.5; }
+.wg-shear-moderate { fill: var(--wg-shear-moderate, #a58ec4); opacity: 0.5; }
+.wg-shear-strong { fill: var(--wg-shear-strong, #7b5ea7); opacity: 0.5; }
+.wg-rh-60 { fill: var(--wg-rh-60, #d3e0e3); opacity: 0.5; }
+.wg-rh-80 { fill: var(--wg-rh-80, #a9c7cf); opacity: 0.5; }
+.wg-rh-95 { fill: var(--wg-rh-95, #7fadbb); opacity: 0.5; }
+.wg-omega-lift { fill: var(--wg-omega-lift, #8dc2a0); opacity: 0.4; }
+.wg-omega-lift-strong { fill: var(--wg-omega-lift-strong, #56a377); opacity: 0.5; }
+.wg-omega-sink { fill: var(--wg-omega-sink, #d3a68f); opacity: 0.4; }
+.wg-omega-sink-strong { fill: var(--wg-omega-sink-strong, #bd7d5c); opacity: 0.5; }
+.wg-series-boundary { stroke: var(--wg-boundary, #a46b10); }
+.wg-series-boundary-band { fill: var(--wg-boundary, #a46b10); opacity: 0.16; }
+.wg-series-cloud-base { stroke: var(--wg-cloud-base, #355963); }
+.wg-series-cloud-base-band { fill: var(--wg-cloud-base, #355963); opacity: 0.16; }
+.wg-series-usable { stroke: var(--wg-usable, #2179ad); }
+.wg-series-usable-band { fill: var(--wg-usable, #2179ad); opacity: 0.16; }
+.wg-isotherm { stroke: var(--wg-ink, #152529); }
+.wg-isotherm-freezing { stroke: var(--wg-freezing, #2b748f); }
+.wg-isotherm-label { fill: var(--wg-ink, #152529); }
+.wg-isotherm-label-freezing { fill: var(--wg-freezing, #2b748f); }
+.wg-dewpoint-isoline { stroke: var(--wg-dewpoint, #3a7d4f); }
+.wg-dewpoint-label { fill: var(--wg-dewpoint, #3a7d4f); }
+.wg-barb { stroke: var(--wg-wind, #ffffff); }
+.wg-barb-fill { fill: var(--wg-wind, #ffffff); stroke: var(--wg-wind, #ffffff); }
+.wg-barb-halo { stroke: var(--wg-halo-barb, #355963); }
+.wg-barb-fill-halo { fill: var(--wg-halo-barb, #355963); stroke: var(--wg-halo-barb, #355963); }
+.wg-marker-wing { fill: var(--wg-usable, #2179ad); stroke: var(--wg-usable, #2179ad); }
+.wg-marker-cloud { fill: var(--wg-cloud-marker, #f8f3d8); stroke: var(--wg-cloud-base, #355963); }
+.wg-marker-halo { fill: var(--wg-halo-marker, var(--wg-halo, #fffdf8)); stroke: var(--wg-halo-marker, var(--wg-halo, #fffdf8)); }
+.wg-key-label { fill: var(--wg-ink-mute, #40565a); font-size: var(--wg-text-tick, 10.5px); }
+.wg-key-title { fill: var(--wg-ink, #152529); font-size: var(--wg-text-key-title, 9px); font-weight: 700; letter-spacing: 0.08em; }
+.wg-key-boundary { fill: var(--wg-ink-mute, #40565a); font-size: var(--wg-text-key-boundary, 8px); }
+.wg-key-group { fill: var(--wg-key-group-ink, #ffffff); stroke: var(--wg-key-group-halo, #00000066); paint-order: stroke; font-size: var(--wg-text-key-group, 8px); font-weight: 700; }
+.wg-key-band { fill: var(--wg-ink-mute, #40565a); opacity: 0.16; }
+.wg-key-frame { fill: none; stroke: var(--wg-rule, #776956); }
+</style>
+<defs><pattern id="scenario-smoke-over-thermals-only-cloud-hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" class="wg-cloud-hatch-line" stroke-width="1.2"/></pattern></defs>
+<rect x="60" y="20" width="440" height="25" class="wg-strip-frame" stroke-width="0.7"/>
+<line x1="60" y1="32.5" x2="500" y2="32.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
+<path d="M60,20 C63.67,20 71,19.31 82,20 C93,20.69 111.33,22.78 126,24.17 C140.67,25.56 155.33,27.22 170,28.33 C184.67,29.44 199.33,29.72 214,30.83 C228.67,31.94 243.33,33.47 258,35 C272.67,36.53 287.33,38.47 302,40 C316.67,41.53 331.33,43.75 346,44.17 C360.67,44.58 375.33,43.19 390,42.5 C404.67,41.81 419.33,40.97 434,40 C448.67,39.03 467,37.22 478,36.67 C489,36.11 496.33,36.67 500,36.67 L500.00,45 L60.00,45 Z" class="wg-strip-pressure-area" opacity="0.3"/>
+<path d="M60,20 C63.67,20 71,19.31 82,20 C93,20.69 111.33,22.78 126,24.17 C140.67,25.56 155.33,27.22 170,28.33 C184.67,29.44 199.33,29.72 214,30.83 C228.67,31.94 243.33,33.47 258,35 C272.67,36.53 287.33,38.47 302,40 C316.67,41.53 331.33,43.75 346,44.17 C360.67,44.58 375.33,43.19 390,42.5 C404.67,41.81 419.33,40.97 434,40 C448.67,39.03 467,37.22 478,36.67 C489,36.11 496.33,36.67 500,36.67" class="wg-strip-pressure" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="31" text-anchor="end" class="wg-strip-name">Pressure</text>
+<text x="52" y="42" text-anchor="end" class="wg-strip-unit">kPa</text>
+<text x="508" y="28" class="wg-strip-scale wg-mono">90.3</text>
+<text x="508" y="45" class="wg-strip-scale wg-mono">90</text>
+<rect x="60" y="50" width="440" height="25" class="wg-strip-frame" stroke-width="0.7"/>
+<line x1="60" y1="62.5" x2="500" y2="62.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
+<path d="M60,75 C63.67,75 71,75 82,75 C93,75 111.33,75 126,75 C140.67,75 155.33,75 170,75 C184.67,75 199.33,75 214,75 C228.67,75 243.33,75 258,75 C272.67,75 287.33,75 302,75 C316.67,75 331.33,75 346,75 C360.67,75 375.33,75 390,75 C404.67,75 419.33,75 434,75 C448.67,75 467,75 478,75 C489,75 496.33,75 500,75 L500.00,75 L60.00,75 Z" class="wg-strip-precipitation-area" opacity="0.3"/>
+<path d="M60,75 C63.67,75 71,75 82,75 C93,75 111.33,75 126,75 C140.67,75 155.33,75 170,75 C184.67,75 199.33,75 214,75 C228.67,75 243.33,75 258,75 C272.67,75 287.33,75 302,75 C316.67,75 331.33,75 346,75 C360.67,75 375.33,75 390,75 C404.67,75 419.33,75 434,75 C448.67,75 467,75 478,75 C489,75 496.33,75 500,75" class="wg-strip-precipitation" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="61" text-anchor="end" class="wg-strip-name">Precip</text>
+<text x="52" y="72" text-anchor="end" class="wg-strip-unit">mm/h</text>
+<text x="508" y="58" class="wg-strip-scale wg-mono">0.5</text>
+<text x="508" y="75" class="wg-strip-scale wg-mono">0</text>
+<rect x="60" y="80" width="440" height="25" class="wg-strip-frame" stroke-width="0.7"/>
+<line x1="60" y1="92.5" x2="500" y2="92.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
+<path d="M60,96.25 C63.67,96.25 71,96.04 82,96.25 C93,96.46 111.33,97.08 126,97.5 C140.67,97.92 155.33,98.25 170,98.75 C184.67,99.25 199.33,99.88 214,100.5 C228.67,101.13 243.33,102.08 258,102.5 C272.67,102.92 287.33,103.21 302,103 C316.67,102.79 331.33,102.17 346,101.25 C360.67,100.33 375.33,98.54 390,97.5 C404.67,96.46 419.33,95.83 434,95 C448.67,94.17 467,92.92 478,92.5 C489,92.08 496.33,92.5 500,92.5 L500.00,105 L60.00,105 Z" class="wg-strip-cloudCover-area" opacity="0.3"/>
+<path d="M60,96.25 C63.67,96.25 71,96.04 82,96.25 C93,96.46 111.33,97.08 126,97.5 C140.67,97.92 155.33,98.25 170,98.75 C184.67,99.25 199.33,99.88 214,100.5 C228.67,101.13 243.33,102.08 258,102.5 C272.67,102.92 287.33,103.21 302,103 C316.67,102.79 331.33,102.17 346,101.25 C360.67,100.33 375.33,98.54 390,97.5 C404.67,96.46 419.33,95.83 434,95 C448.67,94.17 467,92.92 478,92.5 C489,92.08 496.33,92.5 500,92.5" class="wg-strip-cloudCover" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="91" text-anchor="end" class="wg-strip-name">Cloud</text>
+<text x="52" y="102" text-anchor="end" class="wg-strip-unit">%</text>
+<text x="508" y="88" class="wg-strip-scale wg-mono">100</text>
+<text x="508" y="105" class="wg-strip-scale wg-mono">0</text>
+<rect x="60" y="110" width="440" height="25" class="wg-strip-frame" stroke-width="0.7"/>
+<line x1="60" y1="122.5" x2="500" y2="122.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
+<rect x="60" y="110" width="44" height="8.33" class="wg-cloud-cell" opacity="0.08"/>
+<rect x="104" y="110" width="44" height="8.33" class="wg-cloud-cell" opacity="0.06"/>
+<rect x="148" y="110" width="44" height="8.33" class="wg-cloud-cell" opacity="0.05"/>
+<rect x="192" y="110" width="44" height="8.33" class="wg-cloud-cell" opacity="0.05"/>
+<rect x="236" y="110" width="44" height="8.33" class="wg-cloud-cell" opacity="0.08"/>
+<rect x="280" y="110" width="44" height="8.33" class="wg-cloud-cell" opacity="0.1"/>
+<rect x="324" y="110" width="44" height="8.33" class="wg-cloud-cell" opacity="0.12"/>
+<rect x="368" y="110" width="44" height="8.33" class="wg-cloud-cell" opacity="0.08"/>
+<rect x="412" y="110" width="44" height="8.33" class="wg-cloud-cell" opacity="0.1"/>
+<rect x="456" y="110" width="44" height="8.33" class="wg-cloud-cell" opacity="0.12"/>
+<text x="508" y="116.67" class="wg-strip-row-label wg-mono">H</text>
+<rect x="60" y="118.33" width="44" height="8.33" class="wg-cloud-cell" opacity="0.15"/>
+<rect x="104" y="118.33" width="44" height="8.33" class="wg-cloud-cell" opacity="0.1"/>
+<rect x="148" y="118.33" width="44" height="8.33" class="wg-cloud-cell" opacity="0.08"/>
+<rect x="192" y="118.33" width="44" height="8.33" class="wg-cloud-cell" opacity="0.08"/>
+<rect x="236" y="118.33" width="44" height="8.33" class="wg-cloud-cell" opacity="0.06"/>
+<rect x="280" y="118.33" width="44" height="8.33" class="wg-cloud-cell" opacity="0.05"/>
+<rect x="324" y="118.33" width="44" height="8.33" class="wg-cloud-cell" opacity="0.08"/>
+<rect x="368" y="118.33" width="44" height="8.33" class="wg-cloud-cell" opacity="0.12"/>
+<rect x="412" y="118.33" width="44" height="8.33" class="wg-cloud-cell" opacity="0.15"/>
+<rect x="456" y="118.33" width="44" height="8.33" class="wg-cloud-cell" opacity="0.2"/>
+<text x="508" y="125" class="wg-strip-row-label wg-mono">M</text>
+<rect x="60" y="126.67" width="44" height="8.33" class="wg-cloud-cell" opacity="0.3"/>
+<rect x="104" y="126.67" width="44" height="8.33" class="wg-cloud-cell" opacity="0.24"/>
+<rect x="148" y="126.67" width="44" height="8.33" class="wg-cloud-cell" opacity="0.18"/>
+<rect x="192" y="126.67" width="44" height="8.33" class="wg-cloud-cell" opacity="0.12"/>
+<rect x="236" y="126.67" width="44" height="8.33" class="wg-cloud-cell" opacity="0.05"/>
+<rect x="280" y="126.67" width="44" height="8.33" class="wg-cloud-cell" opacity="0.03"/>
+<rect x="324" y="126.67" width="44" height="8.33" class="wg-cloud-cell" opacity="0.08"/>
+<rect x="368" y="126.67" width="44" height="8.33" class="wg-cloud-cell" opacity="0.22"/>
+<rect x="412" y="126.67" width="44" height="8.33" class="wg-cloud-cell" opacity="0.3"/>
+<rect x="456" y="126.67" width="44" height="8.33" class="wg-cloud-cell" opacity="0.4"/>
+<text x="508" y="133.33" class="wg-strip-row-label wg-mono">L</text>
+<text x="52" y="121" text-anchor="end" class="wg-strip-name">Layers</text>
+<text x="52" y="132" text-anchor="end" class="wg-strip-unit">%</text>
+<rect x="60" y="140" width="440" height="25" class="wg-strip-frame" stroke-width="0.7"/>
+<line x1="60" y1="152.5" x2="500" y2="152.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
+<rect x="60" y="140" width="44" height="25" class="wg-smoke-cell"/>
+<rect x="104" y="140" width="44" height="25" class="wg-smoke-cell"/>
+<rect x="148" y="140" width="44" height="25" class="wg-smoke-cell"/>
+<rect x="192" y="140" width="44" height="25" class="wg-smoke-cell"/>
+<rect x="236" y="140" width="44" height="25" class="wg-smoke-cell"/>
+<rect x="280" y="140" width="44" height="25" class="wg-smoke-cell"/>
+<rect x="324" y="140" width="44" height="25" class="wg-smoke-cell"/>
+<rect x="368" y="140" width="44" height="25" class="wg-smoke-cell"/>
+<rect x="412" y="140" width="44" height="25" class="wg-smoke-cell"/>
+<rect x="456" y="140" width="44" height="25" class="wg-smoke-cell"/>
+<path d="M60,163.92 C63.67,163.92 71,164.01 82,163.92 C93,163.83 111.33,163.65 126,163.38 C140.67,163.11 155.33,163.04 170,162.3 C184.67,161.55 199.33,160.27 214,158.92 C228.67,157.57 243.33,155.88 258,154.19 C272.67,152.5 287.33,150.47 302,148.78 C316.67,147.09 331.33,145.29 346,144.05 C360.67,142.82 375.33,142.03 390,141.35 C404.67,140.68 419.33,139.89 434,140 C448.67,140.11 467,141.69 478,142.03 C489,142.36 496.33,142.03 500,142.03 L500.00,165 L60.00,165 Z" class="wg-strip-smoke-area" opacity="0.3"/>
+<path d="M60,163.92 C63.67,163.92 71,164.01 82,163.92 C93,163.83 111.33,163.65 126,163.38 C140.67,163.11 155.33,163.04 170,162.3 C184.67,161.55 199.33,160.27 214,158.92 C228.67,157.57 243.33,155.88 258,154.19 C272.67,152.5 287.33,150.47 302,148.78 C316.67,147.09 331.33,145.29 346,144.05 C360.67,142.82 375.33,142.03 390,141.35 C404.67,140.68 419.33,139.89 434,140 C448.67,140.11 467,141.69 478,142.03 C489,142.36 496.33,142.03 500,142.03" class="wg-strip-smoke" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="151" text-anchor="end" class="wg-strip-name">Smoke</text>
+<text x="52" y="162" text-anchor="end" class="wg-strip-unit">µg/m³</text>
+<text x="508" y="148" class="wg-strip-scale wg-mono">185</text>
+<text x="508" y="165" class="wg-strip-scale wg-mono">0</text>
+<rect x="60" y="170" width="440" height="25" class="wg-strip-frame" stroke-width="0.7"/>
+<line x1="60" y1="182.5" x2="500" y2="182.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
+<path d="M60,195 C63.67,195 71,195 82,195 C93,195 111.33,195 126,195 C140.67,195 155.33,195.65 170,195 C184.67,194.35 199.33,194 214,191.08 C228.67,188.17 243.33,180.85 258,177.5 C272.67,174.15 287.33,170.93 302,171 C316.67,171.07 331.33,173.92 346,177.92 C360.67,181.92 375.33,192.15 390,195 C404.67,197.85 419.33,195 434,195 C448.67,195 467,195 478,195 C489,195 496.33,195 500,195 L500.00,195 L60.00,195 Z" class="wg-strip-thermalStrength-area" opacity="0.3"/>
+<path d="M60,195 C63.67,195 71,195 82,195 C93,195 111.33,195 126,195 C140.67,195 155.33,195.65 170,195 C184.67,194.35 199.33,194 214,191.08 C228.67,188.17 243.33,180.85 258,177.5 C272.67,174.15 287.33,170.93 302,171 C316.67,171.07 331.33,173.92 346,177.92 C360.67,181.92 375.33,192.15 390,195 C404.67,197.85 419.33,195 434,195 C448.67,195 467,195 478,195 C489,195 496.33,195 500,195" class="wg-strip-thermalStrength" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="181" text-anchor="end" class="wg-strip-name">w*</text>
+<text x="52" y="192" text-anchor="end" class="wg-strip-unit">m/s</text>
+<text x="508" y="178" class="wg-strip-scale wg-mono">3</text>
+<text x="508" y="195" class="wg-strip-scale wg-mono">0</text>
+<rect x="60" y="200" width="440" height="25" class="wg-strip-frame" stroke-width="0.7"/>
+<line x1="60" y1="212.5" x2="500" y2="212.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
+<rect x="60" y="200" width="44" height="25" class="wg-cape-calm wg-cape-capped"/>
+<rect x="104" y="200" width="44" height="25" class="wg-cape-calm wg-cape-capped"/>
+<rect x="148" y="200" width="44" height="25" class="wg-cape-calm wg-cape-capped"/>
+<rect x="192" y="200" width="44" height="25" class="wg-cape-calm wg-cape-capped"/>
+<rect x="236" y="200" width="44" height="25" class="wg-cape-watch"/>
+<rect x="280" y="200" width="44" height="25" class="wg-cape-watch"/>
+<rect x="324" y="200" width="44" height="25" class="wg-cape-watch"/>
+<rect x="368" y="200" width="44" height="25" class="wg-cape-calm wg-cape-capped"/>
+<rect x="412" y="200" width="44" height="25" class="wg-cape-calm wg-cape-capped"/>
+<rect x="456" y="200" width="44" height="25" class="wg-cape-calm wg-cape-capped"/>
+<path d="M60,225 C63.67,225 71,225 82,225 C93,225 111.33,225 126,225 C140.67,225 155.33,225.17 170,225 C184.67,224.83 199.33,224.89 214,224 C228.67,223.11 243.33,221.67 258,219.67 C272.67,217.67 287.33,212.33 302,212 C316.67,211.67 331.33,215.72 346,217.67 C360.67,219.61 375.33,222.5 390,223.67 C404.67,224.83 419.33,224.44 434,224.67 C448.67,224.89 467,224.94 478,225 C489,225.06 496.33,225 500,225 L500.00,225 L60.00,225 Z" class="wg-strip-cape-area" opacity="0.3"/>
+<path d="M60,225 C63.67,225 71,225 82,225 C93,225 111.33,225 126,225 C140.67,225 155.33,225.17 170,225 C184.67,224.83 199.33,224.89 214,224 C228.67,223.11 243.33,221.67 258,219.67 C272.67,217.67 287.33,212.33 302,212 C316.67,211.67 331.33,215.72 346,217.67 C360.67,219.61 375.33,222.5 390,223.67 C404.67,224.83 419.33,224.44 434,224.67 C448.67,224.89 467,224.94 478,225 C489,225.06 496.33,225 500,225" class="wg-strip-cape" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="52" y="211" text-anchor="end" class="wg-strip-name">CAPE</text>
+<text x="52" y="222" text-anchor="end" class="wg-strip-unit">J/kg</text>
+<text x="508" y="208" class="wg-strip-scale wg-mono">1500</text>
+<text x="508" y="225" class="wg-strip-scale wg-mono">0</text>
+<rect x="60" y="238" width="440" height="340" class="wg-frame"/>
+<path d="M60 238L500 238L500 578L60 578L60 238ZM60 238L500 238L500 578L352.68 578L351.85 570.51L351.04 566.02L349.23 560.03L349.54 549.54L350.01 543.55L350.56 540.56L351.06 539.06L351.06 537.56L347.13 533.07L346 531.87L335 526.34L324 520.23L314.83 514.63L305.67 508.51L302 505.9L294.22 518.09L287.17 530.07L283.03 537.56L281.28 542.05L279.56 548.04L277.93 555.53L277.15 560.03L269 561.22L258 562.19L252.5 563.24L247 564.68L243.27 566.02L239.67 567.75L237.63 569.01L235.67 570.51L234.06 572.01L231.59 575L229.78 578L60 578L60 238Z" class="wg-stab-very-unstable" fill-rule="evenodd"/>
+<path d="M60 238L500 238L500 578L352.68 578L351.85 570.51L351.04 566.02L349.23 560.03L349.54 549.54L350.01 543.55L350.56 540.56L351.06 539.06L351.06 537.56L347.13 533.07L346 531.87L335 526.34L324 520.23L314.83 514.63L305.67 508.51L302 505.9L294.22 518.09L287.17 530.07L283.03 537.56L281.28 542.05L279.56 548.04L277.93 555.53L277.15 560.03L269 561.22L258 562.19L252.5 563.24L247 564.68L243.27 566.02L239.67 567.75L237.63 569.01L235.67 570.51L234.06 572.01L231.59 575L229.78 578L60 578L60 238ZM60 238L500 238L500 501.89L478 501.89L465.17 498.61L454.17 495.44L445 492.41L435.83 488.98L434 488.23L415.67 490L395.5 491.51L390 491.86L382.67 486.19L374.37 479.15L367.93 473.15L361.98 467.16L356.26 461.17L346 451.43L339.91 444.7L334.99 438.7L329.41 431.22L324 423.22L317.48 414.74L312.26 407.25L307.5 399.68L302 389.92L297.63 399.76L292.83 411.82L289.11 422.23L277.17 462.67L273.59 470.16L270.34 476.15L266.69 482.14L262.59 488.13L259.15 492.63L258 494.03L250.67 496.25L243.33 498.82L236 501.83L223.17 508.19L214 512.27L209.5 516.59L204.33 522.58L201.08 527.07L197.39 533.07L195 537.56L199.33 539.12L212.17 542.09L214 542.56L221.33 543.76L227.03 545.05L232.33 546.7L236 548.25L239.67 550.31L243.33 553.21L245.48 555.53L247.6 558.53L248.47 560.03L243.33 561.19L239.67 562.21L236 563.55L234.05 564.52L231.75 566.02L230.03 567.52L228.67 569.04L226.75 572.01L224.89 576.5L224.44 578L60 578L60 537.71L82 537.71L83.74 537.56L82 536.66L60 536.66L60 238ZM454.27 539.06L478 537.79L500 537.79L500 578L356.81 578L357.4 569.01L358.16 563.02L358.83 560L360.9 555.53L362.84 552.54L365.51 549.54L368 547.5L369.83 546.31L373.5 544.45L377.17 543.08L380.83 542.01L388.17 540.48L390 540.19L423 539.77L434 539.67L454.27 539.06Z" class="wg-stab-unstable" fill-rule="evenodd"/>
+<path d="M60 238L500 238L500 501.89L478 501.89L465.17 498.61L454.17 495.44L445 492.41L435.83 488.98L434 488.23L415.67 490L395.5 491.51L390 491.86L382.67 486.19L374.37 479.15L367.93 473.15L361.98 467.16L356.26 461.17L346 451.43L339.91 444.7L334.99 438.7L329.41 431.22L324 423.22L317.48 414.74L312.26 407.25L307.5 399.68L302 389.92L297.63 399.76L292.83 411.82L289.11 422.23L277.17 462.67L273.59 470.16L270.34 476.15L266.69 482.14L262.59 488.13L259.15 492.63L258 494.03L250.67 496.25L243.33 498.82L236 501.83L223.17 508.19L214 512.27L209.5 516.59L204.33 522.58L201.08 527.07L197.39 533.07L195 537.56L199.33 539.12L212.17 542.09L214 542.56L221.33 543.76L227.03 545.05L232.33 546.7L236 548.25L239.67 550.31L243.33 553.21L245.48 555.53L247.6 558.53L248.47 560.03L243.33 561.19L239.67 562.21L236 563.55L234.05 564.52L231.75 566.02L230.03 567.52L228.67 569.04L226.75 572.01L224.89 576.5L224.44 578L60 578L60 537.71L82 537.71L83.74 537.56L82 536.66L60 536.66L60 238ZM454.27 539.06L478 537.79L500 537.79L500 578L356.81 578L357.4 569.01L358.16 563.02L358.83 560L360.9 555.53L362.84 552.54L365.51 549.54L368 547.5L369.83 546.31L373.5 544.45L377.17 543.08L380.83 542.01L388.17 540.48L390 540.19L423 539.77L434 539.67L454.27 539.06ZM60 342.85L60 341.43L82 341.43L89.47 344.34L98.58 347.34L107.67 349.85L118.67 352.4L126 353.86L138.84 351.83L155.33 349.77L170 348.32L203 352.59L214 354.05L223.17 356.64L232.33 359.63L239.67 362.37L247 365.48L254.33 369.06L258 371.06L260.13 374.3L261.76 377.3L262.43 378.79L259.36 390.78L258 396.63L254.05 399.76L250.67 401.91L245.17 404.66L239.67 406.78L232.33 408.94L225 410.6L217.67 411.91L214 412.46L206.67 416.45L199.33 421.06L197.5 422.35L195.67 424.14L191.75 429.72L188.05 435.71L184.02 443.2L180.55 450.69L176.95 459.67L175.87 462.67L170 468.12L126 468.12L82 478.09L60 478.09L60 342.85ZM474.47 354.83L478 353.86L500 353.86L500 420.19L478 420.19L471.69 422.23L465.99 423.73L456 425.34L443.17 426.86L434 427.69L424.83 425.52L418.49 423.73L415.33 422.23L411.45 419.23L408.33 417.25L402.83 414.4L395.5 411.51L390 409.82L384.5 405.39L378.72 401.26L373.5 397.92L366.17 393.76L358.83 390.11L351.5 386.88L346 384.7L341.6 378.79L343.02 375.8L344.8 372.8L346 371.06L355.17 368.06L366.17 365.05L379 362.16L390 360.08L410.17 361.97L430.33 364.16L434 364.6L452.33 360.45L467 356.81L474.47 354.83ZM60 543.55L60 543.16L83.83 543.15L120.5 542.68L126 542.57L148 543.21L170 544.08L182.83 546.94L195.67 550.2L206.67 553.39L214 555.77L217.67 557.42L222.41 560.03L221.08 563.02L220.22 566.02L219.45 572.01L219.09 578L60 578L60 543.55ZM462.86 543.55L478 543.16L500 543.16L500 578L360.93 578L362.69 570.51L364.4 566.02L366.17 562.87L369.83 558.26L372.47 555.53L376.26 552.54L379 550.84L382.67 548.99L386.33 547.51L390 546.29L410.17 545.2L434 544.24L462.86 543.55Z" class="wg-stab-conditional-strong" fill-rule="evenodd"/>
+<path d="M60 342.85L60 341.43L82 341.43L89.47 344.34L98.58 347.34L107.67 349.85L118.67 352.4L126 353.86L138.84 351.83L155.33 349.77L170 348.32L203 352.59L214 354.05L223.17 356.64L232.33 359.63L239.67 362.37L247 365.48L254.33 369.06L258 371.06L260.13 374.3L261.76 377.3L262.43 378.79L259.36 390.78L258 396.63L254.05 399.76L250.67 401.91L245.17 404.66L239.67 406.78L232.33 408.94L225 410.6L217.67 411.91L214 412.46L206.67 416.45L199.33 421.06L197.5 422.35L195.67 424.14L191.75 429.72L188.05 435.71L184.02 443.2L180.55 450.69L176.95 459.67L175.87 462.67L170 468.12L126 468.12L82 478.09L60 478.09L60 342.85ZM474.47 354.83L478 353.86L500 353.86L500 420.19L478 420.19L471.69 422.23L465.99 423.73L456 425.34L443.17 426.86L434 427.69L424.83 425.52L418.49 423.73L415.33 422.23L411.45 419.23L408.33 417.25L402.83 414.4L395.5 411.51L390 409.82L384.5 405.39L378.72 401.26L373.5 397.92L366.17 393.76L358.83 390.11L351.5 386.88L346 384.7L341.6 378.79L343.02 375.8L344.8 372.8L346 371.06L355.17 368.06L366.17 365.05L379 362.16L390 360.08L410.17 361.97L430.33 364.16L434 364.6L452.33 360.45L467 356.81L474.47 354.83ZM60 543.55L60 543.16L83.83 543.15L120.5 542.68L126 542.57L148 543.21L170 544.08L182.83 546.94L195.67 550.2L206.67 553.39L214 555.77L217.67 557.42L222.41 560.03L221.08 563.02L220.22 566.02L219.45 572.01L219.09 578L60 578L60 543.55ZM462.86 543.55L478 543.16L500 543.16L500 578L360.93 578L362.69 570.51L364.4 566.02L366.17 562.87L369.83 558.26L372.47 555.53L376.26 552.54L379 550.84L382.67 548.99L386.33 547.51L390 546.29L410.17 545.2L434 544.24L462.86 543.55ZM60 548.04L82.15 548.04L102.17 548.82L118.67 549.75L140.67 551.42L159 553.17L170 554.46L181 557.47L189.45 560.03L195.67 561.05L199.33 561.91L203 563.12L205.81 564.52L208.5 566.64L210.4 569.01L212.17 572.55L213.38 576.5L213.72 578L60 578L60 548.04ZM477.75 548.04L500 548.04L500 578L365.06 578L366.68 573.51L368.11 570.51L369.95 567.52L372.41 564.52L375.85 561.52L378.01 560.03L381.77 557.03L384.5 555.26L388.17 553.26L390 552.39L408.33 550.64L432.17 548.92L477.75 548.04Z" class="wg-stab-conditional" fill-rule="evenodd"/>
+<path d="M60 548.04L82.15 548.04L102.17 548.82L118.67 549.75L140.67 551.42L159 553.17L170 554.46L181 557.47L189.45 560.03L195.67 561.05L199.33 561.91L203 563.12L205.81 564.52L208.5 566.64L210.4 569.01L212.17 572.55L213.38 576.5L213.72 578L60 578L60 548.04ZM477.75 548.04L500 548.04L500 578L365.06 578L366.68 573.51L368.11 570.51L369.95 567.52L372.41 564.52L375.85 561.52L378.01 560.03L381.77 557.03L384.5 555.26L388.17 553.26L390 552.39L408.33 550.64L432.17 548.92L477.75 548.04ZM60 551.04L82 550.96L98.5 552.05L113.17 553.36L126 554.93L140.67 556.49L157.17 558.64L166.33 560.04L173.67 560.54L182.83 561.64L188.33 562.52L193.83 563.78L197.5 565L201.17 566.74L203 567.92L205.89 570.51L208.5 574.17L210.26 578L60 578L60 551.04ZM472.67 551.04L500 550.96L500 578L367.53 578L369.83 573.03L372.44 569.01L375.33 565.78L379 562.83L383.76 560.03L386.33 558.23L390 556.06L404.67 554.25L423 552.45L434 551.55L472.67 551.04Z" class="wg-stab-near-neutral" fill-rule="evenodd"/>
+<path d="M60 551.04L82 550.96L98.5 552.05L113.17 553.36L126 554.93L140.67 556.49L157.17 558.64L166.33 560.04L173.67 560.54L182.83 561.64L188.33 562.52L193.83 563.78L197.5 565L201.17 566.74L203 567.92L205.89 570.51L208.5 574.17L210.26 578L60 578L60 551.04ZM472.67 551.04L500 550.96L500 578L367.53 578L369.83 573.03L372.44 569.01L375.33 565.78L379 562.83L383.76 560.03L386.33 558.23L390 556.06L404.67 554.25L423 552.45L434 551.55L472.67 551.04ZM60 561.52L60 561L82 561L126 563.07L144.33 564.14L157.17 565.13L170 566.45L175.5 567.68L181 569.27L184.67 570.62L188.33 572.3L192.79 575L196.4 578L60 578L60 561.52ZM439.78 561.52L478 561.14L500 561.14L500 578L377.43 578L379.77 575L382.67 572L386.33 569.01L390 566.65L402.83 564.81L419.33 562.94L434 561.6L439.78 561.52Z" class="wg-stab-stable" fill-rule="evenodd"/>
+<path d="M60 561.52L60 561L82 561L126 563.07L144.33 564.14L157.17 565.13L170 566.45L175.5 567.68L181 569.27L184.67 570.62L188.33 572.3L192.79 575L196.4 578L60 578L60 561.52ZM439.78 561.52L478 561.14L500 561.14L500 578L377.43 578L379.77 575L382.67 572L386.33 569.01L390 566.65L402.83 564.81L419.33 562.94L434 561.6L439.78 561.52ZM60 563.02L60 562.65L82 562.65L126 564.71L144.33 566.05L157.17 567.31L170.15 569.01L175.5 570.53L181 572.54L184.67 574.25L188.52 576.5L190.63 578L60 578L60 563.02ZM431.73 564.52L441.33 564L478 563.02L500 563.02L500 578L381.55 578L384.5 574.84L388.17 571.69L390 570.37L402.83 568.16L419.33 565.9L431.73 564.52Z" class="wg-stab-inverted" fill-rule="evenodd"/>
+<path d="M60 563.02L60 562.65L82 562.65L126 564.71L144.33 566.05L157.17 567.31L170.15 569.01L175.5 570.53L181 572.54L184.67 574.25L188.52 576.5L190.63 578L60 578L60 563.02ZM431.73 564.52L441.33 564L478 563.02L500 563.02L500 578L381.55 578L384.5 574.84L388.17 571.69L390 570.37L402.83 568.16L419.33 565.9L431.73 564.52Z" class="wg-stab-strong-inversion" fill-rule="evenodd"/>
+<path d="M60 238L500 238L500 578L60 578L60 238ZM60 238L500 238L500 578L60 578L60 238Z" class="wg-cloud-dense" fill-rule="evenodd" fill="url(#scenario-smoke-over-thermals-only-cloud-hatch)"/>
+<path d="M60 238L500 238L500 578L60 578L60 238ZM60 238L500 238L500 578L60 578L60 238Z" class="wg-cloud-medium" fill-rule="evenodd"/>
+<path d="M60 238L500 238L500 578L60 578L60 238ZM60 238L500 238L500 378.76L478 378.76L430.33 354.75L391.8 335.36L390 334.39L387.61 339.85L385.5 345.84L383.42 353.33L381.5 362.32L379.79 372.8L379 378.79L380.53 407.25L381.17 422.23L384.66 438.7L390 462.87L434 462.87L455.39 501.61L456.12 503.11L458.57 512.1L460.82 522.58L462.82 534.56L463.33 537.7L464.13 539.06L467.75 543.55L470.94 548.04L474.66 554.04L478 560.24L500 560.24L500 578L60 578L60 561.52L82 561.52L82.26 560.03L103.1 539.06L104.18 537.56L106.25 531.57L108.74 525.58L111.81 519.59L115 514.53L119.29 509.1L122.33 505.94L126 502.69L170 502.69L191.28 464.17L192.04 462.67L193.92 455.18L195.8 449.19L198.17 443.2L200.39 438.7L203.13 434.21L205.35 431.22L208.5 427.7L212.17 424.41L214 422.73L217.92 401.26L221.4 384.78L222.79 378.79L221.22 372.8L219.18 366.81L217.23 362.32L214.79 357.82L214 356.59L170 378.74L155.33 382.58L140.67 386.78L129.67 390.19L122.33 392.48L111.33 395.34L100.33 397.71L87.5 400.01L82 400.87L60 400.87L60 238Z" class="wg-cloud-light" fill-rule="evenodd"/>
+<rect x="280" y="20" width="44" height="558" class="wg-selected-column"/>
+<line x1="302" x2="302" y1="20" y2="578" class="wg-selected-line" stroke-width="1" stroke-dasharray="3 4"/>
+<line x1="60" y1="578" x2="500" y2="578" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="581" text-anchor="end" class="wg-tick">900m</text>
+<text x="508" y="581" class="wg-tick">2953ft</text>
+<line x1="60" y1="510" x2="500" y2="510" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="513" text-anchor="end" class="wg-tick">1668m</text>
+<text x="508" y="513" class="wg-tick">5472ft</text>
+<line x1="60" y1="442" x2="500" y2="442" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="445" text-anchor="end" class="wg-tick">2436m</text>
+<text x="508" y="445" class="wg-tick">7991ft</text>
+<line x1="60" y1="374" x2="500" y2="374" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="377" text-anchor="end" class="wg-tick">3203m</text>
+<text x="508" y="377" class="wg-tick">10510ft</text>
+<line x1="60" y1="306" x2="500" y2="306" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="309" text-anchor="end" class="wg-tick">3971m</text>
+<text x="508" y="309" class="wg-tick">13029ft</text>
+<line x1="60" y1="238" x2="500" y2="238" class="wg-gridline" stroke-width="1"/>
+<text x="52" y="241" text-anchor="end" class="wg-tick">4739m</text>
+<text x="508" y="241" class="wg-tick">15548ft</text>
+<line x1="82" x2="82" y1="238" y2="578" class="wg-hourline" stroke-width="0.6" opacity="0.15"/>
+<text x="82" y="596" text-anchor="middle" class="wg-hour-tick wg-mono">10</text>
+<text x="126" y="596" text-anchor="middle" class="wg-hour-tick wg-mono">11</text>
+<line x1="170" x2="170" y1="238" y2="578" class="wg-hourline" stroke-width="0.6" opacity="0.15"/>
+<text x="170" y="596" text-anchor="middle" class="wg-hour-tick wg-mono">12</text>
+<text x="214" y="596" text-anchor="middle" class="wg-hour-tick wg-mono">13</text>
+<line x1="258" x2="258" y1="238" y2="578" class="wg-hourline" stroke-width="0.6" opacity="0.15"/>
+<text x="258" y="596" text-anchor="middle" class="wg-hour-tick wg-mono">14</text>
+<text x="302" y="596" text-anchor="middle" class="wg-hour-tick wg-mono">15</text>
+<line x1="346" x2="346" y1="238" y2="578" class="wg-hourline" stroke-width="0.6" opacity="0.15"/>
+<text x="346" y="596" text-anchor="middle" class="wg-hour-tick wg-mono">16</text>
+<text x="390" y="596" text-anchor="middle" class="wg-hour-tick wg-mono">17</text>
+<line x1="434" x2="434" y1="238" y2="578" class="wg-hourline" stroke-width="0.6" opacity="0.15"/>
+<text x="434" y="596" text-anchor="middle" class="wg-hour-tick wg-mono">18</text>
+<text x="478" y="596" text-anchor="middle" class="wg-hour-tick wg-mono">19</text>
+<text x="82" y="610" text-anchor="middle" class="wg-surface-temp wg-mono">7°</text>
+<text x="126" y="610" text-anchor="middle" class="wg-surface-temp wg-mono">9°</text>
+<text x="170" y="610" text-anchor="middle" class="wg-surface-temp wg-mono">11°</text>
+<text x="214" y="610" text-anchor="middle" class="wg-surface-temp wg-mono">16°</text>
+<text x="258" y="610" text-anchor="middle" class="wg-surface-temp wg-mono">23°</text>
+<text x="302" y="610" text-anchor="middle" class="wg-surface-temp wg-mono">26°</text>
+<text x="346" y="610" text-anchor="middle" class="wg-surface-temp wg-mono">24°</text>
+<text x="390" y="610" text-anchor="middle" class="wg-surface-temp wg-mono">17°</text>
+<text x="434" y="610" text-anchor="middle" class="wg-surface-temp wg-mono">13°</text>
+<text x="478" y="610" text-anchor="middle" class="wg-surface-temp wg-mono">9°</text>
+<line x1="60" x2="500" y1="564.72" y2="564.72" class="wg-launch-line" stroke-width="1" stroke-dasharray="2 4" opacity="0.68"/>
+<text x="67" y="558.72" class="wg-launch-label wg-haloed-text" stroke-width="2.5">launch 1050 m</text>
+<path d="M82,560.29 C89.33,560.29 111.33,560.29 126,560.29 C140.67,560.29 155.33,560.29 170,560.29 C184.67,560.29 199.33,579.87 214,560.29 C228.67,540.7 243.33,479.17 258,442.76 C272.67,406.35 287.33,343.49 302,341.83 C316.67,340.17 331.33,396.41 346,432.82 C360.67,469.23 375.33,539.04 390,560.29 C404.67,581.53 419.33,560.29 434,560.29 C448.67,560.29 470.67,560.29 478,560.29" class="wg-halo" fill="none" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="10 5"/>
+<path d="M82,560.29 C89.33,560.29 111.33,560.29 126,560.29 C140.67,560.29 155.33,560.29 170,560.29 C184.67,560.29 199.33,579.87 214,560.29 C228.67,540.7 243.33,479.17 258,442.76 C272.67,406.35 287.33,343.49 302,341.83 C316.67,340.17 331.33,396.41 346,432.82 C360.67,469.23 375.33,539.04 390,560.29 C404.67,581.53 419.33,560.29 434,560.29 C448.67,560.29 470.67,560.29 478,560.29" class="wg-series-boundary" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="10 5"/>
+<path d="M82,569.14 C89.33,568.85 111.33,568.11 126,567.37 C140.67,566.63 155.33,566.63 170,564.72 C184.67,562.8 199.33,574.31 214,555.86 C228.67,537.41 243.33,491.65 258,454.01 C272.67,416.37 287.33,335.93 302,330.02 C316.67,324.12 331.33,380.95 346,418.59 C360.67,456.23 375.33,531.5 390,555.86 C404.67,580.21 419.33,562.5 434,564.72 C448.67,566.93 470.67,568.41 478,569.14" class="wg-halo" fill="none" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 3"/>
+<path d="M82,569.14 C89.33,568.85 111.33,568.11 126,567.37 C140.67,566.63 155.33,566.63 170,564.72 C184.67,562.8 199.33,574.31 214,555.86 C228.67,537.41 243.33,491.65 258,454.01 C272.67,416.37 287.33,335.93 302,330.02 C316.67,324.12 331.33,380.95 346,418.59 C360.67,456.23 375.33,531.5 390,555.86 C404.67,580.21 419.33,562.5 434,564.72 C448.67,566.93 470.67,568.41 478,569.14" class="wg-series-pbl" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 3"/>
+<path d="M82,544.96 C89.33,542.21 111.33,536.25 126,528.48 C140.67,520.7 155.33,512.43 170,498.32 C184.67,484.2 199.33,467.23 214,443.79 C228.67,420.35 243.33,381.83 258,357.69 C272.67,333.54 287.33,301.15 302,298.94 C316.67,296.73 331.33,320.25 346,344.4 C360.67,368.55 375.33,416.63 390,443.86 C404.67,471.08 419.33,491.82 434,507.74 C448.67,523.67 470.67,534.13 478,539.4" class="wg-halo" fill="none" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 5"/>
+<path d="M82,544.96 C89.33,542.21 111.33,536.25 126,528.48 C140.67,520.7 155.33,512.43 170,498.32 C184.67,484.2 199.33,467.23 214,443.79 C228.67,420.35 243.33,381.83 258,357.69 C272.67,333.54 287.33,301.15 302,298.94 C316.67,296.73 331.33,320.25 346,344.4 C360.67,368.55 375.33,416.63 390,443.86 C404.67,471.08 419.33,491.82 434,507.74 C448.67,523.67 470.67,534.13 478,539.4" class="wg-series-cloud-base" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 5"/>
+<path d="M258,428.97 C265.33,418.46 287.33,367.7 302,365.92 C316.67,364.14 338.67,409.57 346,418.3" class="wg-halo" fill="none" stroke-width="4.1" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M258,428.97 C265.33,418.46 287.33,367.7 302,365.92 C316.67,364.14 338.67,409.57 346,418.3" class="wg-series-usable" fill="none" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M82,409.18 C89.33,407.79 111.33,404.04 126,400.87 C140.67,397.7 155.33,393.2 170,390.16 C184.67,387.12 199.33,391.46 214,382.64 C228.67,373.82 243.33,343.77 258,337.22 C272.67,330.66 287.33,343.77 302,343.31 C316.67,342.85 331.33,336.33 346,334.45 C360.67,332.57 375.33,326.56 390,332.04 C404.67,337.51 419.33,355.5 434,367.31 C448.67,379.11 470.67,396.96 478,402.89" class="wg-halo" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 3 1 3"/>
+<path d="M82,409.18 C89.33,407.79 111.33,404.04 126,400.87 C140.67,397.7 155.33,393.2 170,390.16 C184.67,387.12 199.33,391.46 214,382.64 C228.67,373.82 243.33,343.77 258,337.22 C272.67,330.66 287.33,343.77 302,343.31 C316.67,342.85 331.33,336.33 346,334.45 C360.67,332.57 375.33,326.56 390,332.04 C404.67,337.51 419.33,355.5 434,367.31 C448.67,379.11 470.67,396.96 478,402.89" class="wg-isotherm wg-isotherm-freezing" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 3 1 3"/>
+<path d="M82,562.82 C89.33,563.87 111.33,576.21 126,569.14 C140.67,562.08 155.33,531.5 170,520.43 C184.67,509.36 199.33,511.79 214,502.72 C228.67,493.65 243.33,475.5 258,466.01 C272.67,456.53 287.33,447.71 302,445.79 C316.67,443.87 331.33,451.63 346,454.48 C360.67,457.32 375.33,457.1 390,462.87 C404.67,468.64 419.33,470.88 434,489.09 C448.67,507.29 470.67,558.26 478,572.1" class="wg-halo" fill="none" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M82,562.82 C89.33,563.87 111.33,576.21 126,569.14 C140.67,562.08 155.33,531.5 170,520.43 C184.67,509.36 199.33,511.79 214,502.72 C228.67,493.65 243.33,475.5 258,466.01 C272.67,456.53 287.33,447.71 302,445.79 C316.67,443.87 331.33,451.63 346,454.48 C360.67,457.32 375.33,457.1 390,462.87 C404.67,468.64 419.33,470.88 434,489.09 C448.67,507.29 470.67,558.26 478,572.1" class="wg-isotherm" fill="none" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M258,563.64 C265.33,558.83 287.33,537.46 302,534.77 C316.67,532.09 338.67,545.39 346,547.51" class="wg-halo" fill="none" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M258,563.64 C265.33,558.83 287.33,537.46 302,534.77 C316.67,532.09 338.67,545.39 346,547.51" class="wg-isotherm" fill="none" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<g transform="translate(302 298.94)"><path d="M-7 2.5h14a3.2 3.2 0 0 0-.6-6.3A5 5 0 0 0-3-5a4 4 0 0 0-4 4 3 3 0 0 0 0 3.5Z" class="wg-marker-halo" stroke-width="2.4"/><path d="M-7 2.5h14a3.2 3.2 0 0 0-.6-6.3A5 5 0 0 0-3-5a4 4 0 0 0-4 4 3 3 0 0 0 0 3.5Z" class="wg-marker-cloud" stroke-width="0.6"/></g>
+<g transform="translate(302 365.92)"><path d="M-9-1.6Q0-9.6 9-1.6Q8.1-.7 7.2-1.1Q0-6.2-7.2-1.1Q-8.1-.7-9-1.6ZM-6-2.2L-.4 3.6.2 3.1-5.3-2.6ZM6-2.2L.4 3.6-.2 3.1 5.3-2.6ZM0 2.8a1.5 1.5 0 1 0 .01 0Z" class="wg-marker-halo" stroke-width="2.4"/><path d="M-9-1.6Q0-9.6 9-1.6Q8.1-.7 7.2-1.1Q0-6.2-7.2-1.1Q-8.1-.7-9-1.6ZM-6-2.2L-.4 3.6.2 3.1-5.3-2.6ZM6-2.2L.4 3.6-.2 3.1 5.3-2.6ZM0 2.8a1.5 1.5 0 1 0 .01 0Z" class="wg-marker-wing" stroke-width="0.6"/></g>
+<g transform="translate(82 567.38) rotate(130) scale(0.85)"><path d="M0 5 L0 -20 M0 -17.8 L4.5 -15.4" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -17.8 L4.5 -15.4" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(82 538.15) rotate(150) scale(0.85)"><path d="M0 5 L0 -20 M0 -17.8 L4.5 -15.4" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -17.8 L4.5 -15.4" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(82 502.72) rotate(165) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(82 462.87) rotate(180) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(82 423.01) rotate(195) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(82 378.73) rotate(210) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(82 334.45) rotate(225) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(82 281.31) rotate(235) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(126 567.38) rotate(140) scale(0.85)"><path d="M0 5 L0 -20 M0 -17.8 L4.5 -15.4" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -17.8 L4.5 -15.4" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(126 538.15) rotate(160) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(126 502.72) rotate(175) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(126 462.87) rotate(190) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(126 423.01) rotate(205) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(126 378.73) rotate(220) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(126 334.45) rotate(230) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(126 281.31) rotate(240) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(170 567.38) rotate(150) scale(0.85)"><path d="M0 5 L0 -20 M0 -17.8 L4.5 -15.4" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -17.8 L4.5 -15.4" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(170 538.15) rotate(170) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(170 502.72) rotate(185) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(170 462.87) rotate(200) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(170 423.01) rotate(215) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(170 378.73) rotate(225) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(170 334.45) rotate(235) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(170 281.31) rotate(245) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(214 567.38) rotate(160) scale(0.85)"><path d="M0 5 L0 -20 M0 -17.8 L4.5 -15.4" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -17.8 L4.5 -15.4" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(214 538.15) rotate(185) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(214 502.72) rotate(200) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(214 462.87) rotate(215) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(214 423.01) rotate(230) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(214 378.73) rotate(245) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(214 334.45) rotate(255) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(214 281.31) rotate(265) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L4.5 -3.2" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L4.5 -3.2" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(258 567.38) rotate(180) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(258 538.15) rotate(205) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(258 502.72) rotate(225) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(258 462.87) rotate(245) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(258 423.01) rotate(260) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(258 378.73) rotate(275) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L4.5 -3.2" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L4.5 -3.2" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(258 334.45) rotate(285) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2 M0 -0.8 L4.5 1.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2 M0 -0.8 L4.5 1.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(258 281.31) rotate(295) scale(0.85)"><path d="M0 5 L0 -20" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 -20 L9.5 -15 L0 -15 Z" class="wg-barb-fill-halo" stroke-width="1"/><path d="M0 5 L0 -20" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/><path d="M0 -20 L9.5 -15 L0 -15 Z" class="wg-barb-fill" stroke-width="1"/></g>
+<g transform="translate(302 567.38) rotate(200) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(302 538.15) rotate(225) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(302 502.72) rotate(245) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(302 462.87) rotate(265) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(302 423.01) rotate(280) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L4.5 -3.2" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L4.5 -3.2" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(302 378.73) rotate(295) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2 M0 -0.8 L4.5 1.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2 M0 -0.8 L4.5 1.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(302 334.45) rotate(305) scale(0.85)"><path d="M0 5 L0 -20" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 -20 L9.5 -15 L0 -15 Z" class="wg-barb-fill-halo" stroke-width="1"/><path d="M0 5 L0 -20" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/><path d="M0 -20 L9.5 -15 L0 -15 Z" class="wg-barb-fill" stroke-width="1"/></g>
+<g transform="translate(302 281.31) rotate(315) scale(0.85)"><path d="M0 5 L0 -20 M0 -11.5 L8 -7.1" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 -20 L9.5 -15 L0 -15 Z" class="wg-barb-fill-halo" stroke-width="1"/><path d="M0 5 L0 -20 M0 -11.5 L8 -7.1" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/><path d="M0 -20 L9.5 -15 L0 -15 Z" class="wg-barb-fill" stroke-width="1"/></g>
+<g transform="translate(346 567.38) rotate(220) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(346 538.15) rotate(235) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(346 502.72) rotate(250) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(346 462.87) rotate(270) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(346 423.01) rotate(285) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L4.5 -3.2" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L4.5 -3.2" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(346 378.73) rotate(300) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2 M0 -0.8 L4.5 1.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2 M0 -0.8 L4.5 1.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(346 334.45) rotate(310) scale(0.85)"><path d="M0 5 L0 -20 M0 -11.5 L4.5 -9.1" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 -20 L9.5 -15 L0 -15 Z" class="wg-barb-fill-halo" stroke-width="1"/><path d="M0 5 L0 -20 M0 -11.5 L4.5 -9.1" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/><path d="M0 -20 L9.5 -15 L0 -15 Z" class="wg-barb-fill" stroke-width="1"/></g>
+<g transform="translate(346 281.31) rotate(320) scale(0.85)"><path d="M0 5 L0 -20 M0 -11.5 L8 -7.1 M0 -6.7 L4.5 -4.3" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 -20 L9.5 -15 L0 -15 Z" class="wg-barb-fill-halo" stroke-width="1"/><path d="M0 5 L0 -20 M0 -11.5 L8 -7.1 M0 -6.7 L4.5 -4.3" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/><path d="M0 -20 L9.5 -15 L0 -15 Z" class="wg-barb-fill" stroke-width="1"/></g>
+<g transform="translate(390 567.38) rotate(240) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(390 538.15) rotate(250) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(390 502.72) rotate(265) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(390 462.87) rotate(280) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(390 423.01) rotate(295) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(390 378.73) rotate(305) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L4.5 -3.2" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L4.5 -3.2" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(390 334.45) rotate(315) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2 M0 -0.8 L4.5 1.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2 M0 -0.8 L4.5 1.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(390 281.31) rotate(325) scale(0.85)"><path d="M0 5 L0 -20" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 -20 L9.5 -15 L0 -15 Z" class="wg-barb-fill-halo" stroke-width="1"/><path d="M0 5 L0 -20" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/><path d="M0 -20 L9.5 -15 L0 -15 Z" class="wg-barb-fill" stroke-width="1"/></g>
+<g transform="translate(434 567.38) rotate(250) scale(0.85)"><path d="M0 5 L0 -20 M0 -17.8 L4.5 -15.4" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -17.8 L4.5 -15.4" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(434 538.15) rotate(260) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(434 502.72) rotate(275) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(434 462.87) rotate(290) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(434 423.01) rotate(300) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(434 378.73) rotate(310) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L4.5 -3.2" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L4.5 -3.2" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(434 334.45) rotate(320) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(434 281.31) rotate(330) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2 M0 -0.8 L4.5 1.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L8 -1.2 M0 -0.8 L4.5 1.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(478 567.38) rotate(260) scale(0.85)"><path d="M0 5 L0 -20 M0 -17.8 L4.5 -15.4" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -17.8 L4.5 -15.4" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(478 538.15) rotate(270) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(478 502.72) rotate(285) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L4.5 -12.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(478 462.87) rotate(300) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(478 423.01) rotate(310) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L4.5 -8" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(478 378.73) rotate(320) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(478 334.45) rotate(330) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<g transform="translate(478 281.31) rotate(335) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L4.5 -3.2" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6 M0 -15.2 L8 -10.8 M0 -10.4 L8 -6 M0 -5.6 L4.5 -3.2" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
+<text x="82" y="545.38" text-anchor="middle" class="wg-gust wg-haloed-text wg-mono" stroke-width="2.2">G7</text>
+<text x="126" y="545.38" text-anchor="middle" class="wg-gust wg-haloed-text wg-mono" stroke-width="2.2">G9</text>
+<text x="170" y="545.38" text-anchor="middle" class="wg-gust wg-haloed-text wg-mono" stroke-width="2.2">G11</text>
+<text x="214" y="545.38" text-anchor="middle" class="wg-gust wg-haloed-text wg-mono" stroke-width="2.2">G14</text>
+<text x="258" y="545.38" text-anchor="middle" class="wg-gust wg-haloed-text wg-mono" stroke-width="2.2">G22</text>
+<text x="302" y="545.38" text-anchor="middle" class="wg-gust wg-haloed-text wg-mono" stroke-width="2.2">G29</text>
+<text x="346" y="545.38" text-anchor="middle" class="wg-gust wg-haloed-text wg-mono" stroke-width="2.2">G32</text>
+<text x="390" y="545.38" text-anchor="middle" class="wg-gust wg-haloed-text wg-mono" stroke-width="2.2">G22</text>
+<text x="434" y="545.38" text-anchor="middle" class="wg-gust wg-haloed-text wg-mono" stroke-width="2.2">G16</text>
+<text x="478" y="545.38" text-anchor="middle" class="wg-gust wg-haloed-text wg-mono" stroke-width="2.2">G13</text>
+<text x="474" y="397.89" text-anchor="end" class="wg-isotherm-label wg-isotherm-label-freezing wg-series-label wg-haloed-text" stroke-width="2.5">0°</text>
+<text x="474" y="567.1" text-anchor="end" class="wg-isotherm-label wg-series-label wg-haloed-text" stroke-width="2.5">10°</text>
+<text x="342" y="542.51" text-anchor="end" class="wg-isotherm-label wg-series-label wg-haloed-text" stroke-width="2.5">20°</text>
+</svg>

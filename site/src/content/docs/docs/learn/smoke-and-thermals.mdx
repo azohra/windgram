@@ -1,0 +1,120 @@
+---
+title: Smoke and thermals
+description: How wildfire smoke enters the documents, why the thermal correction is gentler than intuition says, and when a windgram is already smoke-aware.
+---
+
+import SmokeAdjustedFigure from "../../../../components/docs/SmokeAdjustedFigure.astro";
+import SmokeLab from "../../../../components/labs/SmokeLab.astro";
+import SmokeTransmittanceFigure from "../../../../components/docs/SmokeTransmittanceFigure.astro";
+
+Wildfire smoke is the biggest unmodeled factor in a British Columbia
+summer forecast: from July to September it routinely caps thermal
+strength and visibility while the wind-profile models carry on as if the
+sun were clean. Windgram treats smoke the way it treats everything else —
+published raw with its provenance, derived openly, and never silently
+blended into another model's numbers.
+
+## Where smoke comes from
+
+Two independent models supply it, and they disagree in useful ways:
+
+- **HRRR carries its own smoke.** The operational HRRRv4 runs a
+  prognostic smoke tracer, and its profiles publish a per-hour
+  [`smoke` block](/docs/reference/profile-document/) — near-surface
+  concentration, column mass, and optical thickness — from the same run
+  as every other value.
+- **The ECCC models are smoke-blind.** HRDPS, RDPS, and GDPS see no
+  smoke at all. For their sites, smoke arrives as a separate
+  [smoke document](/docs/reference/smoke-document/) from ECCC's RAQDPS
+  air-quality model, joined to a profile hour by hour at read time —
+  never folded into the profile itself, because one document carries one
+  model's values.
+
+On a rendered windgram, smoke is a strip: the line is near-surface
+concentration (the breathe-it number), and the haze tint behind it
+deepens with optical depth (the sun-dimming number). The strip's label
+always names which model's smoke it shows.
+
+## The physics of the correction, in one chain
+
+Thermals run on surface heating. Smoke of optical depth τ cuts the
+irradiance reaching the ground by a factor *f*, the heat fluxes scale
+with the irradiance, and Deardorff's w* — the thermal-strength scale the
+windgram draws — is the **cube root** of the heat flux. So the whole
+correction collapses to one line:
+
+> adjusted w* = published w* × ∛f
+
+Two facts make this correction far gentler than intuition suggests, and
+both are worth internalizing before a smoky-day flight decision:
+
+<SmokeTransmittanceFigure />
+
+First, smoke scatters far more than it absorbs (single-scattering albedo
+around 0.95), so most of the "blocked" light still arrives as diffuse
+sky — measured dimming follows exp(−0.16·τ), not the Beer–Lambert
+exp(−τ). Second, the cube root compresses whatever remains. A severe
+plume at τ = 2 removes about a quarter of the sun's power but only about
+a tenth of w*. If a smoked-out day feels far worse than that, the
+missing effects are real but different: a shallower boundary layer,
+visibility, and air quality — which is why the correction is labeled a
+partial one, and why the raw smoke numbers are always published beside
+it.
+
+The constants in that chain are versioned physics claims with citations,
+not tuning knobs: the 4.7 m²/g mass-extinction efficiency converting a
+smoke column to optical depth is Reid et al. 2005's aged temperate/boreal
+value, and the transmittance coefficient comes from three independent
+datasets — California 2020 solar-generation data (Donaldson et al. 2021),
+pyranometers under extreme Russian smoke (Chubarova et al. 2012), and the
+July 2015 British Columbia episode itself (McKendry et al. 2019). They
+live in [`windgram/derive`](/docs/typescript/derive/) next to the
+functions that use them.
+
+## The adjusted view
+
+Because every input is published, the correction never has to happen in
+the pipeline: the stored document keeps the model's own derivation, and
+the **smoke-adjusted view** is re-derived in the renderer, hour by hour —
+w* derated by the slant-path transmittance for that hour's actual sun
+angle, and the usable-lift envelope recomputed from the derated value.
+
+<SmokeAdjustedFigure />
+
+The adjusted view always declares itself: the scene graph carries the
+smoke model and run that derated it, and the reference key renders that
+label. An adjusted windgram that looks like a base forecast is the
+failure mode the declaration exists to prevent.
+
+Feel the relationship directly — drag a plume of any thickness over the
+same afternoon:
+
+<SmokeLab />
+
+## When the correction must NOT apply
+
+HRRR's smoke is radiatively coupled: its forecast smoke attenuates its
+own shortwave radiation, so its published heat fluxes — and the w*
+derived from them — are **already smoke-aware**. Derating an HRRR
+windgram again would double-count the smoke. The catalogue declares this
+per model (`capabilities.smoke: "radiativelyCoupled"`), every HRRR
+document echoes it (`semantics.smoke`), and the adjusted view quietly
+refuses on such profiles. The declaration cuts the other way too: on an
+HRRR windgram, weak afternoon thermals under a thick haze strip are not
+a contradiction — the model already did the arithmetic this page
+describes.
+
+One honest caveat rides along: evaluation of the 2023 season found HRRR
+underpredicts optical depth for aged, long-range smoke, so even a
+smoke-aware base picture can run optimistic in dense imported-smoke
+events.
+
+## Two models, one sky
+
+When both sources cover a site, their disagreement is signal, not noise.
+On the first live day of this feature, HRRR put five times more smoke
+over a Fraser Valley site than RAQDPS did — two independent emission and
+transport models reading the same fires differently. A reader who can
+see both, each labeled with its model and run, knows more than a reader
+shown one blended number: that is the provenance thesis, applied to
+smoke.

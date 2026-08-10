@@ -2,6 +2,9 @@ import { isEnsembleValue, type WindgramProfile } from "windgram/contract";
 import {
   componentsToWind,
   p50,
+  SMOKE_MASS_EXTINCTION_M2_PER_G,
+  smokeAdjustedThermalVelocityMs,
+  smokeTransmittance,
   usableLiftTopM,
   vectorShearMs,
 } from "windgram/derive";
@@ -248,4 +251,73 @@ export function timingHourValues(
     boundaryLayerTopM: p50(hour.derived.boundaryLayerTopM),
     usableLiftTopM: p50(hour.derived.usableLiftTopM),
   };
+}
+
+/* Smoke laboratory: one control (a uniform optical depth) against the
+   committed smoke scenario. The profile's own per-hour smoke arc is
+   replaced by the slider's τ — column mass kept consistent through the
+   package's cited extinction efficiency, near-surface concentration from
+   a fixed 2 km mixing depth — and the scene is built as the ADJUSTED
+   view, so the w* strip and lift envelope respond while everything else
+   stays frozen. */
+
+const SMOKE_LAB_OVERLAYS = onlyOverlays(
+  "smoke",
+  "thermalStrength",
+  "boundaryLayerTop",
+  "cloudBase",
+  "usableLiftTop",
+  "selectedHour",
+);
+const SMOKE_LAB_MIXING_DEPTH_KM = 2;
+
+export function uniformSmokeProfile(profile: WindgramProfile, aot: number): WindgramProfile {
+  const columnMgm2 = (aot / SMOKE_MASS_EXTINCTION_M2_PER_G) * 1000;
+  return {
+    ...profile,
+    hours: profile.hours.map((hour) => ({
+      ...hour,
+      smoke: {
+        aot,
+        columnMgm2,
+        surfaceUgm3: columnMgm2 / SMOKE_LAB_MIXING_DEPTH_KM,
+      },
+    })),
+  };
+}
+
+export function smokeLabSummary(
+  profile: WindgramProfile,
+  aot: number,
+): { transmittancePercent: number; wStarKeptPercent: number; peakAdjustedMs: number } {
+  const transmittance = smokeTransmittance(aot);
+  let peakAdjustedMs = 0;
+  for (const hour of profile.hours) {
+    const wStar = hour.derived.thermalVelocityMs;
+    const value = isEnsembleValue(wStar) ? (wStar.p50 ?? 0) : wStar;
+    peakAdjustedMs = Math.max(
+      peakAdjustedMs,
+      smokeAdjustedThermalVelocityMs(value, transmittance),
+    );
+  }
+  return {
+    transmittancePercent: transmittance * 100,
+    wStarKeptPercent: Math.cbrt(transmittance) * 100,
+    peakAdjustedMs,
+  };
+}
+
+export function renderSmokeLabChart(
+  source: LabScenarioSource,
+  aot: number,
+): { scene: SceneGraph; svg: string } {
+  const scene = buildScene(uniformSmokeProfile(source.profile, aot), {
+    timeZone: source.timeZone,
+    overlays: SMOKE_LAB_OVERLAYS,
+    smokeAdjusted: true,
+    smooth: false,
+    columnWidthPx: 74,
+    plotHeightPx: 330,
+  });
+  return { scene, svg: renderSvg(scene, { idPrefix: "smoke-lab" }) };
 }

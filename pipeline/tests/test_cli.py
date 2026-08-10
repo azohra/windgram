@@ -28,7 +28,11 @@ def write_sites(path: Path) -> Path:
 def test_registry_covers_every_catalogued_model():
     catalogue = json.loads(Path("models.json").read_text())
 
-    assert cli.MODEL_SLUGS == tuple(model["slug"] for model in catalogue["models"])
+    # Profile models in catalogue order, then the smoke-document models —
+    # every dataset the catalogue declares is dispatchable, nothing more.
+    assert cli.MODEL_SLUGS == tuple(model["slug"] for model in catalogue["models"]) + tuple(
+        model["slug"] for model in catalogue.get("smokeModels", [])
+    )
 
 
 def test_dry_run_accepts_external_sites_and_output_without_writing_or_dispatching(

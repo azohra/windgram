@@ -39,6 +39,9 @@ export interface ResolvedHour {
     highCloudPercent: number | null;
   };
   levels: ResolvedLevel[];
+  /** The hour's own smoke block (models with capabilities.smoke), medians
+      resolved; null where the model publishes none. */
+  smoke: { surfaceUgm3: number; columnMgm2: number; aot: number } | null;
   derived: {
     boundaryLayerTopM: number | null;
     thermalVelocityMs: number;
@@ -59,6 +62,18 @@ export interface ResolvedHour {
 }
 
 export type Band = { p25: number; p75: number } | null;
+
+/* The smoke block is all-or-nothing in the contract; a dropout in any of
+   its three positions drops the resolved block rather than fabricating a
+   partial one. */
+function resolveSmoke(hour: WindgramHour): ResolvedHour["smoke"] {
+  if (!hour.smoke) return null;
+  const surfaceUgm3 = p50(hour.smoke.surfaceUgm3);
+  const columnMgm2 = p50(hour.smoke.columnMgm2);
+  const aot = p50(hour.smoke.aot);
+  if (surfaceUgm3 === null || columnMgm2 === null || aot === null) return null;
+  return { surfaceUgm3, columnMgm2, aot };
+}
 
 export function bandOf(value: Scalar | null | undefined): Band {
   if (value == null || !isEnsembleValue(value)) return null;
@@ -147,6 +162,7 @@ export function resolveHour(hour: WindgramHour): ResolvedHour | null {
       highCloudPercent: p50(hour.surface.highCloudPercent),
     },
     levels,
+    smoke: resolveSmoke(hour),
     derived: {
       boundaryLayerTopM: p50(hour.derived.boundaryLayerTopM),
       thermalVelocityMs,

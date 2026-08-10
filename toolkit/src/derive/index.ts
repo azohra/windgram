@@ -58,3 +58,14 @@ export {
   type ProjectedWindgramProfile,
 } from "./project.js";
 export { alignByValidAt, type AlignedHours } from "./align.js";
+export {
+  cosSolarZenith,
+  isSmokeAwareProfile,
+  SMOKE_MASS_EXTINCTION_M2_PER_G,
+  SMOKE_TRANSMITTANCE_K_MIDDAY,
+  SMOKE_TRANSMITTANCE_K_VERTICAL,
+  smokeAdjustedThermalVelocityMs,
+  smokeAotFromColumn,
+  smokeHoursByValidAt,
+  smokeTransmittance,
+} from "./smoke.js";

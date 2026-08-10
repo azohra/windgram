@@ -516,6 +516,12 @@
             "instantRate",
             "windowMeanRate"
           ]
+        },
+        "smoke": {
+          "enum": [
+            "radiativelyCoupled",
+            "passive"
+          ]
         }
       }
     },
@@ -650,6 +656,19 @@
         },
         "cloudProfile": {
           "type": "boolean"
+        },
+        "smoke": {
+          "oneOf": [
+            {
+              "const": false
+            },
+            {
+              "enum": [
+                "radiativelyCoupled",
+                "passive"
+              ]
+            }
+          ]
         }
       },
       "allOf": [
@@ -1167,7 +1186,10 @@
         "derived.boundaryLayerTopM",
         "derived.thermalVelocityMs",
         "derived.cloudBaseM",
-        "derived.usableLiftTopM"
+        "derived.usableLiftTopM",
+        "smoke.surfaceUgm3",
+        "smoke.columnMgm2",
+        "smoke.aot"
       ]
     },
     "percentileMetricField": {
@@ -1251,7 +1273,7 @@
           "if": {
             "properties": {
               "field": {
-                "pattern": "^(?:surface|derived)\\."
+                "pattern": "^(?:surface|derived|smoke)\\."
               }
             },
             "required": [

@@ -151,6 +151,12 @@ jobs:
         run: uv run --no-dev --project pipeline windgram build --model hrdps-continental || echo "::warning::HRDPS build failed"
       - name: Publish HRDPS 2.5 km
         run: .github/scripts/upload-data.sh hrdps-continental
+      # RAQDPS is the lightest ECCC fetch (~43 MB/run) and shares this
+      # host's sequential budget like every other Datamart builder.
+      - name: Build RAQDPS smoke (failure must not block the others)
+        run: uv run --no-dev --project pipeline windgram build --model raqdps || echo "::warning::RAQDPS build failed"
+      - name: Publish RAQDPS smoke
+        run: .github/scripts/upload-data.sh raqdps
       # GEPS moves the most bytes over the longest horizon, so it goes last:
       # a timeout here costs only this model's run, and HRDPS has already
       # uploaded.

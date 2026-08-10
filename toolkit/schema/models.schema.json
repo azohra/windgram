@@ -164,6 +164,22 @@
               "cloudProfile": {
                 "type": "boolean",
                 "description": "Whether the model publishes a per-level cloud fraction (levels[].cloudFractionPercent)."
+              },
+              "smoke": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "radiativelyCoupled",
+                      "passive"
+                    ]
+                  },
+                  {
+                    "type": "boolean",
+                    "const": false
+                  }
+                ],
+                "description": "Smoke semantics, not just presence: \"radiativelyCoupled\" = prognostic smoke whose radiative effect attenuates the model's own shortwave, so fluxes and derived thermal quantities are ALREADY smoke-aware and a downstream derate would double-count (HRRRv4: Dowell et al. 2022, doi:10.1175/WAF-D-21-0151.1); \"passive\" = smoke published without radiative feedback (derived quantities are smoke-blind, a derate applies); false = no smoke published. Echoed in the profile's semantics.smoke."
               }
             },
             "required": [
@@ -177,7 +193,8 @@
               "cin",
               "pblHeight",
               "cloudLayers",
-              "cloudProfile"
+              "cloudProfile",
+              "smoke"
             ]
           }
         },
@@ -192,6 +209,67 @@
           "kind",
           "experimental",
           "capabilities"
+        ]
+      }
+    },
+    "smokeModels": {
+      "description": "Smoke-document models (RAQDPS today) — separate from models so pre-smoke consumers keep parsing the catalogue. Absence means the catalogue predates smoke documents.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "description": "Lowercase hyphenated slug — the identity of models and sites everywhere."
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The only place prose model names live."
+          },
+          "provider": {
+            "type": "string",
+            "minLength": 1
+          },
+          "gridKm": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "stepHours": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "horizonHours": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "runIntervalHours": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "Hours between published runs — freshness metadata, like the profile entries'."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "deterministic",
+              "ensemble"
+            ]
+          },
+          "experimental": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "slug",
+          "label",
+          "provider",
+          "gridKm",
+          "stepHours",
+          "horizonHours",
+          "runIntervalHours",
+          "kind",
+          "experimental"
         ]
       }
     }

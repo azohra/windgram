@@ -31,6 +31,7 @@ MODEL_SLUGS = (
     "nam-conus-nest",
     "reps",
     "geps",
+    "raqdps",
 )
 _DATAMART_MODELS = {
     "hrdps-continental": "HRDPS",
@@ -147,6 +148,10 @@ def _run_builder(model_slug: str, max_steps: int | None) -> None:
         from .builders import hrrr
 
         hrrr.main()
+    elif model_slug == "raqdps":
+        from .builders import raqdps
+
+        raqdps.main()
     elif model_slug == "gfs":
         from .builders import gfs
 

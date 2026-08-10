@@ -66,6 +66,23 @@ frame has an overlay toggle. The `surfaceTemperature` overlay defaults on and
 adds one rounded `<n>°` readout per hour below the hour labels. Unavailable
 fields add no marks; the scene never pads them with zero.
 
+## Draw smoke, and the adjusted view
+
+Pass a site's smoke document as `options.smoke` and the smoke strip
+draws wherever the profile itself publishes no smoke — one source per
+strip, never a blend, with `scene.smokeSource` naming the model and run
+that fed the pixels. Set `options.smokeAdjusted: true` to build the
+**smoke-adjusted alternate view**: every hour's w* derated by the
+slant-path transmittance and the usable-lift envelope re-derived, one
+coherent scene. The graph then carries `scene.smokeAdjustment` (smoke
+model + run) — **render that label**; the reference key does it for
+you via `KeySpec.smokeAdjusted`. The option quietly no-ops, and
+`smokeAdjustment` stays null, when there is no smoke data or the
+profile's own fluxes are already smoke-aware
+(`semantics.smoke: "radiativelyCoupled"`). Pointer packets from
+`cursorReading` include the drawn hour's `smokeSurfaceUgm3` and
+`smokeAot`, so tooltips and pixels cannot disagree.
+
 ## Render continuous field bands
 
 Sampled stability, thermal-index, shear, humidity, vertical-velocity, and

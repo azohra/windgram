@@ -535,6 +535,8 @@ export function renderKeySvg(spec: KeySpec, options: RenderSvgOptions = {}): str
     | { kind: "series"; label: string; className: string; dash: string | null }
     | { kind: "hatch"; label: string }
     | { kind: "band"; label: string }
+    | { kind: "smokeHaze"; label: string }
+    | { kind: "note"; label: string }
     | { kind: "ramp"; label: string; classes: ReadonlyArray<string> };
   const items: RowItem[] = [
     ...spec.series.map((entry) => ({
@@ -545,18 +547,24 @@ export function renderKeySvg(spec: KeySpec, options: RenderSvgOptions = {}): str
     })),
     ...(spec.hatch ? [{ kind: "hatch" as const, label: spec.hatch.label }] : []),
     ...(spec.band ? [{ kind: "band" as const, label: spec.band.label }] : []),
+    ...(spec.smokeHaze ? [{ kind: "smokeHaze" as const, label: spec.smokeHaze.label }] : []),
     ...spec.ramps.map((entry) => ({
       kind: "ramp" as const,
       label: entry.label,
       classes: entry.classes,
     })),
+    // The adjusted-view provenance is a text-only note, last: it describes
+    // the whole chart, not one mark.
+    ...(spec.smokeAdjusted ? [{ kind: "note" as const, label: spec.smokeAdjusted.label }] : []),
   ];
   const itemSwatchWidth = (item: RowItem) =>
     item.kind === "series"
       ? KEY_SWATCH_W
       : item.kind === "ramp"
         ? item.classes.length * KEY_RAMP_CELL_W
-        : KEY_CHIP_W;
+        : item.kind === "note"
+          ? 0
+          : KEY_CHIP_W;
   const itemWidth = (item: RowItem) =>
     itemSwatchWidth(item) + KEY_LABEL_GAP + Math.ceil(item.label.length * KEY_LABEL_CHAR_PX);
   const rowWidth =
@@ -630,6 +638,8 @@ export function renderKeySvg(spec: KeySpec, options: RenderSvgOptions = {}): str
         }),
       );
       x += item.classes.length * KEY_RAMP_CELL_W;
+    } else if (item.kind === "note") {
+      // Text-only: no swatch, the label alone carries the statement.
     } else {
       const chipX = short(x);
       const chipY = short(swatchY - KEY_CHIP_H / 2);
@@ -640,7 +650,12 @@ export function renderKeySvg(spec: KeySpec, options: RenderSvgOptions = {}): str
         height: KEY_CHIP_H,
       };
       if (item.kind === "hatch") chip["fill"] = `url(#${idPrefix}-cloud-hatch)`;
-      else chip["class"] = "wg-key-band";
+      else if (item.kind === "smokeHaze") {
+        // The haze chip is the strip's own cell class at a mid tint, so
+        // the key's swatch and the chart's columns share one rule.
+        chip["class"] = "wg-smoke-cell";
+        chip["opacity"] = 0.5;
+      } else chip["class"] = "wg-key-band";
       body.push(
         el("rect", chip),
         el("rect", {

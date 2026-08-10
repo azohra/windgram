@@ -43,9 +43,12 @@ export function buildStripSpecs(args: {
   capeClasses: CapeClassThresholds;
   /** Model elevation (MSL) — the B/S shear column's surface height. */
   floorM: number;
+  /** Per-rendered-hour smoke (profile block or joined document), scene.ts's
+      join; index-aligned with `hours`. Absent/all-null draws no strip. */
+  smokeSeries?: ReadonlyArray<{ surfaceUgm3: number; aot: number } | null>;
   geometry: StripGeometry;
 }): StripSpec[] {
-  const { hours, overlays, capeClasses, floorM } = args;
+  const { hours, overlays, capeClasses, floorM, smokeSeries } = args;
   const { marginLeft, columnWidth } = args.geometry;
   const stripSpecs: StripSpec[] = [];
 
@@ -122,6 +125,33 @@ export function buildStripSpecs(args: {
         })),
       });
     }
+  }
+  if (overlays.smoke && smokeSeries && smokeSeries.some((entry) => entry !== null)) {
+    /* Wildfire smoke: the line is near-surface concentration (the
+       visibility/health number) and the haze behind it is optical
+       thickness — full tint at AOT 3, the observed severe-episode range.
+       Both numbers, one strip: concentration says "breathe it", AOT says
+       "the sun is dimmer". */
+    const surface = smokeSeries.map((entry) => (entry === null ? null : entry.surfaceUgm3));
+    stripSpecs.push({
+      key: "smoke",
+      label: "Smoke",
+      unit: "µg/m³",
+      values: surface,
+      bands: smokeSeries.map(() => null),
+      minimum: 0,
+      maximum: Math.max(50, ...finite(surface)),
+      cells: smokeSeries.map((entry, index) =>
+        entry === null || entry.aot <= 0
+          ? null
+          : {
+              x: marginLeft + index * columnWidth,
+              width: columnWidth,
+              className: "wg-smoke-cell",
+              opacity: Number(Math.min(1, entry.aot / 3).toFixed(2)),
+            },
+      ),
+    });
   }
   if (overlays.thermalStrength) {
     const wStar = hours.map((hour) => hour.derived.thermalVelocityMs);

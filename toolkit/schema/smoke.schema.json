@@ -1,0 +1,376 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Windgram smoke document",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "model": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "description": "Lowercase hyphenated slug — the identity of models and sites everywhere."
+    },
+    "run": {
+      "type": "object",
+      "properties": {
+        "referenceTime": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+          "description": "Model run reference time (initialization), UTC."
+        },
+        "generatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+          "description": "When the pipeline generated this document, UTC."
+        },
+        "members": {
+          "description": "Ensemble member count for the run, declared once. OMITTED on deterministic documents — the absence is the deterministic declaration. Per-position EnsembleValue.members can be lower where members were censored.",
+          "type": "integer",
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "referenceTime",
+        "generatedAt"
+      ]
+    },
+    "site": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+          "description": "Lowercase hyphenated slug — the identity of models and sites everywhere."
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "latitude": {
+          "type": "number"
+        },
+        "longitude": {
+          "type": "number"
+        },
+        "timeZone": {
+          "description": "The site's IANA timezone, echoed from the sites.json catalogue.",
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "latitude",
+        "longitude"
+      ]
+    },
+    "hours": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "validAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "Forecast valid time, UTC instant."
+          },
+          "pm25Ugm3": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991,
+                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                      },
+                      "p10": {
+                        "type": "number"
+                      },
+                      "p25": {
+                        "type": "number"
+                      },
+                      "p50": {
+                        "type": "number"
+                      },
+                      "p75": {
+                        "type": "number"
+                      },
+                      "p90": {
+                        "type": "number"
+                      },
+                      "ceiledMembers": {
+                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "number",
+                        "const": 0,
+                        "description": "Zero members contributed to this position — full dropout, a published fact."
+                      },
+                      "p10": {
+                        "type": "null"
+                      },
+                      "p25": {
+                        "type": "null"
+                      },
+                      "p50": {
+                        "type": "null"
+                      },
+                      "p75": {
+                        "type": "null"
+                      },
+                      "p90": {
+                        "type": "null"
+                      },
+                      "ceiledMembers": {
+                        "description": "Zero of zero contributing members were ceiling-capped.",
+                        "type": "number",
+                        "const": 0
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  }
+                ],
+                "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
+              }
+            ],
+            "description": "Total near-surface PM2.5, µg/m³ — all sources."
+          },
+          "smokePlumeSurfaceUgm3": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991,
+                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                      },
+                      "p10": {
+                        "type": "number"
+                      },
+                      "p25": {
+                        "type": "number"
+                      },
+                      "p50": {
+                        "type": "number"
+                      },
+                      "p75": {
+                        "type": "number"
+                      },
+                      "p90": {
+                        "type": "number"
+                      },
+                      "ceiledMembers": {
+                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "number",
+                        "const": 0,
+                        "description": "Zero members contributed to this position — full dropout, a published fact."
+                      },
+                      "p10": {
+                        "type": "null"
+                      },
+                      "p25": {
+                        "type": "null"
+                      },
+                      "p50": {
+                        "type": "null"
+                      },
+                      "p75": {
+                        "type": "null"
+                      },
+                      "p90": {
+                        "type": "null"
+                      },
+                      "ceiledMembers": {
+                        "description": "Zero of zero contributing members were ceiling-capped.",
+                        "type": "number",
+                        "const": 0
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  }
+                ],
+                "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
+              }
+            ],
+            "description": "Near-surface PM2.5 attributed to wildfire smoke, µg/m³ — the wildfire share of pm25Ugm3."
+          },
+          "smokePlumeColumnMgm2": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "integer",
+                        "exclusiveMinimum": 0,
+                        "maximum": 9007199254740991,
+                        "description": "How many ensemble members contributed to this position — can be lower than run.members where members were censored (null positions are excluded, not ranked at zero)."
+                      },
+                      "p10": {
+                        "type": "number"
+                      },
+                      "p25": {
+                        "type": "number"
+                      },
+                      "p50": {
+                        "type": "number"
+                      },
+                      "p75": {
+                        "type": "number"
+                      },
+                      "p90": {
+                        "type": "number"
+                      },
+                      "ceiledMembers": {
+                        "description": "How many contributing members were capped at the column ceiling rather than resolved — present only where the pipeline records censoring (boundary-layer top and usable-lift top).",
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "members": {
+                        "type": "number",
+                        "const": 0,
+                        "description": "Zero members contributed to this position — full dropout, a published fact."
+                      },
+                      "p10": {
+                        "type": "null"
+                      },
+                      "p25": {
+                        "type": "null"
+                      },
+                      "p50": {
+                        "type": "null"
+                      },
+                      "p75": {
+                        "type": "null"
+                      },
+                      "p90": {
+                        "type": "null"
+                      },
+                      "ceiledMembers": {
+                        "description": "Zero of zero contributing members were ceiling-capped.",
+                        "type": "number",
+                        "const": 0
+                      }
+                    },
+                    "required": [
+                      "members",
+                      "p10",
+                      "p25",
+                      "p50",
+                      "p75",
+                      "p90"
+                    ]
+                  }
+                ],
+                "description": "Ensemble percentile object: appears in any numeric data position where deterministic models publish a plain number. members: 0 with all-null percentiles is full dropout — no member produced a value at this position."
+              }
+            ],
+            "description": "Vertically integrated wildfire-smoke PM2.5, mg/m² — total smoke over the site regardless of the layer it rides in; the mass input for optics-based derivations."
+          }
+        },
+        "required": [
+          "validAt",
+          "pm25Ugm3",
+          "smokePlumeSurfaceUgm3",
+          "smokePlumeColumnMgm2"
+        ]
+      },
+      "description": "ALL forecast hours, chronological — same convention as profile documents."
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "model",
+    "run",
+    "site",
+    "hours"
+  ],
+  "description": "Per-site wildfire-smoke time series from an air-quality model (RAQDPS), published at <model-slug>/sites/<site-slug>.json — a different model than the wind-profile feeds; consumers join it to a profile by site and validAt."
+}

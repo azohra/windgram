@@ -32,7 +32,8 @@
         "cin": false,
         "pblHeight": true,
         "cloudLayers": false,
-        "cloudProfile": false
+        "cloudProfile": false,
+        "smoke": false
       }
     },
     {
@@ -76,7 +77,8 @@
         "cin": false,
         "pblHeight": true,
         "cloudLayers": false,
-        "cloudProfile": false
+        "cloudProfile": false,
+        "smoke": false
       }
     },
     {
@@ -121,7 +123,8 @@
         "cin": true,
         "pblHeight": true,
         "cloudLayers": true,
-        "cloudProfile": false
+        "cloudProfile": false,
+        "smoke": "radiativelyCoupled"
       }
     },
     {
@@ -164,7 +167,8 @@
         "cin": true,
         "pblHeight": true,
         "cloudLayers": false,
-        "cloudProfile": false
+        "cloudProfile": false,
+        "smoke": false
       }
     },
     {
@@ -208,7 +212,8 @@
         "cin": true,
         "pblHeight": true,
         "cloudLayers": false,
-        "cloudProfile": false
+        "cloudProfile": false,
+        "smoke": false
       }
     },
     {
@@ -251,7 +256,8 @@
         "cin": true,
         "pblHeight": true,
         "cloudLayers": true,
-        "cloudProfile": true
+        "cloudProfile": true,
+        "smoke": false
       }
     },
     {
@@ -300,7 +306,8 @@
         "cin": true,
         "pblHeight": true,
         "cloudLayers": true,
-        "cloudProfile": false
+        "cloudProfile": false,
+        "smoke": false
       }
     },
     {
@@ -349,7 +356,8 @@
         "cin": true,
         "pblHeight": true,
         "cloudLayers": true,
-        "cloudProfile": false
+        "cloudProfile": false,
+        "smoke": false
       }
     },
     {
@@ -379,7 +387,8 @@
         "cin": false,
         "pblHeight": false,
         "cloudLayers": false,
-        "cloudProfile": false
+        "cloudProfile": false,
+        "smoke": false
       }
     },
     {
@@ -409,8 +418,22 @@
         "cin": true,
         "pblHeight": false,
         "cloudLayers": false,
-        "cloudProfile": false
+        "cloudProfile": false,
+        "smoke": false
       }
+    }
+  ],
+  "smokeModels": [
+    {
+      "slug": "raqdps",
+      "label": "RAQDPS wildfire smoke",
+      "provider": "ECCC",
+      "gridKm": 10,
+      "stepHours": 1,
+      "horizonHours": 72,
+      "runIntervalHours": 12,
+      "kind": "deterministic",
+      "experimental": true
     }
   ]
 }

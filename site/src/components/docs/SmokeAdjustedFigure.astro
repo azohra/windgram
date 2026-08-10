@@ -1,0 +1,63 @@
+---
+import Figure from "../figure/Figure.astro";
+import { renderSyntheticWindgram } from "../../lib/example-windgram";
+import { scenarioById } from "../../lib/scenarios";
+
+/* The same committed smoke scenario rendered twice by the npm package:
+   the base view (what the smoke-blind model publishes) and the
+   smoke-adjusted alternate view (w* derated by the cube root of the
+   slant-path transmittance, lift envelope re-derived). The provenance
+   label under the adjusted panel comes from the scene graph's own
+   smokeAdjustment declaration — the field renderers must surface. */
+const scenario = scenarioById("smoke-over-thermals");
+const base = renderSyntheticWindgram(
+  scenario,
+  { columnWidthPx: 58, plotHeightPx: 330 },
+  "smoke-figure-base",
+);
+const adjusted = renderSyntheticWindgram(
+  scenario,
+  { columnWidthPx: 58, plotHeightPx: 330, smokeAdjusted: true },
+  "smoke-figure-adjusted",
+);
+const label = adjusted.scene.smokeAdjustment
+  ? `Smoke-adjusted view — ${adjusted.scene.smokeAdjustment.smokeModel} ${adjusted.scene.smokeAdjustment.smokeRun}, w* × ∛f`
+  : "Smoke-adjusted view";
+---
+
+<Figure
+  id="smoke-adjusted-comparison"
+  title="The same afternoon, before and after the smoke correction"
+  lesson={scenario.lesson}
+  description={scenario.accessibilityDescription}
+  caption="Both panels are serialized from one committed scenario profile; only the render option differs. The adjusted panel's w* strip and usable-lift envelope sit lower under the thick afternoon plume — a real but deliberately gentle correction, because diffuse light still drives thermals under smoke."
+  units="altitude m and ft · w* m/s · smoke µg/m³ · haze tint = optical depth"
+  {scenario}
+>
+  <div class="smoke-compare">
+    <div>
+      <p class="smoke-panel-label">Base view — what the smoke-blind model publishes</p>
+      <Fragment set:html={base.svg} />
+    </div>
+    <div>
+      <p class="smoke-panel-label">{label}</p>
+      <Fragment set:html={adjusted.svg} />
+    </div>
+  </div>
+</Figure>
+
+<style>
+  .smoke-compare {
+    display: grid;
+    gap: 1rem;
+  }
+  .smoke-compare :global(svg) {
+    width: 100%;
+    height: auto;
+  }
+  .smoke-panel-label {
+    font-size: var(--sl-text-sm);
+    font-weight: 600;
+    margin: 0 0 0.25rem;
+  }
+</style>

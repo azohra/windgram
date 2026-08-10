@@ -1,0 +1,118 @@
+---
+import Figure from "../figure/Figure.astro";
+import {
+  SMOKE_TRANSMITTANCE_K_MIDDAY,
+  smokeTransmittance,
+} from "windgram/derive";
+
+/* Surface irradiance under smoke, computed at build time from the SAME
+   constants the toolkit derates with — the curve and the code cannot
+   disagree. The naive exp(−τ) is drawn for contrast: smoke's high
+   single-scattering albedo (~0.95) turns most extinction into diffuse
+   light that still arrives, which is why real dimming is far gentler
+   than Beer–Lambert intuition. */
+const WIDTH = 640;
+const HEIGHT = 320;
+const PAD = { left: 56, right: 16, top: 18, bottom: 44 };
+const plotW = WIDTH - PAD.left - PAD.right;
+const plotH = HEIGHT - PAD.top - PAD.bottom;
+const MAX_TAU = 5;
+
+const x = (tau: number) => PAD.left + (tau / MAX_TAU) * plotW;
+const y = (f: number) => PAD.top + (1 - f) * plotH;
+const path = (f: (tau: number) => number) =>
+  Array.from({ length: 101 }, (_, i) => {
+    const tau = (i / 100) * MAX_TAU;
+    return `${i === 0 ? "M" : "L"}${x(tau).toFixed(1)},${y(f(tau)).toFixed(1)}`;
+  }).join("");
+
+const observedPath = path((tau) => smokeTransmittance(tau));
+const naivePath = path((tau) => Math.exp(-tau));
+const wStarPath = path((tau) => Math.cbrt(smokeTransmittance(tau)));
+
+const severeTau = 2;
+const severeF = smokeTransmittance(severeTau);
+const severeW = Math.cbrt(severeF);
+---
+
+<Figure
+  id="smoke-transmittance"
+  title="Smoke dims the sun far less than intuition says — and thermals even less"
+  description={`Line chart of the fraction of surface irradiance and of thermal strength retained as smoke optical depth grows from 0 to ${MAX_TAU}. The measured transmittance curve exp(−${SMOKE_TRANSMITTANCE_K_MIDDAY}·τ) falls gently, the naive exp(−τ) plunges, and the w* curve — the cube root of the transmittance — stays highest: at optical depth 2, irradiance keeps ${(severeF * 100).toFixed(0)} percent and thermal strength ${(severeW * 100).toFixed(0)} percent.`}
+  caption={`Computed at build time from the package's own cited constants (Donaldson 2021, Chubarova 2012, McKendry 2019 — three datasets converging on k ≈ 0.14–0.22). At a severe-episode optical depth of ${severeTau}, irradiance keeps ${(severeF * 100).toFixed(0)} % and w* keeps ${(severeW * 100).toFixed(0)} % — the honest headline of the smoke correction.`}
+  units="x: smoke optical depth τ (mid-visible) · y: fraction retained"
+>
+  <svg
+    viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+    role="img"
+    aria-label="Transmittance and thermal-strength retention versus smoke optical depth"
+    class="smoke-curve"
+  >
+    <g class="grid">
+      {[0, 0.25, 0.5, 0.75, 1].map((f) => (
+        <>
+          <line x1={PAD.left} y1={y(f)} x2={WIDTH - PAD.right} y2={y(f)} />
+          <text x={PAD.left - 8} y={y(f) + 4} text-anchor="end">{`${(f * 100).toFixed(0)} %`}</text>
+        </>
+      ))}
+      {[0, 1, 2, 3, 4, 5].map((tau) => (
+        <text x={x(tau)} y={HEIGHT - PAD.bottom + 18} text-anchor="middle">{`τ ${tau}`}</text>
+      ))}
+    </g>
+    <path class="curve naive" d={naivePath} />
+    <path class="curve observed" d={observedPath} />
+    <path class="curve wstar" d={wStarPath} />
+    <line class="marker" x1={x(severeTau)} y1={y(0)} x2={x(severeTau)} y2={y(1)} />
+    <text class="label naive-label" x={x(1.15)} y={y(Math.exp(-1.15)) - 8}>
+      exp(−τ) — the intuition
+    </text>
+    <text class="label observed-label" x={x(2.7)} y={y(smokeTransmittance(2.7)) + 18}>
+      irradiance, measured (k = {SMOKE_TRANSMITTANCE_K_MIDDAY})
+    </text>
+    <text class="label wstar-label" x={x(2.7)} y={y(Math.cbrt(smokeTransmittance(2.7))) - 10}>
+      w* retained — ∛ of irradiance
+    </text>
+    <text class="label marker-label" x={x(severeTau) + 6} y={y(0.06)}>
+      τ 2: severe BC episode
+    </text>
+  </svg>
+</Figure>
+
+<style>
+  .smoke-curve {
+    width: 100%;
+    height: auto;
+  }
+  .grid line {
+    stroke: var(--sl-color-hairline);
+  }
+  .grid text,
+  .label {
+    font-size: 12px;
+    fill: var(--sl-color-gray-2);
+  }
+  .curve {
+    fill: none;
+    stroke-width: 2.4;
+  }
+  .curve.naive {
+    stroke: var(--sl-color-gray-4);
+    stroke-dasharray: 5 4;
+  }
+  .curve.observed {
+    stroke: #8c5a3c;
+  }
+  .curve.wstar {
+    stroke: #9a7500;
+  }
+  .observed-label {
+    fill: #8c5a3c;
+  }
+  .wstar-label {
+    fill: #9a7500;
+  }
+  .marker {
+    stroke: var(--sl-color-gray-4);
+    stroke-dasharray: 2 4;
+  }
+</style>

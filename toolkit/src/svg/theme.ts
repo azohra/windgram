@@ -129,6 +129,9 @@ export const TOKEN_DEFAULTS = {
   "cape-severe": "#c04f3a",
   gust: "#355963",
   pbl: "#56609b",
+  // Wildfire smoke: a warm haze brown, apart from the lift gold and the
+  // CAPE ambers it shares strip space with.
+  smoke: "#8c5a3c",
   "ti-weak": "#f4e3c0",
   "ti-fair": "#ecc57e",
   "ti-good": "#de9b4e",
@@ -259,6 +262,9 @@ export const DEFAULT_STYLESHEET = `
 .wg-strip-thermalStrength-area, .wg-strip-thermalStrength-band { fill: ${v("lift")}; }
 .wg-strip-buoyancyShear { stroke: ${v("bs")}; }
 .wg-strip-buoyancyShear-area, .wg-strip-buoyancyShear-band { fill: ${v("bs")}; }
+.wg-strip-smoke { stroke: ${v("smoke")}; }
+.wg-strip-smoke-area, .wg-strip-smoke-band { fill: ${v("smoke")}; }
+.wg-smoke-cell { fill: ${v("smoke")}; }
 .wg-strip-cape { stroke: ${v("cape")}; }
 .wg-strip-cape-area, .wg-strip-cape-band { fill: ${v("cape")}; }
 .wg-cape-calm { fill: ${v("cape-calm")}; opacity: 0.6; }

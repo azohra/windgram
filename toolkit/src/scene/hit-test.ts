@@ -238,5 +238,7 @@ export function cursorReading(scene: SceneGraph, x: number, y: number): CursorRe
     windSpeedMs: wind === null ? null : wind.speedMs,
     windDirectionDeg: wind === null ? null : wind.directionDeg,
     verticalVelocityPaS: interpolateVertical(sampling.verticalVelocityPaS, altitudeM),
+    smokeSurfaceUgm3: sampling.smoke === null ? null : sampling.smoke.surfaceUgm3,
+    smokeAot: sampling.smoke === null ? null : sampling.smoke.aot,
   };
 }
