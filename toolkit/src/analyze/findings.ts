@@ -76,7 +76,7 @@ export function analyzeProfile(
     ...smokeImpacts,
     ...findWindSummaries(context),
     ...findEnsembleMembership(context),
-    findDataCaveats(context, timeZoneSource),
+    findDataCaveats(context, timeZoneSource, smokeImpacts.length > 0),
   ];
 
   return {

@@ -868,6 +868,77 @@ describe("dataCaveats", () => {
     expect(JSON.stringify(finding)).not.toMatch(/threshold/i);
   });
 
+  it("names the smoke family absent on a smoke-blind analysis — absence is never clear air", () => {
+    // No hours[].smoke, no joined document: the analysis is smoke-blind,
+    // no finding in it accounts for smoke, and the caveat is the only
+    // place that says so (S2 Q5: live smoke-blind and smoke-carrying
+    // analyses produced indistinguishable caveats on a heavy-smoke day).
+    const analysis = analyzeProfile(hrrr(), ERIE);
+    expect(ofKind(analysis.findings, "smokeImpact")).toHaveLength(0);
+    const absent = ofKind<DataCaveatsFinding>(analysis.findings, "dataCaveats")[0].caveats.find(
+      (caveat) => caveat.caveat === "absentQuantities",
+    )!;
+    expect(absent.quantities).toContain("smoke");
+  });
+
+  it("drops the smoke caveat exactly when the analysis states smoke", () => {
+    // A profile carrying its own smoke blocks speaks for itself...
+    const smoky = hrrr();
+    smoky.hours[0].smoke = { surfaceUgm3: 45.7, columnMgm2: 61.3, aot: 0.412 };
+    const own = ofKind<DataCaveatsFinding>(
+      analyzeProfile(smoky, ERIE).findings,
+      "dataCaveats",
+    )[0].caveats.find((caveat) => caveat.caveat === "absentQuantities");
+    expect(own?.quantities ?? []).not.toContain("smoke");
+    // ...and so does a joined smoke document that actually matches hours.
+    const smoke = parseSmokeDocument({
+      schemaVersion: 1,
+      model: "raqdps",
+      run: { referenceTime: "2026-08-08T12:00:00Z", generatedAt: "2026-08-08T16:05:00Z" },
+      site: { id: "erie", name: "Erie", latitude: 49.43, longitude: -117.28 },
+      hours: [
+        {
+          validAt: "2026-08-08T19:00:00Z",
+          pm25Ugm3: 94.9,
+          smokePlumeSurfaceUgm3: 90.4,
+          smokePlumeColumnMgm2: 5.2,
+        },
+      ],
+    })!;
+    const joined = analyzeProfile(hrrr(), { ...ERIE, smoke });
+    expect(ofKind(joined.findings, "smokeImpact")).toHaveLength(1);
+    const viaJoin = ofKind<DataCaveatsFinding>(joined.findings, "dataCaveats")[0].caveats.find(
+      (caveat) => caveat.caveat === "absentQuantities",
+    );
+    expect(viaJoin?.quantities ?? []).not.toContain("smoke");
+  });
+
+  it("keeps the smoke caveat when a supplied document never matches — smoke-blind is a join OUTCOME", () => {
+    // Every smoke hour sits beyond the profile's hours (the S2-measured
+    // failure mode is the mirror — a profile outrunning the smoke horizon
+    // — but the arithmetic is the same): nothing joins, nothing is stated.
+    const smoke = parseSmokeDocument({
+      schemaVersion: 1,
+      model: "raqdps",
+      run: { referenceTime: "2026-08-12T12:00:00Z", generatedAt: "2026-08-12T16:05:00Z" },
+      site: { id: "erie", name: "Erie", latitude: 49.43, longitude: -117.28 },
+      hours: [
+        {
+          validAt: "2026-08-12T19:00:00Z",
+          pm25Ugm3: 94.9,
+          smokePlumeSurfaceUgm3: 90.4,
+          smokePlumeColumnMgm2: 5.2,
+        },
+      ],
+    })!;
+    const analysis = analyzeProfile(hrrr(), { ...ERIE, smoke });
+    expect(ofKind(analysis.findings, "smokeImpact")).toHaveLength(0);
+    const absent = ofKind<DataCaveatsFinding>(analysis.findings, "dataCaveats")[0].caveats.find(
+      (caveat) => caveat.caveat === "absentQuantities",
+    )!;
+    expect(absent.quantities).toContain("smoke");
+  });
+
   it("does not call a science-capable document's fields absent", () => {
     const finding = ofKind<DataCaveatsFinding>(analyzeProfile(hrrr(), ERIE).findings, "dataCaveats")[0];
     const absent = finding.caveats.find((caveat) => caveat.caveat === "absentQuantities");

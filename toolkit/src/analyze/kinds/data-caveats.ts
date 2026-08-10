@@ -7,7 +7,14 @@ import type { Context } from "./shared.js";
 export type DataCaveat =
   | {
       /** Quantity families never published in this document — per the
-       * contract, absence means "not published", never zero. */
+       * contract, absence means "not published", never zero. The `"smoke"`
+       * family token means an absent `hours[].smoke` block AND no joined
+       * smoke document stated it either: per the contract absence is
+       * "not published", NEVER clear air — and since every finding is
+       * smoke-blind arithmetic, no finding in such an analysis accounts
+       * for smoke. S2 (2026-08-10) confirmed the gap live: on a
+       * GOES-verified heavy-smoke day the smoke-blind and smoke-carrying
+       * analyses produced indistinguishable caveats. */
       caveat: "absentQuantities";
       quantities: string[];
     }
@@ -47,6 +54,10 @@ export interface DataCaveatsFinding {
 export function findDataCaveats(
   context: Context,
   timeZoneSource: "document" | "override" | "utcFallback",
+  /** Whether any smokeImpact finding was emitted — a supplied smoke
+   * document that never matches (every profile hour beyond its horizon)
+   * still leaves the analysis smoke-blind, and this stays false. */
+  smokeStated: boolean,
 ): DataCaveatsFinding {
   const { profile } = context;
   const caveats: DataCaveat[] = [];
@@ -84,6 +95,13 @@ export function findDataCaveats(
     ) {
       absent.push("levels[].cloudFractionPercent");
     }
+  }
+  // The smoke family: absence means "not published", never clear air (the
+  // contract's own semantics), so a document with no hours[].smoke and no
+  // joined smoke statement gets the one family token — the smoke-blind and
+  // smoke-carrying analyses stop producing identical caveats (S2 Q5).
+  if (!smokeStated && profile.hours.every((hour) => hour.smoke === undefined)) {
+    absent.push("smoke");
   }
   if (absent.length > 0) caveats.push({ caveat: "absentQuantities", quantities: absent });
 
