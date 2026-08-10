@@ -26,7 +26,7 @@ def write_sites(path: Path) -> Path:
 
 
 def test_registry_covers_every_catalogued_model():
-    catalogue = json.loads(Path("data/models.json").read_text())
+    catalogue = json.loads(Path("models.json").read_text())
 
     assert cli.MODEL_SLUGS == tuple(model["slug"] for model in catalogue["models"])
 
@@ -168,6 +168,7 @@ def test_existing_builder_writes_to_external_output_without_network(tmp_path, mo
     monkeypatch.setattr(
         hrrr, "_latest_complete_run", lambda: {"date": "20260807", "hour": "12"}
     )
+    monkeypatch.setattr(hrrr, "published_reference_time", lambda slug: None)
 
     def build_profiles(run, reference_time, configured_sites, stats):
         sampled_sites.extend(configured_sites)
@@ -197,6 +198,33 @@ def test_existing_builder_writes_to_external_output_without_network(tmp_path, mo
     manifest = json.loads((output / "hrrr-conus" / "manifest.json").read_text())
     assert manifest["model"] == "hrrr-conus"
     assert manifest["sites"] == [{"name": SITE["name"], "slug": SITE["slug"]}]
+
+
+def test_builder_skips_a_run_the_data_base_already_publishes(tmp_path, monkeypatch, capsys):
+    from windgram.builders import hrrr
+
+    sites = write_sites(tmp_path / "sites.json")
+    output = tmp_path / "static"
+    monkeypatch.setattr(
+        hrrr, "_latest_complete_run", lambda: {"date": "20260807", "hour": "12"}
+    )
+    # The already-published check asks the public data base, never the
+    # scratch output tree — a queued job with an empty tree must not
+    # rebuild a run another job already uploaded.
+    monkeypatch.setattr(
+        hrrr, "published_reference_time", lambda slug: "2026-08-07T12:00:00Z"
+    )
+    monkeypatch.setattr(
+        hrrr, "_build_profiles", lambda *_: pytest.fail("rebuilt a published run")
+    )
+
+    result = cli.main(
+        ["build", "--model", "hrrr-conus", "--sites", str(sites), "--output", str(output)]
+    )
+
+    assert result == 0
+    assert "already published" in capsys.readouterr().out
+    assert not (output / "hrrr-conus").exists()
 
 
 @pytest.mark.parametrize(

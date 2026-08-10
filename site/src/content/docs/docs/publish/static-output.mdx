@@ -37,9 +37,9 @@ public/data/
         <YYYY-MM>.jsonl.gz
 ```
 
-`data/runs.json` is a repository-wide index rebuilt by the repository publish
-workflow from all manifests; a single-model external output does not gain that
-file automatically. Treat the manifest and each profile as one publication
+`runs.json` at the published dataset's root is a cross-model index rebuilt by
+the publish workflow from every published manifest; a single-model external
+output does not gain that file automatically. Treat the manifest and each profile as one publication
 pair. Their `referenceTime` values must agree before rendering; the
 [`windgram/transport` loader](/docs/typescript/transport/) performs that
 check for TypeScript consumers.

@@ -321,7 +321,7 @@ def test_bitmap_masked_gridpoints_sample_as_absent_never_9999():
 
 @pytest.mark.parametrize("slug", ["nam", "nam-conus-nest"])
 def test_models_json_matches_the_nam_builder_configuration(slug):
-    catalogue = json.loads(Path("data/models.json").read_text())
+    catalogue = json.loads(Path("models.json").read_text())
     entry = next(entry for entry in catalogue["models"] if entry["slug"] == slug)
     product = PRODUCTS[slug]
 

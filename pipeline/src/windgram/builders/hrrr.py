@@ -14,7 +14,6 @@ smoke tests).
 
 from __future__ import annotations
 
-import json
 import math
 import os
 import sys
@@ -24,6 +23,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from ..config import output_directory
+from ..dataset import published_reference_time
 from ..derive import SCHEMA_VERSION, derive_windgram_profile
 from ..noaa import (
     DownloadStats,
@@ -116,7 +116,7 @@ def main() -> None:
         return
     date = run["date"]
     reference_time = f"{date[:4]}-{date[4:6]}-{date[6:]}T{run['hour']}:00:00Z"
-    if _published_reference_time() == reference_time:
+    if published_reference_time(SLUG) == reference_time:
         print(f"HRRR run {reference_time} is already published.")
         return
 
@@ -164,13 +164,6 @@ def _latest_complete_run() -> dict | None:
 
 def _file_url(date: str, run_hour: str, forecast_hour: int) -> str:
     return f"{BASE_URL}/hrrr.{date}/conus/hrrr.t{run_hour}z.wrfprsf{forecast_hour:02d}.grib2"
-
-
-def _published_reference_time() -> str | None:
-    try:
-        return json.loads((_out_dir() / "manifest.json").read_text())["referenceTime"]
-    except (OSError, KeyError, ValueError):
-        return None
 
 
 def _build_profiles(run: dict, reference_time: str, sites: list[dict], stats: DownloadStats):

@@ -2,7 +2,7 @@
 import { MODELS, omegaLevels } from "../../lib/catalogue";
 import Figure from "../figure/Figure.astro";
 
-// Generated from data/models.json at build time (the same single-source pattern
+// Generated from models.json at build time (the same single-source pattern
 // as ModelHorizonChart), so the matrix can never drift from the catalogue:
 // capability columns per model, plus each model's retained pressure column
 // drawn to scale with omega-carrying levels accented.
@@ -83,7 +83,7 @@ const description = rows
   title="What each model declares"
   lesson="The discovery catalogue, rather than frontend assumptions, decides which fields and pressure levels exist."
   description={description}
-  caption="Capabilities are read from data/models.json on every build. Blank cells are declared absences; omega marks only the pressure levels where the provider publishes vertical velocity."
+  caption="Capabilities are read from models.json on every build. Blank cells are declared absences; omega marks only the pressure levels where the provider publishes vertical velocity."
   units="grid spacing km · cadence and horizon h · pressure hPa"
 >
 
@@ -98,7 +98,7 @@ const description = rows
       </title>
       <desc id="capability-matrix-svg-desc">
         {MODELS.length} models against their declared fields and pressure columns, from
-        data/models.json. {description} A blank cell means the model does not publish the field.
+        models.json. {description} A blank cell means the model does not publish the field.
       </desc>
 
       <text x={COL_X[0]} y="26" text-anchor="middle" class="cm-group">FIELDS PUBLISHED</text>
@@ -189,7 +189,7 @@ const description = rows
   </div>
 
   <p class="catalogue-source">
-    Generated from <code>data/models.json</code>; pressure columns share a 1015–500 hPa scale.
+    Generated from <code>models.json</code>; pressure columns share a 1015–500 hPa scale.
   </p>
 </Figure>
 

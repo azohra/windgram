@@ -48,7 +48,7 @@ From the 0.3 contract onward, compatibility follows these rules:
   the repository publishes the matching catalogue in the same tagged state;
 - readers should tolerate unknown additive keys but must reject an unsupported
   `schemaVersion`;
-- model identity is an open slug from `data/models.json`, not a package enum;
+- model identity is an open slug from `models.json`, not a package enum;
   adding a model is not a schema break; and
 - stored documents retain their own run, site, optional semantics, and optional
   timezone echo. Consumers do not reinterpret old files using later catalogue
@@ -164,8 +164,8 @@ version merely to mirror an npm release.
 A published run is identified by the pair
 `(run.referenceTime, run.generatedAt)`. A later `generatedAt` for the same
 `referenceTime` is a corrected re-publication that consumers should re-ingest;
-it is not a schema or package release. `data/runs.json` is regenerated from
-manifests and exposes those pairs across the published models.
+it is not a schema or package release. `runs.json` at the data root is
+regenerated from manifests and exposes those pairs across the published models.
 
 Forecast archives contain the complete profile document as it was published.
 They do not inherit later catalogue or package metadata.

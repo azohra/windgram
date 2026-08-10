@@ -13,11 +13,11 @@ JSON Schemas describe the same five document families.
 
 | Document | Parser | Published location |
 | --- | --- | --- |
-| Profile | `parseWindgramProfileJson` | `data/<model>/sites/<site>.json` and each history line |
-| Manifest | `parseWindgramManifestJson` | `data/<model>/manifest.json` |
-| Models | `parseModelCatalogueJson` | `data/models.json` |
+| Profile | `parseWindgramProfileJson` | `<model>/sites/<site>.json` and each history line |
+| Manifest | `parseWindgramManifestJson` | `<model>/manifest.json` |
+| Models | `parseModelCatalogueJson` | `models.json` |
 | Sites | `parseSitesCatalogueJson` | `sites.json` |
-| Run index | `parseRunsIndexJson` | `data/runs.json` |
+| Run index | `parseRunsIndexJson` | `runs.json` |
 
 Each parser also has an already-parsed counterpart without the `Json` suffix.
 All return the typed document or `null`; rejected input is not patched into

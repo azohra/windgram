@@ -71,7 +71,7 @@ def test_vvel_exists_at_every_curated_level_in_the_wrfprs_index():
 
 
 def test_models_json_matches_the_hrrr_builder_configuration():
-    catalogue = json.loads(Path("data/models.json").read_text())
+    catalogue = json.loads(Path("models.json").read_text())
     capabilities = next(
         entry for entry in catalogue["models"] if entry["slug"] == "hrrr-conus"
     )["capabilities"]

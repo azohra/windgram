@@ -31,7 +31,7 @@ import { buildScene } from "windgram/scene";
 import { renderSvg } from "windgram/svg";
 import { loadProfile } from "windgram/transport";
 
-const DATA = "https://raw.githubusercontent.com/azohra/windgram/main/data";
+const DATA = "https://data.meteo.azohra.com";
 
 // Pick a model by declared capability, never by name.
 const response = await fetch(`${DATA}/models.json`);

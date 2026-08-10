@@ -396,8 +396,8 @@ describe("models.json schema", () => {
     expect(hrdps.capabilities.cin).toBe(false);
   });
 
-  it("accepts the repository's actual data/models.json", () => {
-    const raw = readFileSync(join(__dirname, "..", "..", "data", "models.json"), "utf-8");
+  it("accepts the repository's actual models.json", () => {
+    const raw = readFileSync(join(__dirname, "..", "..", "models.json"), "utf-8");
     const parsed = parseModelCatalogueJson(raw);
     expect(parsed).not.toBeNull();
     // The one profile-capable gap the research verified: REPS carries none

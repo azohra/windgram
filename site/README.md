@@ -17,7 +17,7 @@ pnpm build    # -> dist/
 
 ## Source map
 
-- `src/lib/catalogue.ts` — parses the repo's `data/models.json` through the
+- `src/lib/catalogue.ts` — parses the repo's `models.json` through the
   package contract at build time, so catalogue drift fails the build
   before capability and horizon figures are generated.
 - `src/lib/scenarios.ts` — eagerly validates generated teaching profiles and

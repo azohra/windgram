@@ -86,7 +86,7 @@ export interface LoadProfileOptions {
   fetch: TransportFetch;
   /**
    * The data-tree root, e.g.
-   * "https://raw.githubusercontent.com/azohra/windgram/main/data".
+   * "https://data.meteo.azohra.com".
    * Trailing slash tolerated.
    */
   baseUrl: string;

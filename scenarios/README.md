@@ -149,7 +149,7 @@ baseline metadata: valid times are rebuilt from `startAt`, `stepHours`, and
 `hourCount`, and the zone is echoed as the profile's `site.timeZone`.
 The baseline contributes the atmospheric source columns, not public identity or
 time claims. The validator also rejects a scenario id that equals any slug in
-the current `data/models.json` catalogue. The check reads the catalogue instead
+the current `models.json` catalogue. The check reads the catalogue instead
 of copying its slugs into this schema.
 
 ## Validation fixtures

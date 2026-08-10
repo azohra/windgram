@@ -13,7 +13,7 @@ the CLI so external site and output paths are scoped consistently.
 
 1. **Confirm the model declaration.** Read [Choose models](/docs/models/choosing/)
    and [Model capabilities](/docs/reference/model-capabilities/). The slug in
-   `data/models.json` is its identity.
+   `models.json` is its identity.
 2. **Preflight paths and selection.** This performs no network access or
    writes:
 
@@ -55,7 +55,11 @@ catalogues, and unusable output paths fail with an actionable error.
 </Aside>
 
 Each builder detects the latest complete provider run and exits without
-rewriting output when that `referenceTime` is already published. A successful
+rewriting output when that `referenceTime` is already published. "Already
+published" is read from the public dataset over HTTPS — `WINDGRAM_DATA_BASE`
+selects the data root (default `https://data.meteo.azohra.com`), so a
+publisher maintaining its own tree points that variable at its own root; the
+same base seeds the month archives that history appends continue. A successful
 new run writes current profiles, appends history, and writes the model
 manifest. [Schedule builds](/docs/publish/schedule-builds/) applies the
 catalogued publication cadence to recurring jobs.
@@ -69,9 +73,9 @@ your project's static tree:
 ```sh title="Terminal"
 mkdir -p public/data/hrdps-continental/sites
 curl -sS -o public/data/hrdps-continental/manifest.json \
-  https://raw.githubusercontent.com/azohra/windgram/main/data/hrdps-continental/manifest.json
+  https://data.meteo.azohra.com/hrdps-continental/manifest.json
 curl -sS -o public/data/hrdps-continental/sites/dundee.json \
-  https://raw.githubusercontent.com/azohra/windgram/main/data/hrdps-continental/sites/dundee.json
+  https://data.meteo.azohra.com/hrdps-continental/sites/dundee.json
 pnpm add windgram
 ```
 

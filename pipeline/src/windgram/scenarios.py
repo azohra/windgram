@@ -140,7 +140,7 @@ def validate_definition(
         raise ScenarioError(f"{source} is invalid:\n  {details}")
 
     scenario_id = definition["id"]
-    models = _load_json(repository_root / "data" / "models.json")
+    models = _load_json(repository_root / "models.json")
     model_slugs = {model["slug"] for model in models["models"]}
     if scenario_id in model_slugs:
         raise ScenarioError(

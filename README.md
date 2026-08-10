@@ -36,7 +36,7 @@ Windgram carries a forecast from provider files to an inspectable chart. The lay
 | Layer | Home | What it provides |
 | --- | --- | --- |
 | **Python publication pipeline** | [`pipeline/`](pipeline/) | Fetches ECCC and NOAA model fields, samples each catalogued launch, derives soaring quantities, and publishes current runs plus history. |
-| **Static data contract** | [`data/`](data/) | A discoverable model catalogue, manifests, versioned site profiles, and append-only archives. |
+| **Static data contract** | [data.meteo.azohra.com](https://data.meteo.azohra.com/models.json), published from this repo | A discoverable model catalogue, manifests, versioned site profiles, and append-only archives. |
 | **TypeScript toolkit** | [`toolkit/`](toolkit/), published to npm as [`windgram`](https://www.npmjs.com/package/windgram) | Zod schemas and types, pure derivations, typed findings, transport guards, a serializable scene graph, hit-testing, the reference SVG renderer, and a scene-derived key. |
 | **Project website** | [`site/`](site/) | Documentation, research, and reproducible teaching figures built with the same npm package available to every consumer. |
 
@@ -49,12 +49,12 @@ The rest of the root serves those layers:
 | [`scripts/`](scripts/) | The cross-layer documentation harness: regenerates committed doc figures and typechecks documentation code fences against the built toolkit. |
 | [`sites.json`](sites.json) | The authoritative cross-layer launch catalogue every builder publishes from. |
 
-Profiles include surface conditions, winds and temperatures aloft, thermal velocity, boundary-layer top, cloud base, and usable-lift top. [`data/models.json`](data/models.json) declares each model's capabilities and semantics.
+Profiles include surface conditions, winds and temperatures aloft, thermal velocity, boundary-layer top, cloud base, and usable-lift top. [`models.json`](models.json) declares each model's capabilities and semantics.
 
 ### Use the data directly
 
 ```sh
-curl -sS https://raw.githubusercontent.com/azohra/windgram/main/data/hrdps-continental/sites/dundee.json \
+curl -sS https://data.meteo.azohra.com/hrdps-continental/sites/dundee.json \
   | jq '.hours[] | {validAt} + .derived'
 ```
 
@@ -70,7 +70,7 @@ import { buildScene } from "windgram/scene";
 import { renderSvg } from "windgram/svg";
 
 const profileUrl =
-  "https://raw.githubusercontent.com/azohra/windgram/main/data/hrdps-continental/sites/dundee.json";
+  "https://data.meteo.azohra.com/hrdps-continental/sites/dundee.json";
 const response = await fetch(profileUrl);
 const profile = parseWindgramProfileJson(await response.text());
 if (!profile) throw new Error("profile failed contract validation");
@@ -88,16 +88,16 @@ Committed [teaching scenarios](https://windgram.azohra.com/docs/learn/synthetic-
 
 ## Published data
 
-The repository publishes static profiles for a subset of catalogued launches. GitHub’s CDN exposes
-the artifacts through stable paths:
+The pipeline publishes static profiles for a subset of catalogued launches to
+public object storage behind a CDN, at stable paths:
 
 ```text
-https://raw.githubusercontent.com/azohra/windgram/main/data/models.json
-https://raw.githubusercontent.com/azohra/windgram/main/data/<model>/manifest.json
-https://raw.githubusercontent.com/azohra/windgram/main/data/<model>/sites/<slug>.json
+https://data.meteo.azohra.com/models.json
+https://data.meteo.azohra.com/<model>/manifest.json
+https://data.meteo.azohra.com/<model>/sites/<slug>.json
 ```
 
-[`data/models.json`](data/models.json) is the discovery authority for model
+[`models.json`](models.json) is the discovery authority for model
 identity, grid, cadence, horizon, kind, capabilities, levels, and lifecycle.
 The [forecast model feed reference](https://windgram.azohra.com/docs/reference/forecast-model-feeds/) records
 provider sources and verification dates.

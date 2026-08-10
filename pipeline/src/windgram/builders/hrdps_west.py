@@ -9,7 +9,6 @@ and does go dark; consumers are expected to fall back to 2.5 km.
 
 from __future__ import annotations
 
-import json
 import math
 import os
 import sys
@@ -20,6 +19,7 @@ from pathlib import Path
 
 from ..config import output_directory
 from ..datamart import DownloadStats, NotFoundError, exists, fetch_bytes
+from ..dataset import published_reference_time
 from ..derive import SCHEMA_VERSION, derive_windgram_profile
 from ..grib import GribField
 from ..publish import append_history, manifest_stats, round_document, write_json
@@ -94,7 +94,7 @@ def main() -> None:
         return
     date = run["date"]
     reference_time = f"{date[:4]}-{date[4:6]}-{date[6:]}T{run['hour']}:00:00Z"
-    if _published_reference_time() == reference_time:
+    if published_reference_time(SLUG) == reference_time:
         print(f"1 km run {reference_time} is already published.")
         return
 
@@ -145,13 +145,6 @@ def _file_url(variable: str, date: str, run_hour: str, forecast_hour: int) -> st
         f"{date}T{run_hour}Z_P{forecast_hour:03d}-00.grib2"
     )
     return f"{BASE_URL}/{run_hour}/{forecast_hour:03d}/{name}"
-
-
-def _published_reference_time() -> str | None:
-    try:
-        return json.loads((_out_dir() / "manifest.json").read_text())["referenceTime"]
-    except (OSError, KeyError, ValueError):
-        return None
 
 
 def _build_profiles(run: dict, reference_time: str, sites: list[dict], stats: DownloadStats):

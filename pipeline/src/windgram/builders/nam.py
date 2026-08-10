@@ -40,7 +40,6 @@ WINDGRAM_MAX_STEPS to cap the forecast steps fetched (used by smoke tests).
 
 from __future__ import annotations
 
-import json
 import math
 import os
 import sys
@@ -48,9 +47,9 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 
 from ..config import output_directory
+from ..dataset import published_reference_time
 from ..derive import SCHEMA_VERSION, derive_windgram_profile
 from ..moisture import dew_point_depression
 from ..noaa import (
@@ -189,7 +188,7 @@ def build(product: NamProduct) -> None:
         return
     date = run["date"]
     reference_time = f"{date[:4]}-{date[4:6]}-{date[6:]}T{run['hour']}:00:00Z"
-    if _published_reference_time(out_dir) == reference_time:
+    if published_reference_time(product.slug) == reference_time:
         print(f"{product.label} run {reference_time} is already published.")
         return
 
@@ -246,13 +245,6 @@ def _latest_complete_run(product: NamProduct) -> dict | None:
 
 def _file_url(file_token: str, date: str, run_hour: str, forecast_hour: int) -> str:
     return f"{BASE_URL}/nam.{date}/nam.t{run_hour}z.{file_token}{forecast_hour:02d}.tm00.grib2"
-
-
-def _published_reference_time(out_dir: Path) -> str | None:
-    try:
-        return json.loads((out_dir / "manifest.json").read_text())["referenceTime"]
-    except (OSError, KeyError, ValueError):
-        return None
 
 
 def _build_profiles(

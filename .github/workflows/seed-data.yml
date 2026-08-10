@@ -1,0 +1,37 @@
+# One-time bucket fill for the move off git: uploads the checkout's entire
+# data/ tree plus the root catalogues to the R2 bucket behind
+# https://data.meteo.azohra.com, with the same Cache-Control policy the
+# scheduled uploads apply. Dispatch it once, right after this lands and
+# before the next scheduled build tick if possible — the seed overwrites
+# whatever the bucket holds, so a run published between landing and seeding
+# would lose its history appends to the seed. Deleted, together with
+# data/, once the dataset is served from R2.
+name: Seed data bucket
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # The seed cannot join the provider lanes' concurrency groups, but it
+    # can at least refuse to race a double dispatch of itself.
+    concurrency:
+      group: seed-data
+      cancel-in-progress: false
+    # R2 upload credentials and checksum settings: see build-data.yml.
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Upload the checkout's dataset and catalogues
+        run: .github/scripts/seed-data.sh

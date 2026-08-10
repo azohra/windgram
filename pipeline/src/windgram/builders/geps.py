@@ -50,7 +50,6 @@ fetched into memory, sampled for all 21 members, and dropped.
 from __future__ import annotations
 
 import argparse
-import json
 import math
 import sys
 import threading
@@ -61,6 +60,7 @@ from pathlib import Path
 
 from ..config import output_directory
 from ..datamart import DownloadStats, datamart_base, exists, fetch_bytes
+from ..dataset import published_reference_time
 from ..derive import SCHEMA_VERSION, derive_windgram_profile
 from ..ensemble import aggregate_member_profiles
 from ..grib import GribField, split_messages
@@ -187,7 +187,7 @@ def main() -> None:
         if reference_time is None:
             print("No complete GEPS run is available.")
             return
-        if _published_reference_time() == reference_time:
+        if published_reference_time(SLUG) == reference_time:
             print(f"GEPS run {reference_time} is already published.")
             return
 
@@ -281,13 +281,6 @@ def _file_url(variable_level: str, date: str, run_hour: str, forecast_hour: int)
         f"{datamart_base()}/{date}/WXO-DD/ensemble/geps/grib2/raw/"
         f"{run_hour}/{forecast_hour:03d}/{name}"
     )
-
-
-def _published_reference_time() -> str | None:
-    try:
-        return json.loads((_out_dir() / "manifest.json").read_text())["referenceTime"]
-    except (OSError, KeyError, ValueError):
-        return None
 
 
 def _build_documents(

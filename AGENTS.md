@@ -11,7 +11,7 @@ against it.
 - Provider facts are verified against the live feeds (dated `[verified]`
   stamps in the portal's reference pages under
   `site/src/content/docs/docs/reference/`); community folklore is hypothesis.
-- `data/models.json` declares what each model publishes, absences included;
+- `models.json` declares what each model publishes, absences included;
   tests hold it to builder behaviour.
 - Each fact has one home: the pipeline owns stored derivations, the
   `windgram` package owns pure functions of published documents, prose

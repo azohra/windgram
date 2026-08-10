@@ -8,6 +8,8 @@ import json
 import time
 from pathlib import Path
 
+from .dataset import published_history, published_manifest
+
 # The spec's rounding table, field name → decimal places, applied at the
 # serialization edge so published JSON carries no float64 noise. Wind
 # direction is handled separately (integer degrees, normalized 0–359);
@@ -74,14 +76,22 @@ def append_history(profile: dict, history_dir: Path) -> None:
     """Archives the profile under <history_dir>/<slug>/<YYYY-MM>.jsonl.gz,
     the month taken from the run's referenceTime.
 
-    Each run is appended as an independent gzip member, so existing bytes are
-    never rewritten and any gzip reader sees one JSON line per model run.
+    The scratch output tree starts empty, so an archive's first touch in a
+    build seeds it with the published month's bytes (an unpublished month —
+    the site's first run of the month — seeds empty). Each run is then
+    appended as an independent gzip member: existing bytes are never
+    rewritten, and any gzip reader sees one JSON line per model run.
     """
     month = profile["run"]["referenceTime"][:7]
     directory = history_dir / profile["site"]["id"]
     directory.mkdir(parents=True, exist_ok=True)
+    archive_path = directory / f"{month}.jsonl.gz"
+    if not archive_path.exists():
+        archive_path.write_bytes(
+            published_history(profile["model"], profile["site"]["id"], month)
+        )
     line = compact_json(profile) + "\n"
-    with (directory / f"{month}.jsonl.gz").open("ab") as archive:
+    with archive_path.open("ab") as archive:
         archive.write(gzip.compress(line.encode()))
 
 
@@ -97,14 +107,17 @@ def manifest_stats(download_stats, started_at_monotonic: float) -> dict:
     }
 
 
-def runs_index(data_dir: Path = Path("data")) -> dict:
-    """The cross-model run index data/runs.json: per published model, the
+def runs_index(model_slugs: list[str]) -> dict:
+    """The cross-model run index runs.json: per published model, the
     manifest's (referenceTime, generatedAt) pair — regenerated wholesale
-    from the on-disk manifests, so the index is always a pure function of
-    the tree it is committed with (.github/scripts/commit-data.sh)."""
+    from the published manifests, so the index is a pure function of the
+    dataset it describes and concurrent upload lanes converge on whoever
+    writes last. A model that has never published is simply absent."""
     runs = {}
-    for manifest_path in sorted(data_dir.glob("*/manifest.json")):
-        manifest = json.loads(manifest_path.read_text())
+    for slug in model_slugs:
+        manifest = published_manifest(slug)
+        if manifest is None:
+            continue
         runs[manifest["model"]] = {
             "referenceTime": manifest["referenceTime"],
             "generatedAt": manifest["generatedAt"],
@@ -112,8 +125,16 @@ def runs_index(data_dir: Path = Path("data")) -> dict:
     return {"schemaVersion": 1, "runs": runs}
 
 
-def write_runs_index(data_dir: Path = Path("data")) -> None:
-    write_json(data_dir / "runs.json", runs_index(data_dir), compact=False)
+def catalogued_model_slugs(models_path: Path = Path("models.json")) -> list[str]:
+    """The model list for the runs index, from the authored catalogue."""
+    return [model["slug"] for model in json.loads(models_path.read_text())["models"]]
+
+
+def write_runs_index(
+    path: Path = Path("data/runs.json"), models_path: Path = Path("models.json")
+) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    write_json(path, runs_index(catalogued_model_slugs(models_path)), compact=False)
 
 
 def compact_json(value: dict) -> str:

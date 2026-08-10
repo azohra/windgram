@@ -9,7 +9,7 @@ availability to consumers.
 
 ## Use the declared cadence
 
-`data/models.json` declares each model's `runIntervalHours`, `stepHours`, and
+`models.json` declares each model's `runIntervalHours`, `stepHours`, and
 `horizonHours`. The living [forecast feed reference](/docs/reference/forecast-model-feeds/)
 records provider schedules and verification dates. Use both when choosing a
 polling window; never run a builder more often than its provider publishes.
@@ -38,8 +38,8 @@ scheduler tick
 - Preserve logs containing model slug, start/end time, exit status, and the
   published `(referenceTime, generatedAt)` pair.
 
-The repository workflow demonstrates one scheduling policy for the repository
-data tree. A club may choose a different scheduler and access model, but should
+The repository workflow demonstrates one scheduling policy for the public
+dataset. A club may choose a different scheduler and access model, but should
 reuse the CLI and contract rather than copy builder internals.
 
 For a multi-model schedule, prefer separate invocations over `--all` when

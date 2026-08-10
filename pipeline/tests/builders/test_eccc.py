@@ -189,7 +189,7 @@ def test_omega_levels_are_the_curated_intersections():
 
 
 def test_models_json_matches_the_builder_configurations():
-    catalogue = json.loads(Path("data/models.json").read_text())
+    catalogue = json.loads(Path("models.json").read_text())
     entries = {entry["slug"]: entry for entry in catalogue["models"]}
     for model in (HRDPS, RDPS, GDPS):
         capabilities = entries[model.slug]["capabilities"]
@@ -220,7 +220,7 @@ def test_models_json_science_capabilities_match_the_research_matrix():
     # The full seven-model matrix from the 2026-08-08 field research; the
     # NOAA and REPS rows are asserted here because their builders have no
     # DatamartModel config to compare against.
-    catalogue = json.loads(Path("data/models.json").read_text())
+    catalogue = json.loads(Path("models.json").read_text())
     entries = {entry["slug"]: entry["capabilities"] for entry in catalogue["models"]}
 
     def science(caps):
@@ -245,7 +245,7 @@ def test_models_json_science_capabilities_match_the_research_matrix():
 
 def test_every_profile_semantics_declaration_mirrors_the_catalogue():
     # The same honesty pattern as gust: what a builder stamps into its
-    # documents' "semantics" block must be exactly what data/models.json
+    # documents' "semantics" block must be exactly what models.json
     # declares — a gust token where the model publishes gusts, none where
     # it does not, and the precipitation token always.
     from windgram.builders import geps, gfs, hrdps_west, hrrr, nam, reps
@@ -262,7 +262,7 @@ def test_every_profile_semantics_declaration_mirrors_the_catalogue():
         "reps": reps.SEMANTICS,
         "geps": geps.SEMANTICS,
     }
-    catalogue = json.loads(Path("data/models.json").read_text())
+    catalogue = json.loads(Path("models.json").read_text())
     entries = {entry["slug"]: entry for entry in catalogue["models"]}
 
     assert set(declared) == set(entries), "every catalogued model has a builder"
@@ -277,7 +277,7 @@ def test_every_profile_semantics_declaration_mirrors_the_catalogue():
 
 
 def test_every_catalogue_entry_declares_cadence_and_precipitation():
-    catalogue = json.loads(Path("data/models.json").read_text())
+    catalogue = json.loads(Path("models.json").read_text())
     for entry in catalogue["models"]:
         assert isinstance(entry["runIntervalHours"], int), entry["slug"]
         assert entry["runIntervalHours"] > 0, entry["slug"]

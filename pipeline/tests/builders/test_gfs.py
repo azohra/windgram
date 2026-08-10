@@ -100,7 +100,7 @@ def test_missing_records_raise_the_tolerable_error_type():
 
 
 def test_models_json_matches_the_gfs_builder_configuration():
-    catalogue = json.loads(Path("data/models.json").read_text())
+    catalogue = json.loads(Path("models.json").read_text())
     capabilities = next(
         entry for entry in catalogue["models"] if entry["slug"] == "gfs"
     )["capabilities"]

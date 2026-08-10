@@ -1,7 +1,10 @@
 # Checks providers every 15 minutes for new model runs and publishes derived
-# windgram profiles to data/. A no-new-run check costs one listing or
-# capabilities request per model and exits; commits happen only when a run
-# advances, so repository history stays one commit per model run.
+# windgram profiles to the public R2 bucket behind
+# https://data.meteo.azohra.com. A no-new-run check costs one listing or
+# capabilities request per model plus one manifest GET and exits; uploads
+# happen only when a run advances. Builders learn what is already published
+# from the data base itself (WINDGRAM_DATA_BASE, default the public URL), so
+# a queued job never rebuilds a run another job already published.
 #
 # Builds group by provider rate-limit domain, one job per provider host, so
 # the per-host connection rule holds by construction: builders inside a job
@@ -24,7 +27,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   # The NOAA builders pull GRIB records by byte range (~1.3 GB HRRR, ~2 GB
@@ -44,36 +47,40 @@ jobs:
     # hours ≈ 1.7 GB, the 12 km grid is ~7× smaller ≈ 0.3 GB) plus
     # decode-once sampling — the old 30-minute budget scaled by 5.3/3.3.
     timeout-minutes: 45
+    # The uploads talk to R2 through the S3-compatible API; ubuntu runners
+    # ship aws CLI v2. The checksum settings are Cloudflare's documented
+    # requirement for aws CLI >= 2.23 against R2.
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
     steps:
-      # Check out the branch tip at job start, not the SHA pinned when the
-      # scheduled run was created: after a concurrency-queue wait that
-      # pinned tree can predate the previous job's data pushes, and the
-      # builder would rebuild and re-publish a run already on main.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: main
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
-      # Each model commits as soon as it finishes: a fresh checkout after the
-      # wipe rebuilds everything, and an end-of-job commit would lose all of
-      # it to the timeout.
+      # Each model uploads as soon as it finishes: a completed model stays
+      # published even if a later builder or the job's timeout kills the
+      # run — an end-of-job upload would lose all of it to the timeout.
       - name: Build HRRR 3 km (failure must not block the others)
         run: uv run --no-dev --project pipeline windgram build --model hrrr-conus || echo "::warning::HRRR build failed"
       - name: Publish HRRR
-        run: .github/scripts/commit-data.sh
+        run: .github/scripts/upload-data.sh hrrr-conus
       - name: Build GFS 25 km (failure must not block the others)
         run: uv run --no-dev --project pipeline windgram build --model gfs || echo "::warning::GFS build failed"
       - name: Publish GFS
-        run: .github/scripts/commit-data.sh
+        run: .github/scripts/upload-data.sh gfs
       - name: Build NAM 12 km (failure must not block the others)
         run: uv run --no-dev --project pipeline windgram build --model nam || echo "::warning::NAM 12 km build failed"
       - name: Publish NAM 12 km
-        run: .github/scripts/commit-data.sh
+        run: .github/scripts/upload-data.sh nam
       # The nest moves the most NOAA bytes, so it goes last — a timeout here
-      # costs only this model's run, and the others have already committed.
+      # costs only this model's run, and the others have already uploaded.
       - name: Build NAM CONUS nest 3 km (failure must not block the others)
         run: uv run --no-dev --project pipeline windgram build --model nam-conus-nest || echo "::warning::NAM nest build failed"
       - name: Publish NAM CONUS nest
-        run: .github/scripts/commit-data.sh
+        run: .github/scripts/upload-data.sh nam-conus-nest
 
   # The dd.weather.gc.ca half of the ECCC split (plus the 1 km alpha host):
   # whole-domain Datamart GRIB2 streams of roughly 4 GiB RDPS, 8 GiB GDPS,
@@ -88,30 +95,35 @@ jobs:
     # new run in one check (~22 GiB; the old single job budgeted 120 minutes
     # for ~44 GiB plus NOAA).
     timeout-minutes: 90
+    # R2 upload credentials and checksum settings: see the noaa job.
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
     steps:
-      # Branch tip at job start, not the run-creation SHA (see the noaa job).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: main
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
-      # Lightest first so data appears early; each model commits as soon as
+      # Lightest first so data appears early; each model uploads as soon as
       # it finishes (see the noaa job).
       - name: Build HRDPS 1 km (experimental feed; dd.alpha-only)
         run: uv run --no-dev --project pipeline windgram build --model hrdps-west || echo "::warning::1 km build failed"
       - name: Publish HRDPS 1 km
-        run: .github/scripts/commit-data.sh
+        run: .github/scripts/upload-data.sh hrdps-west
       - name: Build RDPS 10 km (failure must not block the others)
         run: uv run --no-dev --project pipeline windgram build --model rdps || echo "::warning::RDPS build failed"
       - name: Publish RDPS
-        run: .github/scripts/commit-data.sh
+        run: .github/scripts/upload-data.sh rdps
       - name: Build GDPS 15 km (failure must not block the others)
         run: uv run --no-dev --project pipeline windgram build --model gdps || echo "::warning::GDPS build failed"
       - name: Publish GDPS
-        run: .github/scripts/commit-data.sh
+        run: .github/scripts/upload-data.sh gdps
       - name: Build REPS 10 km ensemble (failure must not block the others)
         run: uv run --no-dev --project pipeline windgram build --model reps || echo "::warning::REPS build failed"
       - name: Publish REPS
-        run: .github/scripts/commit-data.sh
+        run: .github/scripts/upload-data.sh reps
 
   # The hpfx half of the ECCC split: HRDPS (~8 GiB) and GEPS (~14 GiB), the
   # two heaviest single streams, on the mirror's fatter pipe. Verified
@@ -123,25 +135,29 @@ jobs:
       cancel-in-progress: false
     # Worst case ~22 GiB, matching the dd job's budget.
     timeout-minutes: 90
+    # R2 upload credentials and checksum settings: see the noaa job.
     env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
       WINDGRAM_DATAMART_BASE: https://hpfx.collab.science.gc.ca
     steps:
-      # Branch tip at job start, not the run-creation SHA (see the noaa job).
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: main
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
       - name: Build HRDPS 2.5 km (failure must not block the others)
         run: uv run --no-dev --project pipeline windgram build --model hrdps-continental || echo "::warning::HRDPS build failed"
       - name: Publish HRDPS 2.5 km
-        run: .github/scripts/commit-data.sh
+        run: .github/scripts/upload-data.sh hrdps-continental
       # GEPS moves the most bytes over the longest horizon, so it goes last:
       # a timeout here costs only this model's run, and HRDPS has already
-      # committed.
+      # uploaded.
       - name: Build GEPS 0.5° ensemble (failure must not block the others)
         run: uv run --no-dev --project pipeline windgram build --model geps || echo "::warning::GEPS build failed"
       - name: Publish GEPS
-        run: .github/scripts/commit-data.sh
+        run: .github/scripts/upload-data.sh geps
 
   test:
     if: github.event_name == 'workflow_dispatch'

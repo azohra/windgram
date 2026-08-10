@@ -27,7 +27,6 @@ instead of dd (see windgram.datamart).
 
 from __future__ import annotations
 
-import json
 import math
 import os
 import sys
@@ -41,6 +40,7 @@ from pathlib import Path
 
 from ..config import output_directory
 from ..datamart import DownloadStats, NotFoundError, datamart_base, exists, fetch_bytes
+from ..dataset import published_reference_time
 from ..derive import SCHEMA_VERSION, derive_windgram_profile
 from ..grib import GribField
 from ..publish import append_history, manifest_stats, round_document, write_json
@@ -315,7 +315,7 @@ def main(model: DatamartModel = HRDPS) -> None:
         return
     date = run_id["date"]
     reference_time = f"{date[:4]}-{date[4:6]}-{date[6:]}T{run_id['hour']}:00:00Z"
-    if _published_reference_time(model) == reference_time:
+    if published_reference_time(model.slug) == reference_time:
         print(f"{model.slug} run {reference_time} is already published.")
         return
 
@@ -362,13 +362,6 @@ def _latest_complete_run(model: DatamartModel) -> dict | None:
             if exists(probe):
                 return {"date": date, "hour": hour}
     return None
-
-
-def _published_reference_time(model: DatamartModel) -> str | None:
-    try:
-        return json.loads((model.out_dir / "manifest.json").read_text())["referenceTime"]
-    except (OSError, KeyError, ValueError):
-        return None
 
 
 def _build_profiles(

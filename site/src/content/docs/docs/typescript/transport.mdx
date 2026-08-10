@@ -21,7 +21,7 @@ import { loadProfile, type LoadedProfile } from "windgram/transport";
 export async function loadTestHill(): Promise<LoadedProfile | null> {
   const result = await loadProfile({
     fetch,
-    baseUrl: "https://raw.githubusercontent.com/azohra/windgram/main/data",
+    baseUrl: "https://data.meteo.azohra.com",
     modelSlug: "hrrr-conus",
     siteSlug: "test-hill",
   });
@@ -64,7 +64,7 @@ publishing at all is the root cause of its site documents missing too.
 
 ## Check freshness with `loadRuns`
 
-`loadRuns({ fetch, baseUrl })` fetches `data/runs.json`, the cross-model run
+`loadRuns({ fetch, baseUrl })` fetches `runs.json` from the data root, the cross-model run
 index — each published model's current `(referenceTime, generatedAt)`, keyed
 by slug. It is a single document, so there is no pair to tear; it exists so
 run discovery gets the same miss semantics as `loadProfile`. Compare its

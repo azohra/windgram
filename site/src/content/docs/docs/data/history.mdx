@@ -7,7 +7,7 @@ Each successful new run appends the complete site profile to a monthly gzip
 archive:
 
 ```text
-data/<model>/history/<site>/<YYYY-MM>.jsonl.gz
+<model>/history/<site>/<YYYY-MM>.jsonl.gz
 ```
 
 The month comes from `run.referenceTime`. Each line is the same profile
@@ -27,8 +27,8 @@ history-only shape.
 ## Read for analysis
 
 ```sh title="Terminal"
-gzip -cd data/nam/history/dundee/2026-08.jsonl.gz \
-  | jq -r '.run.referenceTime'
+curl -sS https://data.meteo.azohra.com/nam/history/dundee/2026-08.jsonl.gz \
+  | gzip -cd | jq -r '.run.referenceTime'
 ```
 
 Use an equivalent gzip reader when `gzip` or `jq` is unavailable. Applications

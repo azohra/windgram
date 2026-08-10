@@ -1,7 +1,8 @@
+import inspect
 import json
 import time
-from pathlib import Path
 
+from windgram import publish
 from windgram.publish import (
     compact_json,
     manifest_stats,
@@ -162,19 +163,23 @@ def manifest(model: str, reference_time: str, generated_at: str) -> dict:
     }
 
 
-def test_runs_index_maps_each_on_disk_manifest_to_its_publication_identity(tmp_path):
-    for model, reference_time, generated_at in (
-        ("gfs", "2026-08-08T06:00:00Z", "2026-08-08T12:10:00Z"),
-        ("hrdps-continental", "2026-08-08T12:00:00Z", "2026-08-08T16:40:00Z"),
-    ):
-        directory = tmp_path / model
-        directory.mkdir()
-        (directory / "manifest.json").write_text(
-            json.dumps(manifest(model, reference_time, generated_at))
-        )
-    (tmp_path / "models.json").write_text("{}")  # not a manifest: ignored
+def publish_manifests(monkeypatch, manifests: dict) -> None:
+    monkeypatch.setattr(publish, "published_manifest", lambda slug: manifests.get(slug))
 
-    index = runs_index(tmp_path)
+
+def test_runs_index_maps_each_published_manifest_to_its_publication_identity(monkeypatch):
+    publish_manifests(
+        monkeypatch,
+        {
+            "gfs": manifest("gfs", "2026-08-08T06:00:00Z", "2026-08-08T12:10:00Z"),
+            "hrdps-continental": manifest(
+                "hrdps-continental", "2026-08-08T12:00:00Z", "2026-08-08T16:40:00Z"
+            ),
+        },
+    )
+
+    # geps has never published: absent from the index, never an error.
+    index = runs_index(["gfs", "hrdps-continental", "geps"])
 
     assert index == {
         "schemaVersion": 1,
@@ -191,16 +196,25 @@ def test_runs_index_maps_each_on_disk_manifest_to_its_publication_identity(tmp_p
     }
 
 
-def test_write_runs_index_regenerates_the_index_wholesale(tmp_path):
-    directory = tmp_path / "reps"
-    directory.mkdir()
-    (directory / "manifest.json").write_text(
-        json.dumps(manifest("reps", "2026-08-08T00:00:00Z", "2026-08-08T03:05:00Z"))
+def test_write_runs_index_regenerates_the_index_wholesale(tmp_path, monkeypatch):
+    publish_manifests(
+        monkeypatch,
+        {"reps": manifest("reps", "2026-08-08T00:00:00Z", "2026-08-08T03:05:00Z")},
     )
-    (tmp_path / "runs.json").write_text('{"schemaVersion":1,"runs":{"stale":{}}}')
+    models = tmp_path / "models.json"
+    models.write_text(json.dumps({"models": [{"slug": "reps"}, {"slug": "geps"}]}))
+    path = tmp_path / "data" / "runs.json"
 
-    write_runs_index(tmp_path)
+    write_runs_index(path, models)
 
-    index = json.loads((tmp_path / "runs.json").read_text())
+    index = json.loads(path.read_text())
     assert list(index["runs"]) == ["reps"]
     assert index["runs"]["reps"]["referenceTime"] == "2026-08-08T00:00:00Z"
+
+
+def test_write_runs_index_defaults_read_the_root_catalogue_and_write_the_scratch_tree():
+    # The upload workflow calls write_runs_index() bare from the checkout
+    # root; these defaults are that call's contract.
+    signature = inspect.signature(write_runs_index)
+    assert str(signature.parameters["path"].default) == "data/runs.json"
+    assert str(signature.parameters["models_path"].default) == "models.json"

@@ -6,6 +6,30 @@ entry names the versions it actually changes.
 
 ## [Unreleased]
 
+Dataset hosting only — no schema, npm package, or derivation change.
+
+### Changed
+
+- The published dataset moved out of git to public object storage: model
+  manifests, current profiles, history archives, and `runs.json` are served
+  from <https://data.meteo.azohra.com>, with the authored catalogues
+  (`models.json`, `sites.json`) published at the same root. Consumers who
+  fetched `raw.githubusercontent.com/azohra/windgram/main/data/...` should
+  point at the new base; paths under it are unchanged.
+- `models.json` lives at the repository root beside `sites.json` — `data/`
+  held only generated output, and that output no longer lands in git.
+- Builders learn what is already published from the data base itself
+  (`WINDGRAM_DATA_BASE`, default the public URL): the already-published
+  check and history appends fetch over HTTPS instead of reading a committed
+  tree, and the build workflow uploads each completed model instead of
+  committing it, so the repository is a pure source repo.
+
+### Removed
+
+- The scheduled workflow's commit-and-rebase publishing machinery
+  (`.github/scripts/commit-data.sh`); the run index converges by
+  regeneration from the published manifests instead.
+
 ## [0.12.0] - 2026-08-09
 
 `windgram` (npm and JSR) 0.12.0.

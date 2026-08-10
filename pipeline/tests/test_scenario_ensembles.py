@@ -54,8 +54,7 @@ def scenario_repository(tmp_path: Path) -> Path:
         ROOT / "toolkit" / "schema",
         tmp_path / "toolkit" / "schema",
     )
-    (tmp_path / "data").mkdir()
-    shutil.copy(ROOT / "data" / "models.json", tmp_path / "data" / "models.json")
+    shutil.copy(ROOT / "models.json", tmp_path / "models.json")
     return tmp_path
 
 
