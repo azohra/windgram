@@ -177,10 +177,23 @@ function citedInstantFactory(timeZone: string): (validAt: string) => CitedInstan
   };
 }
 
-/** One decimal — the rounding every stated magnitude here and in compare/
- * ships at (compare/ imports this rather than restating it). */
+/* Stated magnitudes ship at the contract's own precision for their
+   quantity — the pipeline's publish table (_FIELD_DECIMALS) is the
+   authority: metre quantities at one decimal, m/s quantities at two.
+   Coarser would let a finding contradict its own evidence (a raw w* of
+   0.89 votes quiet against a 0.9 floor while a 1-dp print says 0.9).
+   compare/ imports these rather than restating them. */
+
+/** One decimal — contract precision for metre magnitudes
+ * (usableLiftTopM, cloudBaseM, heights, deltas). */
 export function round1(value: number): number {
   return Math.round(value * 10) / 10;
+}
+
+/** Two decimals — contract precision for m/s magnitudes
+ * (thermalVelocityMs, windSpeedMs, windGustMs). */
+export function round2(value: number): number {
+  return Math.round(value * 100) / 100;
 }
 
 /* ---------------------------------------------------------------- findings */
@@ -264,12 +277,12 @@ function findFlyableWindows(context: Context): FlyableWindowFinding[] {
       peakLiftTopM: round1(peakTop),
       peakLiftTopAt: context.cite(peakHour.validAt),
       peakLiftTopAboveLaunchM: launchKnown ? round1(peakTop - launchReferenceM) : null,
-      peakThermalVelocityMs: round1(Math.max(...wstars)),
+      peakThermalVelocityMs: round2(Math.max(...wstars)),
       thresholds: { wstarMinMs, depthMinM },
       evidence: {
         hours: hours.map((hour) => hour.validAt),
         usableLiftTopM: tops.map(round1),
-        thermalVelocityMs: wstars.map(round1),
+        thermalVelocityMs: wstars.map(round2),
       },
     };
     if (ensemble) {
@@ -344,7 +357,7 @@ function findQuietDays(
     findings.push({
       kind: "quietDay",
       day,
-      peakThermalVelocityMs: peakWstar === null ? null : round1(peakWstar),
+      peakThermalVelocityMs: peakWstar === null ? null : round2(peakWstar),
       peakThermalVelocityAt: peakWstarAt === null ? null : context.cite(peakWstarAt),
       peakLiftDepthM: peakDepth === null ? null : round1(peakDepth),
       peakLiftDepthAt: peakDepthAt === null ? null : context.cite(peakDepthAt),
@@ -546,8 +559,8 @@ function findWindSummaries(context: Context): WindSummaryFinding[] {
     if (gustAt !== null) {
       const mean = p50(gustAt.surface.windSpeedMs);
       finding.maxGust = {
-        gustMs: round1(gust),
-        meanWindMs: mean === null ? null : round1(mean),
+        gustMs: round2(gust),
+        meanWindMs: mean === null ? null : round2(mean),
         at: context.cite(gustAt.validAt),
         ...(profile.semantics?.gust ? { semantics: profile.semantics.gust } : {}),
       };
@@ -576,7 +589,7 @@ function findWindSummaries(context: Context): WindSummaryFinding[] {
         persistence += 1;
       }
       finding.maxWindInBand = {
-        windMs: round1(peakEntry.max.windMs),
+        windMs: round2(peakEntry.max.windMs),
         directionDeg:
           peakEntry.max.directionDeg === null ? null : Math.round(peakEntry.max.directionDeg),
         heightM: round1(peakEntry.max.heightM),
@@ -627,6 +640,9 @@ function findEnsembleMembership(context: Context): EnsembleMembershipFinding[] {
   // Band-width magnitude and trend on the derived series.
   const bands: EnsembleMembershipFinding["bands"] = [];
   for (const series of ["usableLiftTopM", "thermalVelocityMs"] as const) {
+    // Contract precision per series: metres at 1, m/s at 2. The relative
+    // spread is a ratio, not a magnitude — it stays at one decimal.
+    const roundSeries = series === "thermalVelocityMs" ? round2 : round1;
     const rows: Array<{ validAt: string; p50: number; width: number; relative: number | null }> =
       [];
     for (const hour of profile.hours) {
@@ -656,7 +672,7 @@ function findEnsembleMembership(context: Context): EnsembleMembershipFinding[] {
     bands.push({
       series,
       hoursWithSignal: rows.length,
-      medianBandWidth: round1(widths[Math.floor(widths.length / 2)]),
+      medianBandWidth: roundSeries(widths[Math.floor(widths.length / 2)]),
       maxRelativeSpread: worst === null ? null : round1(worst.relative),
       maxSpreadAt: worst === null ? null : context.cite(worst.validAt),
       trend:
@@ -666,8 +682,8 @@ function findEnsembleMembership(context: Context): EnsembleMembershipFinding[] {
       thresholds: { wideningRatio: ratio },
       evidence: {
         hours: rows.map((row) => row.validAt),
-        p50: rows.map((row) => round1(row.p50)),
-        bandWidth: rows.map((row) => round1(row.width)),
+        p50: rows.map((row) => roundSeries(row.p50)),
+        bandWidth: rows.map((row) => roundSeries(row.width)),
       },
     });
   }

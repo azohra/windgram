@@ -137,7 +137,7 @@ describe("flyableWindow", () => {
     expect(saturday.durationHours).toBe(7);
     expect(saturday.peakLiftTopM).toBe(2905.6);
     expect(saturday.peakLiftTopAboveLaunchM).toBe(1658.6); // 2905.6 − 1247 launch
-    expect(saturday.peakThermalVelocityMs).toBe(2.2);
+    expect(saturday.peakThermalVelocityMs).toBe(2.16); // contract 2-dp: the raw published value
     // The thresholds that produced the window are embedded in it.
     expect(saturday.thresholds).toEqual(DEFAULT_ANALYZE_THRESHOLDS.flyableWindow);
     // Evidence is scoped to exactly the cited hours.
@@ -153,7 +153,7 @@ describe("flyableWindow", () => {
     });
     const findings = ofKind<FlyableWindowFinding>(strict.findings, "flyableWindow");
     expect(findings).toHaveLength(1);
-    // Only 22:00Z clears both bars (top 2826.3 = 1579 m over launch, W* 2.2).
+    // Only 22:00Z clears both bars (top 2826.3 = 1579 m over launch, W* 2.16).
     expect(findings[0].durationHours).toBe(1);
     expect(findings[0].start.validAt).toBe("2026-08-08T22:00:00Z");
     expect(findings[0].thresholds).toEqual({ wstarMinMs: 2.1, depthMinM: 1500 });
@@ -170,10 +170,34 @@ describe("flyableWindow", () => {
     const saturday = quiet.find((finding) => finding.day === "2026-08-08")!;
     expect(saturday.failed).toEqual(["wstar"]);
     // The evidence is the day's best hour against each floor.
-    expect(saturday.peakThermalVelocityMs).toBe(2.2);
+    expect(saturday.peakThermalVelocityMs).toBe(2.16); // contract 2-dp: the raw published value
     expect(saturday.peakLiftDepthM).toBe(1658.6);
     expect(saturday.peakLiftDepthAt?.validAt).toBe("2026-08-08T23:00:00Z");
     expect(saturday.thresholds).toEqual({ wstarMinMs: 99, depthMinM: 300 });
+  });
+
+  it("prints m/s evidence at contract precision — a 0.89 w* under a 0.9 floor says 0.89", () => {
+    // The defect this pins: round1 coarsened stated m/s magnitudes to one
+    // decimal, so a raw w* of 0.89 voted quiet against a 0.9 floor while
+    // the printed evidence said 0.9 — the finding contradicted its own
+    // evidence. m/s magnitudes ship at the contract's two decimals
+    // (pipeline publish _FIELD_DECIMALS); the vote reads raw values.
+    const profile = hrrr();
+    for (const hour of profile.hours) {
+      (hour.derived as { thermalVelocityMs: number }).thermalVelocityMs = 0.89;
+    }
+    const analysis = analyzeProfile(profile, {
+      ...ERIE,
+      thresholds: { flyableWindow: { wstarMinMs: 0.9, depthMinM: 300 } },
+    });
+    expect(ofKind<FlyableWindowFinding>(analysis.findings, "flyableWindow")).toHaveLength(0);
+    const saturday = ofKind<QuietDayFinding>(analysis.findings, "quietDay").find(
+      (finding) => finding.day === "2026-08-08",
+    )!;
+    expect(saturday.failed).toEqual(["wstar"]);
+    // The quiet vote and its printed evidence agree: 0.89 sits under 0.9.
+    expect(saturday.peakThermalVelocityMs).toBe(0.89);
+    expect(saturday.peakThermalVelocityMs!).toBeLessThan(saturday.thresholds.wstarMinMs);
   });
 
   it("flags horizon truncation: a quiet call from a sliver of a day is a data boundary", () => {
@@ -294,7 +318,8 @@ describe("windSummary", () => {
     expect(saturday.maxGust?.gustMs).toBe(3.9);
     expect(saturday.maxGust?.at.local).toBe("2026-08-08T16:00");
     expect(saturday.maxWindInBand).toMatchObject({
-      windMs: 4.3,
+      windMs: 4.28, // contract 2-dp: the raw published value
+
       directionDeg: 289,
       heightM: 2581.5,
       pressureHpa: 750,
