@@ -14,6 +14,7 @@ import { findDataCaveats } from "./kinds/data-caveats.js";
 import { findEnsembleMembership } from "./kinds/ensemble-membership.js";
 import { findThermalWindows } from "./kinds/thermal-window.js";
 import { findLiftCeilings } from "./kinds/lift-ceiling.js";
+import { findPercentileCrossings } from "./kinds/percentile-crossing.js";
 import { findQuietDays } from "./kinds/quiet-day.js";
 import { citedInstantFactory, hourStepsOf, stepHoursOf, type Context } from "./kinds/shared.js";
 import { findSmokeImpact } from "./kinds/smoke-impact.js";
@@ -70,6 +71,7 @@ export function analyzeProfile(
   const findings: WindgramFinding[] = [
     ...findTerrainMismatch(context),
     ...windows,
+    ...findPercentileCrossings(context),
     ...findQuietDays(context, windows),
     ...findLiftCeilings(context, windows),
     ...findCapTiming(context, windows),
@@ -116,9 +118,5 @@ function mergeThresholds(overrides?: AnalyzeThresholdOverrides): AnalyzeThreshol
     capTiming: { ...DEFAULT_ANALYZE_THRESHOLDS.capTiming, ...overrides.capTiming },
     terrainMismatch: { ...DEFAULT_ANALYZE_THRESHOLDS.terrainMismatch, ...overrides.terrainMismatch },
     windSummary: { ...DEFAULT_ANALYZE_THRESHOLDS.windSummary, ...overrides.windSummary },
-    ensembleMembership: {
-      ...DEFAULT_ANALYZE_THRESHOLDS.ensembleMembership,
-      ...overrides.ensembleMembership,
-    },
   };
 }

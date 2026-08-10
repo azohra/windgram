@@ -17,6 +17,7 @@ import type { DataCaveatsFinding } from "./kinds/data-caveats.js";
 import type { EnsembleMembershipFinding } from "./kinds/ensemble-membership.js";
 import type { ThermalWindowFinding } from "./kinds/thermal-window.js";
 import type { LiftCeilingFinding } from "./kinds/lift-ceiling.js";
+import type { PercentileCrossingFinding } from "./kinds/percentile-crossing.js";
 import type { QuietDayFinding } from "./kinds/quiet-day.js";
 import type { SmokeImpactFinding } from "./kinds/smoke-impact.js";
 import type { TerrainMismatchFinding } from "./kinds/terrain-mismatch.js";
@@ -77,6 +78,7 @@ export type { DataCaveat, DataCaveatsFinding } from "./kinds/data-caveats.js";
 export type { EnsembleMembershipFinding } from "./kinds/ensemble-membership.js";
 export type { ThermalWindowFinding } from "./kinds/thermal-window.js";
 export type { LiftCeilingFinding } from "./kinds/lift-ceiling.js";
+export type { PercentileCrossingFinding, PercentileToken } from "./kinds/percentile-crossing.js";
 export type { QuietDayFinding } from "./kinds/quiet-day.js";
 export type { SmokeImpactFinding, SmokeImpactJoinedFinding, SmokeImpactProfileFinding } from "./kinds/smoke-impact.js";
 export type { TerrainMismatchFinding } from "./kinds/terrain-mismatch.js";
@@ -89,6 +91,7 @@ export type WindgramFinding =
   | EnsembleMembershipFinding
   | CapTimingFinding
   | ThermalWindowFinding
+  | PercentileCrossingFinding
   | QuietDayFinding
   | LiftCeilingFinding
   | SmokeImpactFinding
@@ -110,7 +113,6 @@ export interface AnalyzeThresholds {
   };
   terrainMismatch: { minAbsDeltaM: number };
   windSummary: { bandMarginM: number; persistenceFractionOfMax: number };
-  ensembleMembership: { wideningRatio: number };
 }
 
 /**
@@ -130,7 +132,6 @@ export const DEFAULT_ANALYZE_THRESHOLDS: AnalyzeThresholds = {
   },
   terrainMismatch: { minAbsDeltaM: 250 },
   windSummary: { bandMarginM: 200, persistenceFractionOfMax: 0.8 },
-  ensembleMembership: { wideningRatio: 1.5 },
 };
 
 /**
