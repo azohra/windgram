@@ -459,7 +459,7 @@
       "outputs": [
         {
           "path": "generated/smoke-over-thermals.profile.json",
-          "sha256": "b1ffd17ea259ff7c2df3ae00ddfc80d1e209aea6d516daac6d1374e9a82158e9"
+          "sha256": "57a3d1e16f16d724d836914cf3feb1faf33bec76a1532054bf38142b0e9a7d2c"
         }
       ]
     },

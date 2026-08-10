@@ -4,6 +4,29 @@ Notable repository and `windgram` package changes are recorded here. Dataset
 schema, npm package, and Python pipeline versions are independent; each release
 entry names the versions it actually changes.
 
+## [Unreleased]
+
+Scenario and site only — no package change. The smoke before/after
+lesson becomes legible.
+
+### Changed
+
+- The smoke before/after figure contrasts reads, not renders: the base
+  panel hides the plume entirely (the smoke-blind READ — clear strips,
+  full-strength w*), and only the adjusted panel draws the smoke strip
+  beside its derated thermals. Both panels previously showed the same
+  smoke bar, leaving nothing that said which one was "smoke-blind".
+- `smoke-over-thermals` carries a severe plume through the thermal
+  window (τ reaching ~3–3.8 over the working hours, 4.5 by evening —
+  the observed severe-episode range), so the correction is visible at
+  figure scale: peak w* derates ~16% instead of ~7%. The arc still
+  climbs into the evening and all scenario assertions hold.
+- The figure's guard tests assert the design, not byte-inequality: the
+  base panel must draw no smoke strip, the adjusted panel must, their
+  w* strips must differ — and a toolkit test pins the committed
+  scenario's correction as material (adjusted peak below 0.87× base)
+  while still partial (above 0.5×).
+
 ## [0.15.1] - 2026-08-10
 
 `windgram` (npm and JSR) 0.15.1 — fixes plus scenario and site repairs:

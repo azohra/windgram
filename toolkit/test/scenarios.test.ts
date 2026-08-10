@@ -297,4 +297,25 @@ describe("scenario SVG goldens", () => {
     validateSvg(svg, "smoke-over-thermals adjusted view");
     await expect(svg).toMatchFileSnapshot("golden/scenario-smoke-over-thermals-adjusted.svg");
   });
+
+  it("the smoke-over-thermals correction is material, not merely nonzero", () => {
+    // The scenario's whole lesson is the gap between the smoke-blind and
+    // adjusted views. Byte-inequality once passed while the panels looked
+    // identical (a ~7% peak-w* derate is ~2px at figure scale): the
+    // committed scenario must keep a plume severe enough, during the
+    // hours that actually carry thermals, for a reader to SEE the derate.
+    const loaded = outputs.find(({ entry }) => entry.id === "smoke-over-thermals");
+    expect(loaded).toBeDefined();
+    const options = { timeZone: loaded!.entry.timeZone };
+    const wPeak = (scene: ReturnType<typeof buildScene>) =>
+      Math.max(
+        ...scene.strips
+          .find((strip) => strip.key === "thermalStrength")!
+          .values.map((value) => value ?? 0),
+      );
+    const base = wPeak(buildScene(loaded!.profile, options));
+    const adjusted = wPeak(buildScene(loaded!.profile, { ...options, smokeAdjusted: true }));
+    expect(adjusted).toBeLessThan(base * 0.87);
+    expect(adjusted).toBeGreaterThan(base * 0.5); // still a partial correction, not an eraser
+  });
 });

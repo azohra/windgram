@@ -3,16 +3,21 @@ import Figure from "../figure/Figure.astro";
 import { renderSyntheticWindgram } from "../../lib/example-windgram";
 import { scenarioById } from "../../lib/scenarios";
 
-/* The same committed smoke scenario rendered twice by the npm package:
-   the base view (what the smoke-blind model publishes) and the
-   smoke-adjusted alternate view (w* derated by the cube root of the
-   slant-path transmittance, lift envelope re-derived). The provenance
-   label under the adjusted panel comes from the scene graph's own
-   smokeAdjustment declaration — the field renderers must surface. */
+/* The same committed smoke scenario rendered twice by the npm package.
+   The base panel is the smoke-blind READ, not just the smoke-blind
+   model: its smoke overlay is off, so it shows exactly the forecast a
+   renderer that ignores the plume presents — clear strips, strong
+   thermals. The adjusted panel draws the plume and derates (w* by the
+   cube root of the slant-path transmittance, lift envelope re-derived).
+   The model does publish the smoke it cannot feel; hiding it on the
+   left is the point — two panels that both show a smoke bar read as the
+   same chart, and the lesson dies. The provenance label under the
+   adjusted panel comes from the scene graph's own smokeAdjustment
+   declaration — the field renderers must surface. */
 const scenario = scenarioById("smoke-over-thermals");
 const base = renderSyntheticWindgram(
   scenario,
-  { columnWidthPx: 58, plotHeightPx: 330 },
+  { columnWidthPx: 58, plotHeightPx: 330, overlays: { smoke: false } },
   "smoke-figure-base",
 );
 const adjusted = renderSyntheticWindgram(
@@ -30,13 +35,13 @@ const label = adjusted.scene.smokeAdjustment
   title="The same afternoon, before and after the smoke correction"
   lesson={scenario.lesson}
   description={scenario.accessibilityDescription}
-  caption="Both panels are serialized from one committed scenario profile; only the render option differs. The adjusted panel's w* strip and usable-lift envelope sit lower under the thick afternoon plume — a real but deliberately gentle correction, because diffuse light still drives thermals under smoke."
+  caption="Both panels are serialized from one committed scenario profile; only the render options differ. The base panel is the smoke-blind read — no plume drawn, full-strength w* — even though the model publishes the smoke it cannot feel. The adjusted panel draws that plume and derates: its w* bump sits visibly lower under the severe afternoon smoke. The correction is deliberately gentle (cube-root), because diffuse light still drives thermals under smoke."
   units="altitude m and ft · w* m/s · smoke µg/m³ · haze tint = optical depth"
   {scenario}
 >
   <div class="smoke-compare">
     <div>
-      <p class="smoke-panel-label">Base view — what the smoke-blind model publishes</p>
+      <p class="smoke-panel-label">Base view — the smoke-blind read: no plume drawn, full-strength thermals</p>
       <Fragment set:html={base.svg} />
     </div>
     <div>

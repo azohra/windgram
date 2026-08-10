@@ -113,9 +113,9 @@
         "usableLiftTopM": null
       },
       "smoke": {
-        "surfaceUgm3": 8,
-        "columnMgm2": 31.9,
-        "aot": 0.15
+        "surfaceUgm3": 15,
+        "columnMgm2": 63.8,
+        "aot": 0.3
       }
     },
     {
@@ -211,9 +211,9 @@
         "usableLiftTopM": null
       },
       "smoke": {
-        "surfaceUgm3": 12,
-        "columnMgm2": 42.6,
-        "aot": 0.2
+        "surfaceUgm3": 25,
+        "columnMgm2": 106.4,
+        "aot": 0.5
       }
     },
     {
@@ -309,9 +309,9 @@
         "usableLiftTopM": null
       },
       "smoke": {
-        "surfaceUgm3": 20,
-        "columnMgm2": 74.5,
-        "aot": 0.35
+        "surfaceUgm3": 45,
+        "columnMgm2": 191.5,
+        "aot": 0.9
       }
     },
     {
@@ -407,9 +407,9 @@
         "usableLiftTopM": null
       },
       "smoke": {
-        "surfaceUgm3": 45,
-        "columnMgm2": 127.7,
-        "aot": 0.6
+        "surfaceUgm3": 80,
+        "columnMgm2": 319.1,
+        "aot": 1.5
       }
     },
     {
@@ -505,9 +505,9 @@
         "usableLiftTopM": 2582.8
       },
       "smoke": {
-        "surfaceUgm3": 80,
-        "columnMgm2": 202.1,
-        "aot": 0.95
+        "surfaceUgm3": 125,
+        "columnMgm2": 489.4,
+        "aot": 2.3
       }
     },
     {
@@ -603,9 +603,9 @@
         "usableLiftTopM": 3946.4
       },
       "smoke": {
-        "surfaceUgm3": 120,
-        "columnMgm2": 287.2,
-        "aot": 1.35
+        "surfaceUgm3": 170,
+        "columnMgm2": 659.6,
+        "aot": 3.1
       }
     },
     {
@@ -701,9 +701,9 @@
         "usableLiftTopM": 2703.2
       },
       "smoke": {
-        "surfaceUgm3": 155,
-        "columnMgm2": 372.3,
-        "aot": 1.75
+        "surfaceUgm3": 210,
+        "columnMgm2": 808.5,
+        "aot": 3.8
       }
     },
     {
@@ -799,9 +799,9 @@
         "usableLiftTopM": null
       },
       "smoke": {
-        "surfaceUgm3": 175,
-        "columnMgm2": 436.2,
-        "aot": 2.05
+        "surfaceUgm3": 240,
+        "columnMgm2": 914.9,
+        "aot": 4.3
       }
     },
     {
@@ -897,9 +897,9 @@
         "usableLiftTopM": null
       },
       "smoke": {
-        "surfaceUgm3": 185,
-        "columnMgm2": 468.1,
-        "aot": 2.2
+        "surfaceUgm3": 250,
+        "columnMgm2": 957.4,
+        "aot": 4.5
       }
     },
     {
@@ -995,9 +995,9 @@
         "usableLiftTopM": null
       },
       "smoke": {
-        "surfaceUgm3": 170,
-        "columnMgm2": 446.8,
-        "aot": 2.1
+        "surfaceUgm3": 245,
+        "columnMgm2": 936.2,
+        "aot": 4.4
       }
     }
   ]

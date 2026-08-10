@@ -166,21 +166,21 @@
 <text x="52" y="132" text-anchor="end" class="wg-strip-unit">%</text>
 <rect x="60" y="140" width="440" height="25" class="wg-strip-frame" stroke-width="0.7"/>
 <line x1="60" y1="152.5" x2="500" y2="152.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
-<rect x="60" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.05"/>
-<rect x="104" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.07"/>
-<rect x="148" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.12"/>
-<rect x="192" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.2"/>
-<rect x="236" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.32"/>
-<rect x="280" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.45"/>
-<rect x="324" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.58"/>
-<rect x="368" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.68"/>
-<rect x="412" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.73"/>
-<rect x="456" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.7"/>
-<path d="M60,163.92 C63.67,163.92 71,164.01 82,163.92 C93,163.83 111.33,163.65 126,163.38 C140.67,163.11 155.33,163.04 170,162.3 C184.67,161.55 199.33,160.27 214,158.92 C228.67,157.57 243.33,155.88 258,154.19 C272.67,152.5 287.33,150.47 302,148.78 C316.67,147.09 331.33,145.29 346,144.05 C360.67,142.82 375.33,142.03 390,141.35 C404.67,140.68 419.33,139.89 434,140 C448.67,140.11 467,141.69 478,142.03 C489,142.36 496.33,142.03 500,142.03 L500.00,165 L60.00,165 Z" class="wg-strip-smoke-area" opacity="0.3"/>
-<path d="M60,163.92 C63.67,163.92 71,164.01 82,163.92 C93,163.83 111.33,163.65 126,163.38 C140.67,163.11 155.33,163.04 170,162.3 C184.67,161.55 199.33,160.27 214,158.92 C228.67,157.57 243.33,155.88 258,154.19 C272.67,152.5 287.33,150.47 302,148.78 C316.67,147.09 331.33,145.29 346,144.05 C360.67,142.82 375.33,142.03 390,141.35 C404.67,140.68 419.33,139.89 434,140 C448.67,140.11 467,141.69 478,142.03 C489,142.36 496.33,142.03 500,142.03" class="wg-strip-smoke" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="60" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.1"/>
+<rect x="104" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.17"/>
+<rect x="148" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.3"/>
+<rect x="192" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.5"/>
+<rect x="236" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.77"/>
+<rect x="280" y="140" width="44" height="25" class="wg-smoke-cell" opacity="1"/>
+<rect x="324" y="140" width="44" height="25" class="wg-smoke-cell" opacity="1"/>
+<rect x="368" y="140" width="44" height="25" class="wg-smoke-cell" opacity="1"/>
+<rect x="412" y="140" width="44" height="25" class="wg-smoke-cell" opacity="1"/>
+<rect x="456" y="140" width="44" height="25" class="wg-smoke-cell" opacity="1"/>
+<path d="M60,163.5 C63.67,163.5 71,163.67 82,163.5 C93,163.33 111.33,163 126,162.5 C140.67,162 155.33,161.42 170,160.5 C184.67,159.58 199.33,158.33 214,157 C228.67,155.67 243.33,154 258,152.5 C272.67,151 287.33,149.42 302,148 C316.67,146.58 331.33,145.17 346,144 C360.67,142.83 375.33,141.67 390,141 C404.67,140.33 419.33,140.08 434,140 C448.67,139.92 467,140.42 478,140.5 C489,140.58 496.33,140.5 500,140.5 L500.00,165 L60.00,165 Z" class="wg-strip-smoke-area" opacity="0.3"/>
+<path d="M60,163.5 C63.67,163.5 71,163.67 82,163.5 C93,163.33 111.33,163 126,162.5 C140.67,162 155.33,161.42 170,160.5 C184.67,159.58 199.33,158.33 214,157 C228.67,155.67 243.33,154 258,152.5 C272.67,151 287.33,149.42 302,148 C316.67,146.58 331.33,145.17 346,144 C360.67,142.83 375.33,141.67 390,141 C404.67,140.33 419.33,140.08 434,140 C448.67,139.92 467,140.42 478,140.5 C489,140.58 496.33,140.5 500,140.5" class="wg-strip-smoke" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
 <text x="52" y="151" text-anchor="end" class="wg-strip-name">Smoke</text>
 <text x="52" y="162" text-anchor="end" class="wg-strip-unit">µg/m³</text>
-<text x="508" y="148" class="wg-strip-scale wg-mono">185</text>
+<text x="508" y="148" class="wg-strip-scale wg-mono">250</text>
 <text x="508" y="165" class="wg-strip-scale wg-mono">0</text>
 <rect x="60" y="170" width="440" height="25" class="wg-strip-frame" stroke-width="0.7"/>
 <line x1="60" y1="182.5" x2="500" y2="182.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>

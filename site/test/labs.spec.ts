@@ -45,16 +45,21 @@ test("the smoke lab's optical-depth slider moves the haze, the w* strip, and the
   expect(await transmittance.textContent()).not.toBe(thinTransmittance);
 });
 
-test("the smoke before/after figure's two panels genuinely differ", async ({ page }) => {
-  // The adjusted panel is labeled as a correction; a labeled no-op is the
-  // failure this guards against (scene.smokeAdjustment is now withheld
-  // when no hour changes, and the scenario's hours are real daytime).
+test("the smoke before/after figure reads at a glance: plume-free base, derated adjusted", async ({ page }) => {
+  // Byte-inequality is not enough — the panels once differed by five SVG
+  // lines (~2px of w*) while looking identical, and both drew the same
+  // smoke bar, so nothing said which one was "smoke-blind". The design
+  // contract now: the base panel hides the plume entirely (the
+  // smoke-blind READ), and the adjusted panel draws it with a visibly
+  // derated w* strip.
   await page.goto("/docs/learn/smoke-and-thermals/", { waitUntil: "networkidle" });
   const panels = page.locator("#smoke-adjusted-comparison .smoke-compare svg");
   await expect(panels).toHaveCount(2);
-  const base = await panels.nth(0).innerHTML();
-  const adjusted = await panels.nth(1).innerHTML();
-  expect(adjusted).not.toBe(base);
+  await expect(panels.nth(0).locator(".wg-strip-smoke")).toHaveCount(0);
+  await expect(panels.nth(1).locator(".wg-strip-smoke")).toHaveCount(1);
+  const baseStrip = await panels.nth(0).locator(".wg-strip-thermalStrength").getAttribute("d");
+  const adjustedStrip = await panels.nth(1).locator(".wg-strip-thermalStrength").getAttribute("d");
+  expect(adjustedStrip).not.toBe(baseStrip);
 });
 
 test("the usable-lift lab's sink slider moves the line inside its everyday range", async ({ page }) => {
