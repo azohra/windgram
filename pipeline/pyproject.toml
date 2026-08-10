@@ -18,6 +18,11 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Atmospheric Science",
 ]
 dependencies = [
+    # boto3 powers the authenticated S3 read path in dataset.py — the
+    # pipeline reads its own published state through the R2 endpoint with
+    # the same credentials the uploads use, so Cloudflare's WAF never
+    # mediates those reads.
+    "boto3>=1.34",
     "eccodes>=2.47.0",
     "eccodeslib>=2.48.0.26",
     "h5py>=3.11",
