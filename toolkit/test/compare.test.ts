@@ -7,6 +7,8 @@ import {
   comparisonMemberKey,
   COMPARE_VOCABULARY_VERSION,
   type HeightSpreadFinding,
+  type WindDirectionSpreadFinding,
+  type WindDivergenceFinding,
   type WindowAgreementFinding,
 } from "../src/compare/index.js";
 import { DEFAULT_ANALYZE_THRESHOLDS } from "../src/analyze/index.js";
@@ -492,6 +494,135 @@ describe("zero-voter suppression (the ratified call)", () => {
     const comparison = compareProfiles([deficit], { timeZone: TZ, launch: ERIE_LAUNCH });
     expect(comparison.members[0].benched).toMatchObject({ reason: "terrainMismatch" });
     expect(ofKind<WindowAgreementFinding>(comparison.findings, "windowAgreement")).toEqual([]);
+  });
+});
+
+describe("windDivergence", () => {
+  // Three deterministic members, identical windows (11:00–13:00 local),
+  // hand-authored climb-band winds and gusts. Surface wind is held at
+  // 0.5 m/s — under the direction floor — so no windDirectionSpread
+  // finding muddies the day. Band: launch 1247 − 200 margin to
+  // 1847 + 200, so the 1500 m level is in-band and 3000 m is out.
+  const divMember = (
+    model: string,
+    bandWindMs: number,
+    gustMs: number,
+    gustSemantics?: "hourMax" | "instant",
+  ) =>
+    detMember({
+      model,
+      referenceTime: "2026-08-08T06:00:00Z",
+      ...(gustSemantics ? { gustSemantics } : {}),
+      hours: fullDay("2026-08-08", (localHour) => ({
+        ...(localHour >= 11 && localHour <= 13 ? { wstar: 1.2, top: 1847 } : QUIET),
+        wind: { speedMs: 0.5, directionDeg: 90 },
+        gustMs,
+        levels: [
+          { heightM: 1500, windSpeedMs: bandWindMs, windDirectionDeg: 270, pressureHpa: 850 },
+          { heightM: 3000, windSpeedMs: 20, windDirectionDeg: 270, pressureHpa: 700 },
+        ],
+      })),
+    });
+  const comparison = compareProfiles(
+    [
+      divMember("div-a", 5, 10, "hourMax"),
+      divMember("div-b", 7.5, 6, "instant"),
+      divMember("div-c", 6, 8),
+    ],
+    { timeZone: TZ, launch: ERIE_LAUNCH },
+  );
+  const divergence = ofKind<WindDivergenceFinding>(comparison.findings, "windDivergence");
+
+  it("rosters every voter's in-window band maximum with the mandatory elevation echo", () => {
+    expect(divergence).toHaveLength(1);
+    const finding = divergence[0];
+    expect(finding.day).toBe("2026-08-08");
+    expect(finding.bandWind.entries).toHaveLength(3);
+    expect(
+      finding.bandWind.entries.map((entry) => ({ model: entry.model, windMs: entry.windMs })),
+    ).toEqual([
+      { model: "div-a", windMs: 5 },
+      { model: "div-b", windMs: 7.5 },
+      { model: "div-c", windMs: 6 },
+    ]);
+    for (const entry of finding.bandWind.entries) {
+      expect(entry.modelElevationM).toBe(1177.6); // S3: the regime echo, per entry
+      expect(entry.heightM).toBe(1500);
+      expect(entry.scope).toBe("duringWindow");
+      expect(entry.at.local).toBe("2026-08-08T11:00");
+    }
+    expect(finding.bandWind.spreadMs).toBe(2.5); // 7.5 − 5, by hand
+  });
+
+  it("never pools gusts across semantics classes — undeclared rosters without a spread", () => {
+    const gust = divergence[0].gust;
+    // One member per class: each roster stands, no spread is manufactured.
+    expect(gust.hourMax.entries.map((entry) => entry.model)).toEqual(["div-a"]);
+    expect(gust.hourMax.entries[0].gustMs).toBe(10);
+    expect(gust.hourMax.spreadMs).toBeNull();
+    expect(gust.instant.entries.map((entry) => entry.model)).toEqual(["div-b"]);
+    expect(gust.instant.spreadMs).toBeNull();
+    // div-c declares nothing: rostered as a record, deliberately never
+    // spread — an undeclared gust compares with nothing (measured class
+    // gap ~1.8–2.8×, S3).
+    expect(gust.undeclared.entries.map((entry) => entry.model)).toEqual(["div-c"]);
+    expect("spreadMs" in gust.undeclared).toBe(false);
+  });
+
+  it("spreads gusts within one declared class", () => {
+    const twin = compareProfiles(
+      [divMember("div-a", 5, 10, "hourMax"), divMember("div-d", 6.5, 7.2, "hourMax")],
+      { timeZone: TZ, launch: ERIE_LAUNCH },
+    );
+    const finding = ofKind<WindDivergenceFinding>(twin.findings, "windDivergence")[0];
+    expect(finding.gust.hourMax.entries).toHaveLength(2);
+    expect(finding.gust.hourMax.spreadMs).toBe(2.8); // 10 − 7.2, by hand
+    expect(finding.gust.instant.entries).toEqual([]);
+    expect(finding.gust.instant.spreadMs).toBeNull();
+  });
+});
+
+describe("windDirectionSpread", () => {
+  // Two deterministic members with steady 3 m/s surface flow 120° apart,
+  // grounded 277.6 m apart — plus the real REPS ensemble, whose published
+  // direction percentiles are not circular statistics and which therefore
+  // never enters (the analyze kind's own hard gate).
+  const dirMember = (model: string, directionDeg: number, modelElevationM?: number) =>
+    detMember({
+      model,
+      referenceTime: "2026-08-08T18:00:00Z",
+      ...(modelElevationM !== undefined ? { modelElevationM } : {}),
+      hours: fullDay("2026-08-08", (localHour) => ({
+        ...(localHour >= 11 && localHour <= 13 ? { wstar: 1.2, top: 1847 } : QUIET),
+        wind: { speedMs: 3, directionDeg },
+      })),
+    });
+  const comparison = compareProfiles([dirMember("dir-a", 90), dirMember("dir-b", 210, 900), reps()], {
+    timeZone: TZ,
+    launch: ERIE_LAUNCH,
+  });
+  const spreads = ofKind<WindDirectionSpreadFinding>(comparison.findings, "windDirectionSpread");
+
+  it("rosters deterministic voters only, with vector-mean directions and elevations", () => {
+    const finding = spreads.find((entry) => entry.day === "2026-08-08")!;
+    // REPS voted the window on 08-08 but has no direction statement to
+    // roster: exactly two entries.
+    expect(finding.entries).toEqual([
+      { member: "dir-a@2026-08-08T18:00:00Z", model: "dir-a", directionDeg: 90, speedMs: 3, modelElevationM: 1177.6 },
+      { member: "dir-b@2026-08-08T18:00:00Z", model: "dir-b", directionDeg: 210, speedMs: 3, modelElevationM: 900 },
+    ]);
+    expect(finding.thresholds).toEqual({ directionFloorMs: 1 });
+  });
+
+  it("states the max circular separation with the pair's elevations riding it", () => {
+    const finding = spreads.find((entry) => entry.day === "2026-08-08")!;
+    expect(finding.maxAngularSeparationDeg).toBe(120); // 90 vs 210, circular
+    expect(finding.maxSeparation).toEqual({
+      members: ["dir-a@2026-08-08T18:00:00Z", "dir-b@2026-08-08T18:00:00Z"],
+      models: ["dir-a", "dir-b"],
+      modelElevationM: [1177.6, 900],
+      elevationDeltaM: 277.6, // S3: the regime caveat rides the statement
+    });
   });
 });
 

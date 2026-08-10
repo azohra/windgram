@@ -48,6 +48,7 @@
 
 import { isDeterministicProfile, type WindgramProfile } from "../contract/index.js";
 import { localDateKey } from "../derive/day-window.js";
+import { componentsToWind, windToComponents } from "../derive/wind.js";
 import {
   analyzeProfile,
   resolveAnalyzeThresholds,
@@ -58,9 +59,11 @@ import {
   type PercentileToken,
   type QuietDayFinding,
   type ThermalWindowFinding,
+  type WindDirectionFinding,
   type WindgramAnalysis,
+  type WindSummaryFinding,
 } from "../analyze/index.js";
-import { round1 } from "../analyze/kinds/shared.js";
+import { round1, round2 } from "../analyze/kinds/shared.js";
 
 /**
  * The comparison-kind set this module can emit. Version 1 shipped exactly
@@ -320,7 +323,130 @@ export interface HeightSpreadFinding {
   spreadM: number;
 }
 
-export type ComparisonFinding = WindowAgreementFinding | HeightSpreadFinding;
+/** One voting member's in-window climb-band wind maximum. */
+export interface BandWindEntry {
+  member: string;
+  model: string;
+  windMs: number;
+  heightM: number;
+  at: CitedInstant;
+  /**
+   * MANDATORY regime echo (S3, 2026-08-10): cross-model mean-wind ratios
+   * spanned 0.18–1.22 at matched mountain sites — models grounding the
+   * site hundreds of metres apart forecast different flow REGIMES, not
+   * the same wind, and the roster is only readable with each member's
+   * ground beside its number.
+   */
+  modelElevationM: number;
+  /**
+   * "duringWindow" when the member's same-day windSummary carries the
+   * window-scoped block (the airborne hours — the consumer's question);
+   * "wholeDay" only when the vote reached this day via a window keyed to
+   * another day (`viaWindowFrom`), where no window-scoped block exists
+   * for this day and the whole-day maximum is the honest fallback.
+   */
+  scope: "duringWindow" | "wholeDay";
+}
+
+/** One voting member's gust maximum, rostered within its semantics class. */
+export interface GustEntry {
+  member: string;
+  model: string;
+  gustMs: number;
+  at: CitedInstant;
+  /** Same mandatory regime echo as BandWindEntry.modelElevationM. */
+  modelElevationM: number;
+  scope: "duringWindow" | "wholeDay";
+}
+
+/**
+ * Wind divergence among a day's WINDOW VOTERS: each member's in-window
+ * climb-band wind maximum (its windSummary restated), with the spread —
+ * wind is the most common flyability veto, and v1 could not express a
+ * wind split at all. Emitted when at least two members roster a band
+ * wind, or at least two share a declared gust semantics class.
+ *
+ * S3-measured constraints the shape encodes (2026-08-10):
+ * - every entry carries `modelElevationM` — mean-wind ratios of
+ *   0.18–1.22 at matched sites are grid-elevation REGIMES, and a spread
+ *   read without the grounds beside it manufactures disagreement;
+ * - gust rosters are grouped STRICTLY within one declared semantics
+ *   class (`hourMax` vs `instant` measured a factor ~1.8–2.8 apart at
+ *   matched light mountain means — never pooled); members without a
+ *   declared gust semantics roster under `undeclared` as a record with
+ *   deliberately NO spread — an undeclared gust cannot be compared with
+ *   anything, including another undeclared gust;
+ * - NO shear rates anywhere in compare: subsampling a dense model to a
+ *   5-level ensemble grid read median 0.41× of the dense rate on
+ *   identical hours — the rates are not comparable across level
+ *   densities;
+ * - NO directions here: direction comparison is windDirectionSpread's,
+ *   deterministic members only, because ensemble p50s of raw degrees are
+ *   not circular statistics.
+ */
+export interface WindDivergenceFinding {
+  kind: "windDivergence";
+  day: LocalDayKey;
+  bandWind: {
+    entries: ReadonlyArray<BandWindEntry>;
+    /** max − min of the rostered windMs; null below two entries. */
+    spreadMs: number | null;
+  };
+  gust: {
+    hourMax: { entries: ReadonlyArray<GustEntry>; spreadMs: number | null };
+    instant: { entries: ReadonlyArray<GustEntry>; spreadMs: number | null };
+    /** Rostered, never spread — see the kind JSDoc. */
+    undeclared: { entries: ReadonlyArray<GustEntry> };
+  };
+}
+
+/**
+ * Surface-flow direction split among a day's DETERMINISTIC window voters:
+ * each member's window vector-mean surface direction (its windDirection
+ * finding restated; the analyze kind's own hard gate keeps ensembles out
+ * — published direction percentiles are not circular statistics), the
+ * maximum pairwise angular separation, and the max-separation pair WITH
+ * both members' model elevations — S3 measured that at flagpole 12 of 21
+ * daytime max-separations straddled a >300 m model-ground delta: a
+ * low-terrain member forecasting a different flow regime, not a
+ * disagreement about the same flow. The regime caveat rides the
+ * statement, never a footnote.
+ *
+ * All aggregation is vector math over derive/'s components (a member
+ * with several windows on the day recombines their vector means weighted
+ * by cited hours); raw degrees are never averaged. A member whose
+ * recombined vector-mean speed sits under `directionFloorMs` has no
+ * direction to roster and is absent — the calm convention, per-member.
+ * Emitted when at least two members roster a direction.
+ */
+export interface WindDirectionSpreadFinding {
+  kind: "windDirectionSpread";
+  day: LocalDayKey;
+  entries: ReadonlyArray<{
+    member: string;
+    model: string;
+    directionDeg: number;
+    speedMs: number;
+    /** Same mandatory regime echo as windDivergence's rosters. */
+    modelElevationM: number;
+  }>;
+  /** Max pairwise circular separation among the entries, 0–180°. */
+  maxAngularSeparationDeg: number;
+  /** The pair realizing the maximum, with the regime facts beside it. */
+  maxSeparation: {
+    members: [string, string];
+    models: [string, string];
+    modelElevationM: [number, number];
+    elevationDeltaM: number;
+  };
+  thresholds: { directionFloorMs: number };
+}
+
+export type ComparisonFinding =
+  | WindowAgreementFinding
+  | HeightSpreadFinding
+  | WindDivergenceFinding
+  | WindDirectionSpreadFinding;
 export type ComparisonFindingKind = ComparisonFinding["kind"];
 
 /* ---------------------------------------------------------------- options */
@@ -452,6 +578,7 @@ export function compareProfiles(
           : null,
     };
   });
+  const ledgerByMember = new Map(members.map((entry) => [entry.member, entry]));
   const benched = new Set(
     members.filter((entry) => entry.benched !== null).map((entry) => entry.member),
   );
@@ -477,11 +604,19 @@ export function compareProfiles(
   const at = (member: string, day: LocalDayKey) => `${member}|${day}`;
   const crossingTokens = new Map<string, PercentileToken | null>();
   const windowFindings = new Map<string, ThermalWindowFinding[]>();
+  const summaries = new Map<string, WindSummaryFinding>();
+  const directionFindings = new Map<string, WindDirectionFinding[]>();
   for (const entry of members) {
     if (benched.has(entry.member)) continue;
     for (const finding of analyses[entry.member].findings) {
       if (finding.kind === "percentileCrossing") {
         crossingTokens.set(at(entry.member, finding.day), finding.minimalPassingPercentile);
+      } else if (finding.kind === "windSummary") {
+        summaries.set(at(entry.member, finding.day), finding);
+      } else if (finding.kind === "windDirection") {
+        const bucket = directionFindings.get(at(entry.member, finding.day)) ?? [];
+        bucket.push(finding);
+        directionFindings.set(at(entry.member, finding.day), bucket);
       } else if (finding.kind === "thermalWindow") {
         const bucket = windowFindings.get(entry.member) ?? [];
         bucket.push(finding);
@@ -690,6 +825,135 @@ export function compareProfiles(
       });
     }
 
+    /* windDivergence: the window voters' windSummary maxima, rostered. */
+    const bandEntries: BandWindEntry[] = [];
+    const gustRosters: Record<"hourMax" | "instant" | "undeclared", GustEntry[]> = {
+      hourMax: [],
+      instant: [],
+      undeclared: [],
+    };
+    for (const member of windowMembers) {
+      const summary = summaries.get(at(member, day));
+      if (!summary) continue;
+      const ledger = ledgerByMember.get(member)!;
+      const scoped = summary.duringWindow;
+      /* Prefer the window-scoped block wherever it exists; an absent
+         quantity INSIDE it means "none in the window" and is not papered
+         over with a whole-day number. Only a via-window day (no scoped
+         block at all) falls back to the whole-day maxima, scope stated. */
+      const band = scoped ? scoped.maxWindInBand : summary.maxWindInBand;
+      const gust = scoped ? scoped.maxGust : summary.maxGust;
+      const scope: BandWindEntry["scope"] = scoped ? "duringWindow" : "wholeDay";
+      if (band) {
+        bandEntries.push({
+          member,
+          model: ledger.model,
+          windMs: band.windMs,
+          heightM: band.heightM,
+          at: band.at,
+          modelElevationM: ledger.modelElevationM,
+          scope,
+        });
+      }
+      if (gust) {
+        gustRosters[gust.semantics ?? "undeclared"].push({
+          member,
+          model: ledger.model,
+          gustMs: gust.gustMs,
+          at: gust.at,
+          modelElevationM: ledger.modelElevationM,
+          scope,
+        });
+      }
+    }
+    if (
+      bandEntries.length >= 2 ||
+      gustRosters.hourMax.length >= 2 ||
+      gustRosters.instant.length >= 2
+    ) {
+      findings.push({
+        kind: "windDivergence",
+        day,
+        bandWind: {
+          entries: bandEntries,
+          spreadMs: spreadOf(bandEntries.map((entry) => entry.windMs)),
+        },
+        gust: {
+          hourMax: {
+            entries: gustRosters.hourMax,
+            spreadMs: spreadOf(gustRosters.hourMax.map((entry) => entry.gustMs)),
+          },
+          instant: {
+            entries: gustRosters.instant,
+            spreadMs: spreadOf(gustRosters.instant.map((entry) => entry.gustMs)),
+          },
+          undeclared: { entries: gustRosters.undeclared },
+        },
+      });
+    }
+
+    /* windDirectionSpread: deterministic voters' window vector means
+       (the analyze kind's own gate keeps ensembles out — its findings
+       simply never exist for them). */
+    const directionEntries: WindDirectionSpreadFinding["entries"][number][] = [];
+    const floor = thresholds.windDirection.directionFloorMs;
+    for (const member of windowMembers) {
+      const dayFindings = directionFindings.get(at(member, day)) ?? [];
+      let uSum = 0;
+      let vSum = 0;
+      let weight = 0;
+      for (const finding of dayFindings) {
+        const mean = finding.surfaceVectorMean;
+        if (mean.directionDeg === null) continue;
+        const samples = finding.evidence.hours.length;
+        const { uMs, vMs } = windToComponents(mean.speedMs, mean.directionDeg);
+        uSum += uMs * samples;
+        vSum += vMs * samples;
+        weight += samples;
+      }
+      if (weight === 0) continue;
+      const combined = componentsToWind(uSum / weight, vSum / weight);
+      if (combined.speedMs < floor) continue;
+      const ledger = ledgerByMember.get(member)!;
+      directionEntries.push({
+        member,
+        model: ledger.model,
+        directionDeg: Math.round(combined.directionDeg),
+        speedMs: round2(combined.speedMs),
+        modelElevationM: ledger.modelElevationM,
+      });
+    }
+    if (directionEntries.length >= 2) {
+      let bestA = directionEntries[0];
+      let bestB = directionEntries[1];
+      let maxSeparation = angularSeparationDeg(bestA.directionDeg, bestB.directionDeg);
+      for (let i = 0; i < directionEntries.length; i += 1) {
+        for (let j = i + 1; j < directionEntries.length; j += 1) {
+          const separation = angularSeparationDeg(
+            directionEntries[i].directionDeg,
+            directionEntries[j].directionDeg,
+          );
+          if (separation > maxSeparation) {
+            maxSeparation = separation;
+            bestA = directionEntries[i];
+            bestB = directionEntries[j];
+          }
+        }
+      }
+      findings.push({
+        kind: "windDirectionSpread",
+        day,
+        entries: directionEntries,
+        maxAngularSeparationDeg: maxSeparation,
+        maxSeparation: {
+          members: [bestA.member, bestB.member],
+          models: [bestA.model, bestB.model],
+          modelElevationM: [bestA.modelElevationM, bestB.modelElevationM],
+          elevationDeltaM: round1(Math.abs(bestA.modelElevationM - bestB.modelElevationM)),
+        },
+        thresholds: { directionFloorMs: floor },
+      });
+    }
   }
 
   return {
@@ -715,6 +979,12 @@ function spreadHours(instants: ReadonlyArray<CitedInstant>): number | null {
   return round1((Math.max(...times) - Math.min(...times)) / 3_600_000);
 }
 
+/* max − min of a roster's magnitudes; null below two — same rule. */
+function spreadOf(values: ReadonlyArray<number>): number | null {
+  if (values.length < 2) return null;
+  return round2(Math.max(...values) - Math.min(...values));
+}
+
 /* The candidate nearest the floor — the sensitivity statement's value.
    Ties break toward the smaller value for determinism; null when no
    voter offered the quantity. */
@@ -727,6 +997,12 @@ function nearestTo(candidates: ReadonlyArray<number>, floor: number): number | n
     if (distance === bestDistance && value < best) return value;
     return best;
   });
+}
+
+/* Circular separation between two bearings, 0–180°. */
+function angularSeparationDeg(aDeg: number, bDeg: number): number {
+  const delta = Math.abs(aDeg - bDeg) % 360;
+  return delta > 180 ? 360 - delta : delta;
 }
 
 /* The ensemble member's own p10–p90 lift-top band at a vote's peak hour,
