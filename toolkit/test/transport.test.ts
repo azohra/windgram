@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
-import type { WindgramManifest, WindgramProfile } from "../src/contract/index.js";
+import type {
+  ObservationDocument,
+  SmokeDocument,
+  WindgramManifest,
+  WindgramProfile,
+} from "../src/contract/index.js";
 import {
+  loadObservation,
   loadProfile,
   loadRuns,
+  loadSmoke,
   runsConsistent,
   TransportHttpError,
   type DocumentMiss,
@@ -229,6 +236,148 @@ describe("loadProfile", () => {
     });
     expect(loaded).not.toBeNull();
     expect(calls).toContain(MANIFEST_URL);
+  });
+});
+
+const SMOKE_MANIFEST_URL = `${BASE}/raqdps/manifest.json`;
+const SMOKE_URL = `${BASE}/raqdps/sites/dundee.json`;
+
+function smokePair(referenceTime: string): {
+  manifest: WindgramManifest;
+  smoke: SmokeDocument;
+} {
+  return {
+    manifest: { ...manifest(), model: "raqdps", referenceTime },
+    smoke: {
+      schemaVersion: 1,
+      model: "raqdps",
+      run: { referenceTime, generatedAt: "2026-08-08T04:47:14Z" },
+      site: { id: "dundee", name: "Dundee", latitude: 49.291977, longitude: -117.183569 },
+      hours: [
+        {
+          validAt: "2026-08-08T18:00:00Z",
+          pm25Ugm3: 40,
+          smokePlumeSurfaceUgm3: 37.5,
+          smokePlumeColumnMgm2: 200,
+        },
+      ],
+    },
+  };
+}
+
+describe("loadSmoke", () => {
+  it("runs the same skew dance as loadProfile: a torn pair reads stale, a converging retry heals", async () => {
+    const oldRun = smokePair("2026-08-08T00:00:00Z");
+    const newRun = smokePair("2026-08-08T12:00:00Z");
+
+    // Torn past the retry: honest stale, freshest complete pair returned.
+    const torn = stubFetch({
+      [SMOKE_MANIFEST_URL]: [ok(newRun.manifest)],
+      [SMOKE_URL]: [ok(oldRun.smoke)], // stuck on the old run
+    });
+    const stale = hit(
+      await loadSmoke({
+        fetch: torn.fetch,
+        baseUrl: BASE,
+        modelSlug: "raqdps",
+        siteSlug: "dundee",
+        retry: noWait,
+      }),
+    );
+    expect(stale.stale).toBe(true);
+    expect(stale.manifest.referenceTime).toBe("2026-08-08T12:00:00Z");
+    expect(stale.smoke.run.referenceTime).toBe("2026-08-08T00:00:00Z");
+    expect(torn.calls).toHaveLength(4); // pair + one retried pair, never more
+
+    // Converging retry: the healed pair reads clean.
+    const healing = stubFetch({
+      [SMOKE_MANIFEST_URL]: [ok(newRun.manifest), ok(newRun.manifest)],
+      [SMOKE_URL]: [ok(oldRun.smoke), ok(newRun.smoke)], // CDN caught up
+    });
+    const healed = hit(
+      await loadSmoke({
+        fetch: healing.fetch,
+        baseUrl: BASE,
+        modelSlug: "raqdps",
+        siteSlug: "dundee",
+        retry: noWait,
+      }),
+    );
+    expect(healed.stale).toBe(false);
+    expect(healed.smoke.run.referenceTime).toBe("2026-08-08T12:00:00Z");
+  });
+
+  it("rejects a document that fails the smoke guard as an 'invalid' miss", async () => {
+    const run = smokePair("2026-08-08T00:00:00Z");
+    const { fetch } = stubFetch({
+      [SMOKE_MANIFEST_URL]: [ok(run.manifest)],
+      // A profile is not a smoke document: the typed guard must refuse it.
+      [SMOKE_URL]: [ok(deterministicProfile())],
+    });
+    expect(
+      await loadSmoke({ fetch, baseUrl: BASE, modelSlug: "raqdps", siteSlug: "dundee" }),
+    ).toEqual({ miss: "invalid", url: SMOKE_URL });
+  });
+});
+
+const OBSERVATION_URL = `${BASE}/goes18-dsr/sites/dundee.json`;
+
+function observationDocument(): ObservationDocument {
+  return {
+    schemaVersion: 1,
+    model: "goes18-dsr",
+    observed: {
+      firstObservedAt: "2026-08-09T15:00:00Z",
+      lastObservedAt: "2026-08-10T02:00:00Z",
+      generatedAt: "2026-08-10T02:31:12Z",
+    },
+    site: { id: "dundee", name: "Dundee", latitude: 49.291977, longitude: -117.183569 },
+    observations: [{ observedAt: "2026-08-09T15:00:00Z", downwardShortwaveWm2: 112.4 }],
+  };
+}
+
+describe("loadObservation", () => {
+  it("is a single guarded fetch — no manifest request, no pair, no retry", async () => {
+    const { fetch, calls } = stubFetch({ [OBSERVATION_URL]: [ok(observationDocument())] });
+    const loaded = hit(
+      await loadObservation({ fetch, baseUrl: BASE, modelSlug: "goes18-dsr", siteSlug: "dundee" }),
+    );
+    expect(loaded.observed.lastObservedAt).toBe("2026-08-10T02:00:00Z");
+    // The one document is the whole load: no manifest.json ever requested.
+    expect(calls).toEqual([OBSERVATION_URL]);
+  });
+
+  it("misses discriminate absent from invalid, and other HTTP errors still throw", async () => {
+    const missing = stubFetch({});
+    expect(
+      await loadObservation({
+        fetch: missing.fetch,
+        baseUrl: BASE,
+        modelSlug: "goes18-dsr",
+        siteSlug: "dundee",
+      }),
+    ).toEqual({ miss: "absent", url: OBSERVATION_URL });
+
+    // A forecast-shaped document must not pass the observation guard.
+    const invalid = stubFetch({ [OBSERVATION_URL]: [ok(deterministicProfile())] });
+    expect(
+      await loadObservation({
+        fetch: invalid.fetch,
+        baseUrl: BASE,
+        modelSlug: "goes18-dsr",
+        siteSlug: "dundee",
+      }),
+    ).toEqual({ miss: "invalid", url: OBSERVATION_URL });
+
+    const failing = stubFetch({ [OBSERVATION_URL]: [status(503)] });
+    await expect(
+      loadObservation({
+        fetch: failing.fetch,
+        baseUrl: BASE,
+        modelSlug: "goes18-dsr",
+        siteSlug: "dundee",
+      }),
+    ).rejects.toThrow(TransportHttpError);
   });
 });
 
