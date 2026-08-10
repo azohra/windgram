@@ -4,6 +4,138 @@ Notable repository and `windgram` package changes are recorded here. Dataset
 schema, npm package, and Python pipeline versions are independent; each release
 entry names the versions it actually changes.
 
+## [0.21.0] - 2026-08-10
+
+`windgram` (npm and JSR) 0.21.0 — analyze vocabulary 4, compare
+vocabulary 2: the statement modules catch up to the documents they
+read. Three adversarial reviews (run blind against source and live
+data, licensed to attack every recorded rejection) located the
+tameness in under-extraction, not in the discipline — and four
+evidence spikes over live published documents then gated every
+addition. Two of the paper's own proposals died in those spikes and
+did not ship (the smoke-derated window verdict; the BL-saturation
+overlap series): the vocabulary grows only by measurement. Pipeline
+stays 0.8.0; this is a toolkit release.
+
+### Changed (breaking by design; one vocabulary event)
+
+- **`flyableWindow` is renamed `thermalWindow`** — the kind string was
+  the one judgment word the discipline could not reduce: the
+  arithmetic tests thermals (w* and lift depth over floors), not
+  flyability, and it is blind to wind, rain, and overdevelopment. The
+  kind also gains `leadHours` (anchored on the day's peak-lift hour),
+  a `stepHours` echo (widest covered step among its cited hours), and
+  a caller-movable `maxGapHours` segmentation tolerance (default 0 =
+  exact old behaviour).
+- **A compare member is a run, not a model**: identity is
+  `(model, referenceTime)`, `comparisonMemberKey` joins rosters to
+  the ledger, and `WindgramComparison.analyses` is re-keyed by the
+  composite key — the breaking change the convergence program needs,
+  paid once. Two runs of one model are two members; same-run
+  duplicates throw.
+- **The windowAgreement electorate is now whole**: a window crossing
+  local midnight votes on every day it touches (`viaWindowFrom`
+  confesses the join); members whose horizon never reaches a day
+  appear as `outOfHorizon` abstentions (previously "voters 3,
+  unanimous true" while 7 of 10 members couldn't see the day); a day
+  with zero voters AND zero abstentions emits nothing; timing votes
+  carry each member's cadence (up to stepHours−1 h of any spread is
+  quantization, now stated beside the spread).
+- **Verdicts that measured as artifacts are removed**:
+  `ensembleMembership.bands.trend` and its `wideningRatio` threshold
+  (first-vs-last band width is a diurnal confound — both failure
+  directions measured live on one document), `maxRelativeSpread` /
+  `maxSpreadAt` (explodes as p50→0, cites the least consequential
+  hour), and `liftCeiling.flips` (restated `segments.length − 1`).
+  Replacement where one was earned: per-day band widths at each day's
+  peak-p50-w* hour (`dayBands`, with lead and truncation flags, no
+  trend words).
+- **capTiming distinguishes the atmospheres it conflated**: new
+  `openButWeak` verdict for CIN ≈ 0 with CAPE under the break floor
+  (previously read "cappedAllDay" with the cap physically open);
+  multi-hour-cadence deterministic documents are re-admitted with
+  interval verdicts between adjacent CITED steps (subsampling audit:
+  16/16 interval containment, zero phantom breaks; cappedAllDay's
+  measured 12.5% phantom rate at 3 h is confessed on the kind);
+  precipitation statements echo their declared semantics and step.
+- **Mixed cadence is read honestly everywhere**: live GEPS switches
+  3 h → 6 h mid-horizon and the old single-constant `stepHours`
+  arithmetic misread durations, truncation, and persistence on every
+  such document — spacing now comes from the actual adjacent cited
+  hours throughout.
+- **liftCeiling segments cite their peak** (evidence was frozen at
+  each segment's first hour — a 7-hour segment cited 1973 m against
+  its own 3440 m peak); `maxWindInBand.pressureHpa` is honestly
+  `number | null` (no more NaN-serializes-to-null type lie).
+- The charters state the actual discipline: no verdict that does not
+  reduce to stated arithmetic over stated, embedded, caller-movable
+  thresholds — the rule was never "no judgment words".
+
+### Added (every kind gated by a 2026-08-10 evidence spike)
+
+- **`percentileCrossing`** (ensembles): the same window arithmetic at
+  every published percentile, emitted only where a percentile's day
+  verdict differs from p50's. Measured: 26% of live ensemble days are
+  upside days (p50 quiet, p75/p90 clears both floors by real
+  margins) — all at ≥72 h lead, so the finding carries `leadHours`.
+  No windows-per-percentile (marginals cannot assert continuity);
+  counts + minimal-passing-percentile + cited instants + per-hour
+  membership.
+- **`smokeImpact`**: the smoke the analysis was silent about, as
+  republished magnitudes only — HRRR's own blocks (source "profile",
+  semantics echo says whether the lift numbers already feel the
+  smoke) or a joined RAQDPS document (`AnalyzeOptions.smoke`; both
+  reference times; per-day join coverage). Day-peak AND during-window
+  maxima (measured materially different). The derate verdict is
+  deliberately absent: the RAQDPS column measured ~15–20× below the
+  GOES-implied column on a verified heavy-smoke day (quarantined
+  pending pipeline investigation), and even satellite-magnitude AOT
+  flipped 1 of 284 window hours. `dataCaveats` names the `"smoke"`
+  family on smoke-blind analyses — absence is never clear air.
+- **`convectiveDay`**: the convective story a CIN-less model CAN tell
+  (the HRDPS family published CAPE into silence): peak CAPE and
+  precip timing against the window end, `capIsJudgeable: false`
+  stated with its reason, a zero precip series stated as a forecast,
+  and a mandatory coverage block (live horizon slivers carry
+  nocturnal elevated CAPE that must confess truncation).
+- **quietDay grows `context` and `leadHours`**: the atmospheric WHY
+  beside the arithmetic why — precip peak/onset/wet hours, cloud
+  cover at the peak-w* hour AND the daytime aggregate (peak-hour
+  alone measured misleading: 12% vs 85% on one live day), gust with
+  semantics, sensible heat flux. 17/17 live quiet days carried a
+  stated suppressor; an empty block reads honestly as none.
+- **The wind family** (whole-day maxGust cited an unflyable hour on
+  30% of live rows): `windSummary.duringWindow` (window-scoped gust
+  and band maxima plus the per-hour series the extractor previously
+  discarded); **`windExceedance`** — maximal runs over caller-owned
+  ceilings (`AnalyzeOptions.windCeilings`, NO defaults anywhere,
+  per-gust-semantics-class ceilings never reused across classes: the
+  gap measured a factor ~1.8–2.8 at matched means); **`windDirection`**
+  (deterministic only — published direction percentiles are not
+  circular statistics): start/peak-lift/end samples, vector means,
+  net veer (never accumulated rotation: 206° of pure jitter measured
+  on one light-wind day), 1.0 m/s floor with the measured 0.5 m/s
+  cliff recorded; **`bandShear`** — max layer-shear rate with
+  mandatory layer bounds and a light-wind endpoint relation, analyze
+  only, never compared (rates measured incomparable across level
+  densities: median 0.41× under subsampling).
+- **compare speaks wind and sensitivity**: `windDivergence` (band-wind
+  roster with mandatory model-elevation echoes; gust classes never
+  pooled; undeclared gusts roster without a spread; no shear, ever),
+  `windDirectionSpread` (deterministic members, circular separation,
+  the max pair carries both elevations), `sensitivity` on
+  windowAgreement (the smallest threshold move that flips a voter —
+  the 0.8-vs-0.9 split is now a statement), WindowVote's
+  `minimalPassingPercentile`, and heightSpread's
+  `bandP10P90AboveLaunchM` (context only — 57 of 61 live
+  deterministic peaks sat ABOVE the band; never an outlier detector).
+- **terrainMismatch carries the p90 lift-top max** so an ensemble's
+  bench is checkable at the band's top; `AnalyzeThresholdOverrides`
+  is the honest public type for per-kind partial overrides.
+- The contract's gust-semantics note carries the measured class gap
+  (~1.8–2.8× at matched light mountain means, one region one week)
+  beside its original ~20–30% figure.
+
 ## [0.20.1] - 2026-08-10
 
 `windgram` (npm and JSR) 0.20.1 — a finding can no longer contradict

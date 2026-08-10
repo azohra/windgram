@@ -1,6 +1,6 @@
 {
   "name": "@azohra/windgram",
-  "version": "0.20.1",
+  "version": "0.21.0",
   "license": "MIT",
   "exports": {
     "./contract": "./src/contract/index.ts",
