@@ -111,6 +111,32 @@ describe("the smoke strip", () => {
     ).toBe(profile.hours[0].derived.thermalVelocityMs);
   });
 
+  it("declares no adjustment when the sun is down through the smoky hours", () => {
+    // Same smoke, same request — but at this longitude the profile's hours
+    // are local night, so the zenith-aware transmittance is 1 everywhere
+    // and the correction changes nothing. The label must not pretend it did.
+    const profile = tinySceneProfile();
+    profile.site.longitude = 60;
+    const smoke = smokeDocumentFor(profile.hours.map((hour) => hour.validAt));
+    const base = buildScene(profile, { ...OPTIONS, smoke });
+    const adjusted = buildScene(profile, { ...OPTIONS, smoke, smokeAdjusted: true });
+
+    expect(adjusted.smokeAdjustment).toBeNull();
+    expect(JSON.stringify(adjusted.strips)).toBe(JSON.stringify(base.strips));
+    expect(JSON.stringify(adjusted.series)).toBe(JSON.stringify(base.series));
+  });
+
+  it("declares no adjustment when there is nothing to derate", () => {
+    // Sun up, smoke thick — but every hour's w* is zero and no envelope
+    // rides it, so × ∛f leaves the scene untouched.
+    const profile = tinySceneProfile();
+    for (const hour of profile.hours) hour.derived.thermalVelocityMs = 0;
+    const smoke = smokeDocumentFor(profile.hours.map((hour) => hour.validAt));
+    const adjusted = buildScene(profile, { ...OPTIONS, smoke, smokeAdjusted: true });
+
+    expect(adjusted.smokeAdjustment).toBeNull();
+  });
+
   it("reports the drawn smoke in cursor readings, so tooltips match pixels", () => {
     const profile = tinySceneProfile();
     profile.hours[0].smoke = { surfaceUgm3: 184.6, columnMgm2: 228.2, aot: 1.018 };

@@ -6,7 +6,7 @@
   "lesson": "Smoke optical depth climbs through a convective afternoon while the smoke-blind model keeps its heat fluxes and w* strong \u2014 the gap a smoke-adjusted reading corrects.",
   "kind": "deterministic",
   "modelShape": "hourly-rich",
-  "timeZone": "Etc/UTC",
+  "timeZone": "America/Vancouver",
   "site": {
     "id": "synthetic-smoke-ridge",
     "name": "Synthetic Smoke Ridge",
@@ -17,9 +17,9 @@
     "modelElevationM": 900
   },
   "clock": {
-    "referenceTime": "2000-01-01T06:00:00Z",
-    "generatedAt": "2000-01-01T06:00:00Z",
-    "startAt": "2000-01-01T10:00:00Z",
+    "referenceTime": "2000-08-01T12:00:00Z",
+    "generatedAt": "2000-08-01T12:00:00Z",
+    "startAt": "2000-08-01T17:00:00Z",
     "stepHours": 1,
     "hourCount": 10,
     "seed": 14002

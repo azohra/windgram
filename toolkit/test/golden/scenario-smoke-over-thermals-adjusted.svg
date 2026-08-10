@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 624" role="img" aria-label="Windgram for Synthetic Smoke Ridge, model smoke-over-thermals, 2000-01-01 10:00 to 19:00 (Etc/UTC): surface metric strips above a time-height field; derived series, isotherms, shading overlays and winds aloft are drawn over the profile." class="wg">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 624" role="img" aria-label="Windgram for Synthetic Smoke Ridge, model smoke-over-thermals, 2000-08-01 10:00 to 19:00 (America/Vancouver): surface metric strips above a time-height field; derived series, isotherms, shading overlays and winds aloft are drawn over the profile." class="wg">
 <style>
 .wg text { font-family: var(--wg-font, "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif); }
 .wg .wg-mono { font-family: var(--wg-font-mono, "IBM Plex Mono", ui-monospace, monospace); }
@@ -166,16 +166,16 @@
 <text x="52" y="132" text-anchor="end" class="wg-strip-unit">%</text>
 <rect x="60" y="140" width="440" height="25" class="wg-strip-frame" stroke-width="0.7"/>
 <line x1="60" y1="152.5" x2="500" y2="152.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
-<rect x="60" y="140" width="44" height="25" class="wg-smoke-cell"/>
-<rect x="104" y="140" width="44" height="25" class="wg-smoke-cell"/>
-<rect x="148" y="140" width="44" height="25" class="wg-smoke-cell"/>
-<rect x="192" y="140" width="44" height="25" class="wg-smoke-cell"/>
-<rect x="236" y="140" width="44" height="25" class="wg-smoke-cell"/>
-<rect x="280" y="140" width="44" height="25" class="wg-smoke-cell"/>
-<rect x="324" y="140" width="44" height="25" class="wg-smoke-cell"/>
-<rect x="368" y="140" width="44" height="25" class="wg-smoke-cell"/>
-<rect x="412" y="140" width="44" height="25" class="wg-smoke-cell"/>
-<rect x="456" y="140" width="44" height="25" class="wg-smoke-cell"/>
+<rect x="60" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.05"/>
+<rect x="104" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.07"/>
+<rect x="148" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.12"/>
+<rect x="192" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.2"/>
+<rect x="236" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.32"/>
+<rect x="280" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.45"/>
+<rect x="324" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.58"/>
+<rect x="368" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.68"/>
+<rect x="412" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.73"/>
+<rect x="456" y="140" width="44" height="25" class="wg-smoke-cell" opacity="0.7"/>
 <path d="M60,163.92 C63.67,163.92 71,164.01 82,163.92 C93,163.83 111.33,163.65 126,163.38 C140.67,163.11 155.33,163.04 170,162.3 C184.67,161.55 199.33,160.27 214,158.92 C228.67,157.57 243.33,155.88 258,154.19 C272.67,152.5 287.33,150.47 302,148.78 C316.67,147.09 331.33,145.29 346,144.05 C360.67,142.82 375.33,142.03 390,141.35 C404.67,140.68 419.33,139.89 434,140 C448.67,140.11 467,141.69 478,142.03 C489,142.36 496.33,142.03 500,142.03 L500.00,165 L60.00,165 Z" class="wg-strip-smoke-area" opacity="0.3"/>
 <path d="M60,163.92 C63.67,163.92 71,164.01 82,163.92 C93,163.83 111.33,163.65 126,163.38 C140.67,163.11 155.33,163.04 170,162.3 C184.67,161.55 199.33,160.27 214,158.92 C228.67,157.57 243.33,155.88 258,154.19 C272.67,152.5 287.33,150.47 302,148.78 C316.67,147.09 331.33,145.29 346,144.05 C360.67,142.82 375.33,142.03 390,141.35 C404.67,140.68 419.33,139.89 434,140 C448.67,140.11 467,141.69 478,142.03 C489,142.36 496.33,142.03 500,142.03" class="wg-strip-smoke" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
 <text x="52" y="151" text-anchor="end" class="wg-strip-name">Smoke</text>
@@ -184,8 +184,8 @@
 <text x="508" y="165" class="wg-strip-scale wg-mono">0</text>
 <rect x="60" y="170" width="440" height="25" class="wg-strip-frame" stroke-width="0.7"/>
 <line x1="60" y1="182.5" x2="500" y2="182.5" class="wg-gridline" stroke-width="0.6" stroke-dasharray="2 4" opacity="0.45"/>
-<path d="M60,195 C63.67,195 71,195 82,195 C93,195 111.33,195 126,195 C140.67,195 155.33,195.65 170,195 C184.67,194.35 199.33,194 214,191.08 C228.67,188.17 243.33,180.85 258,177.5 C272.67,174.15 287.33,170.93 302,171 C316.67,171.07 331.33,173.92 346,177.92 C360.67,181.92 375.33,192.15 390,195 C404.67,197.85 419.33,195 434,195 C448.67,195 467,195 478,195 C489,195 496.33,195 500,195 L500.00,195 L60.00,195 Z" class="wg-strip-thermalStrength-area" opacity="0.3"/>
-<path d="M60,195 C63.67,195 71,195 82,195 C93,195 111.33,195 126,195 C140.67,195 155.33,195.65 170,195 C184.67,194.35 199.33,194 214,191.08 C228.67,188.17 243.33,180.85 258,177.5 C272.67,174.15 287.33,170.93 302,171 C316.67,171.07 331.33,173.92 346,177.92 C360.67,181.92 375.33,192.15 390,195 C404.67,197.85 419.33,195 434,195 C448.67,195 467,195 478,195 C489,195 496.33,195 500,195" class="wg-strip-thermalStrength" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M60,195 C63.67,195 71,195 82,195 C93,195 111.33,195 126,195 C140.67,195 155.33,195.63 170,195 C184.67,194.37 199.33,193.98 214,191.2 C228.67,188.42 243.33,181.42 258,178.34 C272.67,175.26 287.33,172.5 302,172.72 C316.67,172.94 331.33,175.97 346,179.68 C360.67,183.4 375.33,192.45 390,195 C404.67,197.55 419.33,195 434,195 C448.67,195 467,195 478,195 C489,195 496.33,195 500,195 L500.00,195 L60.00,195 Z" class="wg-strip-thermalStrength-area" opacity="0.3"/>
+<path d="M60,195 C63.67,195 71,195 82,195 C93,195 111.33,195 126,195 C140.67,195 155.33,195.63 170,195 C184.67,194.37 199.33,193.98 214,191.2 C228.67,188.42 243.33,181.42 258,178.34 C272.67,175.26 287.33,172.5 302,172.72 C316.67,172.94 331.33,175.97 346,179.68 C360.67,183.4 375.33,192.45 390,195 C404.67,197.55 419.33,195 434,195 C448.67,195 467,195 478,195 C489,195 496.33,195 500,195" class="wg-strip-thermalStrength" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
 <text x="52" y="181" text-anchor="end" class="wg-strip-name">w*</text>
 <text x="52" y="192" text-anchor="end" class="wg-strip-unit">m/s</text>
 <text x="508" y="178" class="wg-strip-scale wg-mono">3</text>
@@ -273,8 +273,8 @@
 <path d="M82,569.14 C89.33,568.85 111.33,568.11 126,567.37 C140.67,566.63 155.33,566.63 170,564.72 C184.67,562.8 199.33,574.31 214,555.86 C228.67,537.41 243.33,491.65 258,454.01 C272.67,416.37 287.33,335.93 302,330.02 C316.67,324.12 331.33,380.95 346,418.59 C360.67,456.23 375.33,531.5 390,555.86 C404.67,580.21 419.33,562.5 434,564.72 C448.67,566.93 470.67,568.41 478,569.14" class="wg-series-pbl" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="3 3"/>
 <path d="M82,544.96 C89.33,542.21 111.33,536.25 126,528.48 C140.67,520.7 155.33,512.43 170,498.32 C184.67,484.2 199.33,467.23 214,443.79 C228.67,420.35 243.33,381.83 258,357.69 C272.67,333.54 287.33,301.15 302,298.94 C316.67,296.73 331.33,320.25 346,344.4 C360.67,368.55 375.33,416.63 390,443.86 C404.67,471.08 419.33,491.82 434,507.74 C448.67,523.67 470.67,534.13 478,539.4" class="wg-halo" fill="none" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 5"/>
 <path d="M82,544.96 C89.33,542.21 111.33,536.25 126,528.48 C140.67,520.7 155.33,512.43 170,498.32 C184.67,484.2 199.33,467.23 214,443.79 C228.67,420.35 243.33,381.83 258,357.69 C272.67,333.54 287.33,301.15 302,298.94 C316.67,296.73 331.33,320.25 346,344.4 C360.67,368.55 375.33,416.63 390,443.86 C404.67,471.08 419.33,491.82 434,507.74 C448.67,523.67 470.67,534.13 478,539.4" class="wg-series-cloud-base" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 5"/>
-<path d="M258,428.97 C265.33,418.46 287.33,367.7 302,365.92 C316.67,364.14 338.67,409.57 346,418.3" class="wg-halo" fill="none" stroke-width="4.1" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M258,428.97 C265.33,418.46 287.33,367.7 302,365.92 C316.67,364.14 338.67,409.57 346,418.3" class="wg-series-usable" fill="none" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M258,430.05 C265.33,419.67 287.33,369.33 302,367.78 C316.67,366.23 338.67,411.92 346,420.75" class="wg-halo" fill="none" stroke-width="4.1" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M258,430.05 C265.33,419.67 287.33,369.33 302,367.78 C316.67,366.23 338.67,411.92 346,420.75" class="wg-series-usable" fill="none" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M82,409.18 C89.33,407.79 111.33,404.04 126,400.87 C140.67,397.7 155.33,393.2 170,390.16 C184.67,387.12 199.33,391.46 214,382.64 C228.67,373.82 243.33,343.77 258,337.22 C272.67,330.66 287.33,343.77 302,343.31 C316.67,342.85 331.33,336.33 346,334.45 C360.67,332.57 375.33,326.56 390,332.04 C404.67,337.51 419.33,355.5 434,367.31 C448.67,379.11 470.67,396.96 478,402.89" class="wg-halo" fill="none" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 3 1 3"/>
 <path d="M82,409.18 C89.33,407.79 111.33,404.04 126,400.87 C140.67,397.7 155.33,393.2 170,390.16 C184.67,387.12 199.33,391.46 214,382.64 C228.67,373.82 243.33,343.77 258,337.22 C272.67,330.66 287.33,343.77 302,343.31 C316.67,342.85 331.33,336.33 346,334.45 C360.67,332.57 375.33,326.56 390,332.04 C404.67,337.51 419.33,355.5 434,367.31 C448.67,379.11 470.67,396.96 478,402.89" class="wg-isotherm wg-isotherm-freezing" fill="none" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 3 1 3"/>
 <path d="M82,562.82 C89.33,563.87 111.33,576.21 126,569.14 C140.67,562.08 155.33,531.5 170,520.43 C184.67,509.36 199.33,511.79 214,502.72 C228.67,493.65 243.33,475.5 258,466.01 C272.67,456.53 287.33,447.71 302,445.79 C316.67,443.87 331.33,451.63 346,454.48 C360.67,457.32 375.33,457.1 390,462.87 C404.67,468.64 419.33,470.88 434,489.09 C448.67,507.29 470.67,558.26 478,572.1" class="wg-halo" fill="none" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -282,7 +282,7 @@
 <path d="M258,563.64 C265.33,558.83 287.33,537.46 302,534.77 C316.67,532.09 338.67,545.39 346,547.51" class="wg-halo" fill="none" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M258,563.64 C265.33,558.83 287.33,537.46 302,534.77 C316.67,532.09 338.67,545.39 346,547.51" class="wg-isotherm" fill="none" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
 <g transform="translate(302 298.94)"><path d="M-7 2.5h14a3.2 3.2 0 0 0-.6-6.3A5 5 0 0 0-3-5a4 4 0 0 0-4 4 3 3 0 0 0 0 3.5Z" class="wg-marker-halo" stroke-width="2.4"/><path d="M-7 2.5h14a3.2 3.2 0 0 0-.6-6.3A5 5 0 0 0-3-5a4 4 0 0 0-4 4 3 3 0 0 0 0 3.5Z" class="wg-marker-cloud" stroke-width="0.6"/></g>
-<g transform="translate(302 365.92)"><path d="M-9-1.6Q0-9.6 9-1.6Q8.1-.7 7.2-1.1Q0-6.2-7.2-1.1Q-8.1-.7-9-1.6ZM-6-2.2L-.4 3.6.2 3.1-5.3-2.6ZM6-2.2L.4 3.6-.2 3.1 5.3-2.6ZM0 2.8a1.5 1.5 0 1 0 .01 0Z" class="wg-marker-halo" stroke-width="2.4"/><path d="M-9-1.6Q0-9.6 9-1.6Q8.1-.7 7.2-1.1Q0-6.2-7.2-1.1Q-8.1-.7-9-1.6ZM-6-2.2L-.4 3.6.2 3.1-5.3-2.6ZM6-2.2L.4 3.6-.2 3.1 5.3-2.6ZM0 2.8a1.5 1.5 0 1 0 .01 0Z" class="wg-marker-wing" stroke-width="0.6"/></g>
+<g transform="translate(302 367.78)"><path d="M-9-1.6Q0-9.6 9-1.6Q8.1-.7 7.2-1.1Q0-6.2-7.2-1.1Q-8.1-.7-9-1.6ZM-6-2.2L-.4 3.6.2 3.1-5.3-2.6ZM6-2.2L.4 3.6-.2 3.1 5.3-2.6ZM0 2.8a1.5 1.5 0 1 0 .01 0Z" class="wg-marker-halo" stroke-width="2.4"/><path d="M-9-1.6Q0-9.6 9-1.6Q8.1-.7 7.2-1.1Q0-6.2-7.2-1.1Q-8.1-.7-9-1.6ZM-6-2.2L-.4 3.6.2 3.1-5.3-2.6ZM6-2.2L.4 3.6-.2 3.1 5.3-2.6ZM0 2.8a1.5 1.5 0 1 0 .01 0Z" class="wg-marker-wing" stroke-width="0.6"/></g>
 <g transform="translate(82 567.38) rotate(130) scale(0.85)"><path d="M0 5 L0 -20 M0 -17.8 L4.5 -15.4" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -17.8 L4.5 -15.4" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
 <g transform="translate(82 538.15) rotate(150) scale(0.85)"><path d="M0 5 L0 -20 M0 -17.8 L4.5 -15.4" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -17.8 L4.5 -15.4" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>
 <g transform="translate(82 502.72) rotate(165) scale(0.85)"><path d="M0 5 L0 -20 M0 -20 L8 -15.6" class="wg-barb-halo" stroke-width="2.6" fill="none" stroke-linecap="round"/><path d="M0 5 L0 -20 M0 -20 L8 -15.6" class="wg-barb" stroke-width="1.3" fill="none" stroke-linecap="round"/></g>

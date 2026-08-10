@@ -148,6 +148,16 @@ exactly match, like gust. Assertions can reference `smoke.surfaceUgm3`,
 `smoke.columnMgm2`, and `smoke.aot`; the `smoke-over-thermals` recipe is
 the working example.
 
+A smoke recipe's clock is physics, not convention. The smoke-adjusted
+view derives slant-path transmittance from the sun's position at the
+site coordinates and each hour's `validAt`, so the smoky convective
+hours must be genuinely daytime at the site's longitude, in a plausible
+fire season — `smoke-over-thermals` runs an August afternoon in
+`America/Vancouver` for exactly this reason. A clock that puts the
+thermals at local night makes the adjustment a silent no-op: the
+correction correctly finds no sun to attenuate, and the "adjusted" view
+renders identical to the base.
+
 ## Author source changes
 
 The transform vocabulary is closed. It supports surface-field

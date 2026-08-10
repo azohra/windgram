@@ -9,7 +9,13 @@ import {
 } from "../../lib/labs";
 import { scenarioById } from "../../lib/scenarios";
 
-const scenario = scenarioById("cloud-base-limits-lift");
+/* gusts-after-heating, deliberately: its column holds both regimes at
+   once — the midday hours stay cloud-base-capped at any sink rate while
+   the shoulder hours are sink-limited — so the slider visibly moves what
+   it can move and visibly cannot move what cloud base owns. (The
+   cloud-base-limits-lift scenario is capped at EVERY hour, which pins
+   the line across the whole slider range — a dead control.) */
+const scenario = scenarioById("gusts-after-heating");
 const source: LabScenarioSource = {
   profile: scenario.profile,
   timeZone: scenario.timeZone,
@@ -22,8 +28,8 @@ const { scene: initialScene, svg: initialSvg } = renderUsableLiftChart(source, i
 <Figure
   id="usable-lift-lab"
   title="What stops usable lift first?"
-  lesson="Change only sink rate while the atmospheric column, parcel top, and cloud base remain fixed."
-  description="An interactive windgram applying the package's parameterized usable-lift derivation to a cloud-limited column."
+  lesson="Change only sink rate while the atmospheric column, parcel top, and cloud base remain fixed: some hours answer 'cloud base', others answer 'your sink rate' — and the slider moves the boundary between them."
+  description="An interactive windgram applying the package's parameterized usable-lift derivation to a convective column whose hours trade between the cloud-base cap and the sink-rate limit."
   caption="The control invokes windgram/derive usableLiftTopM for every hour; the same sink-rate option rebuilds the package scene."
   units="sink m/s · height m MSL · time UTC"
   {scenario}
@@ -73,9 +79,10 @@ const { scene: initialScene, svg: initialSvg } = renderUsableLiftChart(source, i
       />
     </div>
     <p class="wg-lab__conclusion">
-      <strong>Conclusion.</strong> In this controlled column, cloud base caps the derived usable top
-      across a broad range of sink rates; at sufficiently large sink rates, some hours have no
-      derived usable top at all.
+      <strong>Conclusion.</strong> The strongest midday hours are cloud-base-capped: no sink rate the
+      slider offers moves them, because condensation stops the climb before the glider does. The
+      shoulder hours are sink-limited: raising the sink rate pulls their usable top down and finally
+      erases them. One derivation, two regimes — and the slider walks each hour across the boundary.
     </p>
   </div>
 

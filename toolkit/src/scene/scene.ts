@@ -265,12 +265,16 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
      whose fluxes already feel smoke (semantics.smoke
      "radiativelyCoupled"): the request quietly no-ops and
      smokeAdjustment stays null, which is the renderer's signal that the
-     base picture is already smoke-aware. On ensembles the medians and
-     the w* envelope scale (quantile-safe: × ∛f is monotone); the
-     lift-top envelope cannot be re-derived from percentiles alone, so
-     it drops rather than lies. */
+     base picture is already smoke-aware. The label is set only when at
+     least one hour actually changed — a correction that touched nothing
+     (sun below the horizon through the smoky hours, or w* zero wherever
+     it is not) must not be announced, or the "adjusted" panel lies. On
+     ensembles the medians and the w* envelope scale (quantile-safe:
+     × ∛f is monotone); the lift-top envelope cannot be re-derived from
+     percentiles alone, so it drops rather than lies. */
   let smokeAdjustment: SceneGraph["smokeAdjustment"] = null;
   if (options.smokeAdjusted && smokeSource && !isSmokeAwareProfile(profile)) {
+    let adjustedAnHour = false;
     hours = hours.map((hour, index) => {
       const entry = smokeSeries[index];
       if (!entry || entry.aot <= 0) return hour;
@@ -279,12 +283,22 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
         cosSolarZenith(hour.validAt, profile.site.latitude, profile.site.longitude),
       );
       if (transmittance >= 1) return hour;
+      const wBand = hour.bands.thermalVelocityMs;
+      /* A still hour has nothing to derate: w* is zero (× ∛f keeps it
+         zero) and no envelope rides it, so any transmittance leaves it
+         untouched — and it must not count as an adjustment. */
+      if (
+        hour.derived.thermalVelocityMs <= 0 &&
+        wBand === null &&
+        hour.bands.usableLiftTopM === null
+      )
+        return hour;
+      adjustedAnHour = true;
       const adjustedW = smokeAdjustedThermalVelocityMs(
         hour.derived.thermalVelocityMs,
         transmittance,
       );
       const scale = Math.cbrt(transmittance);
-      const wBand = hour.bands.thermalVelocityMs;
       return {
         ...hour,
         derived: {
@@ -307,7 +321,9 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
         },
       };
     });
-    smokeAdjustment = { smokeModel: smokeSource.model, smokeRun: smokeSource.referenceTime };
+    if (adjustedAnHour) {
+      smokeAdjustment = { smokeModel: smokeSource.model, smokeRun: smokeSource.referenceTime };
+    }
   }
   const smooth = options.smooth !== false;
   const capeClasses = options.capeClasses ?? DEFAULT_CAPE_CLASSES;

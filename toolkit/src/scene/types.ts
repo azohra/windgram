@@ -223,9 +223,12 @@ export interface SceneOptions {
    * series, and the best-hour pick. The stored document never changes;
    * this is a read-time re-derivation, and the graph declares it in
    * `smokeAdjustment` — WHICH RENDERERS MUST LABEL. Quietly no-ops
-   * (smokeAdjustment stays null) when there is no smoke data or the
+   * (smokeAdjustment stays null) when there is no smoke data, when the
    * profile's fluxes are already smoke-aware (semantics.smoke
-   * "radiativelyCoupled" — deriving again would double-count). Scope:
+   * "radiativelyCoupled" — deriving again would double-count), or when
+   * the correction changes no hour at all (sun below the horizon
+   * through the smoky hours, or nothing to derate where it is up) — a
+   * label over an unchanged picture would lie. Scope:
    * boundary-layer depth and cloud base are NOT re-derived, so the
    * adjusted view is a partial correction, still optimistic in heavy
    * smoke.

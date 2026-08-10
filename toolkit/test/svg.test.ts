@@ -167,6 +167,16 @@ describe("renderSvg structure", () => {
     expect(science).toContain('class="wg-series-pbl"');
   });
 
+  it("carries a strip cell's data-driven opacity into the markup", () => {
+    // The smoke haze claims "tint = τ": the scene grades each cell's
+    // opacity by optical depth, and the serializer must write it — a
+    // dropped attribute renders every τ at the same constant CSS tint.
+    const profile = deterministicSceneProfile();
+    profile.hours[0].smoke = { surfaceUgm3: 184.6, columnMgm2: 228.2, aot: 1.018 };
+    const svg = renderSvg(buildScene(profile, TZ), { stylesheet: null });
+    expect(svg).toContain('class="wg-smoke-cell" opacity="0.34"');
+  });
+
   it("adds no science markup for a profile without the fields", () => {
     // The overlays default on; a pre-wave document must not grow chrome.
     // (stylesheet: null — the default <style> block names every class.)

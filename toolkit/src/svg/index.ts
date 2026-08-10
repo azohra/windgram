@@ -148,18 +148,19 @@ export function renderSvg(scene: SceneGraph, options: RenderSvgOptions = {}): st
         opacity: 0.45,
       }),
     );
-    // Classed hour cells (CAPE risk classes) sit under band, area and line.
+    // Classed hour cells (CAPE risk classes, smoke haze) sit under band,
+    // area and line; data-driven opacity (smoke's tint = τ) rides along.
     for (const cell of strip.cells ?? []) {
       if (!cell) continue;
-      body.push(
-        el("rect", {
-          x: short(cell.x),
-          y: strip.top,
-          width: short(cell.width),
-          height: strip.height,
-          class: cell.className,
-        }),
-      );
+      const attrs: Record<string, AttrValue> = {
+        x: short(cell.x),
+        y: strip.top,
+        width: short(cell.width),
+        height: strip.height,
+        class: cell.className,
+      };
+      if (cell.opacity !== undefined) attrs["opacity"] = short(cell.opacity);
+      body.push(el("rect", attrs));
     }
     // Stacked sub-rows (cloud layers): opacity-graded cells plus a
     // one-letter row tag at the strip's right edge.

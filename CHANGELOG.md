@@ -4,6 +4,44 @@ Notable repository and `windgram` package changes are recorded here. Dataset
 schema, npm package, and Python pipeline versions are independent; each release
 entry names the versions it actually changes.
 
+## [Unreleased]
+
+`windgram` (npm and JSR) fixes plus scenario and site repairs: every
+interactive teaching control now visibly moves what it claims to move.
+
+### Fixed
+
+- The SVG serializer carries a strip cell's data-driven `opacity` into
+  the markup. The smoke strip's "haze tint = τ" was graded in the scene
+  but dropped at serialization, so every optical depth rendered at the
+  same constant CSS tint — the smoke lab's slider changed almost nothing
+  visible.
+- `buildScene` declares `scene.smokeAdjustment` only when the adjustment
+  actually changed at least one hour. Previously the label was set on
+  entering the branch, so a correction that touched nothing (sun below
+  the horizon through the smoky hours, or w* zero wherever it was up)
+  still labeled the panel "smoke-adjusted" over a byte-identical render.
+- The `smoke-over-thermals` scenario runs a real afternoon: August 1,
+  `America/Vancouver`, hours 10:00–19:00 local at its own longitude. As
+  authored (January 1, 10:00–19:00 UTC at −121.8°) every convective hour
+  was local night, the zenith-aware transmittance correctly returned 1,
+  and the smoke-adjusted view — the scenario's whole lesson — was
+  byte-identical to the base. The authoring guide now states the rule: a
+  smoke recipe's clock is physics, not convention.
+- The usable-lift laboratory teaches on `gusts-after-heating`, whose
+  column holds both regimes — midday hours cloud-base-capped at any sink
+  rate, shoulder hours sink-limited — so the sink slider visibly moves
+  what it can and visibly cannot move what cloud base owns. It taught on
+  `cloud-base-limits-lift`, capped at every hour, which pinned the line
+  across the slider's entire range.
+
+### Added
+
+- Control-sensitivity guards (`site/test/labs.spec.ts`): every
+  laboratory control is driven across its range in the built site, and
+  the test fails when the mounted chart (or readout, for the
+  readout-only timing lens) does not respond.
+
 ## [0.15.0] - 2026-08-10
 
 `windgram` (npm and JSR) 0.15.0 · `windgram` Python pipeline 0.4.0.
