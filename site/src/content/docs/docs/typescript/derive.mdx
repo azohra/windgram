@@ -129,28 +129,39 @@ named, cited claims (`SMOKE_MASS_EXTINCTION_M2_PER_G` — Reid et al.
 2005; `SMOKE_TRANSMITTANCE_K_MIDDAY` / `K_VERTICAL` — Donaldson 2021,
 Chubarova 2012, McKendry 2019):
 
-```ts
+```ts title="smoke-adjusted-w.ts"
+import type { SmokeDocument, WindgramProfile } from "windgram/contract";
 import {
   cosSolarZenith,
   isSmokeAwareProfile,
+  p50,
   smokeAdjustedThermalVelocityMs,
   smokeAotFromColumn,
   smokeHoursByValidAt,
   smokeTransmittance,
 } from "windgram/derive";
 
-if (!isSmokeAwareProfile(profile)) {
-  const smokeByHour = smokeHoursByValidAt(smokeDocument);
-  const hour = profile.hours[i];
-  const joined = smokeByHour.get(hour.validAt);
-  if (joined) {
-    const aot = smokeAotFromColumn(p50(joined.smokePlumeColumnMgm2)!);
-    const f = smokeTransmittance(
-      aot,
-      cosSolarZenith(hour.validAt, profile.site.latitude, profile.site.longitude),
-    );
-    const adjusted = smokeAdjustedThermalVelocityMs(p50(hour.derived.thermalVelocityMs)!, f);
-  }
+export function adjustedWStar(
+  profile: WindgramProfile,
+  smoke: SmokeDocument,
+  hourIndex: number,
+): number | null {
+  // Already smoke-aware (HRRR): the published w* includes the model's own
+  // smoke attenuation, and derating it again would double-count.
+  if (isSmokeAwareProfile(profile)) return null;
+  const hour = profile.hours[hourIndex];
+  const joined = hour && smokeHoursByValidAt(smoke).get(hour.validAt);
+  if (!hour || !joined) return null;
+
+  const columnMgm2 = p50(joined.smokePlumeColumnMgm2);
+  const wStar = p50(hour.derived.thermalVelocityMs);
+  if (columnMgm2 === null || wStar === null) return null;
+
+  const transmittance = smokeTransmittance(
+    smokeAotFromColumn(columnMgm2),
+    cosSolarZenith(hour.validAt, profile.site.latitude, profile.site.longitude),
+  );
+  return smokeAdjustedThermalVelocityMs(wStar, transmittance);
 }
 ```
 
