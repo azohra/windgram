@@ -6,10 +6,21 @@ entry names the versions it actually changes.
 
 ## [Unreleased]
 
-Dataset hosting only — no schema, npm package, or derivation change.
+Dataset hosting, plus `windgram` marker rendering — no schema or
+derivation change.
 
 ### Changed
 
+- Coincident derived-height markers render as one symbol: cloud glyphs
+  draw before wings, so a wing sharing the hour is never buried under
+  the cloud, and a wing at the cloud's own height (the contract caps
+  `usableLiftTopM` at `cloudBaseM`, so lift reaching base puts both
+  lines on one point) tucks just below the cloud glyph — canopy
+  overlapping the cloud's lower body, wing in front — carrying
+  `atCloudBase` on its `SceneMarker`.
+- The wing marker glyph is a paraglider read whole — canopy arc,
+  suspension lines, pilot pod — replacing the bare crescent, which
+  disappeared entirely under a coincident cloud.
 - The published dataset moved out of git to public object storage: model
   manifests, current profiles, history archives, and `runs.json` are served
   from <https://data.meteo.azohra.com>, with the authored catalogues
@@ -26,6 +37,11 @@ Dataset hosting only — no schema, npm package, or derivation change.
 
 ### Removed
 
+- `MarkerTrainStride.offset` — the phase control existed to shift marker
+  trains apart so coincident glyphs would not stack, and the scene now
+  renders coincidence itself; the workaround surface goes with the
+  workaround. Breaking for callers passing `{ every, offset }`; the
+  `{ every }` object and bare-number forms are unchanged.
 - The scheduled workflow's commit-and-rebase publishing machinery
   (`.github/scripts/commit-data.sh`); the run index converges by
   regeneration from the published manifests instead.

@@ -318,14 +318,13 @@ export interface SceneOptions {
    * Marker trains along the derived-height lines. Absent (default), each
    * line carries exactly one glyph at the selected hour — today's look.
    * A bare number draws the glyph every n hours along its line, anchored
-   * so the selected hour is among them; the object form adds a phase —
-   * `{ every: 2, offset: 1 }` shifts the train off that anchor, so trains
-   * on lines that can coincide take alternating hours. They CAN coincide:
-   * the contract caps `usableLiftTopM` at `cloudBaseM`, so wherever lift
-   * reaches base the two lines share coordinates by definition and
-   * same-phase glyphs stack — a cloud with no wing under it means "lift
-   * to base", not a missing marker. Each train rides its line's own
-   * overlay toggle.
+   * so the selected hour is among them (`{ every: n }` says the same).
+   * Trains CAN land on the same hour at the same height: the contract
+   * caps `usableLiftTopM` at `cloudBaseM`, so wherever lift reaches base
+   * the two lines share coordinates by definition. The scene renders
+   * that coincidence itself — the wing tucks just below the cloud and
+   * carries `atCloudBase` (see SceneMarker) — so trains never need to be
+   * phased apart. Each train rides its line's own overlay toggle.
    */
   markerStride?: {
     cloudBase?: number | MarkerTrainStride;
@@ -538,6 +537,14 @@ export interface SceneMarker {
   x: number;
   y: number;
   path: string;
+  /**
+   * True on a wing whose hour also carries a cloud glyph at the same
+   * height — usable lift reached cloud base. `y` is then tucked slightly
+   * below the cloud's, canopy overlapping its lower body (the pair reads
+   * as one symbol: wing in front, cloud rising behind); the usable-lift
+   * line itself still marks the height.
+   */
+  atCloudBase?: boolean;
 }
 
 /**
@@ -553,12 +560,10 @@ export interface GustMark {
   label: string;
 }
 
-/** A marker train's step and phase (see SceneOptions.markerStride). */
+/** A marker train's step (see SceneOptions.markerStride). */
 export interface MarkerTrainStride {
   /** Draw a glyph every this many hours along the line. */
   every: number;
-  /** Hours to shift the train off the selected-hour anchor. Default 0. */
-  offset?: number;
 }
 
 /**

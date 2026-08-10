@@ -192,31 +192,56 @@ describe("markerStride", () => {
     expect(clouds.some((marker) => marker.x === selectedX)).toBe(true);
   });
 
-  it("a phase offset shifts a train off the selected-hour anchor so coincident lines alternate", () => {
-    // Lift is capped at cloud base by contract, so same-phase trains can
-    // stack glyphs; offset phases take alternating hours.
-    const scene = buildScene(deterministicSceneProfile(), {
+  it("the object form { every: n } and the bare number say the same thing", () => {
+    const object = buildScene(deterministicSceneProfile(), {
       ...TZ,
-      markerStride: { cloudBase: 2, usableLiftTop: { every: 2, offset: 1 } },
-    });
-    const cloudXs = new Set(
-      scene.markers.filter((marker) => marker.kind === "cloud").map((marker) => marker.x),
-    );
-    const wingXs = scene.markers
-      .filter((marker) => marker.kind === "wing")
-      .map((marker) => marker.x);
-    expect(wingXs.length).toBeGreaterThan(0);
-    for (const x of wingXs) expect(cloudXs.has(x)).toBe(false);
-    // The bare-number form still anchors on the selected hour.
-    const anchored = buildScene(deterministicSceneProfile(), {
-      ...TZ,
-      markerStride: { usableLiftTop: { every: 2, offset: 0 } },
+      markerStride: { usableLiftTop: { every: 2 } },
     });
     const bare = buildScene(deterministicSceneProfile(), {
       ...TZ,
       markerStride: { usableLiftTop: 2 },
     });
-    expect(JSON.stringify(anchored.markers)).toBe(JSON.stringify(bare.markers));
+    expect(JSON.stringify(object.markers)).toBe(JSON.stringify(bare.markers));
+  });
+
+  it("pushes clouds before wings so a coincident wing draws over, never under", () => {
+    const scene = buildScene(deterministicSceneProfile(), {
+      ...TZ,
+      markerStride: { cloudBase: 1, usableLiftTop: 1 },
+    });
+    const kinds = scene.markers.map((marker) => marker.kind);
+    expect(kinds.lastIndexOf("cloud")).toBeLessThan(kinds.indexOf("wing"));
+  });
+
+  it("a wing coincident with a cloud tucks below it and says so", () => {
+    // The contract caps usableLiftTopM at cloudBaseM, so same-phase trains
+    // land glyphs on the same point wherever lift reaches base; the pair
+    // renders as one symbol — cloud with the wing tucked under it —
+    // instead of the cloud burying the wing.
+    const profile = deterministicSceneProfile();
+    for (const hour of profile.hours) hour.derived.usableLiftTopM = hour.derived.cloudBaseM;
+    const scene = buildScene(profile, {
+      ...TZ,
+      markerStride: { cloudBase: 1, usableLiftTop: 1 },
+    });
+    const cloudYByX = new Map(
+      scene.markers.filter((marker) => marker.kind === "cloud").map((marker) => [marker.x, marker.y]),
+    );
+    const wings = scene.markers.filter((marker) => marker.kind === "wing");
+    expect(wings.length).toBeGreaterThan(0);
+    for (const wing of wings) {
+      expect(wing.atCloudBase).toBe(true);
+      expect(wing.y).toBe(cloudYByX.get(wing.x)! + 5);
+    }
+    // Apart, the wing keeps its own line's height and no flag.
+    const apart = buildScene(deterministicSceneProfile(), {
+      ...TZ,
+      markerStride: { cloudBase: 1, usableLiftTop: 1 },
+    });
+    for (const wing of apart.markers.filter((marker) => marker.kind === "wing")) {
+      expect(wing.atCloudBase).toBeUndefined();
+      expect(wing.y).toBeGreaterThan(cloudYByX.get(wing.x)! + 1);
+    }
   });
 
   it("each train rides its own line's overlay toggle", () => {

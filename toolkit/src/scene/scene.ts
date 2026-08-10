@@ -71,10 +71,24 @@ function pitchBarbScale(columnWidth: number): number {
 }
 
 /* Glyph paths for the sport-specific markers (wing at usable-lift top, cloud
-   at cloud base), ported verbatim from the site renderer. */
-const WING_MARKER_PATH = "M-8 2Q0-6.5 8 2Q0-1.5-8 2Z";
+   at cloud base). The wing is a paraglider read whole — canopy arc, two
+   suspension lines, pilot pod — so it stays identifiable next to (and
+   under) the cloud; the cloud is ported verbatim from the site renderer. */
+const WING_MARKER_PATH =
+  "M-9-1.6Q0-9.6 9-1.6Q8.1-.7 7.2-1.1Q0-6.2-7.2-1.1Q-8.1-.7-9-1.6Z" +
+  "M-6-2.2L-.4 3.6.2 3.1-5.3-2.6Z" +
+  "M6-2.2L.4 3.6-.2 3.1 5.3-2.6Z" +
+  "M0 2.8a1.5 1.5 0 1 0 .01 0Z";
 const CLOUD_MARKER_PATH =
   "M-7 2.5h14a3.2 3.2 0 0 0-.6-6.3A5 5 0 0 0-3-5a4 4 0 0 0-4 4 3 3 0 0 0 0 3.5Z";
+/* Coincident markers: a wing whose hour also carries a cloud glyph within
+   this tolerance is at cloud base (the two series share one smoothing, so
+   contract-capped hours stay exactly equal), and tucks this far below the
+   cloud — canopy overlapping the cloud's lower body, wing drawn in front,
+   cloud crown rising behind it — so the pair reads as one symbol: lift to
+   base. */
+const MARKER_COINCIDENCE_PX = 1;
+const WING_TUCK_PX = 5;
 
 /* ---------------------------------------------------------- vertical nodes */
 
@@ -762,32 +776,41 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
      the selected hour. A markerStride draws a train along the line —
      hours congruent to the selected one at that stride, so the selected
      hour is always marked — making the line self-identifying without a
-     legend. Each glyph rides its line's own overlay toggle. */
+     legend. Each glyph rides its line's own overlay toggle. Clouds push
+     first so a wing sharing the hour draws over the cloud, never under
+     it; a wing coincident with a cloud tucks below it instead (see
+     WING_TUCK_PX) and carries `atCloudBase`. */
   const markers: SceneMarker[] = [];
-  const markerIndices = (
-    stride: number | { every: number; offset?: number } | undefined,
-  ): number[] => {
+  const markerIndices = (stride: number | { every: number } | undefined): number[] => {
     if (hours.length === 0) return [];
     if (stride === undefined) return [selectedHourIndex];
     const step = Math.max(1, Math.floor(typeof stride === "number" ? stride : stride.every));
-    const offset = typeof stride === "number" ? 0 : Math.floor(stride.offset ?? 0);
-    const anchor = selectedHourIndex + offset;
     return hours
       .map((_, index) => index)
-      .filter((index) => (((index - anchor) % step) + step) % step === 0);
+      .filter((index) => (((index - selectedHourIndex) % step) + step) % step === 0);
   };
-  if (overlays.usableLiftTop) {
-    for (const index of markerIndices(options.markerStride?.usableLiftTop)) {
-      const usable = usableValues[index];
-      if (usable == null) continue;
-      markers.push({ kind: "wing", x: xCenter(index), y: y(usable), path: WING_MARKER_PATH });
-    }
-  }
+  const cloudYByHour = new Map<number, number>();
   if (overlays.cloudBase) {
     for (const index of markerIndices(options.markerStride?.cloudBase)) {
       const cloudBase = cloudBaseValues[index];
       if (cloudBase == null) continue;
+      cloudYByHour.set(index, y(cloudBase));
       markers.push({ kind: "cloud", x: xCenter(index), y: y(cloudBase), path: CLOUD_MARKER_PATH });
+    }
+  }
+  if (overlays.usableLiftTop) {
+    for (const index of markerIndices(options.markerStride?.usableLiftTop)) {
+      const usable = usableValues[index];
+      if (usable == null) continue;
+      const cloudY = cloudYByHour.get(index);
+      const atCloudBase = cloudY !== undefined && Math.abs(y(usable) - cloudY) <= MARKER_COINCIDENCE_PX;
+      markers.push({
+        kind: "wing",
+        x: xCenter(index),
+        y: atCloudBase ? cloudY + WING_TUCK_PX : y(usable),
+        path: WING_MARKER_PATH,
+        ...(atCloudBase ? { atCloudBase: true } : {}),
+      });
     }
   }
 
