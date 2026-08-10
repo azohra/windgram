@@ -93,6 +93,10 @@ published_epoch=$(aws s3api head-object \
 case $published_epoch in
   '' | *[!0-9]*) published_epoch=0 ;;
 esac
+# One observable line per run: proves in the logs whether the metadata
+# round-trips R2 (a published epoch of 0 forever would mean it does not,
+# and the guard is inert — benign, but worth knowing).
+echo "Catalogue epoch: local $catalogue_epoch, published $published_epoch."
 if [ "$published_epoch" -gt "$catalogue_epoch" ]; then
   # The three catalogues skip as a set: they were committed together and
   # must stay coherent with each other on the bucket.
