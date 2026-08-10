@@ -286,6 +286,121 @@ export async function loadObservation(
   return fetchDocument(options.fetch, documentUrl, parseObservationDocumentJson);
 }
 
+export interface LoadSiteSetOptions<T extends RunStampedDocument> {
+  fetch: TransportFetch;
+  /** The data-tree root, as for `loadDocument`. */
+  baseUrl: string;
+  modelSlug: string;
+  /** The sites to load — typically every catalogued site the caller serves. */
+  siteSlugs: readonly string[];
+  /**
+   * The contract guard for the site documents, exactly as in
+   * `loadDocument`: `parseWindgramProfileJson` for profile models,
+   * `parseSmokeDocumentJson` for smoke models.
+   */
+  guard: (text: string) => T | null;
+  retry?: RetryOptions;
+}
+
+/**
+ * `loadSiteSet`'s discriminated result (`syncing` discriminates):
+ *
+ * - `syncing: false` — a coherent publication: every returned document
+ *   carries the manifest's run. `documents` maps site slug → document;
+ *   `misses` maps site slug → its discriminated miss (`"absent"` sites
+ *   are routine — outside the model's domain; `"invalid"` is a contract
+ *   break to log loudly). A coherent set may honestly be the PREVIOUS
+ *   publication — all-old is not syncing, it is the newest complete
+ *   forecast there is.
+ * - `syncing: true` — the set still mixed runs after the retry: a publish
+ *   is mid-flight. `runsSeen` lists the distinct referenceTimes observed
+ *   (manifest and documents), ascending. Ingest nothing; the next poll
+ *   reads coherently.
+ */
+export type LoadedSiteSet<T extends RunStampedDocument> =
+  | {
+      syncing: false;
+      /** The anchoring manifest's run — every document below carries it. */
+      referenceTime: string;
+      manifest: WindgramManifest;
+      documents: Record<string, T>;
+      misses: Record<string, DocumentMiss>;
+    }
+  | { syncing: true; runsSeen: string[] };
+
+/**
+ * Fetches one model's documents for a SET of sites as one coherent
+ * publication, manifest-anchored: the manifest is fetched ONCE as the
+ * commit point, then every site document, and each document must carry
+ * THAT manifest's run identity. Per-pair dancing cannot do this job —
+ * two pairs can each be internally consistent yet span two runs.
+ *
+ * On mid-publish incoherence it retries once (`RetryOptions`), refetching
+ * the manifest and only the disagreeing documents; a set still mixing
+ * runs after that reads `{ syncing: true }`. Never throws except
+ * `TransportHttpError` (any non-404 HTTP failure); a manifest miss
+ * returns that `DocumentMiss` — the model not publishing at all is the
+ * root cause of every site missing. Per-site misses stay discriminated
+ * in `misses` and never poison the set.
+ */
+export async function loadSiteSet<T extends RunStampedDocument>(
+  options: LoadSiteSetOptions<T>,
+): Promise<LoadedSiteSet<T> | DocumentMiss> {
+  const { fetch, modelSlug, siteSlugs, guard } = options;
+  const base = trimTrailingSlash(options.baseUrl);
+  const manifestUrl = `${base}/${modelSlug}/manifest.json`;
+  const documentUrl = (siteSlug: string) => `${base}/${modelSlug}/sites/${siteSlug}.json`;
+  const delayMs = options.retry?.delayMs ?? 1500;
+  const sleep = options.retry?.sleep ?? defaultSleep;
+
+  let manifest = await fetchDocument(fetch, manifestUrl, parseWindgramManifestJson);
+  if (isMiss(manifest)) return manifest;
+
+  const documents: Record<string, T> = {};
+  const misses: Record<string, DocumentMiss> = {};
+  await Promise.all(
+    siteSlugs.map(async (siteSlug) => {
+      const loaded = await fetchDocument(fetch, documentUrl(siteSlug), guard);
+      if (isMiss(loaded)) misses[siteSlug] = loaded;
+      else documents[siteSlug] = loaded;
+    }),
+  );
+
+  const anchor = manifest;
+  let disagreeing = Object.keys(documents).filter(
+    (siteSlug) => !runsConsistent(anchor, documents[siteSlug]),
+  );
+  if (disagreeing.length > 0) {
+    // Mid-publish: refetch the commit point and only the documents that
+    // disagreed with it. A refetch that loses a document keeps the first
+    // (complete) one — completeness is judged again below either way.
+    await sleep(delayMs);
+    const [retriedManifest] = await Promise.all([
+      fetchDocument(fetch, manifestUrl, parseWindgramManifestJson),
+      ...disagreeing.map(async (siteSlug) => {
+        const retried = await fetchDocument(fetch, documentUrl(siteSlug), guard);
+        if (!isMiss(retried)) documents[siteSlug] = retried;
+      }),
+    ]);
+    if (!isMiss(retriedManifest)) manifest = retriedManifest;
+    const reAnchor = manifest;
+    disagreeing = Object.keys(documents).filter(
+      (siteSlug) => !runsConsistent(reAnchor, documents[siteSlug]),
+    );
+  }
+
+  if (disagreeing.length > 0) {
+    const runsSeen = [
+      ...new Set([
+        manifest.referenceTime,
+        ...Object.values(documents).map((document) => document.run.referenceTime),
+      ]),
+    ].sort();
+    return { syncing: true, runsSeen };
+  }
+  return { syncing: false, referenceTime: manifest.referenceTime, manifest, documents, misses };
+}
+
 export interface LoadRunsOptions {
   fetch: TransportFetch;
   /** The data-tree root, as for `loadProfile`. */

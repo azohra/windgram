@@ -6,9 +6,14 @@ import type {
   WindgramProfile,
 } from "../src/contract/index.js";
 import {
+  parseSmokeDocumentJson,
+  parseWindgramProfileJson,
+} from "../src/contract/index.js";
+import {
   loadObservation,
   loadProfile,
   loadRuns,
+  loadSiteSet,
   loadSmoke,
   runsConsistent,
   TransportHttpError,
@@ -378,6 +383,139 @@ describe("loadObservation", () => {
         siteSlug: "dundee",
       }),
     ).rejects.toThrow(TransportHttpError);
+  });
+});
+
+describe("loadSiteSet", () => {
+  const RED_URL = `${BASE}/hrdps-continental/sites/red-mountain.json`;
+  const SLUGS = ["dundee", "red-mountain"] as const;
+
+  function profileFor(siteSlug: string, referenceTime: string): WindgramProfile {
+    const profile = deterministicProfile();
+    return {
+      ...profile,
+      run: { ...profile.run, referenceTime },
+      site: { ...profile.site, id: siteSlug },
+    };
+  }
+
+  function load(fetch: (url: string) => Promise<TransportResponse>) {
+    return loadSiteSet({
+      fetch,
+      baseUrl: BASE,
+      modelSlug: "hrdps-continental",
+      siteSlugs: SLUGS,
+      guard: parseWindgramProfileJson,
+      retry: noWait,
+    });
+  }
+
+  /** Narrow to the coherent arm; anything else fails the test loudly. */
+  function coherent(result: Awaited<ReturnType<typeof load>>) {
+    if ("miss" in result || result.syncing) {
+      throw new Error(`expected a coherent set: ${JSON.stringify(result)}`);
+    }
+    return result;
+  }
+
+  it("returns a coherent set anchored on one manifest fetch", async () => {
+    const run = pair("2026-08-08T06:00:00Z");
+    const { fetch, calls } = stubFetch({
+      [MANIFEST_URL]: [ok(run.manifest)],
+      [PROFILE_URL]: [ok(profileFor("dundee", "2026-08-08T06:00:00Z"))],
+      [RED_URL]: [ok(profileFor("red-mountain", "2026-08-08T06:00:00Z"))],
+    });
+    const set = coherent(await load(fetch));
+    expect(set.referenceTime).toBe("2026-08-08T06:00:00Z");
+    expect(Object.keys(set.documents).sort()).toEqual(["dundee", "red-mountain"]);
+    expect(set.misses).toEqual({});
+    // One manifest anchors the whole set: three fetches, no per-pair dance.
+    expect(calls).toHaveLength(3);
+    expect(calls.filter((url) => url === MANIFEST_URL)).toHaveLength(1);
+  });
+
+  it("heals a mid-publish mix by refetching the manifest and only the disagreeing documents", async () => {
+    const { fetch, calls } = stubFetch({
+      [MANIFEST_URL]: [ok(pair("2026-08-08T06:00:00Z").manifest)],
+      [PROFILE_URL]: [
+        ok(profileFor("dundee", "2026-08-08T00:00:00Z")), // one run behind
+        ok(profileFor("dundee", "2026-08-08T06:00:00Z")), // CDN caught up
+      ],
+      [RED_URL]: [ok(profileFor("red-mountain", "2026-08-08T06:00:00Z"))],
+    });
+    const set = coherent(await load(fetch));
+    expect(set.referenceTime).toBe("2026-08-08T06:00:00Z");
+    expect(set.documents["dundee"]!.run.referenceTime).toBe("2026-08-08T06:00:00Z");
+    // The agreeing document is NOT refetched: 3 first-pass + manifest + dundee.
+    expect(calls).toHaveLength(5);
+    expect(calls.filter((url) => url === RED_URL)).toHaveLength(1);
+  });
+
+  it("reports a set still mixing runs after the retry as syncing, naming the runs seen", async () => {
+    const { fetch } = stubFetch({
+      [MANIFEST_URL]: [ok(pair("2026-08-08T06:00:00Z").manifest)],
+      [PROFILE_URL]: [ok(profileFor("dundee", "2026-08-08T00:00:00Z"))], // stuck
+      [RED_URL]: [ok(profileFor("red-mountain", "2026-08-08T06:00:00Z"))],
+    });
+    const result = await load(fetch);
+    expect(result).toEqual({
+      syncing: true,
+      runsSeen: ["2026-08-08T00:00:00Z", "2026-08-08T06:00:00Z"],
+    });
+  });
+
+  it("treats an all-old coherent set as the previous publication, not as syncing", async () => {
+    // runs.json may already announce a newer run; this model's tree hasn't
+    // synced yet but IS internally coherent — honestly the previous forecast.
+    const { fetch, calls } = stubFetch({
+      [MANIFEST_URL]: [ok(pair("2026-08-08T00:00:00Z").manifest)],
+      [PROFILE_URL]: [ok(profileFor("dundee", "2026-08-08T00:00:00Z"))],
+      [RED_URL]: [ok(profileFor("red-mountain", "2026-08-08T00:00:00Z"))],
+    });
+    const set = coherent(await load(fetch));
+    expect(set.referenceTime).toBe("2026-08-08T00:00:00Z");
+    expect(calls).toHaveLength(3); // coherent first pass: nothing to retry
+  });
+
+  it("keeps per-site misses discriminated without poisoning the set", async () => {
+    const run = pair("2026-08-08T06:00:00Z");
+    const { fetch } = stubFetch({
+      [MANIFEST_URL]: [ok(run.manifest)],
+      [PROFILE_URL]: [ok({ prototype: true })], // exists, fails the guard
+      // red-mountain: absent (404) — outside the model's domain.
+    });
+    const set = coherent(await load(fetch));
+    expect(set.documents).toEqual({});
+    expect(set.misses).toEqual({
+      dundee: { miss: "invalid", url: PROFILE_URL },
+      "red-mountain": { miss: "absent", url: RED_URL },
+    });
+  });
+
+  it("returns the manifest miss when the model publishes nothing, and still throws on HTTP failures", async () => {
+    const missing = stubFetch({});
+    expect(await load(missing.fetch)).toEqual({ miss: "absent", url: MANIFEST_URL });
+
+    const failing = stubFetch({ [MANIFEST_URL]: [status(503)] });
+    await expect(load(failing.fetch)).rejects.toThrow(TransportHttpError);
+  });
+
+  it("anchors smoke documents the same way via the guard parameter", async () => {
+    const run = smokePair("2026-08-08T12:00:00Z");
+    const { fetch } = stubFetch({
+      [SMOKE_MANIFEST_URL]: [ok(run.manifest)],
+      [SMOKE_URL]: [ok(run.smoke)],
+    });
+    const result = await loadSiteSet({
+      fetch,
+      baseUrl: BASE,
+      modelSlug: "raqdps",
+      siteSlugs: ["dundee"],
+      guard: parseSmokeDocumentJson,
+      retry: noWait,
+    });
+    if ("miss" in result || result.syncing) throw new Error("expected a coherent smoke set");
+    expect(result.documents["dundee"]!.hours[0]!.smokePlumeColumnMgm2).toBe(200);
   });
 });
 
