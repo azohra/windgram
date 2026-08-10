@@ -41,12 +41,12 @@ jobs:
           PYTHONFAULTHANDLER: "1"
         run: |
           set +e
-          uv run --project pipeline python -c "print('imports only')"; echo "A_pyonly=$?"
-          uv run --project pipeline python -c "import eccodes, h5py; print('eccodes+h5py imported')"; echo "B_imports=$?"
-          uv run --project pipeline python -c "import windgram.builders.goes; print('goes imported')"; echo "C_goes=$?"
-          uv run --project pipeline pytest pipeline/tests/builders/test_goes_ranged.py pipeline/tests/test_rangedfile.py -q | tail -1; echo "D_ranged_tests=${PIPESTATUS[0]}"
-          uv run --project pipeline pytest pipeline/tests --ignore=pipeline/tests/builders/test_goes_ranged.py --ignore=pipeline/tests/test_rangedfile.py -q | tail -1; echo "E_without_ranged=${PIPESTATUS[0]}"
-          uv run --project pipeline pytest pipeline/tests -q | tail -1; echo "F_full=${PIPESTATUS[0]}"
+          uv run --project pipeline pytest pipeline/tests/test_rangedfile.py -q | tail -1; echo "G_rangedfile_only=${PIPESTATUS[0]}"
+          uv run --project pipeline pytest pipeline/tests/builders/test_goes_ranged.py -q | tail -1; echo "H_goes_ranged_only=${PIPESTATUS[0]}"
+          uv run --project pipeline pytest pipeline/tests/builders/test_goes_ranged.py -q -k "not fallback" | tail -1; echo "I_no_fallback=${PIPESTATUS[0]}"
+          uv run --project pipeline pytest pipeline/tests/builders/test_goes_ranged.py -q -k "fallback" | tail -1; echo "J_fallback_only=${PIPESTATUS[0]}"
+          uv run --project pipeline pytest pipeline/tests/builders/test_goes_ranged.py -q -k "netcdf4_never" | tail -1; echo "K_guard_only=${PIPESTATUS[0]}"
+          uv run --project pipeline pytest pipeline/tests/builders/test_goes_ranged.py -q -k "bit_identical" | tail -1; echo "L_bitident_only=${PIPESTATUS[0]}"
           exit 0
       - name: Test TypeScript package and scenario SVG goldens
         run: pnpm --dir toolkit test
