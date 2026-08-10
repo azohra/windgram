@@ -1021,6 +1021,13 @@ export const smokeModelEntrySchema = z.object({
     .number()
     .positive()
     .describe("Hours between published runs — freshness metadata, like the profile entries'."),
+  /** Same semantics, seeding, and re-verification intent as the profile entries'. */
+  typicalPublicationLagHours: z
+    .number()
+    .positive()
+    .describe(
+      "Upper end of normal for THIS dataset's publish of a run after its referenceTime, hours — semantics, 2026-08-10 forecast-model-feeds seeding, and ~September 2026 re-verification intent exactly as on the profile entries.",
+    ),
   kind: z.enum(["deterministic", "ensemble"]),
   experimental: z.boolean(),
 });
@@ -1029,11 +1036,11 @@ export type SmokeModelEntry = z.infer<typeof smokeModelEntrySchema>;
 /**
  * An observation dataset (GOES-18 DSR today): satellite measurements at
  * the catalogued sites. Identity and provenance metadata only — there is
- * no forecast horizon or run interval; `cadenceMinutes` is the product's
- * native observation cadence, the freshness yardstick (an observation
- * series whose newest instant is much older than a few cadences during
- * daylight is genuinely late). Like `smokeModels`, deliberately NOT an
- * entry in `models`.
+ * no forecast horizon, run interval, or publication lag (nothing has
+ * runs to lag); `cadenceMinutes` is the product's native observation
+ * cadence, the freshness yardstick (an observation series whose newest
+ * instant is much older than a few cadences during daylight is genuinely
+ * late). Like `smokeModels`, deliberately NOT an entry in `models`.
  */
 export const observationModelEntrySchema = z.object({
   slug: slugSchema,

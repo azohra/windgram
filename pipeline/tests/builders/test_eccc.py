@@ -284,6 +284,16 @@ def test_every_catalogue_entry_declares_cadence_and_precipitation():
             "instantRate",
             "windowMeanRate",
         ), entry["slug"]
+    # Every run-publishing dataset — profile and smoke entries alike —
+    # states the upper end of its normal publication lag, the freshness
+    # fact consumers judge run age against. Observation datasets have no
+    # runs to lag and deliberately carry nothing: cadenceMinutes is their
+    # yardstick.
+    for entry in catalogue["models"] + catalogue.get("smokeModels", []):
+        lag = entry["typicalPublicationLagHours"]
+        assert isinstance(lag, (int, float)) and lag > 0, entry["slug"]
+    for entry in catalogue.get("observationModels", []):
+        assert "typicalPublicationLagHours" not in entry, entry["slug"]
 
 
 def test_precip_rates_difference_run_totals_and_divide_by_the_window():

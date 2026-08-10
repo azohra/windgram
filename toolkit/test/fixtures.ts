@@ -179,6 +179,7 @@ export function catalogue(): ModelCatalogue {
         stepHours: 1,
         horizonHours: 48,
         runIntervalHours: 6,
+        typicalPublicationLagHours: 4.5,
         kind: "deterministic",
         experimental: false,
         capabilities: {
@@ -204,6 +205,7 @@ export function catalogue(): ModelCatalogue {
         stepHours: 1,
         horizonHours: 72,
         runIntervalHours: 6,
+        typicalPublicationLagHours: 4.5,
         kind: "ensemble",
         experimental: false,
         capabilities: {

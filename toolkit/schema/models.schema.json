@@ -43,6 +43,11 @@
             "exclusiveMinimum": 0,
             "description": "Hours between the runs this dataset publishes — the model's own schedule where every run is built, or the built subset where it is not (HRRR declares 6, its published synoptic subset). Freshness metadata: a run older than about twice this interval is genuinely late. Required since 0.3.0."
           },
+          "typicalPublicationLagHours": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "Upper end of normal for THIS dataset's publish of a run after its referenceTime, hours: provider complete-availability plus pipeline overhead (≤15 min poll + build), rounded up. Judge freshness against runIntervalHours + this; thresholds stay consumer-owned. Seeded 2026-08-10 from the dated [verified] availability times in the portal's forecast-model-feeds reference; re-verify against the accumulated run archive ~September 2026."
+          },
           "sunset": {
             "description": "Machine-readable retirement notice: no runs expected after date (UTC calendar date); successor names the replacing catalogue slug, or null for end-of-life with no replacement. Absent when no retirement is announced.",
             "type": "object",
@@ -206,6 +211,7 @@
           "stepHours",
           "horizonHours",
           "runIntervalHours",
+          "typicalPublicationLagHours",
           "kind",
           "experimental",
           "capabilities"
@@ -249,6 +255,11 @@
             "exclusiveMinimum": 0,
             "description": "Hours between published runs — freshness metadata, like the profile entries'."
           },
+          "typicalPublicationLagHours": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "Upper end of normal for THIS dataset's publish of a run after its referenceTime, hours — semantics, 2026-08-10 forecast-model-feeds seeding, and ~September 2026 re-verification intent exactly as on the profile entries."
+          },
           "kind": {
             "type": "string",
             "enum": [
@@ -268,6 +279,7 @@
           "stepHours",
           "horizonHours",
           "runIntervalHours",
+          "typicalPublicationLagHours",
           "kind",
           "experimental"
         ]

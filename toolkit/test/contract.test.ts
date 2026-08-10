@@ -396,6 +396,15 @@ describe("models.json schema", () => {
     expect(parseModelCatalogue(legacy)).toBeNull();
   });
 
+  it("requires the publication-lag fact — the catalogue owns the fact, consumers own thresholds", () => {
+    const parsed = parseModelCatalogue(catalogue());
+    expect(parsed!.models[0].typicalPublicationLagHours).toBe(4.5);
+    const legacy = catalogue();
+    delete (legacy.models[0] as { typicalPublicationLagHours?: number })
+      .typicalPublicationLagHours;
+    expect(parseModelCatalogue(legacy)).toBeNull();
+  });
+
   it("types precipitation as a required semantics declaration", () => {
     const bad = catalogue();
     const capabilities = bad.models[0].capabilities as { precipitation: unknown };
@@ -459,6 +468,24 @@ describe("models.json schema", () => {
     expect(hrrr.capabilities.precipitation).toBe("instantRate");
     const gfs = parsed!.models.find((model) => model.slug === "gfs")!;
     expect(gfs.capabilities.precipitation).toBe("windowMeanRate");
+    // Every run-publishing dataset declares its publication-lag fact —
+    // profile and smoke entries alike; observation datasets deliberately
+    // carry nothing (cadenceMinutes is their freshness yardstick, and
+    // they have no runs to lag). The raw JSON is checked for the
+    // exclusion because the guard strips unknown keys.
+    for (const entry of [...parsed!.models, ...(parsed!.smokeModels ?? [])]) {
+      expect(entry.typicalPublicationLagHours, entry.slug).toBeGreaterThan(0);
+    }
+    const rawCatalogue = JSON.parse(raw) as {
+      observationModels?: Array<Record<string, unknown>>;
+    };
+    for (const entry of rawCatalogue.observationModels ?? []) {
+      expect(entry, String(entry["slug"])).not.toHaveProperty("typicalPublicationLagHours");
+    }
+    // Spot checks against the feeds page's verified availability: HRRR's
+    // T+1:47 rounds to 2.5; HRDPS's T+2:55->3:55 to 4.5.
+    expect(hrrr.typicalPublicationLagHours).toBe(2.5);
+    expect(hrdps.typicalPublicationLagHours).toBe(4.5);
   });
 });
 
