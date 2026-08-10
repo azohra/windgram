@@ -97,6 +97,9 @@
 .wg-strip-thermalStrength-area, .wg-strip-thermalStrength-band { fill: var(--wg-lift, #9a7500); }
 .wg-strip-buoyancyShear { stroke: var(--wg-bs, #6d597a); }
 .wg-strip-buoyancyShear-area, .wg-strip-buoyancyShear-band { fill: var(--wg-bs, #6d597a); }
+.wg-strip-smoke { stroke: var(--wg-smoke, #8c5a3c); }
+.wg-strip-smoke-area, .wg-strip-smoke-band { fill: var(--wg-smoke, #8c5a3c); }
+.wg-smoke-cell { fill: var(--wg-smoke, #8c5a3c); }
 .wg-strip-cape { stroke: var(--wg-cape, #8a4a08); }
 .wg-strip-cape-area, .wg-strip-cape-band { fill: var(--wg-cape, #8a4a08); }
 .wg-cape-calm { fill: var(--wg-cape-calm, #dde3d5); opacity: 0.6; }
