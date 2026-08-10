@@ -105,7 +105,7 @@ pins. Their pieces:
 | `windgramSemanticsSchema` (`WindgramSemantics`) | The optional gust/precipitation meaning tag stored with a document | `parseWindgramProfile(Json)` |
 | `windgramManifestSiteSchema` (`WindgramManifestSite`) | One published site name/slug pair in a manifest | `parseWindgramManifest(Json)` |
 | `windgramManifestStatsSchema` (`WindgramManifestStats`) | The stable accounting core plus open numeric extension keys | `parseWindgramManifest(Json)` |
-| `modelEntrySchema` (`ModelEntry`) | One model catalogue entry: slug, cadence, levels, lifecycle | `parseModelCatalogue(Json)` |
+| `modelEntrySchema` (`ModelEntry`) | One model catalogue entry: slug, cadence and typical publication lag, levels, lifecycle | `parseModelCatalogue(Json)` |
 | `modelCapabilitiesSchema` (`ModelCapabilities`) | A model's declared capability set, absences included | `parseModelCatalogue(Json)` |
 | `siteCatalogueEntrySchema` (`SiteCatalogueEntry`) | One catalogued site — identity only since sites schemaVersion 2 (slug, name, coordinates, required IANA `timeZone`; nothing physical) | `parseSitesCatalogue(Json)` |
 | `siteContextSourceSchema` (`SiteContextSource`) | One upstream terrain/land-cover source, with the licence attribution that travels with its values | `parseSiteContext(Json)` |

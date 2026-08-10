@@ -8,7 +8,7 @@ import DeriveSinkRateFigure from '../../../../components/docs/DeriveSinkRateFigu
 `windgram/derive` owns calculations that are pure functions of published
 documents: moisture conversions, vector wind, lapse and stability, thermal
 index, shear, the B/S ratio, local-day grouping, projection, valid-time
-alignment, units, smoothing, and parameterized usable lift. It does not
+alignment, units, smoothing, run freshness, and parameterized usable lift. It does not
 duplicate pipeline derivations that require raw model inputs; that split —
 and its one exception — is defined in the
 [project overview](/docs/overview/#authority-by-quantity).
@@ -238,3 +238,21 @@ The join performs string equality on published UTC instants and preserves each
 model's original values, elevation, semantics, and run identity. Empty input
 returns no rows; duplicate model slugs throw. Use
 [`compareProfiles`](/docs/typescript/compare/) for cross-model findings.
+
+## Judge run freshness
+
+`runFreshness(runsEntry, model, now, thresholds)` grades one runs.json entry
+`"current" | "delayed" | "stale"`, split deliberately along the fact/policy
+line. The facts come from the model's catalogue entry — `runIntervalHours`
+(how often a successor run appears) and `typicalPublicationLagHours` (the
+upper end of normal for this dataset's publish after `referenceTime`) — and
+the thresholds are the consumer's: both count run intervals of age beyond the
+lag, and they are required parameters because how much lateness a product
+tolerates before warning its users is display policy, never a dataset
+property. Age is `now − referenceTime` — `generatedAt` is accepted so a
+runs.json entry drops in unchanged, but a republish of the same run never
+makes the forecast younger — and an unparseable instant throws a `RangeError`
+rather than returning a plausible-but-wrong grade. Observation datasets never
+come here: they have no runs; judge them against their catalogue
+`cadenceMinutes`. The polling loop around this function is the
+[ingest recipe](/docs/typescript/run-an-ingest/#judge-freshness-with-runfreshness).

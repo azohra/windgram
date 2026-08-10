@@ -13,7 +13,7 @@ in the dataset. Its zod authority is `modelCatalogueSchema` from
 | Group | Fields | Consumer use |
 | --- | --- | --- |
 | Identity | `slug`, `label`, `provider` | Path identity and reader-facing label |
-| Schedule | `stepHours`, `horizonHours`, `runIntervalHours` | Time sampling, horizon, and expected publication cadence |
+| Schedule | `stepHours`, `horizonHours`, `runIntervalHours`, `typicalPublicationLagHours` | Time sampling, horizon, publication cadence, and the upper end of normal publish lag |
 | Grid | `gridKm` | Declared horizontal resolution |
 | Lifecycle | `experimental`, optional `sunset` | Availability context and machine-readable retirement |
 | Kind | `deterministic` or `ensemble` | Document interpretation without a named-model branch |
@@ -23,6 +23,16 @@ in the dataset. Its zod authority is `modelCatalogueSchema` from
 to three-hourly output after 36 hours and GEPS from three-hourly to six-hourly after 192 hours. The
 dated [forecast feed reference](/docs/reference/forecast-model-feeds/) records each model's full
 cadence.
+
+`typicalPublicationLagHours` is the upper end of normal for *this dataset's*
+publish of a run after its `referenceTime` — the provider's
+complete-availability time plus pipeline overhead, rounded up. It is a fact,
+not a policy: judge a run's lateness against `runIntervalHours` plus it with
+[`runFreshness`](/docs/typescript/derive/#judge-run-freshness), whose
+current/delayed/stale thresholds stay consumer-owned. The values were seeded
+2026-08-10 from the dated `[verified]` availability times in the
+[forecast feed reference](/docs/reference/forecast-model-feeds/) and are to be
+re-verified against the accumulated run archive around September 2026.
 
 ## Discover models from the catalogue
 
