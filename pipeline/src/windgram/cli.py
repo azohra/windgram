@@ -87,6 +87,22 @@ def _parser() -> argparse.ArgumentParser:
 
     scenarios = commands.add_parser("scenarios", help="manage synthetic teaching scenarios")
     scenarios.add_argument("action", choices=("generate", "check"))
+
+    terrain = commands.add_parser(
+        "terrain", help="generate the static site-context.json terrain catalogue"
+    )
+    terrain.add_argument(
+        "--sites",
+        type=Path,
+        default=Path("sites.json"),
+        help="site catalogue (default: ./sites.json)",
+    )
+    terrain.add_argument(
+        "--output",
+        type=Path,
+        default=Path("site-context.json"),
+        help="context document to write (default: ./site-context.json)",
+    )
     return parser
 
 
@@ -213,6 +229,16 @@ def _build(arguments: argparse.Namespace) -> int:
     return 0
 
 
+def _terrain(arguments: argparse.Namespace) -> int:
+    sites = _load_sites_for_cli(resolve_path(arguments.sites))
+    # The terrain module needs numpy (and, inside the command, rasterio —
+    # both behind the `terrain` extra so cron builds stay lean); importing
+    # here keeps `windgram build` clear of them.
+    from . import terrain
+
+    return terrain.generate(sites, resolve_path(arguments.output))
+
+
 def _scenarios(action: str) -> int:
     # One dispatch and one root strategy: `windgram scenarios ...` is the
     # module entry point `python -m windgram.scenarios ...` under another name.
@@ -226,6 +252,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         if arguments.command == "build":
             return _build(arguments)
+        if arguments.command == "terrain":
+            return _terrain(arguments)
         return _scenarios(arguments.action)
     except (PublisherConfigurationError, RuntimeError) as error:
         print(f"error: {error}", file=sys.stderr)

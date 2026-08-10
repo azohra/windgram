@@ -1075,6 +1075,196 @@ export const sitesCatalogueSchema = z
   );
 export type SitesCatalogue = z.infer<typeof sitesCatalogueSchema>;
 
+/* ------------------------------------------------------ site-context.json */
+
+/* Static per-site terrain and land-cover context, machine-generated from
+   open elevation and land-cover data — the third catalogue file, beside
+   hand-maintained sites.json and models.json. It answers "what is this
+   launch, physically?" where a profile can only answer "what does this
+   model think the atmosphere above it does?": how far the model's smoothed
+   terrain sits from the real mountain is read by joining a profile's
+   site.modelElevationM against this document's elevations. No cadence and
+   no runs — regenerate when the site catalogue changes, never on a
+   schedule. */
+
+/** WorldCover class, published as a semantic name rather than the numeric
+ * code so the JSON reads without a lookup table. */
+export const landCoverClassSchema = z
+  .enum([
+    "treeCover",
+    "shrubland",
+    "grassland",
+    "cropland",
+    "builtUp",
+    "bareSparse",
+    "snowIce",
+    "water",
+    "wetland",
+    "mangroves",
+    "mossLichen",
+  ])
+  .describe(
+    "Land-cover class, the ESA WorldCover taxonomy published as semantic names (10 treeCover, 20 shrubland, 30 grassland, 40 cropland, 50 builtUp, 60 bareSparse, 70 snowIce, 80 water, 90 wetland, 95 mangroves, 100 mossLichen).",
+  );
+export type LandCoverClass = z.infer<typeof landCoverClassSchema>;
+
+export const siteContextSourceSchema = z
+  .object({
+    id: slugSchema,
+    product: z.string().min(1).describe("Human-readable product name and vintage."),
+    kind: z
+      .enum(["surfaceModel", "bareEarthModel", "landCover"])
+      .describe(
+        'What the source measures: "surfaceModel" = DSM, canopy and buildings included; "bareEarthModel" = DTM, ground returns only; "landCover" = classified cover.',
+      ),
+    resolutionM: z.number().positive().describe("Native ground resolution, metres."),
+    licence: z.string().min(1).describe('Licence name (e.g. "CC-BY 4.0", "OGL-BC").'),
+    /**
+     * The attribution statement the source's licence requires — it must
+     * travel with the data, so it lives in the document, not only in the
+     * docs. Renderers that display values from this source display this.
+     */
+    attribution: z
+      .string()
+      .min(1)
+      .describe(
+        "The attribution statement the source's licence requires. It travels with the data; renderers displaying this source's values display it.",
+      ),
+    url: z.string().min(1).describe("The source's authoritative landing page."),
+  })
+  .describe(
+    "One upstream data source, with the licence attribution that must travel with its values.",
+  );
+export type SiteContextSource = z.infer<typeof siteContextSourceSchema>;
+
+export const siteContextReliefSchema = z
+  .object({
+    radiusKm: z.number().positive(),
+    minM: z.number().describe("Lowest terrain in the disc, metres MSL."),
+    maxM: z.number().describe("Highest terrain in the disc, metres MSL."),
+    /**
+     * The launch's percentile rank within the disc's terrain — 100 means
+     * the launch IS the local summit, 50 means it sits mid-slope in its
+     * surroundings. Read radii together: high at 1 km and low at 10 km is
+     * a foothill in front of bigger terrain.
+     */
+    percentile: z
+      .number()
+      .min(0)
+      .max(100)
+      .describe(
+        "The launch elevation's percentile rank among the disc's terrain: 100 = the local summit, 50 = mid-slope. Read radii together — high at 1 km and low at 10 km is a foothill in front of bigger terrain.",
+      ),
+  })
+  .describe("Terrain relief within one radius of the launch.");
+export type SiteContextRelief = z.infer<typeof siteContextReliefSchema>;
+
+export const siteContextTerrainSchema = z
+  .object({
+    source: slugSchema.describe("The sources[] entry these values came from."),
+    elevationM: z
+      .number()
+      .describe(
+        "Terrain-model elevation at the launch point, metres MSL, bilinear. From a surface model this includes canopy — compare with bareEarth.elevationM and the surveyed sites.json elevationM before reading small differences as error.",
+      ),
+    slopeDeg: z
+      .number()
+      .min(0)
+      .describe("Terrain slope at the launch, degrees (Horn 3×3 on the source grid)."),
+    /**
+     * Compass bearing of the downslope direction, degrees 0-359. Treat as
+     * low-confidence on near-summit launches, where tiny elevation noise
+     * swings the bearing.
+     */
+    aspectDeg: z
+      .number()
+      .min(0)
+      .max(359)
+      .describe(
+        "Compass bearing of the downslope direction, degrees 0-359. Low-confidence on near-summit launches (relief percentile near 100), where noise swings the bearing.",
+      ),
+    relief: z
+      .array(siteContextReliefSchema)
+      .min(1)
+      .describe("Relief discs, ascending radius."),
+  })
+  .describe(
+    "Terrain analysis from ONE consistent elevation model across every site, so numbers compare across the catalogue.",
+  );
+export type SiteContextTerrain = z.infer<typeof siteContextTerrainSchema>;
+
+export const siteContextBareEarthSchema = z
+  .object({
+    source: slugSchema.describe("The sources[] entry this value came from."),
+    elevationM: z
+      .number()
+      .describe("Bare-earth (DTM) elevation at the launch point, metres MSL, bilinear."),
+  })
+  .describe(
+    "The best available bare-earth elevation at the launch — ground returns, no canopy. Absent when no bare-earth model covers the site; absence means \"not measured\", never agreement.",
+  );
+export type SiteContextBareEarth = z.infer<typeof siteContextBareEarthSchema>;
+
+export const siteContextLandCoverFractionsSchema = z
+  .object({
+    radiusKm: z.number().positive(),
+    byClass: z
+      .partialRecord(landCoverClassSchema, z.number().min(0).max(1))
+      .describe(
+        "Fraction of the disc under each class, 0-1. Classes absent from the disc are omitted — absence means zero here (the map is wall-to-wall), unlike data absences elsewhere in the contract.",
+      ),
+  })
+  .describe("Land-cover composition within one radius of the launch.");
+export type SiteContextLandCoverFractions = z.infer<typeof siteContextLandCoverFractionsSchema>;
+
+export const siteContextLandCoverSchema = z
+  .object({
+    source: slugSchema.describe("The sources[] entry these values came from."),
+    atLaunch: landCoverClassSchema.describe(
+      "The class of the single pixel under the launch point. One 10 m pixel is fragile — read it beside the 1 km fractions.",
+    ),
+    fractions: z
+      .array(siteContextLandCoverFractionsSchema)
+      .min(1)
+      .describe("Composition discs, ascending radius."),
+  })
+  .describe(
+    "What the ground around the launch is made of — the thermal-source character (forest holds heat back; clearcut, rock and grass release it; water kills it).",
+  );
+export type SiteContextLandCover = z.infer<typeof siteContextLandCoverSchema>;
+
+export const siteContextEntrySchema = z
+  .object({
+    terrain: siteContextTerrainSchema,
+    bareEarth: siteContextBareEarthSchema.optional(),
+    landCover: siteContextLandCoverSchema,
+  })
+  .describe(
+    "One site's terrain and land-cover context. Coordinates, surveyed elevation and timezone are NOT echoed here — sites.json is their home; join by slug.",
+  );
+export type SiteContextEntry = z.infer<typeof siteContextEntrySchema>;
+
+/* site-context.json at the repository root, machine-written by the
+   pipeline's one-shot `windgram terrain` command and committed like the
+   catalogues it annotates. Published to the dataset root beside
+   sites.json. */
+export const siteContextSchema = z
+  .object({
+    schemaVersion: z.literal(SCHEMA_VERSION),
+    generatedAt: utcInstantSchema.describe("When the context was generated, UTC."),
+    sources: z
+      .array(siteContextSourceSchema)
+      .min(1)
+      .describe("Every upstream source any site block references, with licence attributions."),
+    sites: z
+      .record(slugSchema, siteContextEntrySchema)
+      .describe("Site slug → context. Join against sites.json; slugs are the identity."),
+  })
+  .describe(
+    "site-context.json — static per-site terrain and land-cover context, machine-generated from open elevation and land-cover data and committed beside the hand-maintained catalogues. No cadence: regenerate when the site catalogue changes.",
+  );
+export type SiteContext = z.infer<typeof siteContextSchema>;
+
 /* -------------------------------------------------------------- runs.json */
 
 export const runsIndexEntrySchema = z.object({
@@ -1141,6 +1331,15 @@ export function parseSitesCatalogue(value: unknown): SitesCatalogue | null {
 
 export function parseSitesCatalogueJson(text: string): SitesCatalogue | null {
   return parseSitesCatalogue(tryParseJson(text));
+}
+
+export function parseSiteContext(value: unknown): SiteContext | null {
+  const result = siteContextSchema.safeParse(value);
+  return result.success ? result.data : null;
+}
+
+export function parseSiteContextJson(text: string): SiteContext | null {
+  return parseSiteContext(tryParseJson(text));
 }
 
 export function parseRunsIndex(value: unknown): RunsIndex | null {

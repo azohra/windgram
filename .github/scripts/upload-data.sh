@@ -75,6 +75,13 @@ s3 cp models.json "$bucket/models.json" \
   --cache-control "$short" --content-type application/json
 s3 cp sites.json "$bucket/sites.json" \
   --cache-control "$short" --content-type application/json
+# site-context.json is machine-generated but committed like a catalogue
+# (regenerated only when the site catalogue changes), so it publishes the
+# same way. Tolerate absence: checkouts predating the terrain wave.
+if [ -f site-context.json ]; then
+  s3 cp site-context.json "$bucket/site-context.json" \
+    --cache-control "$short" --content-type application/json
+fi
 
 # runs.json is regenerated from every model's *published* manifest (model
 # list from models.json, never-published models tolerated), so the index

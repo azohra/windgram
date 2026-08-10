@@ -4,6 +4,70 @@ Notable repository and `windgram` package changes are recorded here. Dataset
 schema, npm package, and Python pipeline versions are independent; each release
 entry names the versions it actually changes.
 
+## [0.17.0] - 2026-08-10
+
+`windgram` (npm and JSR) 0.17.0 and `windgram` pipeline (PyPI) 0.5.0 —
+the catalogue learns what its launches are made of: static per-site
+terrain and land-cover context, generated once from open data and
+committed beside the catalogues it annotates.
+
+### Added
+
+- **`site-context.json`** at the repository root and the dataset root:
+  machine-generated, git-committed terrain and land-cover context per
+  catalogued site — the third catalogue file beside `models.json` and
+  `sites.json`. Per site: a `terrain` block from one consistent DEM
+  across the whole catalogue (Copernicus GLO-30 — point elevation,
+  Horn slope/aspect, relief min/max and the launch's percentile rank
+  within 1/3/10 km discs), an optional `bareEarth` block (best
+  available lidar DTM: LidarBC 1 m, falling back to NRCan MRDEM-30 —
+  absent means "not measured", never agreement), and a `landCover`
+  block (ESA WorldCover 2021 v200: class at the launch pixel plus
+  composition fractions within 1/3 km). Identity is deliberately not
+  echoed — sites.json stays the home of coordinates, surveyed
+  elevation and timezone; consumers join by slug. The `sources[]`
+  array carries each licence's required attribution string so it
+  travels with the data.
+- **`windgram terrain`** pipeline command (one-shot; rerun when the
+  site catalogue changes; no cadence, no manifest): streams COG
+  windows over anonymous HTTPS (~27 MB, under a minute for the whole
+  catalogue), fails loudly when a wall-to-wall source returns nodata
+  or an analysis disc would cross a tile edge, warns when the DEM
+  disagrees with the surveyed elevation by more than 100 m, and
+  refuses unknown WorldCover class codes rather than guessing.
+  rasterio/numpy live behind a new `terrain` dependency extra so the
+  scheduled builds stay lean.
+- **Toolkit contract**: `siteContextSchema`, `parseSiteContext` /
+  `parseSiteContextJson`, exported entry/block types, and the
+  `schema/site-context.schema.json` artifact. A drift test parses the
+  committed `site-context.json` so the generator and the contract
+  cannot diverge silently.
+- **Docs**: a site-context document reference (sources, licences,
+  verification stamps, and the honest caveats: GLO-30 is a surface
+  model that includes canopy; a single 10 m cover pixel is fragile;
+  near-summit aspect is low-confidence), and a learn article — *The
+  mountain the model sees* — with infographics drawn from the real
+  committed data: the elevation ladder (surveyed vs bare-earth vs
+  surface DEM vs the model's smoothed terrain), relief percentiles as
+  launch topology, and land-cover composition as thermal-source
+  character.
+- **GOES-18 validation numbers** in the observation reference
+  [verified 2026-08-10, NOAA OSPO Full Data Quality ReadMe]: Enterprise
+  DSR bias generally < 30 W/m², std dev of biases generally < 80 W/m²
+  vs SURFRAD/SOLRAD — with the caveats that Full maturity was granted
+  by default after two anomaly-free years and the narrowband→broadband
+  coefficients are still GOES-16-derived. (The long-unreachable
+  noaasis.noaa.gov host was decommissioned 2026-06-23; the PS-PVR
+  documents live on OSPO now.)
+
+### Notes
+
+- The founding verification lesson, recorded in the reference: HRDEM
+  covers only one of the four catalogued sites, and STAC/bbox
+  footprints overstate lidar coverage — only pixel sampling proves
+  data at a point. That is why bare earth comes from LidarBC/MRDEM
+  and the analysis DEM is GLO-30.
+
 ## [0.16.0] - 2026-08-10
 
 `windgram` (npm and JSR) 0.16.0 — the observation loop closes: measured

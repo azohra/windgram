@@ -11,13 +11,16 @@ from pathlib import Path
 from .dataset import published_history, published_manifest
 
 # The spec's rounding table, field name → decimal places, applied at the
-# serialization edge so published JSON carries no float64 noise. Wind
-# direction is handled separately (integer degrees, normalized 0–359);
-# latitude/longitude are absent deliberately — they publish verbatim.
+# serialization edge so published JSON carries no float64 noise. Compass
+# bearings (wind direction, terrain aspect) are handled separately
+# (integer degrees, normalized 0–359); latitude/longitude are absent
+# deliberately — they publish verbatim. byClass keys its values by
+# land-cover class name, so the fractions inherit its precision.
 _FIELD_DECIMALS = {
     "altitudeM": 1,
     "aot": 3,
     "boundaryLayerTopM": 1,
+    "byClass": 3,
     "capeJkg": 0,
     "cinJkg": 0,
     "cloudBaseM": 1,
@@ -26,17 +29,22 @@ _FIELD_DECIMALS = {
     "columnMgm2": 1,
     "dewPointC": 2,
     "downwardShortwaveWm2": 1,
+    "elevationM": 1,
     "heightM": 1,
     "highCloudPercent": 1,
     "latentHeatFluxWm2": 1,
     "lowCloudPercent": 1,
+    "maxM": 0,
     "midCloudPercent": 1,
+    "minM": 0,
     "modelElevationM": 1,
     "pblHeightM": 1,
+    "percentile": 0,
     "pm25Ugm3": 1,
     "precipitationMmHr": 2,
     "pressurePa": 0,
     "sensibleHeatFluxWm2": 1,
+    "slopeDeg": 1,
     "smokePlumeColumnMgm2": 1,
     "smokePlumeSurfaceUgm3": 1,
     "surfaceUgm3": 1,
@@ -47,6 +55,10 @@ _FIELD_DECIMALS = {
     "windGustMs": 2,
     "windSpeedMs": 2,
 }
+
+# Compass bearings publish as wrapped integer degrees, not table rounding:
+# 359.7 must become 0, never 360.
+_DEGREE_FIELDS = ("windDirectionDeg", "aspectDeg")
 
 
 def round_document(value, decimals: int | None = None):
@@ -60,7 +72,7 @@ def round_document(value, decimals: int | None = None):
         return {
             key: (
                 _rounded_degrees(item)
-                if key == "windDirectionDeg"
+                if key in _DEGREE_FIELDS
                 else round_document(item, _FIELD_DECIMALS.get(key, decimals))
             )
             for key, item in value.items()

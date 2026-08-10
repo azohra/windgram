@@ -1,0 +1,168 @@
+---
+import { CONTEXT_SITES, sourceById } from "../../lib/site-context";
+import Figure from "../figure/Figure.astro";
+
+/* Generated from site-context.json at build time: per site, the terrain
+   relief discs at 1, 3, and 10 km drawn as elevation ranges on that
+   site's own scale, with the launch's GLO-30 elevation crossing them.
+   The percentile per disc is the printed lesson: where the launch sits
+   within each ring of terrain — read the radii together to see a local
+   summit inside bigger terrain, or a foothill in front of it. */
+
+const X0 = 190;
+const X1 = 860;
+const PCT_X = 880;
+const BLOCK_H = 138;
+const BAR_DY = [38, 62, 86];
+const BAR_H = 12;
+
+const niceStep = (span: number) => {
+  for (const step of [100, 200, 250, 500, 1000]) {
+    if (span / step <= 7) return step;
+  }
+  return 1000;
+};
+
+const blocks = CONTEXT_SITES.map(({ site, context }, index) => {
+  const discs = context.terrain.relief;
+  const launch = context.terrain.elevationM;
+  const lo =
+    Math.floor(Math.min(...discs.map((disc) => disc.minM)) / 100) * 100;
+  const hi = Math.ceil(Math.max(...discs.map((disc) => disc.maxM)) / 100) * 100;
+  const px = (metres: number) => X0 + ((metres - lo) / (hi - lo)) * (X1 - X0);
+  const step = niceStep(hi - lo);
+  const ticks: number[] = [];
+  for (let tick = Math.ceil(lo / step) * step; tick <= hi; tick += step) ticks.push(tick);
+
+  const top = index * BLOCK_H;
+  return {
+    site,
+    top,
+    axisY: top + 112,
+    launchX: px(launch),
+    launch,
+    ticks: ticks.map((tick) => ({ value: tick, x: px(tick) })),
+    bars: discs.map((disc, discIndex) => ({
+      radiusKm: disc.radiusKm,
+      percentile: disc.percentile,
+      minM: disc.minM,
+      maxM: disc.maxM,
+      y: top + BAR_DY[discIndex],
+      x: px(disc.minM),
+      width: Math.max(px(disc.maxM) - px(disc.minM), 2),
+    })),
+  };
+});
+
+const svgHeight = blocks.length * BLOCK_H + 6;
+
+const ordinalSuffixes: Record<number, string> = { 1: "st", 2: "nd", 3: "rd" };
+const ordinal = (value: number) => {
+  const tens = value % 100;
+  if (tens >= 11 && tens <= 13) return `${value}th`;
+  return `${value}${ordinalSuffixes[value % 10] ?? "th"}`;
+};
+
+const description = blocks
+  .map(({ site, launch, bars }) => {
+    const parts = bars.map(
+      (bar) =>
+        `the ${ordinal(bar.percentile)} percentile of terrain within ${bar.radiusKm} km (${bar.minM}–${bar.maxM} m)`,
+    );
+    return `${site.name}: the launch at ${launch} m is ${parts.join(", ")}.`;
+  })
+  .join(" ");
+---
+
+<Figure
+  id="relief-percentile"
+  title="Where the launch sits in its terrain"
+  lesson="Read the relief percentiles together across radii: 100 at 1 km is a local summit; high near, low far is a foothill in front of bigger terrain."
+  description={`Per-site relief discs from site-context.json. ${description}`}
+  caption="Each bar is the min–max terrain elevation within that radius of the launch; the vertical line is the launch's GLO-30 elevation, and the percentile is its rank among the disc's terrain — 100 means the launch is the local summit."
+  units="elevation m MSL · disc radii km · percentile rank"
+>
+  <div class="wg-scroll wg-scroll--plate graphic-scroll" role="region" tabindex="0" aria-label="Scrollable per-site relief percentile chart">
+    <svg
+      viewBox={`0 0 1000 ${svgHeight}`}
+      role="img"
+      aria-labelledby="relief-percentile-svg-title relief-percentile-svg-desc"
+    >
+      <title id="relief-percentile-svg-title">
+        Terrain relief ranges at 1, 3, and 10 km per site with the launch's percentile rank
+      </title>
+      <desc id="relief-percentile-svg-desc">{description}</desc>
+
+      {blocks.map(({ site, top, axisY, launchX, launch, ticks, bars }) => (
+        <g>
+          <text x="24" y={top + 24} class="rp-name">{site.name}</text>
+          <text x={PCT_X} y={top + 24} class="rp-launch-label">
+            launch {launch.toLocaleString("en-CA", { maximumFractionDigits: 1 })} m
+          </text>
+
+          <line x1={X0} y1={axisY} x2={X1} y2={axisY} class="rp-axis" />
+          {ticks.map((tick) => (
+            <>
+              <line x1={tick.x} y1={axisY} x2={tick.x} y2={axisY + 4} class="rp-axis" />
+              <text x={tick.x} y={axisY + 16} class="rp-axis-label">
+                {tick.value.toLocaleString("en-CA")}
+              </text>
+            </>
+          ))}
+
+          {bars.map((bar) => (
+            <g>
+              <text x="120" y={bar.y + BAR_H / 2 + 4} class="rp-radius" text-anchor="end">
+                {bar.radiusKm} km
+              </text>
+              <rect x={bar.x} y={bar.y} width={bar.width} height={BAR_H} class="rp-range" />
+              <text x={PCT_X} y={bar.y + BAR_H / 2 + 4} class="rp-pctl">
+                pctl {bar.percentile}
+              </text>
+            </g>
+          ))}
+
+          <line
+            x1={launchX}
+            y1={top + BAR_DY[0] - 8}
+            x2={launchX}
+            y2={axisY}
+            class="rp-launch"
+          />
+        </g>
+      ))}
+    </svg>
+  </div>
+
+  <div slot="legend" class="rp-legend">
+    <span><i class="rp-key rp-key--range" aria-hidden="true"></i> terrain min–max within the disc</span>
+    <span><i class="rp-key rp-key--launch" aria-hidden="true"></i> launch elevation (GLO-30)</span>
+    <span class="rp-legend-note">pctl 100 = the launch is the disc's summit</span>
+  </div>
+
+  <p class="catalogue-source">
+    Generated from <code>site-context.json</code>. {sourceById("glo30").attribution}.
+  </p>
+</Figure>
+
+<style>
+  svg { display: block; width: 100%; min-width: 860px; height: auto; font-family: var(--mono); }
+  .rp-name { fill: var(--ink); font-family: var(--display); font-size: 17px; font-weight: 700; text-transform: uppercase; letter-spacing: .01em; }
+  .rp-launch-label { fill: var(--ink-soft); font-size: 10.5px; font-weight: 600; }
+  .rp-radius { fill: var(--ink-soft); font-size: 10.5px; font-weight: 600; }
+  .rp-range { fill: var(--surface-sunken); stroke: var(--rule-strong); stroke-width: 1; }
+  .rp-launch { stroke: var(--accent); stroke-width: 2; }
+  .rp-pctl { fill: var(--ink); font-size: 11px; font-weight: 700; }
+  .rp-axis { stroke: var(--rule-strong); stroke-width: 1; }
+  .rp-axis-label { fill: var(--ink-mute); font-size: 9.5px; text-anchor: middle; }
+  .rp-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; font: 11px/1.4 var(--mono); color: var(--ink-mute); }
+  .rp-key { display: inline-block; width: 14px; height: 10px; margin-right: 5px; vertical-align: -1px; }
+  .rp-key--range { background: var(--surface-sunken); border: 1px solid var(--rule-strong); }
+  .rp-key--launch { width: 2px; background: var(--accent); }
+  .rp-legend-note { color: var(--ink-soft); }
+  .catalogue-source { margin: 0; padding: 9px 14px; color: var(--ink-mute); font: 11px/1.45 var(--mono); border-top: 1px solid var(--rule); }
+  .catalogue-source code { font-family: var(--mono); }
+  @media (max-width: 720px) {
+    .graphic-scroll { margin-inline: -8px; }
+  }
+</style>

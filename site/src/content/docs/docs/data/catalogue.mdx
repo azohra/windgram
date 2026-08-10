@@ -54,6 +54,17 @@ observation datasets (GOES-18 DSR today): identity, `gridKm`, and a
 
 A new catalogue entry is not a package enum change.
 
+## Site context beside the catalogues
+
+`site-context.json` is the third catalogue-root file, published at the
+dataset root beside `models.json` and `sites.json`: static,
+machine-generated terrain and land-cover context for every catalogued
+site. Fetch it once, guard it with `parseSiteContextJson`, and join its
+entries against `sites.json` by slug — it echoes no coordinates or
+surveyed elevations of its own. It has no cadence and no runs; it changes
+only when the site catalogue does. Its shape, sources, and licences live
+in the [site context reference](/docs/reference/site-context-document/).
+
 ## Absence and semantics are declarations
 
 Capability booleans state whether a family exists. Gust and precipitation go

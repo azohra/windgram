@@ -9,6 +9,7 @@ import {
   modelCatalogueSchema,
   observationDocumentSchema,
   runsIndexSchema,
+  siteContextSchema,
   sitesCatalogueSchema,
   smokeDocumentSchema,
   windgramManifestSchema,
@@ -51,6 +52,11 @@ export const schemaArtifacts: readonly SchemaArtifact[] = [
     fileName: "sites.schema.json",
     title: "Windgram site catalogue, sites.json",
     schema: sitesCatalogueSchema,
+  },
+  {
+    fileName: "site-context.schema.json",
+    title: "Windgram site context, site-context.json",
+    schema: siteContextSchema,
   },
   {
     fileName: "runs.schema.json",

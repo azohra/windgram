@@ -66,6 +66,20 @@ the generated `toolkit/schema/sites.schema.json` artifact.
    publishing a clamped boundary value. Use a site catalogue appropriate to
    the selected model domain.
 
+6. Regenerate the static site context and commit it with the catalogue
+   change, so the published terrain and land-cover context stays joined to
+   the sites it describes:
+
+   ```sh title="Terminal"
+   uv sync --project pipeline --extra terrain
+   uv run --project pipeline windgram terrain
+   ```
+
+   The one-shot command reads `./sites.json` and rewrites
+   `./site-context.json` (both paths accept overrides via `--sites` and
+   `--output`). Its shape and sources are in the
+   [site context reference](/docs/reference/site-context-document/).
+
 </Steps>
 
 The catalogue chooses sampling locations and their local clocks. It does not

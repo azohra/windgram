@@ -1,0 +1,267 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Windgram site context, site-context.json",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "number",
+      "const": 1
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+      "description": "When the context was generated, UTC."
+    },
+    "sources": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+            "description": "Lowercase hyphenated slug — the identity of models and sites everywhere."
+          },
+          "product": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Human-readable product name and vintage."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "surfaceModel",
+              "bareEarthModel",
+              "landCover"
+            ],
+            "description": "What the source measures: \"surfaceModel\" = DSM, canopy and buildings included; \"bareEarthModel\" = DTM, ground returns only; \"landCover\" = classified cover."
+          },
+          "resolutionM": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "description": "Native ground resolution, metres."
+          },
+          "licence": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Licence name (e.g. \"CC-BY 4.0\", \"OGL-BC\")."
+          },
+          "attribution": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The attribution statement the source's licence requires. It travels with the data; renderers displaying this source's values display it."
+          },
+          "url": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The source's authoritative landing page."
+          }
+        },
+        "required": [
+          "id",
+          "product",
+          "kind",
+          "resolutionM",
+          "licence",
+          "attribution",
+          "url"
+        ],
+        "description": "One upstream data source, with the licence attribution that must travel with its values."
+      },
+      "description": "Every upstream source any site block references, with licence attributions."
+    },
+    "sites": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+        "description": "Lowercase hyphenated slug — the identity of models and sites everywhere."
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "terrain": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                "description": "The sources[] entry these values came from."
+              },
+              "elevationM": {
+                "type": "number",
+                "description": "Terrain-model elevation at the launch point, metres MSL, bilinear. From a surface model this includes canopy — compare with bareEarth.elevationM and the surveyed sites.json elevationM before reading small differences as error."
+              },
+              "slopeDeg": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Terrain slope at the launch, degrees (Horn 3×3 on the source grid)."
+              },
+              "aspectDeg": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 359,
+                "description": "Compass bearing of the downslope direction, degrees 0-359. Low-confidence on near-summit launches (relief percentile near 100), where noise swings the bearing."
+              },
+              "relief": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "radiusKm": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "minM": {
+                      "type": "number",
+                      "description": "Lowest terrain in the disc, metres MSL."
+                    },
+                    "maxM": {
+                      "type": "number",
+                      "description": "Highest terrain in the disc, metres MSL."
+                    },
+                    "percentile": {
+                      "type": "number",
+                      "minimum": 0,
+                      "maximum": 100,
+                      "description": "The launch elevation's percentile rank among the disc's terrain: 100 = the local summit, 50 = mid-slope. Read radii together — high at 1 km and low at 10 km is a foothill in front of bigger terrain."
+                    }
+                  },
+                  "required": [
+                    "radiusKm",
+                    "minM",
+                    "maxM",
+                    "percentile"
+                  ],
+                  "description": "Terrain relief within one radius of the launch."
+                },
+                "description": "Relief discs, ascending radius."
+              }
+            },
+            "required": [
+              "source",
+              "elevationM",
+              "slopeDeg",
+              "aspectDeg",
+              "relief"
+            ],
+            "description": "Terrain analysis from ONE consistent elevation model across every site, so numbers compare across the catalogue."
+          },
+          "bareEarth": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                "description": "The sources[] entry this value came from."
+              },
+              "elevationM": {
+                "type": "number",
+                "description": "Bare-earth (DTM) elevation at the launch point, metres MSL, bilinear."
+              }
+            },
+            "required": [
+              "source",
+              "elevationM"
+            ],
+            "description": "The best available bare-earth elevation at the launch — ground returns, no canopy. Absent when no bare-earth model covers the site; absence means \"not measured\", never agreement."
+          },
+          "landCover": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                "description": "The sources[] entry these values came from."
+              },
+              "atLaunch": {
+                "type": "string",
+                "enum": [
+                  "treeCover",
+                  "shrubland",
+                  "grassland",
+                  "cropland",
+                  "builtUp",
+                  "bareSparse",
+                  "snowIce",
+                  "water",
+                  "wetland",
+                  "mangroves",
+                  "mossLichen"
+                ],
+                "description": "The class of the single pixel under the launch point. One 10 m pixel is fragile — read it beside the 1 km fractions."
+              },
+              "fractions": {
+                "minItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "radiusKm": {
+                      "type": "number",
+                      "exclusiveMinimum": 0
+                    },
+                    "byClass": {
+                      "type": "object",
+                      "propertyNames": {
+                        "type": "string",
+                        "enum": [
+                          "treeCover",
+                          "shrubland",
+                          "grassland",
+                          "cropland",
+                          "builtUp",
+                          "bareSparse",
+                          "snowIce",
+                          "water",
+                          "wetland",
+                          "mangroves",
+                          "mossLichen"
+                        ],
+                        "description": "Land-cover class, the ESA WorldCover taxonomy published as semantic names (10 treeCover, 20 shrubland, 30 grassland, 40 cropland, 50 builtUp, 60 bareSparse, 70 snowIce, 80 water, 90 wetland, 95 mangroves, 100 mossLichen)."
+                      },
+                      "additionalProperties": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      },
+                      "description": "Fraction of the disc under each class, 0-1. Classes absent from the disc are omitted — absence means zero here (the map is wall-to-wall), unlike data absences elsewhere in the contract."
+                    }
+                  },
+                  "required": [
+                    "radiusKm",
+                    "byClass"
+                  ],
+                  "description": "Land-cover composition within one radius of the launch."
+                },
+                "description": "Composition discs, ascending radius."
+              }
+            },
+            "required": [
+              "source",
+              "atLaunch",
+              "fractions"
+            ],
+            "description": "What the ground around the launch is made of — the thermal-source character (forest holds heat back; clearcut, rock and grass release it; water kills it)."
+          }
+        },
+        "required": [
+          "terrain",
+          "landCover"
+        ],
+        "description": "One site's terrain and land-cover context. Coordinates, surveyed elevation and timezone are NOT echoed here — sites.json is their home; join by slug."
+      },
+      "description": "Site slug → context. Join against sites.json; slugs are the identity."
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "generatedAt",
+    "sources",
+    "sites"
+  ],
+  "description": "site-context.json — static per-site terrain and land-cover context, machine-generated from open elevation and land-cover data and committed beside the hand-maintained catalogues. No cadence: regenerate when the site catalogue changes."
+}

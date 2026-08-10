@@ -118,6 +118,17 @@ in the files themselves [verified 2026-08-10]:
   against SURFRAD/SOLRAD/CERES. For independent tower-scale use of the
   product, see Losos, Hoffman & Stoy 2024
   ([doi:10.1038/s41597-024-03071-z](https://doi.org/10.1038/s41597-024-03071-z)).
+- **GOES-18-specific validation** [verified 2026-08-10, NOAA OSPO
+  GOES-18 ABI L2+ SRB Full Data Quality ReadMe, Dec 2024; Full maturity
+  2025-01-04]: against SURFRAD and SOLRAD ground stations, the
+  Enterprise DSR's **bias is generally below 30 W/m²** with a **standard
+  deviation of biases generally below 80 W/m²** — roughly half the
+  legacy Baseline product's error. Two honest caveats travel with those
+  numbers: Full maturity was granted after two years of operational use
+  without major anomalies rather than by a dedicated validation review,
+  and the retrieval still converts narrowband reflectance to broadband
+  albedo with coefficients derived for GOES-16, an open known issue on
+  GOES-18.
 - **The measurement is attenuation-agnostic**: a dimmed value cannot by
   itself separate smoke from thin cloud. Attribution needs the smoke
   documents beside it — which is the join this kind exists for.

@@ -123,6 +123,7 @@ export default defineConfig({
             { slug: "docs/reference/profile-document", label: "Profile" },
             { slug: "docs/reference/smoke-document", label: "Smoke document" },
             { slug: "docs/reference/observation-document", label: "Observation document" },
+            { slug: "docs/reference/site-context-document", label: "Site context" },
             { slug: "docs/data/ensemble-values", label: "Ensemble values" },
             { slug: "docs/data/history", label: "History" },
             { slug: "docs/data/versioning", label: "Versioning" },
@@ -132,6 +133,7 @@ export default defineConfig({
           label: "Learn",
           items: [
             { slug: "docs/learn/reading-a-windgram", label: "Reading a windgram" },
+            { slug: "docs/learn/the-mountain-the-model-sees", label: "The mountain the model sees" },
             { slug: "docs/learn/smoke-and-thermals", label: "Smoke and thermals" },
             { slug: "docs/learn/synthetic-teaching-data", label: "Synthetic teaching data" },
           ],

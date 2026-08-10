@@ -1,0 +1,208 @@
+---
+title: Site context document
+description: The static per-site terrain and land-cover context — envelope, sources with licences, generation, coverage lessons, and how it joins a profile.
+---
+
+`site-context.json` is the third catalogue-root file, beside the
+hand-maintained [`models.json`](/docs/data/catalogue/) and
+[`sites.json`](/docs/publish/configure-launches/): static per-site terrain
+and land-cover context, machine-generated from open elevation and
+land-cover data and committed like the catalogues it annotates. It answers
+"what is this launch, physically?" where a
+[profile](/docs/reference/profile-document/) can only answer "what does
+this model think the atmosphere above it does?". It has no cadence and no
+runs — it is regenerated when the site catalogue changes, never on a
+schedule — and is published at the dataset root beside `sites.json`.
+
+Its zod authority is `siteContextSchema` from
+[`windgram/contract`](/docs/typescript/contract/), guarded by
+`parseSiteContextJson`, with the generated
+[`site-context.schema.json`](https://github.com/azohra/windgram/blob/main/toolkit/schema/site-context.schema.json)
+artifact for other languages. The teaching companion — why the numbers
+matter to a pilot reading a windgram — is
+[The mountain the model sees](/docs/learn/the-mountain-the-model-sees/).
+
+## Envelope and join semantics
+
+```text
+site-context.json
+├── schemaVersion + generatedAt
+├── sources[] { id, product, kind, resolutionM, licence, attribution, url }
+└── sites { <site-slug> → entry }
+    ├── terrain { source, elevationM, slopeDeg, aspectDeg, relief[] }
+    ├── bareEarth? { source, elevationM }
+    └── landCover { source, atLaunch, fractions[] }
+```
+
+Site slugs are the identity: join `sites` against `sites.json` by slug.
+Coordinates, surveyed elevation, and timezone are deliberately **not**
+echoed here — `sites.json` is their home. Every `source` field inside a
+site block names a `sources[]` entry, and each `sources[]` entry carries
+the attribution statement its licence requires — the attribution travels
+with the data, and renderers that display a source's values display it.
+
+## The terrain block
+
+Terrain analysis comes from **one consistent elevation model across every
+site** — Copernicus GLO-30 — so the numbers compare across the catalogue.
+
+| Field | Meaning |
+| --- | --- |
+| `elevationM` | Terrain-model elevation at the launch point, metres MSL, bilinear. From a surface model this includes canopy — compare with `bareEarth.elevationM` and the surveyed `sites.json` elevation before reading small differences as error. |
+| `slopeDeg` | Terrain slope at the launch, degrees (Horn 3×3 on the source grid). |
+| `aspectDeg` | Compass bearing of the downslope direction, degrees 0–359. Low-confidence on near-summit launches (relief percentile near 100), where tiny elevation noise swings the bearing. |
+| `relief[]` | Relief discs in ascending radius (1, 3, and 10 km here): the disc's `minM` and `maxM` terrain, and the launch elevation's `percentile` rank among it. |
+
+The percentile is the topological reading: **100 means the launch is the
+local summit**, 50 means it sits mid-slope in its surroundings. Read the
+radii together — high at 1 km and low at 10 km is a foothill in front of
+bigger terrain.
+
+## The bareEarth block
+
+The best available bare-earth (DTM) elevation at the launch — ground
+returns, no canopy. The block is optional: **absence means "not
+measured", never agreement**. In the published document, sites covered by
+British Columbia's 1 m lidar DTM read from LidarBC (`erie`, `flagpole`,
+`red-mountain`); `dundee`, which no 1 m lidar covers anywhere, reads from
+NRCan's national 30 m MRDEM DTM instead.
+
+## The landCover block
+
+What the ground around the launch is made of — the thermal-source
+character (forest holds heat back; clearcut, rock, and grass release it;
+water kills it).
+
+| Field | Meaning |
+| --- | --- |
+| `atLaunch` | The class of the single 10 m pixel under the launch point. One pixel is fragile — read it beside the 1 km fractions. |
+| `fractions[]` | Composition discs in ascending radius: `byClass` maps each class to its fraction of the disc, 0–1. |
+
+Classes are the ESA WorldCover taxonomy published as **semantic names**,
+not numeric codes (10 `treeCover`, 20 `shrubland`, 30 `grassland`, 40
+`cropland`, 50 `builtUp`, 60 `bareSparse`, 70 `snowIce`, 80 `water`, 90
+`wetland`, 95 `mangroves`, 100 `mossLichen`). Inside `byClass`, a class
+absent from the disc is omitted, and that absence **means zero** — the
+land-cover map is wall-to-wall — unlike data absences everywhere else in
+the contract, which mean "not published".
+
+## Sources and licences — verified 2026-08-10
+
+| Source id | Product | Kind | Resolution | Licence |
+| --- | --- | --- | --- | --- |
+| `glo30` | Copernicus GLO-30 DEM | surface model (DSM) | 30 m | Copernicus DEM licence |
+| `lidarbc` | LidarBC bare-earth DEM | bare-earth model (DTM) | 1 m | OGL-BC |
+| `mrdem30` | NRCan MRDEM DTM (CanElevation) | bare-earth model (DTM) | 30 m | OGL-Canada |
+| `worldcover2021` | ESA WorldCover 2021 v200 | land cover | 10 m | CC-BY 4.0 |
+
+Facts established by sampling the live feeds at the catalogued sites:
+
+- **GLO-30 is a surface model** — radar-derived, canopy and buildings
+  included, heights on EGM2008. At the catalogued sites it lands within
+  about ±7 m of the surveyed launch elevations [verified 2026-08-10].
+  Its 90 m sibling GLO-90 smooths ridge-top launches low — by up to
+  13 m here [verified 2026-08-10] — the same smoothing story, milder,
+  that weather-model terrain tells at 2.5–10 km grids.
+- **LidarBC** serves British Columbia's 1 m bare-earth lidar DTM from an
+  anonymous object store under OGL-BC [verified 2026-08-10].
+- **NRCan MRDEM-30** is the national 30 m DTM on the CanElevation open
+  bucket under OGL-Canada [verified 2026-08-10]. It exists everywhere in
+  Canada, which is exactly its role here: the bare-earth answer where no
+  1 m lidar project reaches.
+- **ESA WorldCover 10 m 2021 v200** is CC-BY 4.0 with a global overall
+  accuracy of 76.7% [verified 2026-08-10] — a single 10 m pixel's class
+  is fragile, which is why the disc fractions matter more than the point
+  class.
+
+Every licence above requires attribution, so the document itself carries
+each source's required statement in `sources[].attribution` — a consumer
+that displays the values displays the attribution, without needing this
+page.
+
+## Generation and publication
+
+The document is machine-written by the pipeline's one-shot `windgram
+terrain` command. Its geospatial dependencies live behind the `terrain`
+extra so scheduled forecast builds stay lean:
+
+```sh title="Terminal"
+uv sync --project pipeline --extra terrain
+uv run --project pipeline windgram terrain --sites ./sites.json --output ./site-context.json
+```
+
+One run reads the site catalogue, samples the four sources, and writes the
+whole document: about 27 MB fetched and under a minute for the entire
+catalogue, all from anonymous stores — no credentials [verified
+2026-08-10]. The result is committed to git beside `sites.json` and
+`models.json`, and the publish workflow uploads it to the dataset root
+beside `sites.json`. Regenerate it when the site catalogue changes — the
+[configure-launches guide](/docs/publish/configure-launches/) makes that a
+step of adding a site.
+
+## The coverage lesson: footprints overstate, pixels decide
+
+NRCan's 1 m HRDEM was the obvious bare-earth candidate — and it covers
+only **one of the four catalogued sites** (`flagpole`), because its lidar
+projects are valley-corridor focused [verified 2026-08-10]. The STAC
+search and bbox footprints said otherwise: a launch inside a project's
+declared footprint can still sit on nodata, so **footprint intersection
+overstates coverage and only sampling the pixel at the point proves data
+exists there**. That is a reusable provider-verification lesson, the
+elevation twin of this project's rule that provider documentation is
+hypothesis until a live response confirms it. It is why bare earth comes
+from LidarBC where its pixels prove out and from MRDEM-30 at `dundee` —
+not from the catalogue that claimed more.
+
+## Reading caveats — verified 2026-08-10
+
+- **Vertical datum**: the Canadian sources are on CGVD2013, Copernicus on
+  EGM2008. The two differ by decimetres at these sites — negligible
+  against DEM error, so the document does not convert between them.
+- **Canopy**: GLO-30's surface heights include trees and buildings. Where
+  a launch is forest-adjacent, expect it to sit above the bare-earth
+  value; that offset is the canopy, not an error.
+- **Point pixels**: `red-mountain`'s launch pixel reads `builtUp` —
+  resort infrastructure under the launch — while its 1 km disc is 88%
+  tree cover. The fractions carry the thermal character; the pixel is a
+  trivia answer.
+- **Summit aspect**: `red-mountain`'s aspect differs by ~46° between
+  GLO-30 and GLO-90 — on a launch at relief percentile 100, downslope
+  direction is genuinely ambiguous. Treat `aspectDeg` as low-confidence
+  wherever the 1 km percentile is near 100.
+
+## Consume it beside a profile
+
+Fetch `site-context.json` once from the dataset root, validate it at the
+trust boundary, and join by slug. The natural first product is the "model
+terrain vs real mountain" statement: every profile publishes
+`site.modelElevationM` (the model's smoothed terrain) and `site.altitudeM`
+(the surveyed launch); the context document adds what the launch actually
+sits on.
+
+```ts title="terrain-gap.ts"
+import { parseSiteContextJson, parseWindgramProfileJson } from "windgram/contract";
+
+export function modelTerrainGap(contextText: string, profileText: string): string {
+  const context = parseSiteContextJson(contextText);
+  const profile = parseWindgramProfileJson(profileText);
+  if (!context || !profile) throw new Error("unsupported document");
+
+  const entry = context.sites[profile.site.id];
+  if (!entry) return `${profile.site.id}: no published terrain context`;
+
+  // The real mountain: bare earth where measured, the consistent
+  // surface model otherwise.
+  const mountainM = entry.bareEarth?.elevationM ?? entry.terrain.elevationM;
+  const gapM = profile.site.modelElevationM - mountainM;
+  const direction = gapM < 0 ? "below" : "above";
+
+  return (
+    `${profile.site.name}: model terrain ${profile.site.modelElevationM} m sits ` +
+    `${Math.abs(Math.round(gapM))} m ${direction} the real mountain (${mountainM} m)`
+  );
+}
+```
+
+The parse guards return the typed document or `null`; rejected input is
+never patched into shape. A consumer that renders any of the document's
+values also renders the matching `sources[].attribution` string.

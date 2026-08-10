@@ -1,6 +1,6 @@
 {
   "name": "windgram",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "description": "Contract, derivations, and reference renderer (scene graph + SVG) for windgram profile documents published by github.com/azohra/windgram.",
   "author": "Justin Watts",
   "license": "MIT",
