@@ -164,8 +164,12 @@ export const windgramSurfaceSchema = z.object({
    * model-timestep gust over the hour ending at validAt ("hourMax", the
    * pilot's "gusting to"); NOAA models publish only the instantaneous
    * diagnostic gust at validAt ("instant"). Hour-max runs systematically
-   * ~20-30 % higher than instant, so cross-model comparisons must consult
-   * the declaration.
+   * higher than instant — this note's original figure was ~20-30 %; S3
+   * (notes/spike-v4, 2026-08-10) measured the class gap at a factor
+   * ~1.8-2.8 at matched light mountain means, on one region over one week:
+   * the systematic direction is confirmed, the magnitude is
+   * regime-dependent — so cross-model comparisons must consult the
+   * declaration and never pool the classes.
    */
   windGustMs: scalarSchema
     .optional()

@@ -42,7 +42,7 @@ export function analyzeProfileJson(text: string): WindgramAnalysis {
     // elevation pick. It anchors every launch-relative statement.
     launch: { elevationM: 1591 },
     thresholds: {
-      flyableWindow: { wstarMinMs: 1.0, depthMinM: 350 },
+      thermalWindow: { wstarMinMs: 1.0, depthMinM: 350 },
     },
   });
 }
@@ -51,7 +51,7 @@ export function analyzeProfileJson(text: string): WindgramAnalysis {
 `launch` is optional and mirrors the scene's `SceneOptions.launch`:
 documents are launch-agnostic, so the caller names the launch the analysis
 reads against. Without one the analysis degrades gracefully rather than
-guessing — launch-relative arithmetic (the `flyableWindow` depth
+guessing — launch-relative arithmetic (the `thermalWindow` depth
 threshold) falls back to the model's own ground (`site.modelElevationM`),
 `peakLiftTopAboveLaunchM` is `null` instead of a number relative to the
 wrong ground, and `terrainMismatch` — a launch-vs-model-ground statement —
@@ -65,12 +65,68 @@ shape. The defaults, imported from the package at build time:
 
 | Kind | Default thresholds |
 | --- | --- |
-| `flyableWindow` | W* ≥ {DEFAULT_ANALYZE_THRESHOLDS.flyableWindow.wstarMinMs} m/s and depth ≥ {DEFAULT_ANALYZE_THRESHOLDS.flyableWindow.depthMinM} m above launch |
+| `thermalWindow` | W* ≥ {DEFAULT_ANALYZE_THRESHOLDS.thermalWindow.wstarMinMs} m/s and depth ≥ {DEFAULT_ANALYZE_THRESHOLDS.thermalWindow.depthMinM} m above launch; gap tolerance {DEFAULT_ANALYZE_THRESHOLDS.thermalWindow.maxGapHours} h |
 | `liftCeiling` | cloud-cap margin {DEFAULT_ANALYZE_THRESHOLDS.liftCeiling.cloudCapMarginM} m |
 | `capTiming` | instability from {DEFAULT_ANALYZE_THRESHOLDS.capTiming.instabilityMinCapeJkg} J/kg; broken cap at ≤ {DEFAULT_ANALYZE_THRESHOLDS.capTiming.brokenCapMaxAbsCinJkg} J/kg CIN with ≥ {DEFAULT_ANALYZE_THRESHOLDS.capTiming.brokenCapMinCapeJkg} J/kg CAPE; precipitation from {DEFAULT_ANALYZE_THRESHOLDS.capTiming.precipMinMmHr} mm/h |
+| `convectiveDay` | precipitation from {DEFAULT_ANALYZE_THRESHOLDS.convectiveDay.precipMinMmHr} mm/h |
 | `terrainMismatch` | reported from {DEFAULT_ANALYZE_THRESHOLDS.terrainMismatch.minAbsDeltaM} m absolute delta |
 | `windSummary` | climb band padded {DEFAULT_ANALYZE_THRESHOLDS.windSummary.bandMarginM} m; persistence within {DEFAULT_ANALYZE_THRESHOLDS.windSummary.persistenceFractionOfMax} of the peak |
-| `ensembleMembership` | band widening from ratio {DEFAULT_ANALYZE_THRESHOLDS.ensembleMembership.wideningRatio} |
+| `windDirection` | direction suppressed under {DEFAULT_ANALYZE_THRESHOLDS.windDirection.directionFloorMs} m/s |
+| `bandShear` | layers thinner than {DEFAULT_ANALYZE_THRESHOLDS.bandShear.minLayerThicknessM} m skipped; light-endpoint relation at {DEFAULT_ANALYZE_THRESHOLDS.bandShear.endpointFloorMs} m/s |
+
+`thermalWindow.maxGapHours` is a segmentation tolerance: adjacent passing
+runs merge when the failing steps between them cover at most that many
+hours and every bridged step publishes both series (bridging a data hole
+would manufacture continuity the model never forecast). The default `0`
+merges nothing — exactly the pre-v4 segmentation. Bridged hours join the
+cited evidence, so the dip stays visible.
+
+## Two analysis inputs are not thresholds
+
+`AnalyzeOptions` carries two more caller-owned inputs beside `launch`:
+
+**`smoke`** joins a same-site smoke document (RAQDPS) beside a smoke-blind
+profile, by exact `validAt` match. The `smokeImpact` kind then republishes
+the smoke run's surface and column magnitudes with a coverage confession and
+the smoke run's own `referenceTime` beside the envelope's. It is ignored
+when the profile carries its own `hours[].smoke` (the model's own smoke
+wins). Absent both, the analysis is smoke-blind and says so with the
+`dataCaveats` `"smoke"` family token — absence means "not published", never
+clear air.
+
+**`windCeilings`** feeds `windExceedance`, and is deliberately **not** in
+`thresholds`, because **no defaults exist**: the package never owns a "safe
+wind" number. Without a ceiling the kind emits nothing; each supplied value
+is echoed verbatim in the findings it produces. Gust ceilings are per
+declared semantics class (`gust.hourMaxMs` / `gust.instantMs`) and are never
+reused across classes — the two classes measure a factor ~1.8–2.8 apart at
+matched means, so one number cannot serve both.
+
+```ts title="analyze-with-inputs.ts"
+import { analyzeProfile } from "windgram/analyze";
+import {
+  parseSmokeDocumentJson,
+  parseWindgramProfileJson,
+} from "windgram/contract";
+
+export function analyzeWithInputs(profileText: string, smokeText: string) {
+  const profile = parseWindgramProfileJson(profileText);
+  if (!profile) throw new Error("invalid profile");
+
+  return analyzeProfile(profile, {
+    launch: { elevationM: 1591 },
+    // Same-site RAQDPS document; ignored when the profile has its own smoke.
+    smoke: parseSmokeDocumentJson(smokeText),
+    // YOUR conventions for one pilot at one site — not recommendations, and
+    // not package defaults: omit a ceiling and that quantity emits nothing.
+    windCeilings: {
+      surfaceMs: 7,
+      gust: { hourMaxMs: 11, instantMs: 8 },
+      bandMs: 9,
+    },
+  });
+}
+```
 
 ## Keep the evidence with the statement
 
@@ -83,12 +139,19 @@ import type { WindgramAnalysis } from "windgram/analyze";
 
 export function windowRows(analysis: WindgramAnalysis) {
   return analysis.findings.flatMap((finding) => {
-    if (finding.kind !== "flyableWindow") return [];
+    if (finding.kind !== "thermalWindow") return [];
 
     return [{
       day: finding.day,
+      // Hours from the run's referenceTime to the peak-lift hour: a day-10
+      // window and a day-1 window are different objects wearing the same
+      // vocabulary, and only this field says which one you hold.
+      leadHours: finding.leadHours,
       localStart: finding.start.local,
       localEnd: finding.end.local,
+      // The widest covered step among the cited hours — the quantization
+      // bound on this window's timing and duration.
+      stepHours: finding.stepHours,
       peakAboveLaunchM: finding.peakLiftTopAboveLaunchM,
       thresholds: finding.thresholds,
       evidence: {
@@ -112,16 +175,234 @@ evidence. Those fields are what make the compressed statement auditable.
 renaming, or removing a `kind` is an analysis-contract event even when the
 profile `schemaVersion` remains `1`.
 
+**Renamed at vocabulary 4:** `flyableWindow` is now `thermalWindow`. The
+kind string is the one token every consumer switches on, and "flyable" was
+the one judgment word that did not reduce to the stated arithmetic — the
+test reads two thermal quantities (W* and usable-lift depth) against stated
+floors and is blind to wind, rain, and overdevelopment. The new name says
+what the arithmetic tests; the flyability call stays downstream, where it
+always belonged. If your code switches on `"flyableWindow"` or overrides
+`thresholds.flyableWindow`, both spellings are now `thermalWindow`.
+
+**Removed at vocabulary 4**, because live documents measured each as an
+artifact rather than a statement:
+
+- `ensembleMembership.bands[].trend` and its `wideningRatio` threshold — the
+  first-vs-last verdict was a diurnal confound in both directions (a run
+  whose first or last hours are night reads a zero band width at the edge,
+  so the verdict measured where the horizon ends, not spread growth). The
+  replacement is `dayBands`: the per-local-day band-width series itself,
+  read at each day's peak-p50-W* hour, with no monotonicity verdict of any
+  kind.
+- `ensembleMembership.maxRelativeSpread` / `maxSpreadAt` — width divided by
+  p50 explodes as p50 approaches zero, so the value pointed at the least
+  consequential hour. The evidence arrays keep the truth.
+- `liftCeiling.flips` — it restated `segments.length - 1` and compressed
+  nothing.
+
 | Finding kind | What it states | Evidence and limits |
 | --- | --- | --- |
-| `flyableWindow` | Consecutive hours meeting the embedded W\* and launch-relative depth thresholds | Carries `clippedAtStart` and `clippedAtEnd` when the window touches the document horizon |
-| `quietDay` | A local day produced no qualifying window and which threshold floors its best hours missed | Carries the day's peaks, failed criteria, effective thresholds, and a `coverage.truncated` verdict |
-| `liftCeiling` | Whether each segment's arithmetic ceiling is cloud-capped or sink-limited | Carries usable-lift top, cloud base, and boundary-layer top for each segment |
-| `capTiming` | CAPE build, CIN erosion, and precipitation timing relative to a window | Emitted only for hourly deterministic documents with CIN; no ensemble-median or three-hour interpolation claim |
-| `windSummary` | Maximum gust and climb-band wind magnitudes, timing, altitude, and persistence | Carries the document's gust semantics and reports magnitudes without policy labels |
-| `terrainMismatch` | Grid terrain delta and whether published lift ever arithmetically reaches the caller's launch | Emitted only when `AnalyzeOptions.launch` is supplied and the embedded mismatch threshold is met |
-| `ensembleMembership` | Contributor-count loss and p10–p90 band-width magnitude or trend | Spread and membership are not a confidence interval or confidence score |
-| `dataCaveats` | Absent quantity families, derived-null hours, coarse cadence, or UTC fallback | Threshold-free; absence remains “not published,” never zero |
+| `thermalWindow` | Consecutive hours meeting the embedded W\* and launch-relative depth thresholds, with `leadHours` to the peak and its own `stepHours` quantization bound | `clippedAtStart` / `clippedAtEnd` mark edges set by the document horizon; `maxGapHours` may bridge published sub-threshold dips, never data holes |
+| `percentileCrossing` | Ensemble days where some published percentile's day verdict differs from p50's, under thermalWindow's exact floors | Cites passing instants only, never windows — percentiles are per-hour marginals, not member trajectories; carries per-percentile member counts and `leadHours` |
+| `quietDay` | A local day produced no thermal window, which floors its best hours missed, and the atmospheric context beside the arithmetic | `context` restates the document's own precipitation, cloud, gust, and heat-flux series with no causal verdict; `leadHours` and a `coverage.truncated` confession ride every statement |
+| `convectiveDay` | CAPE magnitude and precipitation timing for models that publish CAPE and no CIN | `capIsJudgeable` is always `false` — absent CIN must never read as "no cap"; CAPE magnitudes are model-specific and never comparable across documents; mandatory `coverage` |
+| `liftCeiling` | Whether each segment's arithmetic ceiling is cloud-capped or sink-limited | Each segment cites its **peak** lift top with cloud base and BL top sampled at that same hour, so the cause relation is checkable against co-timed values |
+| `capTiming` | CAPE build, CIN erosion, and precipitation timing relative to a window | Deterministic documents with CIN only. `cadence` selects the verdict semantics: hourly days cite the broken hour (`capBreaksAt`); multi-hour days cite the interval between published steps (`capBreaksBetween`) or a day-edge `capAlreadyOpenAt`. `openButWeak` names a cap that sat open all day while CAPE never cleared the break floor |
+| `smokeImpact` | Day-peak and during-window smoke magnitudes — republished numbers only, no derate verdict | Profile-sourced days carry the model's own AOT; joined (RAQDPS) days carry the column mass, the smoke run's own `referenceTime`, and a per-day join-coverage count. The `semantics` echo says whether the lift numbers already feel this smoke |
+| `windSummary` | Maximum gust and climb-band wind magnitudes, timing, altitude, and persistence | The whole-day maxima and the `duringWindow` block answer different questions — the strongest gust of the day is outside the window often enough that the airborne-hours number is its own block |
+| `windExceedance` | Maximal runs of window hours at or above a caller-supplied ceiling | Emits nothing without `AnalyzeOptions.windCeilings` — the package owns no safe-wind number; the caller's ceiling is echoed verbatim, and gust ceilings never cross semantics classes |
+| `windDirection` | Surface-flow evolution across a window: start / peak-lift / end samples, net circular veer, vector means | Deterministic documents only — ensemble percentiles of raw degrees are not circular statistics. `netVeerDeg` is start→end displacement, never accumulated rotation, and is blind to a full 360° loop |
+| `bandShear` | The strongest adjacent-layer shear rate inside the climb band, with its mandatory layer bounds | Analyze-only, never compared: rates are not comparable across level densities. Sparse columns rarely emit — absence means "too sparse to state", never "no shear" |
+| `terrainMismatch` | Grid terrain delta and whether published lift ever arithmetically reaches the caller's launch | Emitted only when `AnalyzeOptions.launch` is supplied and the embedded mismatch threshold is met; evidence carries the max p90 lift top so the bench is checkable at the band's top |
+| `ensembleMembership` | Contributor-count loss, p10–p90 band-width magnitude, and the per-day `dayBands` width series | Spread and membership are not a confidence interval or confidence score; `dayBands` rows carry `leadHours` and a `truncated` flag, and no trend verdict exists |
+| `dataCaveats` | Absent quantity families, derived-null hours, coarse cadence, or UTC fallback | Threshold-free; absence remains "not published," never zero — including the `"smoke"` family, where absence is never clear air |
+
+## Read the v4 kinds
+
+Each example below compiles against the released package and keeps the
+finding's own caveats visible instead of flattening them away.
+
+`percentileCrossing` is ensemble-only and emits only where a percentile's
+day verdict disagrees with p50's — a day where every percentile agrees emits
+nothing, on either side. It cites passing instants, never windows: the
+members composing p90 at 11:00 need not be the members composing it at
+17:00, so no "p90 window" exists to state.
+
+```ts title="upside-days.ts"
+import type { WindgramAnalysis } from "windgram/analyze";
+
+export function upsideDays(analysis: WindgramAnalysis) {
+  return analysis.findings.flatMap((finding) => {
+    if (finding.kind !== "percentileCrossing") return [];
+
+    const p90 = finding.perPercentile.p90;
+    return [{
+      day: finding.day,
+      // The p50-quiet/band-window state concentrates at long lead; never
+      // present a crossing as near-term hidden upside without this number.
+      leadHours: finding.leadHours,
+      minimalPassingPercentile: finding.minimalPassingPercentile,
+      p50PassingSteps: finding.perPercentile.p50.passingSteps,
+      p90PassingSteps: p90.passingSteps,
+      // A "p75" over 12 contributing members is a different object than
+      // one over 21 — the echo, not the label, is the guarantee.
+      fewestContributingMembers: p90.membersMin,
+    }];
+  });
+}
+```
+
+`smokeImpact` republishes numbers and deliberately states no derated window
+and no adjusted W* — the only live passive column source measured far below
+a satellite-verified column, and even satellite-magnitude optics flipped
+almost nothing. The `semantics` echo is load-bearing: `"radiativelyCoupled"`
+means the document's own lift numbers already feel this smoke, so any
+downstream derate double-counts.
+
+```ts title="smoke-rows.ts"
+import type { WindgramAnalysis } from "windgram/analyze";
+
+export function smokeRows(analysis: WindgramAnalysis) {
+  return analysis.findings.flatMap((finding) => {
+    if (finding.kind !== "smokeImpact") return [];
+
+    return [{
+      day: finding.day,
+      semantics: finding.semantics,
+      peakSurfaceUgm3: finding.peakSurfaceUgm3,
+      // Day peak and in-window maximum are materially different facts; a
+      // null duringWindow means no window, or no smoke hour landed on one.
+      inWindowSurfaceUgm3: finding.duringWindow?.maxSurfaceUgm3 ?? null,
+      // The source's second number: the model's own AOT on profile days;
+      // on joined (RAQDPS) days the republished column mass, the smoke
+      // run's own referenceTime beside the envelope's, and how many
+      // profile hours the join actually covered.
+      ...(finding.source === "profile"
+        ? { peakAot: finding.peakAot }
+        : {
+            peakColumnMgm2: finding.peakColumnMgm2,
+            smokeRun: finding.smokeRun,
+            coverage: finding.coverage,
+          }),
+    }];
+  });
+}
+```
+
+`convectiveDay` exists for models that publish CAPE and no CIN, where
+`capTiming`'s gate would otherwise leave a washout day saying nothing about
+instability. It is deliberately unable to say "uncapped".
+
+```ts title="convective-rows.ts"
+import type { WindgramAnalysis } from "windgram/analyze";
+
+export function convectiveRows(analysis: WindgramAnalysis) {
+  return analysis.findings.flatMap((finding) => {
+    if (finding.kind !== "convectiveDay") return [];
+    // A truncated day's peaks are peaks OF THE COVERED HOURS only — live
+    // horizon slivers carry nocturnal CAPE peaks cited at 01:00-05:00.
+    if (finding.coverage.truncated) return [];
+
+    return [{
+      day: finding.day,
+      // Never compare across documents: CAPE magnitudes are model-specific.
+      peakCapeJkg: finding.peakCapeJkg,
+      capIsJudgeable: finding.capIsJudgeable, // always false: no CIN published
+      precipStartsLocal: finding.precipStartsAt?.local ?? null,
+      // A 0.00 series is a FORECAST of dryness, not absence.
+      dryAboveFloor: finding.noPrecipAboveThreshold ?? false,
+      windowEndsLocal: finding.thermalWindowEndsAt?.local ?? null,
+    }];
+  });
+}
+```
+
+`windExceedance` states where your own ceiling is met, and nothing else —
+see [the analysis inputs](#two-analysis-inputs-are-not-thresholds) for
+supplying `windCeilings`. A day without a thermal window emits nothing
+whatever the wind; absence on a window day means no window hour met the
+ceiling.
+
+```ts title="wind-alerts.ts"
+import type { WindgramAnalysis } from "windgram/analyze";
+
+export function windAlerts(analysis: WindgramAnalysis) {
+  return analysis.findings.flatMap((finding) => {
+    if (finding.kind !== "windExceedance") return [];
+
+    return finding.runs.map((run) => ({
+      day: finding.day,
+      quantity: finding.quantity,
+      thresholdMs: finding.thresholdMs, // your ceiling, echoed verbatim
+      // Present iff quantity is "gust": hourMax and instant exceedances
+      // must never be compared — the classes measure ~1.8-2.8x apart.
+      gustSemantics: finding.gustSemantics ?? null,
+      localStart: run.start.local,
+      localEnd: run.end.local,
+      // Covered span at the document's actual cadence; finding.stepHours
+      // is the quantization bound on this number.
+      hours: run.hours,
+      peakMs: run.peakMs,
+    }));
+  });
+}
+```
+
+`windDirection` tells the drainage-to-upvalley story across one window, for
+deterministic documents only. All arithmetic is vector math; raw degrees
+are never averaged, and a sample under the embedded floor states its speed
+with a null bearing rather than a jittering direction.
+
+```ts title="flow-evolution.ts"
+import type { WindgramAnalysis } from "windgram/analyze";
+
+export function flowEvolution(analysis: WindgramAnalysis) {
+  return analysis.findings.flatMap((finding) => {
+    if (finding.kind !== "windDirection") return [];
+
+    return [{
+      day: finding.day,
+      startDeg: finding.surface.start.directionDeg,
+      peakLiftDeg: finding.surface.peakLift.directionDeg,
+      endDeg: finding.surface.end.directionDeg,
+      // Start-to-end circular displacement, never accumulated rotation —
+      // a flow that boxes the compass and returns reads as zero. The
+      // per-hour path stays in finding.evidence.
+      netVeerDeg: finding.netVeerDeg,
+      bandMeanDeg: finding.bandVectorMean?.directionDeg ?? null,
+    }];
+  });
+}
+```
+
+`bandShear` is the height-resolved shear read: component-wise vector shear
+between adjacent published levels inside the climb band. It never joins a
+cross-model comparison — a sparse column reports a different, smeared layer,
+not a softer number — which is why the layer bounds and level count are
+mandatory in the shape.
+
+```ts title="shear-rows.ts"
+import type { WindgramAnalysis } from "windgram/analyze";
+
+export function shearRows(analysis: WindgramAnalysis) {
+  return analysis.findings.flatMap((finding) => {
+    if (finding.kind !== "bandShear") return [];
+
+    return [{
+      day: finding.day,
+      // The rate means nothing without its layer: "2.3 m/s/km across
+      // 1506-3129 m" must not be mistaken for a sharp shear zone.
+      ratePerKm: finding.maxShear.ratePerKm,
+      layer: finding.maxShear.layer,
+      levelsInBand: finding.levelsInBand,
+      // An arithmetic relation, not a verdict: both endpoint speeds sit
+      // under the embedded floor, so the "shear" may be a direction
+      // difference between two near-calm winds.
+      bothEndpointsUnderFloorMs: finding.bothEndpointsUnderFloorMs,
+    }];
+  });
+}
+```
 
 ## Local time and cadence stay visible
 
@@ -133,9 +414,17 @@ profile `schemaVersion` remains `1`.
    `timesAreUtc` data caveat.
 
 Every `CitedInstant` keeps both its local label and the document's UTC
-`validAt`, so a finding can join back to the source hour. The analysis envelope
-also reports `stepHours`; cadence-sensitive findings gate themselves rather
-than inventing timing between published instants.
+`validAt`, so a finding can join back to the source hour.
+
+Cadence is read from the document's actual per-gap spacing, never assumed
+constant: live documents widen mid-horizon (GEPS publishes 3-hourly, then
+6-hourly). The envelope's `stepHours` is the document's **leading** cadence
+— a display fact — while every spacing-derived number inside a finding
+(durations, covered spans, truncation verdicts) reads the real gap at each
+step. Timing-sensitive findings carry their own `stepHours` echo: the
+widest covered step among the hours they cite, which bounds how finely
+their timings can be read. A mixed-cadence document also carries a
+`stepCadence` caveat naming its widest step.
 
 Every finding `day` uses the exported `LocalDayKey` string type. Compute scene
 day windows and analysis with the same timezone so midnight does not split one

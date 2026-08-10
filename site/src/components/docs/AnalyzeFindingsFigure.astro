@@ -17,16 +17,16 @@ const { scene, svg } = renderSyntheticWindgram(scenario, {}, idPrefix);
    launch-relative findings and the marker read against one ground. */
 const analysis = analyzeProfile(scenario.profile, { launch: scenario.launch });
 
-const window = analysis.findings.find((finding) => finding.kind === "flyableWindow");
+const window = analysis.findings.find((finding) => finding.kind === "thermalWindow");
 if (!window) {
   throw new Error(
-    "[analyze-findings] convective-cycle no longer yields a flyableWindow finding — re-choose this figure's scenario",
+    "[analyze-findings] convective-cycle no longer yields a thermalWindow finding — re-choose this figure's scenario",
   );
 }
 const peakAboveLaunchM = window.peakLiftTopAboveLaunchM;
 if (peakAboveLaunchM === null) {
   throw new Error(
-    "[analyze-findings] the flyableWindow finding lost its launch-relative peak — re-choose this figure's scenario",
+    "[analyze-findings] the thermalWindow finding lost its launch-relative peak — re-choose this figure's scenario",
   );
 }
 const localTime = (local: string) => local.slice(11, 16);
@@ -54,7 +54,7 @@ const round = (value: number) => Math.round(value).toLocaleString("en-CA");
   id="ts-analyze-findings"
   title="Findings, drawn on the document they cite"
   lesson="Each finding carries the thresholds that produced it and the instants it cites, so it can be drawn back onto its source hours."
-  description={`A teaching windgram with the flyableWindow finding computed by analyzeProfile overlaid as a highlighted band from ${localTime(window.start.local)} to ${localTime(window.end.local)}, and the day's other findings listed with their evidence values.`}
+  description={`A teaching windgram with the thermalWindow finding computed by analyzeProfile overlaid as a highlighted band from ${localTime(window.start.local)} to ${localTime(window.end.local)}, and the day's other findings listed with their evidence values.`}
   caption={`The band and every number below are computed at build time by analyzeProfile on this committed profile with the default thresholds (W* ≥ ${window.thresholds.wstarMinMs} m/s, depth ≥ ${window.thresholds.depthMinM} m above launch). Nothing in this figure is hand-written.`}
   units="time UTC · heights m MSL · W* m/s"
   {scenario}
@@ -63,7 +63,7 @@ const round = (value: number) => Math.round(value).toLocaleString("en-CA");
     class="wg-scroll analyze-scroll"
     role="region"
     tabindex="0"
-    aria-label="Scrollable windgram with the flyable-window finding overlaid"
+    aria-label="Scrollable windgram with the thermal-window finding overlaid"
   >
     <div class="analyze-canvas" style={`width: ${scene.width}px`}>
       <div class="analyze-mount" set:html={svg} />
@@ -85,7 +85,7 @@ const round = (value: number) => Math.round(value).toLocaleString("en-CA");
         <line x1={bandRight} y1={scene.scales.plotTop} x2={bandRight} y2={scene.scales.plotTop + scene.scales.plotHeight} class="analyze-band-edge" />
         <rect x={bandLeft} y={scene.scales.plotTop} width={bandRight - bandLeft} height="20" class="analyze-band-chip" />
         <text x={(bandLeft + bandRight) / 2} y={scene.scales.plotTop + 14} class="analyze-band-label">
-          flyableWindow {localTime(window.start.local)}–{localTime(window.end.local)}
+          thermalWindow {localTime(window.start.local)}–{localTime(window.end.local)}
         </text>
         {peak && (
           <g>
@@ -101,7 +101,7 @@ const round = (value: number) => Math.round(value).toLocaleString("en-CA");
 
   <dl slot="legend" class="analyze-ledger">
     <div>
-      <dt><code>flyableWindow</code></dt>
+      <dt><code>thermalWindow</code></dt>
       <dd>
         {localTime(window.start.local)}–{localTime(window.end.local)} local, peak
         {" "}{round(peakAboveLaunchM)} m above launch at

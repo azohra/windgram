@@ -1,7 +1,31 @@
 /* The versioned vocabulary: every statement analyze/ can make, as types —
-   the contract surface consumers switch on. Extraction lives in
-   findings.ts; the module charter (why statements are their own subpath,
-   the discipline every kind obeys) lives in index.ts. */
+   the contract surface consumers switch on. Each kind's type and extractor
+   live together in kinds/<kind>.ts; this file is the barrel that names the
+   kind set, the union, the thresholds, the options, and the envelope. The
+   module charter (why statements are their own subpath, the discipline
+   every kind obeys) lives in index.ts.
+
+   ADDING A KIND touches exactly one line in each marked block below (the
+   type import, the type re-export, the union member, the thresholds
+   interface/default entries where the kind uses thresholds) plus one
+   extractor line in findings.ts — keep each on its own line so parallel
+   kind work merges without conflict. */
+
+import type { SmokeDocument } from "../contract/index.js";
+import type { BandShearFinding } from "./kinds/band-shear.js";
+import type { CapTimingFinding } from "./kinds/cap-timing.js";
+import type { ConvectiveDayFinding } from "./kinds/convective-day.js";
+import type { DataCaveatsFinding } from "./kinds/data-caveats.js";
+import type { EnsembleMembershipFinding } from "./kinds/ensemble-membership.js";
+import type { ThermalWindowFinding } from "./kinds/thermal-window.js";
+import type { LiftCeilingFinding } from "./kinds/lift-ceiling.js";
+import type { PercentileCrossingFinding } from "./kinds/percentile-crossing.js";
+import type { QuietDayFinding } from "./kinds/quiet-day.js";
+import type { SmokeImpactFinding } from "./kinds/smoke-impact.js";
+import type { TerrainMismatchFinding } from "./kinds/terrain-mismatch.js";
+import type { WindDirectionFinding } from "./kinds/wind-direction.js";
+import type { WindExceedanceFinding } from "./kinds/wind-exceedance.js";
+import type { WindSummaryFinding } from "./kinds/wind-summary.js";
 
 /**
  * The finding-kind set this module can emit. Versioned like models.json
@@ -9,7 +33,7 @@
  * a kind is a contract event — bump this, and document the evidence that
  * justified the change (see the module charter in index.ts).
  */
-export const ANALYZE_VOCABULARY_VERSION = 3;
+export const ANALYZE_VOCABULARY_VERSION = 4;
 /* v2 (2026-08-08): adds `quietDay` — production consumer evidence: a day
    with no flyable window was expressible only by absence, so headlines
    could say "no window" but never why. The negative now carries the
@@ -21,340 +45,77 @@ export const ANALYZE_VOCABULARY_VERSION = 3;
    window. quietDay carries `coverage` with a `truncated` verdict (a
    truncated quiet day is a data boundary, not a forecast, and must not
    vote in comparisons); flyableWindow carries `clippedAtStart` /
-   `clippedAtEnd` so a clipped edge reads as ≥/≤, not as timing. */
+   `clippedAtEnd` so a clipped edge reads as ≥/≤, not as timing.
+   v4 (2026-08-10): ONE vocabulary event, gated by the four 2026-08-10
+   evidence spikes (notes/spike-v4: S1-percentiles, S2-smoke, S3-wind,
+   S4-convective) and ratified in notes/design-analyze-compare-v4.md.
+   The rename: `flyableWindow` becomes `thermalWindow` — the kind string
+   was the one judgment word the discipline could not reduce; the
+   arithmetic tests thermals, not flyability (its JSDoc records the
+   argument). Contract-shaped defect fixes ride the bump: spacing-derived
+   statements read the actual per-gap cadence, never a document constant
+   (S1 caught live GEPS switching 3 h → 6 h mid-horizon and misreading
+   durations, truncation verdicts, and the cap-timing gate); thermalWindow
+   carries its own `stepHours` quantization echo, a caller-movable
+   `maxGapHours` segmentation tolerance (default 0 = v3 behaviour), and
+   `leadHours` (S1: all 22 p50-quiet/band-window days sat at lead ≥ 72 h —
+   the finding must say how far out it reads). The kinds the spikes
+   earned land in this same event: percentile-crossing statements (S1,
+   amended shape — hours-passing counts, never per-percentile windows),
+   smoke magnitudes with the joined-document caveat fix (S2 — the derate
+   verdict DIED and is deliberately absent), the wind family (S3 —
+   window-scoped wind, caller-thresholded exceedance, deterministic-only
+   direction evolution, analyze-only band shear), convective un-gating
+   with quiet-day atmospheric context and the cappedAllDay verdict split
+   (S4), and the removals: `bands.trend` and `maxRelativeSpread` (diurnal
+   confounds measured live in both directions), `liftCeiling.flips`. */
 
 /* ------------------------------------------------------------- vocabulary */
 
-/** An instant a finding cites: the document's own UTC `validAt` (so the
- * claim joins back to the published hour) plus its local clock reading
- * ("2026-08-08T11:00") in the analysis timezone. */
-export interface CitedInstant {
-  validAt: string;
-  /**
-   * The FULL local timestamp, ISO-shaped, h23, minute precision — a data
-   * value, not display copy. Voice formatting (12-hour clocks, "1 p.m.",
-   * dropping the date) is deliberately downstream: format from this or
-   * from `validAt` in your own presentation layer; this field never
-   * follows the scene's `hourLabel` convention.
-   */
-  local: string;
-}
+/* Shared cited-evidence types (defined beside the extraction context in
+   kinds/shared.ts; part of the public vocabulary surface). */
+export type { CitedInstant, LocalDayKey } from "./kinds/shared.js";
 
-/**
- * Local calendar date key ("2026-08-09") in the analysis `timeZone` —
- * derive/'s `localDateKey` of the hour's `validAt`. Pairing findings with
- * a consumer's own day tabs (`groupByLocalDay`, `windgramDisplayHours`)
- * works only when both sides compute the key in the SAME zone: pass the
- * same timeZone to `analyzeProfile` as to the windowing, or the days
- * around midnight will land in different tabs.
- */
-export type LocalDayKey = string;
+/* Per-kind types — one line per kind. */
+export type { BandShearFinding } from "./kinds/band-shear.js";
+export type { CapTimingFinding } from "./kinds/cap-timing.js";
+export type { ConvectiveDayFinding } from "./kinds/convective-day.js";
+export type { DataCaveat, DataCaveatsFinding } from "./kinds/data-caveats.js";
+export type { EnsembleMembershipFinding } from "./kinds/ensemble-membership.js";
+export type { ThermalWindowFinding } from "./kinds/thermal-window.js";
+export type { LiftCeilingFinding } from "./kinds/lift-ceiling.js";
+export type { PercentileCrossingFinding, PercentileToken } from "./kinds/percentile-crossing.js";
+export type { QuietDayFinding } from "./kinds/quiet-day.js";
+export type { SmokeImpactFinding, SmokeImpactJoinedFinding, SmokeImpactProfileFinding } from "./kinds/smoke-impact.js";
+export type { TerrainMismatchFinding } from "./kinds/terrain-mismatch.js";
+export type { WindDirectionFinding } from "./kinds/wind-direction.js";
+export type { WindExceedanceFinding } from "./kinds/wind-exceedance.js";
+export type { WindSummaryFinding } from "./kinds/wind-summary.js";
 
-/**
- * The model's grid terrain sits far from the launch, so every
- * altitude-referenced series in the document is structurally biased — the
- * spike's motivating case is GEPS at Flagpole, which models the site at
- * 144 m though launch is 1222 m, so its usable-lift top never reaches
- * launch. Invisible on a chart; only the metadata says it. The one verdict,
- * `liftTopEverReachesLaunch`, is pure arithmetic: max published lift top
- * vs launch elevation. Documents are launch-agnostic, so the launch is the
- * caller's (`AnalyzeOptions.launch`): emitted only when a launch is
- * supplied and |delta| is at least `thresholds.minAbsDeltaM`.
- */
-export interface TerrainMismatchFinding {
-  kind: "terrainMismatch";
-  modelElevationM: number;
-  /** The caller-supplied launch elevation (AnalyzeOptions.launch), metres MSL. */
-  siteAltitudeM: number;
-  /** modelElevationM − siteAltitudeM; negative = model terrain below launch. */
-  deltaM: number;
-  /** Arithmetic verdict: does any hour's published lift top exceed launch? */
-  liftTopEverReachesLaunch: boolean;
-  thresholds: { minAbsDeltaM: number };
-  evidence: {
-    maxUsableLiftTopM: number | null;
-    maxUsableLiftTopAt: CitedInstant | null;
-  };
-}
-
-/** One entry in the dataCaveats honesty layer — all threshold-free. */
-export type DataCaveat =
-  | {
-      /** Quantity families never published in this document — per the
-       * contract, absence means "not published", never zero. */
-      caveat: "absentQuantities";
-      quantities: string[];
-    }
-  | {
-      /** Hours where a derived nullable series is null — a real forecast of
-       * "none" (no usable lift, no buoyant parcel), not a gap. */
-      caveat: "derivedNullHours";
-      quantity: "usableLiftTopM" | "boundaryLayerTopM";
-      hoursNull: number;
-      ofHours: number;
-    }
-  | {
-      /** Multi-hour steps: timing finer than the cadence (window edges,
-       * onset times) is interpolation, not forecast. */
-      caveat: "stepCadence";
-      stepHours: number;
-    }
-  | {
-      /** The document declares no site.timeZone and no override was given,
-       * so every local field in this analysis reads in UTC. */
-      caveat: "timesAreUtc";
-    };
-
-/**
- * What this document cannot say: quantity families it never publishes,
- * derived-null hours, cadence-interpolation notes. Threshold-free by
- * definition — these are declarations, not judgments.
- */
-export interface DataCaveatsFinding {
-  kind: "dataCaveats";
-  caveats: DataCaveat[];
-}
-
-/**
- * The membership honesty layer for ensemble documents. `membership` is the
- * per-quantity member-count profile — the "0-of-21 p50" landmine the spike
- * surfaced on GEPS CAPE, where percentile blocks over an hour can be
- * computed from far fewer than the run's declared members (nulls are
- * excluded, not ranked at zero). `bands` states the p10-p90 band-width
- * magnitude and its trend across the horizon for the derived series. No
- * confidence verdicts: the band is member spread, not a confidence
- * interval, and this module does not use the word.
- */
-export interface EnsembleMembershipFinding {
-  kind: "ensembleMembership";
-  /** run.members where declared; otherwise the max per-position count seen. */
-  declaredMembers: number;
-  membership: Array<{
-    quantity: string;
-    minMembers: number;
-    hoursBelowFull: number;
-    ofHours: number;
-    evidence: { examples: Array<{ validAt: string; members: number }> };
-  }>;
-  bands: Array<{
-    series: "usableLiftTopM" | "thermalVelocityMs";
-    hoursWithSignal: number;
-    medianBandWidth: number;
-    maxRelativeSpread: number | null;
-    maxSpreadAt: CitedInstant | null;
-    /** Arithmetic trend: widening when the last band width exceeds the
-     * first by `thresholds.wideningRatio`, else steady. */
-    trend: "widening" | "steady";
-    thresholds: { wideningRatio: number };
-    evidence: { hours: string[]; p50: number[]; bandWidth: number[] };
-  }>;
-}
-
-/**
- * The overdevelopment-timing story per local day: CAPE build vs CIN erosion
- * vs the flyable window's close. GATED to hourly deterministic documents
- * that publish CIN: the spike found ensemble-median CIN bimodal (a p50 over
- * members half of whom have broken the cap says neither thing), and
- * 3-hourly cadence makes "when the cap breaks" interpolation rather than
- * forecast — so ensembles and multi-hour steps emit nothing here.
- * Verdicts are arithmetic relations over the embedded thresholds:
- * `noInstability` (peak CAPE under `instabilityMinCapeJkg`), `capBreaks`
- * (some hour has |CIN| < `brokenCapMaxAbsCinJkg` while CAPE >
- * `brokenCapMinCapeJkg`), `cappedAllDay` (instability without such an hour).
- */
-export interface CapTimingFinding {
-  kind: "capTiming";
-  day: LocalDayKey;
-  verdict: "capBreaks" | "cappedAllDay" | "noInstability";
-  peakCapeJkg: number;
-  peakCapeAt: CitedInstant | null;
-  capBreaksAt?: CitedInstant;
-  capeAtBreakJkg?: number;
-  /** First hour precipitation exceeds thresholds.precipMinMmHr — the
-   * overdevelopment confirmation, when the model forecasts one. */
-  precipStartsAt?: CitedInstant;
-  peakPrecipMmHr?: number;
-  /** The same-day flyableWindow's end — the timing anchor the cap story is
-   * read against. Present when that finding exists for this day. */
-  flyableWindowEndsAt?: CitedInstant;
-  thresholds: {
-    instabilityMinCapeJkg: number;
-    brokenCapMaxAbsCinJkg: number;
-    brokenCapMinCapeJkg: number;
-    precipMinMmHr: number;
-  };
-  evidence: { hours: string[]; capeJkg: number[]; cinJkg: number[] };
-}
-
-/**
- * Consecutive hours whose published usable-lift top stands at least
- * `depthMinM` above launch while W* is at least `wstarMinMs` — a
- * COMPRESSION ANCHOR that deliberately restates the published derived
- * series (see the module charter in index.ts). The default thresholds are
- * the spike's, whose 3×3 sensitivity sweep (W* 0.7/0.9/1.1 × depth
- * 150/300/500 m) measured low sensitivity on real profiles; both are
- * embedded and caller-movable, because "flyable" beyond this arithmetic is
- * pilot, wing, and site judgment that belongs downstream. Launch reference
- * is the caller's `AnalyzeOptions.launch.elevationM` — documents are
- * launch-agnostic — falling back to modelElevationM when no launch is
- * supplied (and then `peakLiftTopAboveLaunchM` is null rather than a
- * number relative to the wrong ground).
- */
-export interface FlyableWindowFinding {
-  kind: "flyableWindow";
-  day: LocalDayKey;
-  start: CitedInstant;
-  end: CitedInstant;
-  durationHours: number;
-  peakLiftTopM: number;
-  peakLiftTopAt: CitedInstant;
-  /** Launch-relative peak; null when no launch was supplied. */
-  peakLiftTopAboveLaunchM: number | null;
-  peakThermalVelocityMs: number;
-  /**
-   * True when the window's first/last hour is the document's own first/
-   * last hour: the edge is the data's horizon, not necessarily the
-   * window's. A clipped start reads as "open since at least \<start\>", a
-   * clipped end as "still open at \<end\>" — timing comparisons must not
-   * count a clipped edge as a forecast of opening or decay.
-   */
-  clippedAtStart: boolean;
-  clippedAtEnd: boolean;
-  thresholds: { wstarMinMs: number; depthMinM: number };
-  evidence: {
-    hours: string[];
-    usableLiftTopM: number[];
-    thermalVelocityMs: number[];
-    /** p10-p90 lift-top band per cited hour; ensemble documents only. */
-    liftTopBandP10P90?: Array<[number, number] | null>;
-  };
-}
-
-/**
- * Within each flyable window: is the top of the climb set by cloud base or
- * by updraft decay? The cause is an arithmetic relation — `cloudCapped`
- * when the published cloud base sits within `cloudCapMarginM` of (or
- * below) the lift top, else `sinkLimited` — segmented into runs with the
- * flip count stated. Like flyableWindow, a compression anchor restating
- * published series.
- */
-export interface LiftCeilingFinding {
-  kind: "liftCeiling";
-  day: LocalDayKey;
-  segments: Array<{
-    cause: "cloudCapped" | "sinkLimited";
-    start: CitedInstant;
-    end: CitedInstant;
-    hoursN: number;
-    evidence: {
-      usableLiftTopM: number;
-      cloudBaseM: number;
-      boundaryLayerTopM: number | null;
-    };
-  }>;
-  flips: number;
-  thresholds: { cloudCapMarginM: number };
-}
-
-/**
- * Wind magnitudes and timing per local day: the strongest surface gust (and
- * which gust semantics the document declares for it), and the strongest
- * wind at any level inside the climb band — launch to lift top, padded by
- * `bandMarginM` — with its altitude and persistence (consecutive hours
- * around the peak whose band maximum stays within
- * `persistenceFractionOfMax` of it).
- *
- * DELIBERATELY NO hazard or barrier verdicts. The 2026-08-08 evidence spike
- * ran gust-hazard and wind-aloft-barrier extractors over four sites × five
- * models and the verdicts did not survive: the gust-factor branch flagged
- * noise (a "hazardous" 6.5 m/s gust over a 1.6 m/s mean), the barrier
- * verdicts restated magnitudes already visible in the rows, and "hazard"
- * from a data package is a safety judgment that is pilot-, wing-, and
- * site-dependent — downstream's call, made from the magnitudes this finding
- * states.
- */
-export interface WindSummaryFinding {
-  kind: "windSummary";
-  day: LocalDayKey;
-  maxGust?: {
-    gustMs: number;
-    meanWindMs: number | null;
-    at: CitedInstant;
-    /** The document's own semantics.gust echo — hourMax reads ~20-30 %
-     * higher than instant, systematically. */
-    semantics?: "hourMax" | "instant";
-  };
-  maxWindInBand?: {
-    windMs: number;
-    directionDeg: number | null;
-    heightM: number;
-    pressureHpa: number;
-    at: CitedInstant;
-    persistenceHours: number;
-  };
-  thresholds: { bandMarginM: number; persistenceFractionOfMax: number };
-}
-
-/**
- * A local day that produced NO flyable window — the negative stated with
- * its evidence instead of by absence, so a consumer's headline can say WHY
- * ("peak W* 0.4 m/s, below the 0.9 floor") rather than only "no window".
- * Emitted once per local day that has forecast hours and no flyableWindow
- * finding; a day with a window emits nothing here (the window IS the
- * statement). `failed` names the floors the day's best hours missed —
- * including the honest edge case `"coincidence"`, where each threshold is
- * met at SOME hour but never both in the same hour.
- */
-export interface QuietDayFinding {
-  kind: "quietDay";
-  day: LocalDayKey;
-  /** The day's best W*; null when no hour published the series. */
-  peakThermalVelocityMs: number | null;
-  peakThermalVelocityAt: CitedInstant | null;
-  /**
-   * The day's best usable-lift depth above the launch reference
-   * (AnalyzeOptions.launch.elevationM, or modelElevationM when no launch
-   * is supplied — the same arithmetic the window test runs); null when
-   * unpublished.
-   */
-  peakLiftDepthM: number | null;
-  peakLiftDepthAt: CitedInstant | null;
-  failed: Array<"wstar" | "depth" | "coincidence">;
-  /**
-   * The hours the claim is built from. `truncated` is the arithmetic
-   * verdict that the document's own hour range clips this local day (its
-   * covered span misses the day's start or end at the model's cadence):
-   * a quiet call built from a sliver of a day — a short-horizon run
-   * ending before the thermals start — is a data boundary, not a
-   * forecast. A truncated quiet day must not vote in cross-model
-   * comparisons; it exists so "no window" and "day not fully forecast"
-   * stay distinguishable statements.
-   */
-  coverage: {
-    hours: number;
-    first: CitedInstant;
-    last: CitedInstant;
-    truncated: boolean;
-  };
-  thresholds: { wstarMinMs: number; depthMinM: number };
-}
-
+/* The union — one member line per kind. */
 export type WindgramFinding =
   | TerrainMismatchFinding
   | DataCaveatsFinding
   | EnsembleMembershipFinding
   | CapTimingFinding
-  | FlyableWindowFinding
+  | ConvectiveDayFinding
+  | ThermalWindowFinding
+  | PercentileCrossingFinding
   | QuietDayFinding
   | LiftCeilingFinding
-  | WindSummaryFinding;
+  | SmokeImpactFinding
+  | WindSummaryFinding
+  | WindExceedanceFinding
+  | WindDirectionFinding
+  | BandShearFinding;
 
 export type FindingKind = WindgramFinding["kind"];
 
 /* -------------------------------------------------------------- thresholds */
 
+/* One entry line per threshold-using kind. */
 export interface AnalyzeThresholds {
-  flyableWindow: { wstarMinMs: number; depthMinM: number };
+  thermalWindow: { wstarMinMs: number; depthMinM: number; maxGapHours: number };
   liftCeiling: { cloudCapMarginM: number };
   capTiming: {
     instabilityMinCapeJkg: number;
@@ -362,19 +123,21 @@ export interface AnalyzeThresholds {
     brokenCapMinCapeJkg: number;
     precipMinMmHr: number;
   };
+  convectiveDay: { precipMinMmHr: number };
   terrainMismatch: { minAbsDeltaM: number };
   windSummary: { bandMarginM: number; persistenceFractionOfMax: number };
-  ensembleMembership: { wideningRatio: number };
+  windDirection: { directionFloorMs: number };
+  bandShear: { minLayerThicknessM: number; endpointFloorMs: number };
 }
 
 /**
  * The spike's constants, embedded in every finding they shaped. The
- * flyableWindow pair carried a measured sensitivity sweep (see its JSDoc);
+ * thermalWindow pair carried a measured sensitivity sweep (see its JSDoc);
  * the rest are the values the spike's outputs were audited under. All are
  * caller-movable per call — they are conventions, not physics.
  */
 export const DEFAULT_ANALYZE_THRESHOLDS: AnalyzeThresholds = {
-  flyableWindow: { wstarMinMs: 0.9, depthMinM: 300 },
+  thermalWindow: { wstarMinMs: 0.9, depthMinM: 300, maxGapHours: 0 },
   liftCeiling: { cloudCapMarginM: 50 },
   capTiming: {
     instabilityMinCapeJkg: 100,
@@ -382,9 +145,21 @@ export const DEFAULT_ANALYZE_THRESHOLDS: AnalyzeThresholds = {
     brokenCapMinCapeJkg: 200,
     precipMinMmHr: 0.2,
   },
+  convectiveDay: { precipMinMmHr: 0.2 },
   terrainMismatch: { minAbsDeltaM: 250 },
   windSummary: { bandMarginM: 200, persistenceFractionOfMax: 0.8 },
-  ensembleMembership: { wideningRatio: 1.5 },
+  windDirection: { directionFloorMs: 1 },
+  bandShear: { minLayerThicknessM: 30, endpointFloorMs: 2 },
+};
+
+/**
+ * Per-kind threshold overrides: each kind's block merges over its default,
+ * so a caller may move one number (say, `thermalWindow.maxGapHours`)
+ * without restating the rest — the embedded `thresholds` echo on every
+ * finding confesses the resolved values either way.
+ */
+export type AnalyzeThresholdOverrides = {
+  [K in keyof AnalyzeThresholds]?: Partial<AnalyzeThresholds[K]>;
 };
 
 export interface AnalyzeOptions {
@@ -406,7 +181,36 @@ export interface AnalyzeOptions {
    */
   launch?: { elevationM: number } | null;
   /** Per-kind threshold overrides, merged over the defaults per kind. */
-  thresholds?: Partial<AnalyzeThresholds>;
+  thresholds?: AnalyzeThresholdOverrides;
+  /**
+   * A same-site smoke document (RAQDPS) to join by validAt for
+   * smoke-blind profiles — an ANALYSIS INPUT like `launch`: the
+   * `smokeImpact` kind republishes its surface and column magnitudes with
+   * a coverage confession and the smoke run's own referenceTime beside
+   * the envelope's. Ignored when the profile carries its own
+   * `hours[].smoke` (the model's own smoke wins); absent, a smoke-blind
+   * analysis says so via the `dataCaveats` `"smoke"` family token.
+   */
+  smoke?: SmokeDocument | null;
+  /**
+   * Caller-owned wind ceilings for `windExceedance` — deliberately NOT in
+   * `thresholds`, because NO DEFAULTS EXIST: the package never owns a
+   * "safe wind" number, and without a ceiling the kind emits nothing.
+   * Gust ceilings are per semantics class (`hourMaxMs` / `instantMs`,
+   * never reused across classes — S3 measured the gap at a factor
+   * ~1.8-2.8 at matched means); each supplied value is echoed verbatim in
+   * the findings it produces.
+   */
+  windCeilings?: WindCeilings;
+}
+
+/** See `AnalyzeOptions.windCeilings` — caller conventions, no defaults. */
+export interface WindCeilings {
+  surfaceMs?: number;
+  /** Per gust-semantics class; a document only reads the ceiling matching
+   * its own declared `semantics.gust`. */
+  gust?: { hourMaxMs?: number; instantMs?: number };
+  bandMs?: number;
 }
 
 /* ---------------------------------------------------------------- envelope */
@@ -424,6 +228,13 @@ export interface WindgramAnalysis {
   /** The timezone every local field below reads in. */
   timeZone: string;
   timeZoneSource: "document" | "override" | "utcFallback";
+  /**
+   * The document's LEADING cadence (its first two hours' gap) — a display
+   * fact, not a document-wide constant: live documents widen mid-horizon
+   * (GEPS publishes 3-hourly then 6-hourly), so spacing-derived arithmetic
+   * inside findings reads the actual per-gap spacing, and a mixed-cadence
+   * document carries a `stepCadence` caveat naming its widest step.
+   */
   stepHours: number;
   hours: number;
   findings: WindgramFinding[];
