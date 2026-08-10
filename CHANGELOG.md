@@ -4,6 +4,17 @@ Notable repository and `windgram` package changes are recorded here. Dataset
 schema, npm package, and Python pipeline versions are independent; each release
 entry names the versions it actually changes.
 
+## [0.20.1] - 2026-08-10
+
+`windgram` (npm and JSR) 0.20.1 — a finding can no longer contradict
+its own evidence. The published contract rounds m/s quantities at two
+decimals, but analyze/compare evidence coarsened every stated magnitude
+to one: a raw w* of 0.89 voted quiet against a 0.9 windows floor while
+its printed evidence said 0.9. Stated magnitudes now ship at the
+contract's own precision per quantity (m/s at 2, metres at 1 —
+pipeline `_FIELD_DECIMALS` is the authority); vote logic always read
+raw values and is untouched. A regression test pins the observed case.
+
 ## [0.20.0] - 2026-08-10
 
 `windgram` (npm and JSR) 0.20.0 and `windgram` pipeline (PyPI) 0.8.0 —
