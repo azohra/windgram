@@ -1,4 +1,4 @@
-/* flyableWindow — the kind's type and its extractor, one module. */
+/* thermalWindow — the kind's type and its extractor, one module. */
 
 import { isEnsembleValue, type Scalar, type WindgramHour } from "../../contract/index.js";
 import { localDateKey } from "../../derive/day-window.js";
@@ -13,14 +13,24 @@ import { round1, round2, type CitedInstant, type Context, type LocalDayKey } fro
  * the spike's, whose 3×3 sensitivity sweep (W* 0.7/0.9/1.1 × depth
  * 150/300/500 m) measured low sensitivity on real profiles; both are
  * embedded and caller-movable, because "flyable" beyond this arithmetic is
- * pilot, wing, and site judgment that belongs downstream. Launch reference
+ * pilot, wing, and site judgment that belongs downstream.
+ *
+ * RENAMED from `flyableWindow` at vocabulary v4: the kind string is the one
+ * token every consumer switches on and every headline inherits, and
+ * "flyable" was the one judgment word the discipline could not reduce to
+ * stated arithmetic — the test reads two thermal quantities (W*, usable-lift
+ * depth) against stated floors and is blind to wind, rain, and
+ * overdevelopment. `thermalWindow` says what the arithmetic tests; the
+ * flyability call stays downstream where the JSDoc always said it lived.
+ *
+ * Launch reference
  * is the caller's `AnalyzeOptions.launch.elevationM` — documents are
  * launch-agnostic — falling back to modelElevationM when no launch is
  * supplied (and then `peakLiftTopAboveLaunchM` is null rather than a
  * number relative to the wrong ground).
  */
-export interface FlyableWindowFinding {
-  kind: "flyableWindow";
+export interface ThermalWindowFinding {
+  kind: "thermalWindow";
   day: LocalDayKey;
   start: CitedInstant;
   end: CitedInstant;
@@ -58,13 +68,13 @@ function band(value: Scalar | null | undefined): [number, number] | null {
   return null;
 }
 
-export function findFlyableWindows(context: Context): FlyableWindowFinding[] {
+export function findThermalWindows(context: Context): ThermalWindowFinding[] {
   const { profile, launchReferenceM, thresholds, stepHours } = context;
-  const { wstarMinMs, depthMinM } = thresholds.flyableWindow;
+  const { wstarMinMs, depthMinM } = thresholds.thermalWindow;
   const launchKnown = context.launchElevationM !== null;
   const ensemble = !context.deterministic;
 
-  const flyable = (hour: WindgramHour): boolean => {
+  const clearsFloors = (hour: WindgramHour): boolean => {
     const top = p50(hour.derived.usableLiftTopM);
     const wstar = p50(hour.derived.thermalVelocityMs);
     return (
@@ -72,15 +82,15 @@ export function findFlyableWindows(context: Context): FlyableWindowFinding[] {
     );
   };
 
-  const findings: FlyableWindowFinding[] = [];
+  const findings: ThermalWindowFinding[] = [];
   let index = 0;
   while (index < profile.hours.length) {
-    if (!flyable(profile.hours[index])) {
+    if (!clearsFloors(profile.hours[index])) {
       index += 1;
       continue;
     }
     let last = index;
-    while (last + 1 < profile.hours.length && flyable(profile.hours[last + 1])) last += 1;
+    while (last + 1 < profile.hours.length && clearsFloors(profile.hours[last + 1])) last += 1;
 
     const hours = profile.hours.slice(index, last + 1);
     const tops = hours.map((hour) => p50(hour.derived.usableLiftTopM)!);
@@ -89,8 +99,8 @@ export function findFlyableWindows(context: Context): FlyableWindowFinding[] {
     const peakHour = hours[peakIndex];
     const peakTop = tops[peakIndex];
 
-    const finding: FlyableWindowFinding = {
-      kind: "flyableWindow",
+    const finding: ThermalWindowFinding = {
+      kind: "thermalWindow",
       day: localDateKey(hours[0].validAt, context.timeZone),
       start: context.cite(hours[0].validAt),
       end: context.cite(hours[hours.length - 1].validAt),

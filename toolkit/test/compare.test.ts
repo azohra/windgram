@@ -159,7 +159,7 @@ describe("windowAgreement", () => {
     const quiet = compareProfiles([hrrr(), reps()], {
       timeZone: TZ,
       launch: ERIE_LAUNCH,
-      thresholds: { flyableWindow: { wstarMinMs: 99, depthMinM: 300 } },
+      thresholds: { thermalWindow: { wstarMinMs: 99, depthMinM: 300 } },
     });
     for (const finding of ofKind<WindowAgreementFinding>(quiet.findings, "windowAgreement")) {
       expect(finding.windows).toEqual([]);

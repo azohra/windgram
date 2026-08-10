@@ -14,7 +14,7 @@
 import type { CapTimingFinding } from "./kinds/cap-timing.js";
 import type { DataCaveatsFinding } from "./kinds/data-caveats.js";
 import type { EnsembleMembershipFinding } from "./kinds/ensemble-membership.js";
-import type { FlyableWindowFinding } from "./kinds/flyable-window.js";
+import type { ThermalWindowFinding } from "./kinds/thermal-window.js";
 import type { LiftCeilingFinding } from "./kinds/lift-ceiling.js";
 import type { QuietDayFinding } from "./kinds/quiet-day.js";
 import type { TerrainMismatchFinding } from "./kinds/terrain-mismatch.js";
@@ -50,7 +50,7 @@ export type { CitedInstant, LocalDayKey } from "./kinds/shared.js";
 export type { CapTimingFinding } from "./kinds/cap-timing.js";
 export type { DataCaveat, DataCaveatsFinding } from "./kinds/data-caveats.js";
 export type { EnsembleMembershipFinding } from "./kinds/ensemble-membership.js";
-export type { FlyableWindowFinding } from "./kinds/flyable-window.js";
+export type { ThermalWindowFinding } from "./kinds/thermal-window.js";
 export type { LiftCeilingFinding } from "./kinds/lift-ceiling.js";
 export type { QuietDayFinding } from "./kinds/quiet-day.js";
 export type { TerrainMismatchFinding } from "./kinds/terrain-mismatch.js";
@@ -62,7 +62,7 @@ export type WindgramFinding =
   | DataCaveatsFinding
   | EnsembleMembershipFinding
   | CapTimingFinding
-  | FlyableWindowFinding
+  | ThermalWindowFinding
   | QuietDayFinding
   | LiftCeilingFinding
   | WindSummaryFinding;
@@ -73,7 +73,7 @@ export type FindingKind = WindgramFinding["kind"];
 
 /* One entry line per threshold-using kind. */
 export interface AnalyzeThresholds {
-  flyableWindow: { wstarMinMs: number; depthMinM: number };
+  thermalWindow: { wstarMinMs: number; depthMinM: number };
   liftCeiling: { cloudCapMarginM: number };
   capTiming: {
     instabilityMinCapeJkg: number;
@@ -88,12 +88,12 @@ export interface AnalyzeThresholds {
 
 /**
  * The spike's constants, embedded in every finding they shaped. The
- * flyableWindow pair carried a measured sensitivity sweep (see its JSDoc);
+ * thermalWindow pair carried a measured sensitivity sweep (see its JSDoc);
  * the rest are the values the spike's outputs were audited under. All are
  * caller-movable per call — they are conventions, not physics.
  */
 export const DEFAULT_ANALYZE_THRESHOLDS: AnalyzeThresholds = {
-  flyableWindow: { wstarMinMs: 0.9, depthMinM: 300 },
+  thermalWindow: { wstarMinMs: 0.9, depthMinM: 300 },
   liftCeiling: { cloudCapMarginM: 50 },
   capTiming: {
     instabilityMinCapeJkg: 100,

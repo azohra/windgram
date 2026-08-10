@@ -3,14 +3,14 @@
 import type { WindgramHour } from "../../contract/index.js";
 import { localDateKey, localHourOfDay } from "../../derive/day-window.js";
 import { p50 } from "../../derive/ensemble.js";
-import type { FlyableWindowFinding } from "./flyable-window.js";
+import type { ThermalWindowFinding } from "./thermal-window.js";
 import { round1, round2, type CitedInstant, type Context, type LocalDayKey } from "./shared.js";
 
 /**
- * A local day that produced NO flyable window — the negative stated with
+ * A local day that produced NO thermal window — the negative stated with
  * its evidence instead of by absence, so a consumer's headline can say WHY
  * ("peak W* 0.4 m/s, below the 0.9 floor") rather than only "no window".
- * Emitted once per local day that has forecast hours and no flyableWindow
+ * Emitted once per local day that has forecast hours and no thermalWindow
  * finding; a day with a window emits nothing here (the window IS the
  * statement). `failed` names the floors the day's best hours missed —
  * including the honest edge case `"coincidence"`, where each threshold is
@@ -50,16 +50,16 @@ export interface QuietDayFinding {
   thresholds: { wstarMinMs: number; depthMinM: number };
 }
 
-/* The negative statement: local days that produced no flyable window,
+/* The negative statement: local days that produced no thermal window,
    carrying the numbers that failed. Days covered by any window hour are
    excluded via the windows' own evidence (a window that crosses midnight
    covers both its days). */
 export function findQuietDays(
   context: Context,
-  windows: FlyableWindowFinding[],
+  windows: ThermalWindowFinding[],
 ): QuietDayFinding[] {
   const { profile, launchReferenceM, thresholds } = context;
-  const { wstarMinMs, depthMinM } = thresholds.flyableWindow;
+  const { wstarMinMs, depthMinM } = thresholds.thermalWindow;
   const windowDays = new Set(
     windows.flatMap((window) =>
       window.evidence.hours.map((validAt) => localDateKey(validAt, context.timeZone)),

@@ -47,7 +47,7 @@ import {
   resolveAnalyzeThresholds,
   type AnalyzeThresholds,
   type CitedInstant,
-  type FlyableWindowFinding,
+  type ThermalWindowFinding,
   type LocalDayKey,
   type QuietDayFinding,
   type WindgramAnalysis,
@@ -111,7 +111,7 @@ export interface QuietVote {
 }
 
 /**
- * Per local day: who says the day has a flyable window, who says quiet
+ * Per local day: who says the day has a thermal window, who says quiet
  * (with the numbers that failed), who abstained and why — and the timing
  * envelope among the edges that are forecasts rather than data
  * boundaries. `unanimous` is arithmetic over the voters (all-window or
@@ -290,7 +290,7 @@ export function compareProfiles(
   for (const member of members) {
     if (benched.has(member.model)) continue;
     for (const finding of analyses[member.model].findings) {
-      if (finding.kind === "flyableWindow") {
+      if (finding.kind === "thermalWindow") {
         dayOf(finding.day).windows.push({
           model: member.model,
           start: finding.start,

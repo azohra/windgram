@@ -1,15 +1,15 @@
 /* liftCeiling — the kind's type and its extractor, one module. */
 
 import { p50 } from "../../derive/ensemble.js";
-import type { FlyableWindowFinding } from "./flyable-window.js";
+import type { ThermalWindowFinding } from "./thermal-window.js";
 import { round1, type CitedInstant, type Context, type LocalDayKey } from "./shared.js";
 
 /**
- * Within each flyable window: is the top of the climb set by cloud base or
+ * Within each thermal window: is the top of the climb set by cloud base or
  * by updraft decay? The cause is an arithmetic relation — `cloudCapped`
  * when the published cloud base sits within `cloudCapMarginM` of (or
  * below) the lift top, else `sinkLimited` — segmented into runs with the
- * flip count stated. Like flyableWindow, a compression anchor restating
+ * flip count stated. Like thermalWindow, a compression anchor restating
  * published series.
  */
 export interface LiftCeilingFinding {
@@ -32,7 +32,7 @@ export interface LiftCeilingFinding {
 
 export function findLiftCeilings(
   context: Context,
-  windows: FlyableWindowFinding[],
+  windows: ThermalWindowFinding[],
 ): LiftCeilingFinding[] {
   const { profile, thresholds } = context;
   const margin = thresholds.liftCeiling.cloudCapMarginM;

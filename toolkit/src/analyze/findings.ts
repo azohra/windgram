@@ -12,7 +12,7 @@ import { isDeterministicProfile, type WindgramProfile } from "../contract/index.
 import { findCapTiming } from "./kinds/cap-timing.js";
 import { findDataCaveats } from "./kinds/data-caveats.js";
 import { findEnsembleMembership } from "./kinds/ensemble-membership.js";
-import { findFlyableWindows } from "./kinds/flyable-window.js";
+import { findThermalWindows } from "./kinds/thermal-window.js";
 import { findLiftCeilings } from "./kinds/lift-ceiling.js";
 import { findQuietDays } from "./kinds/quiet-day.js";
 import { citedInstantFactory, stepHoursOf, type Context } from "./kinds/shared.js";
@@ -62,7 +62,7 @@ export function analyzeProfile(
     thresholds,
   };
 
-  const windows = findFlyableWindows(context);
+  const windows = findThermalWindows(context);
   const findings: WindgramFinding[] = [
     ...findTerrainMismatch(context),
     ...windows,
@@ -106,7 +106,7 @@ export function resolveAnalyzeThresholds(
 function mergeThresholds(overrides?: Partial<AnalyzeThresholds>): AnalyzeThresholds {
   if (!overrides) return DEFAULT_ANALYZE_THRESHOLDS;
   return {
-    flyableWindow: { ...DEFAULT_ANALYZE_THRESHOLDS.flyableWindow, ...overrides.flyableWindow },
+    thermalWindow: { ...DEFAULT_ANALYZE_THRESHOLDS.thermalWindow, ...overrides.thermalWindow },
     liftCeiling: { ...DEFAULT_ANALYZE_THRESHOLDS.liftCeiling, ...overrides.liftCeiling },
     capTiming: { ...DEFAULT_ANALYZE_THRESHOLDS.capTiming, ...overrides.capTiming },
     terrainMismatch: { ...DEFAULT_ANALYZE_THRESHOLDS.terrainMismatch, ...overrides.terrainMismatch },

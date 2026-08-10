@@ -39,7 +39,7 @@
      arithmetic over stated, embedded, caller-movable thresholds (max lift
      top < launch altitude; |CIN| under a stated bound while CAPE exceeds
      a stated bound). The rule was never "no judgment words" —
-     flyableWindow and quietDay carry judgment-shaped names under exactly
+     thermalWindow and quietDay carry judgment-shaped names under exactly
      that reduction;
    - any finding that used a threshold EMBEDS it (`thresholds`), defaults
      drawn from the spike whose sensitivity sweep measured them low-impact —
@@ -61,7 +61,7 @@
      first-class finding (`ensembleMembership`), because a p50 computed from
      0-of-21 contributing members is a landmine, not a median.
 
-   What flyableWindow and liftCeiling are for: they RESTATE the published
+   What thermalWindow and liftCeiling are for: they RESTATE the published
    derived series — deliberately. Their value is compression (a 13-72k-token
    document down to a ~1-2k statement of when and how high) and the timing
    anchor the other findings reference; they add no information a consumer
@@ -83,11 +83,11 @@ export {
   type DataCaveatsFinding,
   type EnsembleMembershipFinding,
   type FindingKind,
-  type FlyableWindowFinding,
   type LiftCeilingFinding,
   type LocalDayKey,
   type QuietDayFinding,
   type TerrainMismatchFinding,
+  type ThermalWindowFinding,
   type WindgramAnalysis,
   type WindgramFinding,
   type WindSummaryFinding,

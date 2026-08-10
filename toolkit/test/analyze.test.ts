@@ -8,7 +8,7 @@ import {
   type CapTimingFinding,
   type DataCaveatsFinding,
   type EnsembleMembershipFinding,
-  type FlyableWindowFinding,
+  type ThermalWindowFinding,
   type LiftCeilingFinding,
   type QuietDayFinding,
   type TerrainMismatchFinding,
@@ -73,7 +73,7 @@ describe("the analysis envelope", () => {
     const analysis = analyzeProfile(hrrr(), { ...ERIE, timeZone: "America/Edmonton" });
     expect(analysis.timeZone).toBe("America/Edmonton");
     expect(analysis.timeZoneSource).toBe("override");
-    const window = ofKind<FlyableWindowFinding>(analysis.findings, "flyableWindow")[0];
+    const window = ofKind<ThermalWindowFinding>(analysis.findings, "thermalWindow")[0];
     expect(window.start.local).toBe("2026-08-08T13:00"); // one hour east of Vancouver
   });
 
@@ -93,7 +93,7 @@ describe("the analysis envelope", () => {
     // depth arithmetic reads against the model's own ground.
     const analysis = analyzeProfile(hrrr());
     expect(analysis.site.launchAltitudeM).toBeNull();
-    const windows = ofKind<FlyableWindowFinding>(analysis.findings, "flyableWindow");
+    const windows = ofKind<ThermalWindowFinding>(analysis.findings, "thermalWindow");
     expect(windows.length).toBeGreaterThan(0);
     for (const window of windows) {
       expect(window.peakLiftTopAboveLaunchM).toBeNull();
@@ -114,7 +114,7 @@ describe("the analysis envelope", () => {
         "dataCaveats",
         "ensembleMembership",
         "capTiming",
-        "flyableWindow",
+        "thermalWindow",
         "quietDay",
         "liftCeiling",
         "windSummary",
@@ -123,11 +123,11 @@ describe("the analysis envelope", () => {
   });
 });
 
-describe("flyableWindow", () => {
+describe("thermalWindow", () => {
   it("finds the deterministic afternoon window with local timing and launch-relative peak", () => {
-    const findings = ofKind<FlyableWindowFinding>(
+    const findings = ofKind<ThermalWindowFinding>(
       analyzeProfile(hrrr(), ERIE).findings,
-      "flyableWindow",
+      "thermalWindow",
     );
     const saturday = findings.find((finding) => finding.day === "2026-08-08")!;
     // The spike's window on this document (its local clock approximated
@@ -139,7 +139,7 @@ describe("flyableWindow", () => {
     expect(saturday.peakLiftTopAboveLaunchM).toBe(1658.6); // 2905.6 − 1247 launch
     expect(saturday.peakThermalVelocityMs).toBe(2.16); // contract 2-dp: the raw published value
     // The thresholds that produced the window are embedded in it.
-    expect(saturday.thresholds).toEqual(DEFAULT_ANALYZE_THRESHOLDS.flyableWindow);
+    expect(saturday.thresholds).toEqual(DEFAULT_ANALYZE_THRESHOLDS.thermalWindow);
     // Evidence is scoped to exactly the cited hours.
     expect(saturday.evidence.hours).toHaveLength(7);
     expect(saturday.evidence.usableLiftTopM[4]).toBe(2905.6);
@@ -149,9 +149,9 @@ describe("flyableWindow", () => {
   it("moves with the caller's thresholds — they are conventions, not physics", () => {
     const strict = analyzeProfile(hrrr(), {
       ...ERIE,
-      thresholds: { flyableWindow: { wstarMinMs: 2.1, depthMinM: 1500 } },
+      thresholds: { thermalWindow: { wstarMinMs: 2.1, depthMinM: 1500 } },
     });
-    const findings = ofKind<FlyableWindowFinding>(strict.findings, "flyableWindow");
+    const findings = ofKind<ThermalWindowFinding>(strict.findings, "thermalWindow");
     expect(findings).toHaveLength(1);
     // Only 22:00Z clears both bars (top 2826.3 = 1579 m over launch, W* 2.16).
     expect(findings[0].durationHours).toBe(1);
@@ -163,9 +163,9 @@ describe("flyableWindow", () => {
     // Impossible W* floor: every day is quiet, and the finding says why.
     const strict = analyzeProfile(hrrr(), {
       ...ERIE,
-      thresholds: { flyableWindow: { wstarMinMs: 99, depthMinM: 300 } },
+      thresholds: { thermalWindow: { wstarMinMs: 99, depthMinM: 300 } },
     });
-    expect(ofKind<FlyableWindowFinding>(strict.findings, "flyableWindow")).toHaveLength(0);
+    expect(ofKind<ThermalWindowFinding>(strict.findings, "thermalWindow")).toHaveLength(0);
     const quiet = ofKind<QuietDayFinding>(strict.findings, "quietDay");
     const saturday = quiet.find((finding) => finding.day === "2026-08-08")!;
     expect(saturday.failed).toEqual(["wstar"]);
@@ -188,9 +188,9 @@ describe("flyableWindow", () => {
     }
     const analysis = analyzeProfile(profile, {
       ...ERIE,
-      thresholds: { flyableWindow: { wstarMinMs: 0.9, depthMinM: 300 } },
+      thresholds: { thermalWindow: { wstarMinMs: 0.9, depthMinM: 300 } },
     });
-    expect(ofKind<FlyableWindowFinding>(analysis.findings, "flyableWindow")).toHaveLength(0);
+    expect(ofKind<ThermalWindowFinding>(analysis.findings, "thermalWindow")).toHaveLength(0);
     const saturday = ofKind<QuietDayFinding>(analysis.findings, "quietDay").find(
       (finding) => finding.day === "2026-08-08",
     )!;
@@ -214,7 +214,7 @@ describe("flyableWindow", () => {
   });
 
   it("marks windows clipped by the document's own horizon at either edge", () => {
-    const windows = ofKind<FlyableWindowFinding>(analyzeProfile(hrrr(), ERIE).findings, "flyableWindow");
+    const windows = ofKind<ThermalWindowFinding>(analyzeProfile(hrrr(), ERIE).findings, "thermalWindow");
     const byDay = Object.fromEntries(windows.map((finding) => [finding.day, finding]));
     // The document opens mid-window and ends mid-window: the first
     // window's start and the last window's end are data boundaries.
@@ -227,7 +227,7 @@ describe("flyableWindow", () => {
   it("emits no quietDay for a day any window hour touches", () => {
     const findings = analyzeProfile(hrrr(), ERIE).findings;
     const windowDays = new Set(
-      ofKind<FlyableWindowFinding>(findings, "flyableWindow").map((finding) => finding.day),
+      ofKind<ThermalWindowFinding>(findings, "thermalWindow").map((finding) => finding.day),
     );
     for (const quiet of ofKind<QuietDayFinding>(findings, "quietDay")) {
       expect(windowDays.has(quiet.day)).toBe(false);
@@ -235,9 +235,9 @@ describe("flyableWindow", () => {
   });
 
   it("reads ensembles at p50 and carries the p10-p90 lift-top band as evidence", () => {
-    const findings = ofKind<FlyableWindowFinding>(
+    const findings = ofKind<ThermalWindowFinding>(
       analyzeProfile(reps(), ERIE).findings,
-      "flyableWindow",
+      "thermalWindow",
     );
     expect(findings.map((finding) => finding.day)).toEqual(["2026-08-08", "2026-08-09"]);
     const saturday = findings[0];
@@ -247,7 +247,7 @@ describe("flyableWindow", () => {
   });
 
   it("finds nothing at the terrain-mismatch site — lift tops never reach 300 m over launch", () => {
-    expect(ofKind(analyzeProfile(geps(), FLAGPOLE).findings, "flyableWindow")).toHaveLength(0);
+    expect(ofKind(analyzeProfile(geps(), FLAGPOLE).findings, "thermalWindow")).toHaveLength(0);
   });
 });
 
@@ -293,7 +293,7 @@ describe("capTiming", () => {
       local: "2026-08-08T18:00",
     });
     expect(saturday.capeAtBreakJkg).toBe(540);
-    expect(saturday.flyableWindowEndsAt?.local).toBe("2026-08-08T18:00");
+    expect(saturday.thermalWindowEndsAt?.local).toBe("2026-08-08T18:00");
     expect(saturday.thresholds).toEqual(DEFAULT_ANALYZE_THRESHOLDS.capTiming);
     expect(saturday.evidence.capeJkg).toContain(540);
     expect(saturday.evidence.hours).toHaveLength(saturday.evidence.cinJkg.length);
