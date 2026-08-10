@@ -4,6 +4,24 @@ Notable repository and `windgram` package changes are recorded here. Dataset
 schema, npm package, and Python pipeline versions are independent; each release
 entry names the versions it actually changes.
 
+## [0.19.0] - 2026-08-10 — RETRACTED, DO NOT USE
+
+`windgram` (npm/JSR) 0.19.0 and `windgram` pipeline (PyPI) 0.7.0
+**shipped in error and were fully reverted the same day** (unpublished
+from npm; yanked on JSR and PyPI where the registries allow). Nothing
+they introduced exists in any later release in that form:
+
+- There is no identity-only `sites.json` v2, no `sitesInputSchema`, no
+  generated published catalogue with `elevation`/`datasets` blocks, no
+  `what3words` anywhere in the contract or documents, and no
+  site-context v2 of that shape. **Do not write code against 0.19.0's
+  schemas, parsers, or fields** — target 0.18.0 (current) or ≥ 0.20.0.
+- The one piece that survived, re-landed separately on main: the
+  pipeline's authenticated S3 read path (`dataset.py` reading the
+  published state through the R2 endpoint).
+- The launch/elevation redesign these versions gestured at ships
+  properly, once, as 0.20.0 — see that entry when it exists.
+
 ## [0.6.3] - 2026-08-10
 
 `windgram` pipeline (PyPI) 0.6.3 — a challenged read is a broken read,
