@@ -335,8 +335,28 @@ class _Granule:
         self._fileobj.close()
 
 
+_HDF5_SIGNATURE = b"\x89HDF\r\n\x1a\n"
+
+
 def _ranged_granule(url: str, stats: DownloadStats) -> "_Granule":
-    return _Granule(RangedHTTPFile(url, stats))
+    """The ranged path, with a signature gate in front of h5py.
+
+    A failed `h5py.File(...)` leaves partially-initialized HDF5 library
+    state whose atexit teardown can segfault the interpreter AFTER
+    Python finalization (exit 139 — proven by CI bisect 2026-08-10: the
+    fallback tests alone crashed the process, after passing). So h5py
+    never sees a file that cannot be HDF5: a poisoned reader or a
+    garbage first block fails here, cheaply (block 0 stays cached for
+    h5py's own superblock read), and the whole-file fallback takes
+    over. GOES granules carry the signature at offset 0."""
+    reader = RangedHTTPFile(url, stats)
+    signature = reader.read(len(_HDF5_SIGNATURE))
+    if reader.error is not None:
+        raise reader.error
+    if signature != _HDF5_SIGNATURE:
+        raise RuntimeError(f"{url} does not start with the HDF5 signature")
+    reader.seek(0)
+    return _Granule(reader)
 
 
 class _RangedVariable:
