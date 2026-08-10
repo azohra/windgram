@@ -53,9 +53,21 @@ def test_a_404_means_not_yet_published_and_is_never_retried(monkeypatch):
     assert len(session.requested_urls) == 1
 
 
+def test_a_403_means_not_yet_published_like_a_404(monkeypatch):
+    # S3-style storage answers 403 for a missing key when listing is
+    # denied — a dataset's very first build asks for a manifest that has
+    # never existed and must read the 403 as absence, not failure
+    # (verified against the live base 2026-08-10, the goes18-dsr cold
+    # start).
+    session = _Session([_response(403)])
+    monkeypatch.setattr(dataset, "_session", lambda: session)
+    assert fetch_published("goes18-dsr/manifest.json") is None
+    assert len(session.requested_urls) == 1
+
+
 def test_other_client_errors_stay_fatal(monkeypatch):
-    monkeypatch.setattr(dataset, "_session", lambda: _Session([_response(403)]))
-    with pytest.raises(RuntimeError, match="failed with 403"):
+    monkeypatch.setattr(dataset, "_session", lambda: _Session([_response(401)]))
+    with pytest.raises(RuntimeError, match="failed with 401"):
         fetch_published("gfs/manifest.json")
 
 
