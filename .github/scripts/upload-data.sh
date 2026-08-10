@@ -71,22 +71,54 @@ s3 cp "data/$model/manifest.json" "$bucket/$model/manifest.json" \
 
 # The authored catalogues publish at the bucket root; re-uploading them
 # with every model keeps the bucket following the source checkout.
-s3 cp models.json "$bucket/models.json" \
-  --cache-control "$short" --content-type application/json
-s3 cp sites.json "$bucket/sites.json" \
-  --cache-control "$short" --content-type application/json
-# site-context.json is machine-generated but committed like a catalogue
-# (regenerated only when the site catalogue changes), so it publishes the
-# same way. Tolerate absence: checkouts predating the terrain wave.
-if [ -f site-context.json ]; then
-  s3 cp site-context.json "$bucket/site-context.json" \
+#
+# Never publish backwards here either: a build runs up to an hour, so a
+# job checked out before a merge can upload after a job checked out after
+# it and stomp the catalogues back to the old version (measured
+# 2026-08-10: post-merge upload 21:20:33Z, pre-merge re-stomp 21:21:15Z).
+# The checkout's HEAD commit epoch orders checkouts — every job checks
+# out main's tip, and the epoch survives the workflow's default
+# fetch-depth-1 clone, where per-file commit times do not exist. The
+# epoch rides as object metadata on each catalogue; absent metadata
+# (objects published before this guard) reads as 0, and an equal epoch
+# re-uploads, so the same checkout can republish itself. A head-then-put
+# race remains — R2 offers no compare-and-swap — but the guard shrinks
+# the window from the length of a build run to milliseconds.
+catalogue_epoch=$(git log -1 --format=%ct)
+published_epoch=$(aws s3api head-object \
+  --bucket "${bucket#s3://}" --key models.json \
+  --endpoint-url "$R2_ENDPOINT" \
+  --query 'Metadata."catalogue-commit-epoch"' --output text \
+  2>/dev/null || true)
+case $published_epoch in
+  '' | *[!0-9]*) published_epoch=0 ;;
+esac
+if [ "$published_epoch" -gt "$catalogue_epoch" ]; then
+  # The three catalogues skip as a set: they were committed together and
+  # must stay coherent with each other on the bucket.
+  echo "Published catalogues come from a newer checkout; skipping catalogue upload."
+else
+  s3 cp models.json "$bucket/models.json" \
+    --metadata "catalogue-commit-epoch=$catalogue_epoch" \
     --cache-control "$short" --content-type application/json
+  s3 cp sites.json "$bucket/sites.json" \
+    --metadata "catalogue-commit-epoch=$catalogue_epoch" \
+    --cache-control "$short" --content-type application/json
+  # site-context.json is machine-generated but committed like a catalogue
+  # (regenerated only when the site catalogue changes), so it publishes the
+  # same way. Tolerate absence: checkouts predating the terrain wave.
+  if [ -f site-context.json ]; then
+    s3 cp site-context.json "$bucket/site-context.json" \
+      --metadata "catalogue-commit-epoch=$catalogue_epoch" \
+      --cache-control "$short" --content-type application/json
+  fi
 fi
 
 # runs.json is regenerated from every model's *published* manifest (model
 # list from models.json, never-published models tolerated), so the index
 # is a pure function of the dataset and concurrent lanes converge on
-# whoever uploads last.
+# whoever uploads last. It stays outside the catalogue guard for the same
+# reason: a stale write self-heals on the next model upload.
 uv run --no-dev --project pipeline python -c \
   "from windgram.publish import write_runs_index; write_runs_index()"
 s3 cp data/runs.json "$bucket/runs.json" \
