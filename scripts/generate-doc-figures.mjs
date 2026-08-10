@@ -64,11 +64,14 @@ async function loadProfile(id) {
 }
 
 /* One rendering recipe for every embedded chart: the committed profile,
-   the profile's own timezone, and the hero's proportions. */
+   the profile's own timezone, the scenario's launch (a render input — the
+   index carries it; the launch-agnostic document does not), and the hero's
+   proportions. */
 async function renderChart(id, idPrefix) {
   const profile = await loadProfile(id);
   const scene = buildScene(profile, {
     timeZone: profile.site.timeZone,
+    launch: scenarioMeta(id).launch,
     widthPx: 560,
     plotHeightPx: 340,
     hourLabel: "12h",

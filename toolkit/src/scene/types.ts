@@ -215,6 +215,19 @@ export interface SceneOptions {
   hours?: ReadonlyArray<{ validAt: string }> | { timeZone: string; dateKey: string };
   overlays?: Partial<Record<OverlayName, boolean>>;
   /**
+   * The launch to draw over this render — a RENDER INPUT, deliberately not
+   * a document field: a windgram document describes the atmosphere over a
+   * grid sample and is launch-agnostic, so one document serves every
+   * launch it covers and the consumer names the launch per render.
+   * `elevationM` (metres MSL, typically site-context.json's `elevation`
+   * pick) places the marker line and joins the altitude-domain scan;
+   * `name` joins the label (`"<name> <n> m"` instead of `"launch <n> m"`).
+   * Absent, `scene.launch` is null and no marker draws — a missing marker
+   * is honest, never an error. The `launch` overlay toggle still applies:
+   * off hides even a provided launch.
+   */
+  launch?: { name?: string; elevationM: number } | null;
+  /**
    * A smoke document (RAQDPS) for the same site, joined per hour by
    * validAt to feed the smoke strip where the profile model publishes no
    * smoke of its own. The profile's own smoke block wins where both
@@ -717,6 +730,12 @@ export interface SceneGraph {
   surfaceTemperatures: ReadonlyArray<SurfaceTemperatureMark>;
   labels: ReadonlyArray<SceneLabel>;
   markers: ReadonlyArray<SceneMarker>;
+  /**
+   * The launch marker's resolved geometry, drawn from `SceneOptions.launch`
+   * (documents carry no launch). Null when no launch was supplied, when the
+   * `launch` overlay is off, or when the elevation falls outside the
+   * altitude domain.
+   */
   launch: { y: number; altitudeM: number; label: string } | null;
   /** Hour column highlighted as "the day's best" (max W*). */
   selectedHourIndex: number;

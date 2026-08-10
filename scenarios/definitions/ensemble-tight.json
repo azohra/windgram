@@ -13,8 +13,10 @@
     "synthetic": true,
     "latitude": 49,
     "longitude": -123,
-    "altitudeM": 1050,
     "modelElevationM": 900
+  },
+  "launch": {
+    "elevationM": 1050
   },
   "clock": {
     "referenceTime": "2000-01-01T06:00:00Z",
@@ -34,7 +36,13 @@
   },
   "capabilities": {
     "levels": true,
-    "pressureLevels": [925, 850, 800, 700, 600],
+    "pressureLevels": [
+      925,
+      850,
+      800,
+      700,
+      600
+    ],
     "verticalVelocity": false,
     "heatFluxes": true,
     "gust": false,
@@ -47,39 +55,79 @@
   "ensemble": {
     "members": 9,
     "perturbations": [
-      {"field": "surface.temperatureC", "distribution": "symmetric", "spread": 0.4, "correlation": "whole-column"},
-      {"field": "surface.windDirectionDeg", "distribution": "symmetric", "spread": 12, "correlation": "by-hour"},
-      {"field": "surface.sensibleHeatFluxWm2", "distribution": "uniform", "spread": 8, "correlation": "by-hour"},
-      {"field": "levels.temperatureC", "distribution": "symmetric", "spread": 0.3, "correlation": "by-level"},
-      {"field": "levels.windDirectionDeg", "distribution": "uniform", "spread": 10, "correlation": "independent"}
+      {
+        "field": "surface.temperatureC",
+        "distribution": "symmetric",
+        "spread": 0.4,
+        "correlation": "whole-column"
+      },
+      {
+        "field": "surface.windDirectionDeg",
+        "distribution": "symmetric",
+        "spread": 12,
+        "correlation": "by-hour"
+      },
+      {
+        "field": "surface.sensibleHeatFluxWm2",
+        "distribution": "uniform",
+        "spread": 8,
+        "correlation": "by-hour"
+      },
+      {
+        "field": "levels.temperatureC",
+        "distribution": "symmetric",
+        "spread": 0.3,
+        "correlation": "by-level"
+      },
+      {
+        "field": "levels.windDirectionDeg",
+        "distribution": "uniform",
+        "spread": 10,
+        "correlation": "independent"
+      }
     ]
   },
   "assertions": [
     {
       "id": "temperature-band-is-narrow",
       "description": "Tightly grouped member temperatures keep the p10-p90 band within one degree.",
-      "actual": {"field": "surface.temperatureC.p90", "hour": 2},
+      "actual": {
+        "field": "surface.temperatureC.p90",
+        "hour": 2
+      },
       "operator": "equal",
-      "expected": {"field": "surface.temperatureC.p10", "hour": 2},
+      "expected": {
+        "field": "surface.temperatureC.p10",
+        "hour": 2
+      },
       "tolerance": 1
     },
     {
       "id": "every-member-contributes",
       "description": "All nine members contribute to the surface temperature band.",
-      "actual": {"field": "surface.temperatureC.members", "hour": 2},
+      "actual": {
+        "field": "surface.temperatureC.members",
+        "hour": 2
+      },
       "operator": "equal",
       "expected": 9
     },
     {
       "id": "lift-band-exists",
       "description": "The aggregate publishes a usable-lift percentile band.",
-      "actual": {"field": "derived.usableLiftTopM", "hour": 2},
+      "actual": {
+        "field": "derived.usableLiftTopM",
+        "hour": 2
+      },
       "operator": "present"
     },
     {
       "id": "wrapped-direction-exists",
       "description": "The aggregate publishes the circularly combined surface direction.",
-      "actual": {"field": "surface.windDirectionDeg", "hour": 1},
+      "actual": {
+        "field": "surface.windDirectionDeg",
+        "hour": 1
+      },
       "operator": "present"
     }
   ]

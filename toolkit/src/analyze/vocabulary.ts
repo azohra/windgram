@@ -51,18 +51,20 @@ export interface CitedInstant {
 export type LocalDayKey = string;
 
 /**
- * The model's grid terrain sits far from the surveyed launch, so every
+ * The model's grid terrain sits far from the launch, so every
  * altitude-referenced series in the document is structurally biased — the
  * spike's motivating case is GEPS at Flagpole, which models the site at
  * 144 m though launch is 1222 m, so its usable-lift top never reaches
  * launch. Invisible on a chart; only the metadata says it. The one verdict,
  * `liftTopEverReachesLaunch`, is pure arithmetic: max published lift top
- * vs launch altitude. Emitted only when the document knows its launch
- * altitude and |delta| is at least `thresholds.minAbsDeltaM`.
+ * vs launch elevation. Documents are launch-agnostic, so the launch is the
+ * caller's (`AnalyzeOptions.launch`): emitted only when a launch is
+ * supplied and |delta| is at least `thresholds.minAbsDeltaM`.
  */
 export interface TerrainMismatchFinding {
   kind: "terrainMismatch";
   modelElevationM: number;
+  /** The caller-supplied launch elevation (AnalyzeOptions.launch), metres MSL. */
   siteAltitudeM: number;
   /** modelElevationM − siteAltitudeM; negative = model terrain below launch. */
   deltaM: number;
@@ -193,8 +195,9 @@ export interface CapTimingFinding {
  * 150/300/500 m) measured low sensitivity on real profiles; both are
  * embedded and caller-movable, because "flyable" beyond this arithmetic is
  * pilot, wing, and site judgment that belongs downstream. Launch reference
- * is site.altitudeM, falling back to modelElevationM when the launch is
- * unsurveyed (and then `peakLiftTopAboveLaunchM` is null rather than a
+ * is the caller's `AnalyzeOptions.launch.elevationM` — documents are
+ * launch-agnostic — falling back to modelElevationM when no launch is
+ * supplied (and then `peakLiftTopAboveLaunchM` is null rather than a
  * number relative to the wrong ground).
  */
 export interface FlyableWindowFinding {
@@ -205,7 +208,7 @@ export interface FlyableWindowFinding {
   durationHours: number;
   peakLiftTopM: number;
   peakLiftTopAt: CitedInstant;
-  /** Launch-relative peak; null when site.altitudeM is unknown. */
+  /** Launch-relative peak; null when no launch was supplied. */
   peakLiftTopAboveLaunchM: number | null;
   peakThermalVelocityMs: number;
   /**
@@ -310,8 +313,9 @@ export interface QuietDayFinding {
   peakThermalVelocityAt: CitedInstant | null;
   /**
    * The day's best usable-lift depth above the launch reference
-   * (site.altitudeM, or modelElevationM when the launch is unsurveyed —
-   * the same arithmetic the window test runs); null when unpublished.
+   * (AnalyzeOptions.launch.elevationM, or modelElevationM when no launch
+   * is supplied — the same arithmetic the window test runs); null when
+   * unpublished.
    */
   peakLiftDepthM: number | null;
   peakLiftDepthAt: CitedInstant | null;
@@ -390,6 +394,17 @@ export interface AnalyzeOptions {
    * so with a `timesAreUtc` caveat.
    */
   timeZone?: string;
+  /**
+   * The launch the analysis reads launch-relative statements against — an
+   * ANALYSIS INPUT, exactly like the scene's `SceneOptions.launch`:
+   * documents are launch-agnostic, so the caller names the launch
+   * (`elevationM`, metres MSL — typically site-context.json's `elevation`
+   * pick). Absent, launch-relative arithmetic falls back to the model's own
+   * ground (`site.modelElevationM`), `peakLiftTopAboveLaunchM` is null, and
+   * `terrainMismatch` — a launch-vs-model-ground statement — is never
+   * emitted.
+   */
+  launch?: { elevationM: number } | null;
   /** Per-kind threshold overrides, merged over the defaults per kind. */
   thresholds?: Partial<AnalyzeThresholds>;
 }
@@ -399,6 +414,11 @@ export interface AnalyzeOptions {
 export interface WindgramAnalysis {
   vocabularyVersion: typeof ANALYZE_VOCABULARY_VERSION;
   model: string;
+  /**
+   * The document's sample identity plus the launch the analysis ran
+   * against: `launchAltitudeM` echoes the caller's `AnalyzeOptions.launch`
+   * (documents carry no launch), null when none was supplied.
+   */
   site: { id: string; launchAltitudeM: number | null; modelElevationM: number };
   run: { referenceTime: string };
   /** The timezone every local field below reads in. */

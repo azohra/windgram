@@ -5,7 +5,7 @@
   "properties": {
     "schemaVersion": {
       "type": "number",
-      "const": 1
+      "const": 2
     },
     "sites": {
       "type": "array",
@@ -27,10 +27,6 @@
           "longitude": {
             "type": "number"
           },
-          "elevationM": {
-            "type": "number",
-            "description": "The launch's surveyed elevation, metres MSL — the catalogue is its home. Profile site.altitudeM stores the same quantity per-profile and may be null there (a profile built before the survey keeps its null; the catalogue is current)."
-          },
           "timeZone": {
             "type": "string",
             "minLength": 1,
@@ -42,9 +38,9 @@
           "name",
           "latitude",
           "longitude",
-          "elevationM",
           "timeZone"
-        ]
+        ],
+        "description": "One catalogued site: identity and build selection only — humans author WHERE, and nothing physical. The pipeline measures WHAT at these coordinates and publishes it in site-context.json."
       }
     }
   },
@@ -52,5 +48,5 @@
     "schemaVersion",
     "sites"
   ],
-  "description": "sites.json — the hand-maintained site catalogue: every launch the builders publish profiles for. {schemaVersion, sites} since the 0.3.0 wave (previously a bare array)."
+  "description": "sites.json — the hand-maintained site catalogue: every site the builders publish documents for. Identity and build selection only: humans author WHERE; the pipeline measures WHAT (site-context.json). Published to the dataset root verbatim."
 }

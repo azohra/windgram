@@ -506,7 +506,6 @@ def _build_profiles(
                     "longitude": site["longitude"],
                     "modelElevationM": model_elevation_by_site[site["slug"]],
                     "referenceTime": reference_time,
-                    "siteAltitudeM": site["elevationM"],
                     "siteId": site["slug"],
                     "siteName": site["name"],
                     "siteTimeZone": site.get("timeZone"),

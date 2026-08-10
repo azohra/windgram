@@ -13,6 +13,7 @@
     "modelShape",
     "timeZone",
     "site",
+    "launch",
     "clock",
     "baseline",
     "transforms",
@@ -62,6 +63,9 @@
     },
     "site": {
       "$ref": "#/$defs/site"
+    },
+    "launch": {
+      "$ref": "#/$defs/launch"
     },
     "clock": {
       "$ref": "#/$defs/clock"
@@ -417,7 +421,6 @@
         "synthetic",
         "latitude",
         "longitude",
-        "altitudeM",
         "modelElevationM"
       ],
       "properties": {
@@ -442,15 +445,22 @@
           "minimum": -180,
           "maximum": 180
         },
-        "altitudeM": {
-          "type": [
-            "number",
-            "null"
-          ],
+        "modelElevationM": {
+          "type": "number",
           "minimum": -500,
           "maximum": 9000
-        },
-        "modelElevationM": {
+        }
+      }
+    },
+    "launch": {
+      "description": "The launch the scenario teaches against. It never enters the generated document (documents are launch-agnostic sample provenance); the generator publishes it in the scenario index, and renderers pass it as SceneOptions.launch.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "elevationM"
+      ],
+      "properties": {
+        "elevationM": {
           "type": "number",
           "minimum": -500,
           "maximum": 9000
@@ -1112,16 +1122,12 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "type"
+        "type",
+        "modelElevationDeltaM"
       ],
       "properties": {
         "type": {
           "const": "elevation-adjustment"
-        },
-        "siteAltitudeDeltaM": {
-          "type": "number",
-          "minimum": -5000,
-          "maximum": 5000
         },
         "modelElevationDeltaM": {
           "type": "number",
@@ -1131,19 +1137,7 @@
         "target": {
           "$ref": "#/$defs/target"
         }
-      },
-      "anyOf": [
-        {
-          "required": [
-            "siteAltitudeDeltaM"
-          ]
-        },
-        {
-          "required": [
-            "modelElevationDeltaM"
-          ]
-        }
-      ]
+      }
     },
     "metricField": {
       "oneOf": [
@@ -1157,7 +1151,7 @@
     },
     "scalarMetricField": {
       "enum": [
-        "site.altitudeM",
+        "launch.elevationM",
         "site.modelElevationM",
         "surface.pressurePa",
         "surface.temperatureC",
@@ -1295,7 +1289,7 @@
           "if": {
             "properties": {
               "field": {
-                "pattern": "^site\\."
+                "pattern": "^(?:site|launch)\\."
               }
             },
             "required": [

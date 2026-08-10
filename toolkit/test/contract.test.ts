@@ -121,9 +121,8 @@ describe("profile schema", () => {
     expect(parseWindgramProfile(profile)).not.toBeNull();
   });
 
-  it("accepts null boundary-layer top and usable-lift top, and null site altitude", () => {
+  it("accepts null boundary-layer top and usable-lift top", () => {
     const profile = deterministicProfile({
-      site: { ...deterministicProfile().site, altitudeM: null },
       hours: [
         deterministicHour({
           derived: {
@@ -136,6 +135,27 @@ describe("profile schema", () => {
       ],
     });
     expect(parseWindgramProfile(profile)).not.toBeNull();
+  });
+
+  it("strips a legacy site.altitudeM — old documents still parse, launch-agnostic", () => {
+    // Pre-decoupling documents baked one launch's elevation into the site
+    // block. The field is gone from the contract: zod strips unknown keys,
+    // so the stored history stays parseable, and the parsed document
+    // carries no launch — launch attributes arrive at render time
+    // (SceneOptions.launch).
+    const legacy = {
+      ...deterministicProfile(),
+      site: { ...deterministicProfile().site, altitudeM: 1485 },
+    };
+    const parsed = parseWindgramProfile(legacy);
+    expect(parsed).not.toBeNull();
+    expect("altitudeM" in parsed!.site).toBe(false);
+    // A legacy null survives the same way.
+    const legacyNull = {
+      ...deterministicProfile(),
+      site: { ...deterministicProfile().site, altitudeM: null },
+    };
+    expect("altitudeM" in parseWindgramProfile(legacyNull)!.site).toBe(false);
   });
 
   it("accepts every optional science-wave surface field — schemaVersion stays 1", () => {
@@ -376,6 +396,15 @@ describe("models.json schema", () => {
     expect(parseModelCatalogue(legacy)).toBeNull();
   });
 
+  it("requires the publication-lag fact — the catalogue owns the fact, consumers own thresholds", () => {
+    const parsed = parseModelCatalogue(catalogue());
+    expect(parsed!.models[0].typicalPublicationLagHours).toBe(4.5);
+    const legacy = catalogue();
+    delete (legacy.models[0] as { typicalPublicationLagHours?: number })
+      .typicalPublicationLagHours;
+    expect(parseModelCatalogue(legacy)).toBeNull();
+  });
+
   it("types precipitation as a required semantics declaration", () => {
     const bad = catalogue();
     const capabilities = bad.models[0].capabilities as { precipitation: unknown };
@@ -439,25 +468,63 @@ describe("models.json schema", () => {
     expect(hrrr.capabilities.precipitation).toBe("instantRate");
     const gfs = parsed!.models.find((model) => model.slug === "gfs")!;
     expect(gfs.capabilities.precipitation).toBe("windowMeanRate");
+    // Every run-publishing dataset declares its publication-lag fact —
+    // profile and smoke entries alike; observation datasets deliberately
+    // carry nothing (cadenceMinutes is their freshness yardstick, and
+    // they have no runs to lag). The raw JSON is checked for the
+    // exclusion because the guard strips unknown keys.
+    for (const entry of [...parsed!.models, ...(parsed!.smokeModels ?? [])]) {
+      expect(entry.typicalPublicationLagHours, entry.slug).toBeGreaterThan(0);
+    }
+    const rawCatalogue = JSON.parse(raw) as {
+      observationModels?: Array<Record<string, unknown>>;
+    };
+    for (const entry of rawCatalogue.observationModels ?? []) {
+      expect(entry, String(entry["slug"])).not.toHaveProperty("typicalPublicationLagHours");
+    }
+    // Spot checks against the feeds page's verified availability: HRRR's
+    // T+1:47 rounds to 2.5; HRDPS's T+2:55->3:55 to 4.5.
+    expect(hrrr.typicalPublicationLagHours).toBe(2.5);
+    expect(hrdps.typicalPublicationLagHours).toBe(4.5);
   });
 });
 
 describe("sites.json schema", () => {
-  it("accepts the {schemaVersion, sites} catalogue", () => {
+  it("accepts the identity-only v2 catalogue — humans author WHERE, nothing physical", () => {
     const parsed = parseSitesCatalogue(sitesCatalogue());
     expect(parsed).not.toBeNull();
+    expect(parsed!.schemaVersion).toBe(2);
     expect(parsed!.sites.map((site) => site.slug)).toEqual(["dundee", "red-mountain"]);
-    expect(parsed!.sites[0].elevationM).toBe(1485);
+    expect(Object.keys(parsed!.sites[0]).sort()).toEqual([
+      "latitude",
+      "longitude",
+      "name",
+      "slug",
+      "timeZone",
+    ]);
   });
 
   it("rejects the pre-0.3.0 bare-array shape — unversioned documents cannot promise theirs", () => {
     expect(parseSitesCatalogue(sitesCatalogue().sites)).toBeNull();
   });
 
-  it("requires the surveyed elevation — the catalogue is its home", () => {
-    const bad = sitesCatalogue();
-    delete (bad.sites[0] as { elevationM?: number }).elevationM;
-    expect(parseSitesCatalogue(bad)).toBeNull();
+  it("rejects an elevationM-bearing v1 catalogue by its version literal", () => {
+    // The v1 shape carried the launch's typed-in elevation; v2 carries no
+    // elevation of any kind (the pipeline measures WHAT — site-context.json).
+    const v1 = {
+      schemaVersion: 1,
+      sites: sitesCatalogue().sites.map((site) => ({ ...site, elevationM: 1485 })),
+    };
+    expect(parseSitesCatalogue(v1)).toBeNull();
+    // A stray elevationM on a v2 document is an unknown key: it strips,
+    // never round-trips — the published catalogue cannot re-grow the field.
+    const strayed = {
+      schemaVersion: 2,
+      sites: sitesCatalogue().sites.map((site) => ({ ...site, elevationM: 1485 })),
+    };
+    const parsed = parseSitesCatalogue(strayed);
+    expect(parsed).not.toBeNull();
+    expect("elevationM" in parsed!.sites[0]).toBe(false);
   });
 
   it("rejects prose slugs", () => {
@@ -474,9 +541,12 @@ describe("sites.json schema", () => {
     expect(parseSitesCatalogue(bad)).toBeNull();
   });
 
-  it("parses from a stored string and accepts the repository's actual sites.json", () => {
+  it("parses from a stored string", () => {
     expect(parseSitesCatalogueJson(JSON.stringify(sitesCatalogue()))).not.toBeNull();
     expect(parseSitesCatalogueJson("[]")).toBeNull();
+  });
+
+  it("accepts the repository's actual sites.json", () => {
     const raw = readFileSync(join(__dirname, "..", "..", "sites.json"), "utf-8");
     expect(parseSitesCatalogueJson(raw)).not.toBeNull();
   });
@@ -563,9 +633,21 @@ describe("JSON Schema generation", () => {
       target: "draft-2020-12",
       io: "input",
     }) as JsonSchema;
+    // v2 carries no elevation of any kind: humans author WHERE, the
+    // pipeline measures WHAT (site-context.json).
     const entry = (sites.properties!["sites"] as { items: JsonSchema }).items;
-    expect(entry.properties!["elevationM"]!.description).toContain("altitudeM");
+    expect(entry.properties!["elevationM"]).toBeUndefined();
+    expect(entry.description).toContain("WHERE");
+    expect(sites.description).toContain("verbatim");
     expect(entry.properties!["timeZone"]!.description).toContain("IANA");
+
+    // The profile site block is sample provenance — launch-agnostic, with
+    // the launch arriving at render time.
+    const siteBlock = profile.properties!["site"]!;
+    expect(siteBlock.description).toContain("launch-agnostic");
+    expect(siteBlock.description).toContain("render time");
+    expect(siteBlock.properties!["altitudeM"]).toBeUndefined();
+    expect(siteBlock.properties!["modelElevationM"]!.description).toContain("model's own");
   });
 
   it("matches the shipped schema/*.json artifacts — regenerate with pnpm schemas", () => {

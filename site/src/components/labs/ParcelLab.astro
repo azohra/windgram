@@ -9,8 +9,8 @@ const eroding = scenarioById("morning-inversion-erodes");
 const persistent = scenarioById("persistent-inversion");
 const initialKey = "eroding";
 const sources: Record<"eroding" | "persistent", LabScenarioSource> = {
-  eroding: { profile: eroding.profile, timeZone: eroding.timeZone },
-  persistent: { profile: persistent.profile, timeZone: persistent.timeZone },
+  eroding: { profile: eroding.profile, timeZone: eroding.timeZone, launch: eroding.launch },
+  persistent: { profile: persistent.profile, timeZone: persistent.timeZone, launch: persistent.launch },
 };
 
 const { scene: initialScene, svg: initialSvg } = renderParcelChart(

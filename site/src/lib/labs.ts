@@ -23,7 +23,19 @@ import { onlyOverlays } from "./example-windgram";
 export interface LabScenarioSource {
   profile: WindgramProfile;
   timeZone: string;
+  /**
+   * The launch the scenario teaches against, from the scenario INDEX — the
+   * profile is a launch-agnostic sample. Every lab scene passes it to
+   * buildScene as `SceneOptions.launch`; absent, no launch marker draws and
+   * launch-relative readouts fall back to the model's own ground.
+   */
+  launch?: { name?: string; elevationM: number };
 }
+
+/** buildScene's `launch` option from a lab source — present only when the
+ * scenario carries one. */
+const launchOption = (source: LabScenarioSource) =>
+  source.launch ? { launch: source.launch } : {};
 
 /** "HH:MM UTC" from a profile hour's validAt. */
 export const utcHourLabel = (validAt: string): string => `${validAt.slice(11, 16)} UTC`;
@@ -90,6 +102,7 @@ export function renderUsableLiftChart(
 ): { scene: SceneGraph; svg: string } {
   const scene = buildScene(source.profile, {
     timeZone: source.timeZone,
+    ...launchOption(source),
     overlays: USABLE_LIFT_OVERLAYS,
     sinkRateMs,
     smooth: false,
@@ -135,6 +148,7 @@ export function renderEnsembleSpreadChart(
 ): { scene: SceneGraph; svg: string } {
   const scene = buildScene(source.profile, {
     timeZone: source.timeZone,
+    ...launchOption(source),
     overlays: ENSEMBLE_SPREAD_OVERLAYS,
     smooth: false,
     columnWidthPx: 74,
@@ -160,6 +174,7 @@ export function renderParcelChart(
 ): { scene: SceneGraph; svg: string } {
   const scene = buildScene(source.profile, {
     timeZone: source.timeZone,
+    ...launchOption(source),
     hourIndices: source.profile.hours.slice(0, hourCount).map((_, index) => index),
     overlays: PARCEL_OVERLAYS,
     smooth: false,
@@ -207,13 +222,16 @@ export function windShearFrame(
   const hour = profile.hours[hourIndex];
   const scene = buildScene(profile, {
     timeZone: source.timeZone,
+    ...launchOption(source),
     hourIndices: [hourIndex],
     overlays: WIND_SHEAR_OVERLAYS,
     smooth: false,
     widthPx: 400,
     plotHeightPx: 390,
   });
-  const launchAltitudeM = profile.site.altitudeM ?? profile.site.modelElevationM;
+  /* Launch-relative readout: the launch comes from the scenario index (the
+     document is launch-agnostic); without one, read at the model's ground. */
+  const launchAltitudeM = source.launch?.elevationM ?? profile.site.modelElevationM;
   const usableAltitudeM = p50(hour.derived.usableLiftTopM);
   const launchWind = readWind(scene, launchAltitudeM);
   const usableWind = usableAltitudeM === null ? null : readWind(scene, usableAltitudeM);
@@ -313,6 +331,7 @@ export function renderSmokeLabChart(
 ): { scene: SceneGraph; svg: string } {
   const scene = buildScene(uniformSmokeProfile(source.profile, aot), {
     timeZone: source.timeZone,
+    ...launchOption(source),
     overlays: SMOKE_LAB_OVERLAYS,
     smokeAdjusted: true,
     smooth: false,

@@ -13,8 +13,10 @@
     "synthetic": true,
     "latitude": 49,
     "longitude": -123,
-    "altitudeM": 1050,
     "modelElevationM": 900
+  },
+  "launch": {
+    "elevationM": 1050
   },
   "clock": {
     "referenceTime": "2000-01-01T06:00:00Z",

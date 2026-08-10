@@ -9,10 +9,16 @@ import {
 import {
   deterministicSceneProfile,
   ensembleSceneProfile,
+  SCENE_LAUNCH,
   scienceSceneProfile,
 } from "./scene-fixtures.js";
 
-const TZ = { timeZone: "America/Vancouver" };
+/* Every golden render passes the launch as a render input (the documents
+   are launch-agnostic since the decoupling wave); SCENE_LAUNCH is the
+   elevation the pre-decoupling fixtures baked in, so the goldens are
+   byte-identical. The ensemble profile's floor sits above it, so that
+   golden never drew a marker — same input, same honest absence. */
+const TZ = { timeZone: "America/Vancouver", launch: SCENE_LAUNCH };
 
 function deterministicSvg(): string {
   return renderSvg(

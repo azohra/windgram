@@ -125,10 +125,10 @@ def test_coordinates_and_unlisted_fields_pass_through_verbatim():
         "id": "dundee",
         "latitude": 49.291977,
         "longitude": -117.183569,
-        "altitudeM": 1485.04,
+        "modelElevationM": 1217.34,
     }
 
-    assert round_document({"site": site}) == {"site": {**site, "altitudeM": 1485.0}}
+    assert round_document({"site": site}) == {"site": {**site, "modelElevationM": 1217.3}}
 
 
 def test_rounded_values_serialize_without_float_noise():

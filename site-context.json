@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "generatedAt": "2026-08-10T07:25:53Z",
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-10T19:01:17Z",
   "sources": [
     {
       "id": "glo30",
@@ -41,6 +41,10 @@
   ],
   "sites": {
     "dundee": {
+      "elevation": {
+        "source": "mrdem30",
+        "elevationM": 1476.4
+      },
       "terrain": {
         "source": "glo30",
         "elevationM": 1492.1,
@@ -66,10 +70,6 @@
             "percentile": 57
           }
         ]
-      },
-      "bareEarth": {
-        "source": "mrdem30",
-        "elevationM": 1476.4
       },
       "landCover": {
         "source": "worldcover2021",
@@ -97,6 +97,10 @@
       }
     },
     "erie": {
+      "elevation": {
+        "source": "lidarbc",
+        "elevationM": 1245.9
+      },
       "terrain": {
         "source": "glo30",
         "elevationM": 1244.2,
@@ -123,10 +127,6 @@
           }
         ]
       },
-      "bareEarth": {
-        "source": "lidarbc",
-        "elevationM": 1245.9
-      },
       "landCover": {
         "source": "worldcover2021",
         "atLaunch": "grassland",
@@ -150,6 +150,10 @@
       }
     },
     "flagpole": {
+      "elevation": {
+        "source": "lidarbc",
+        "elevationM": 1226.2
+      },
       "terrain": {
         "source": "glo30",
         "elevationM": 1222.1,
@@ -176,10 +180,6 @@
           }
         ]
       },
-      "bareEarth": {
-        "source": "lidarbc",
-        "elevationM": 1226.2
-      },
       "landCover": {
         "source": "worldcover2021",
         "atLaunch": "treeCover",
@@ -205,6 +205,10 @@
       }
     },
     "red-mountain": {
+      "elevation": {
+        "source": "lidarbc",
+        "elevationM": 1585.9
+      },
       "terrain": {
         "source": "glo30",
         "elevationM": 1584.7,
@@ -230,10 +234,6 @@
             "percentile": 84
           }
         ]
-      },
-      "bareEarth": {
-        "source": "lidarbc",
-        "elevationM": 1585.9
       },
       "landCover": {
         "source": "worldcover2021",

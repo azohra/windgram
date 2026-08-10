@@ -19,9 +19,12 @@ const initialHourIndex = 3;
 
 // Both panels render once here; only the hour-lens readouts rebuild
 // client-side, so this scene recipe has a single (frontmatter) home.
-function renderProfile(profile: typeof earlier.profile, timeZone: string, idPrefix: string) {
-  const scene = buildScene(profile, {
-    timeZone,
+function renderProfile(scenario: typeof earlier, idPrefix: string) {
+  const scene = buildScene(scenario.profile, {
+    timeZone: scenario.timeZone,
+    // The launch is a render input from the scenario index — one launch,
+    // supplied to both panels, so their markers compare like for like.
+    launch: scenario.launch,
     overlays: TIMING_OVERLAYS,
     smooth: false,
     columnWidthPx: 58,
@@ -30,8 +33,8 @@ function renderProfile(profile: typeof earlier.profile, timeZone: string, idPref
   return renderSvg(scene, { idPrefix });
 }
 
-const earlierSvg = renderProfile(earlier.profile, earlier.timeZone, "model-disagreement-earlier");
-const laterSvg = renderProfile(later.profile, later.timeZone, "model-disagreement-later");
+const earlierSvg = renderProfile(earlier, "model-disagreement-earlier");
+const laterSvg = renderProfile(later, "model-disagreement-later");
 const earlierInitial = timingHourValues(earlier.profile, initialHourIndex);
 const laterInitial = timingHourValues(later.profile, initialHourIndex);
 ---

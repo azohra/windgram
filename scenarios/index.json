@@ -13,9 +13,11 @@
         "name": "Synthetic CAPE Ridge",
         "latitude": 49.091868,
         "longitude": -117.820838,
-        "altitudeM": 1591,
         "modelElevationM": 1217.3,
         "timeZone": "Etc/UTC"
+      },
+      "launch": {
+        "elevationM": 1591
       },
       "capabilities": {
         "levels": true,
@@ -40,7 +42,7 @@
       "outputs": [
         {
           "path": "generated/cape-under-cap.profile.json",
-          "sha256": "86454272abef6e3162be6b90909acff9354ca9615ace0a1be33b4b6efad85d31"
+          "sha256": "9c41aacafa23b0fd91c775444f06e400ad753beef4c388d477f54ce4d68509e0"
         }
       ]
     },
@@ -56,9 +58,11 @@
         "name": "Synthetic Cloudy Ridge",
         "latitude": 49,
         "longitude": -123,
-        "altitudeM": 1050,
         "modelElevationM": 900,
         "timeZone": "Etc/UTC"
+      },
+      "launch": {
+        "elevationM": 1050
       },
       "capabilities": {
         "levels": true,
@@ -81,7 +85,7 @@
       "outputs": [
         {
           "path": "generated/cloud-base-limits-lift.profile.json",
-          "sha256": "f219c4a208d6555b204e48c03f73611ec4127fd440ff960016d8ab64b4da0e8a"
+          "sha256": "3544f62b18664ffd47ffc637716f27dfe288012f72caa384b99794c164d47b3e"
         }
       ]
     },
@@ -97,9 +101,11 @@
         "name": "Synthetic Ridge",
         "latitude": 49,
         "longitude": -123,
-        "altitudeM": 1050,
         "modelElevationM": 900,
         "timeZone": "Etc/UTC"
+      },
+      "launch": {
+        "elevationM": 1050
       },
       "capabilities": {
         "levels": true,
@@ -125,7 +131,7 @@
       "outputs": [
         {
           "path": "generated/convective-cycle.profile.json",
-          "sha256": "afde5b07ae56d0d5e1dfa1b06ef61199f0f09ea7ed85779ee0ff66f87a3fbf4b"
+          "sha256": "cfed0d1953cdb6348f0194f713256c880ee81b2b9036b39bab9fb4ffd401327d"
         }
       ]
     },
@@ -141,9 +147,11 @@
         "name": "Synthetic Front Ridge",
         "latitude": 49.091868,
         "longitude": -117.820838,
-        "altitudeM": 1591,
         "modelElevationM": 1217.3,
         "timeZone": "Etc/UTC"
+      },
+      "launch": {
+        "elevationM": 1591
       },
       "capabilities": {
         "levels": true,
@@ -168,7 +176,7 @@
       "outputs": [
         {
           "path": "generated/front-arrival.profile.json",
-          "sha256": "cefa257d10009c834af55e8c4ef3dc8c29e09cfd11ff3d02dbcb334aae03c5f5"
+          "sha256": "d806ce53f8753f89ffb0fa257d7a782f082ed912996666b95c12b1151be4a835"
         }
       ]
     },
@@ -184,9 +192,11 @@
         "name": "Synthetic Gust Ridge",
         "latitude": 49.091868,
         "longitude": -117.820838,
-        "altitudeM": 1591,
         "modelElevationM": 1217.3,
         "timeZone": "Etc/UTC"
+      },
+      "launch": {
+        "elevationM": 1591
       },
       "capabilities": {
         "levels": true,
@@ -211,7 +221,7 @@
       "outputs": [
         {
           "path": "generated/gusts-after-heating.profile.json",
-          "sha256": "feb6dac72943193ded4a0411410a564dcff98ee67aef35fa06a841c5c5d61fe8"
+          "sha256": "13c29b8798978b1c96af4dd3c6068dce01e7bab452c509f0f02e2fcb38ba6bd6"
         }
       ]
     },
@@ -227,9 +237,11 @@
         "name": "Synthetic Ridge",
         "latitude": 49,
         "longitude": -123,
-        "altitudeM": 1050,
         "modelElevationM": 900,
         "timeZone": "Etc/UTC"
+      },
+      "launch": {
+        "elevationM": 1050
       },
       "capabilities": {
         "levels": true,
@@ -250,7 +262,7 @@
       "outputs": [
         {
           "path": "generated/minimal-valid.profile.json",
-          "sha256": "27d32e4826da1b1301c1b6128965dfb4c08d21f454cf660f2de2d69e93f702da"
+          "sha256": "157452f38721405bef43a97e973f7e49b0f4d98fd521e26f5060a50dd7668efa"
         }
       ]
     },
@@ -266,9 +278,11 @@
         "name": "Synthetic Dry Ridge",
         "latitude": 49,
         "longitude": -123,
-        "altitudeM": 1050,
         "modelElevationM": 900,
         "timeZone": "Etc/UTC"
+      },
+      "launch": {
+        "elevationM": 1050
       },
       "capabilities": {
         "levels": true,
@@ -291,7 +305,7 @@
       "outputs": [
         {
           "path": "generated/missing-versus-zero.profile.json",
-          "sha256": "9d39b59c38377fd96e67a66cae48988440f3e5a4f83dea48471e6d56d77c693c"
+          "sha256": "c3a6dfdb30f9bc2952b374825ec4d4b8413b0d3a7ee47e53289e3393b299fd67"
         }
       ]
     },
@@ -307,9 +321,11 @@
         "name": "Synthetic High Launch",
         "latitude": 49,
         "longitude": -123,
-        "altitudeM": 1500,
         "modelElevationM": 900,
         "timeZone": "Etc/UTC"
+      },
+      "launch": {
+        "elevationM": 1500
       },
       "capabilities": {
         "levels": true,
@@ -332,7 +348,7 @@
       "outputs": [
         {
           "path": "generated/morning-inversion-erodes.profile.json",
-          "sha256": "7ff6d25adbeafae5809a1c353b5dc6be26385a5f0fa428c57c4f6f735494414f"
+          "sha256": "81ce0a4c0712bb618415404a167f8f8cc1763b657e0e179bce42bfe8afd2dd40"
         }
       ]
     },
@@ -348,9 +364,11 @@
         "name": "Synthetic Capped Launch",
         "latitude": 49,
         "longitude": -123,
-        "altitudeM": 1750,
         "modelElevationM": 900,
         "timeZone": "Etc/UTC"
+      },
+      "launch": {
+        "elevationM": 1750
       },
       "capabilities": {
         "levels": true,
@@ -373,7 +391,7 @@
       "outputs": [
         {
           "path": "generated/persistent-inversion.profile.json",
-          "sha256": "2f487c6fe937f9bc4d366d122fc1ca65a0ae6479b33745446e24f92afd03ee6d"
+          "sha256": "a33edf3536ac1bdee87d9c84cdf956241229d99f714edac3f35716ecfe34504f"
         }
       ]
     },
@@ -389,9 +407,11 @@
         "name": "Synthetic Shear Ridge",
         "latitude": 49,
         "longitude": -123,
-        "altitudeM": 1050,
         "modelElevationM": 900,
         "timeZone": "Etc/UTC"
+      },
+      "launch": {
+        "elevationM": 1050
       },
       "capabilities": {
         "levels": true,
@@ -414,7 +434,7 @@
       "outputs": [
         {
           "path": "generated/shear-through-lift-band.profile.json",
-          "sha256": "ded7da44fa70a69a7a4654b19022dffe2a6c06631bfd960193ad575907d29fb0"
+          "sha256": "32771554ffe7f36cfaa7853fecf07947a32ea0c09b294605302f408b4e840b6b"
         }
       ]
     },
@@ -430,9 +450,11 @@
         "name": "Synthetic Smoke Ridge",
         "latitude": 49.3,
         "longitude": -121.8,
-        "altitudeM": 1050,
         "modelElevationM": 900,
         "timeZone": "America/Vancouver"
+      },
+      "launch": {
+        "elevationM": 1050
       },
       "capabilities": {
         "levels": true,
@@ -459,7 +481,7 @@
       "outputs": [
         {
           "path": "generated/smoke-over-thermals.profile.json",
-          "sha256": "57a3d1e16f16d724d836914cf3feb1faf33bec76a1532054bf38142b0e9a7d2c"
+          "sha256": "d55d026f0e2ca44f7c0786dadc7740483f1a62223b01dabe3806dd624bcaf22e"
         }
       ]
     },
@@ -475,9 +497,11 @@
         "name": "Synthetic Sparse Ridge",
         "latitude": 49,
         "longitude": -123,
-        "altitudeM": 1050,
         "modelElevationM": 900,
         "timeZone": "Etc/UTC"
+      },
+      "launch": {
+        "elevationM": 1050
       },
       "capabilities": {
         "levels": true,
@@ -500,7 +524,7 @@
       "outputs": [
         {
           "path": "generated/three-hourly-sampling.profile.json",
-          "sha256": "b9a707a9b89891b6e6a3610add5fa5038e91c52d46a0ecc41e2cabec4b5d1c9e"
+          "sha256": "3f8f2f00a5902fbc597ad0ba61096ef37e66e354e4b4a9871275360e4e000e4f"
         }
       ]
     },
@@ -516,9 +540,11 @@
         "name": "Synthetic Ridge",
         "latitude": 49,
         "longitude": -123,
-        "altitudeM": 1050,
         "modelElevationM": 900,
         "timeZone": "Etc/UTC"
+      },
+      "launch": {
+        "elevationM": 1050
       },
       "capabilities": {
         "levels": true,
@@ -541,7 +567,7 @@
       "outputs": [
         {
           "path": "generated/ensemble-column-censored.profile.json",
-          "sha256": "df7104cf9f3b598909e6f084f2096e75f340782dbf2183b12b5577faa8d05f4f"
+          "sha256": "65a8424ebd9bdb3b338de1941437a7a60a6034804a8110ef9c580e5e42ed0654"
         }
       ]
     },
@@ -557,9 +583,11 @@
         "name": "Synthetic Ridge",
         "latitude": 49,
         "longitude": -123,
-        "altitudeM": 1050,
         "modelElevationM": 900,
         "timeZone": "Etc/UTC"
+      },
+      "launch": {
+        "elevationM": 1050
       },
       "capabilities": {
         "levels": true,
@@ -582,7 +610,7 @@
       "outputs": [
         {
           "path": "generated/ensemble-tight.profile.json",
-          "sha256": "daa120524a1d0dd69a64f83de8bf9aa11464c0d017aafb2da03e8bc3a65f4c5d"
+          "sha256": "47f98a07abebffdfd9d8247d43d1e3da65a93e84b8f2d586caa030fcb201bd24"
         }
       ]
     },
@@ -598,9 +626,11 @@
         "name": "Synthetic Ridge",
         "latitude": 49,
         "longitude": -123,
-        "altitudeM": 1050,
         "modelElevationM": 900,
         "timeZone": "Etc/UTC"
+      },
+      "launch": {
+        "elevationM": 1050
       },
       "capabilities": {
         "levels": true,
@@ -623,7 +653,7 @@
       "outputs": [
         {
           "path": "generated/ensemble-wide.profile.json",
-          "sha256": "cc7c8bcf81915350828570a80e5593b3aaeb8c0d67cc7643a1301deaeae8e342"
+          "sha256": "681ed7712843dff5eda0f10865d45719e7d9be57303708bccb5142e6845b7fec"
         }
       ]
     },
@@ -639,9 +669,11 @@
         "name": "Synthetic Ridge",
         "latitude": 49,
         "longitude": -123,
-        "altitudeM": 1050,
         "modelElevationM": 900,
         "timeZone": "Etc/UTC"
+      },
+      "launch": {
+        "elevationM": 1050
       },
       "capabilities": {
         "levels": true,
@@ -666,13 +698,13 @@
           "variant": "earlier",
           "title": "Earlier development",
           "path": "generated/model-timing-disagreement.earlier.profile.json",
-          "sha256": "a4d2c9f7112a26dc1b00b45aebc129c2609ac011762465e5f5838b08c558d257"
+          "sha256": "c03989a85b551257a8f94a0ad2b62f93855ec19728011e8ac6e703035f733151"
         },
         {
           "variant": "later",
           "title": "Later development",
           "path": "generated/model-timing-disagreement.later.profile.json",
-          "sha256": "74d614c2e3f13273334c9a05c721d12f489240bcdcc90e3fcf8b049aeacbd2e1"
+          "sha256": "d0d82ef741271b7ce30fd459a40fd86a492fd78af194f06c5b4259aac98ecc44"
         }
       ]
     }

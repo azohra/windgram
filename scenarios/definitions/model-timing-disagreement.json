@@ -13,8 +13,10 @@
     "synthetic": true,
     "latitude": 49,
     "longitude": -123,
-    "altitudeM": 1050,
     "modelElevationM": 900
+  },
+  "launch": {
+    "elevationM": 1050
   },
   "clock": {
     "referenceTime": "2000-01-01T06:00:00Z",
@@ -34,12 +36,30 @@
       "target": "earlier",
       "field": "temperatureC",
       "points": [
-        {"hourOffset": 0, "value": 23},
-        {"hourOffset": 1, "value": 26},
-        {"hourOffset": 2, "value": 29},
-        {"hourOffset": 3, "value": 30},
-        {"hourOffset": 4, "value": 28},
-        {"hourOffset": 5, "value": 25}
+        {
+          "hourOffset": 0,
+          "value": 23
+        },
+        {
+          "hourOffset": 1,
+          "value": 26
+        },
+        {
+          "hourOffset": 2,
+          "value": 29
+        },
+        {
+          "hourOffset": 3,
+          "value": 30
+        },
+        {
+          "hourOffset": 4,
+          "value": 28
+        },
+        {
+          "hourOffset": 5,
+          "value": 25
+        }
       ]
     },
     {
@@ -47,12 +67,30 @@
       "target": "earlier",
       "field": "sensibleHeatFluxWm2",
       "points": [
-        {"hourOffset": 0, "value": 120},
-        {"hourOffset": 1, "value": 240},
-        {"hourOffset": 2, "value": 320},
-        {"hourOffset": 3, "value": 250},
-        {"hourOffset": 4, "value": 130},
-        {"hourOffset": 5, "value": 40}
+        {
+          "hourOffset": 0,
+          "value": 120
+        },
+        {
+          "hourOffset": 1,
+          "value": 240
+        },
+        {
+          "hourOffset": 2,
+          "value": 320
+        },
+        {
+          "hourOffset": 3,
+          "value": 250
+        },
+        {
+          "hourOffset": 4,
+          "value": 130
+        },
+        {
+          "hourOffset": 5,
+          "value": 40
+        }
       ]
     },
     {
@@ -60,12 +98,30 @@
       "target": "later",
       "field": "temperatureC",
       "points": [
-        {"hourOffset": 0, "value": 18},
-        {"hourOffset": 1, "value": 19},
-        {"hourOffset": 2, "value": 21},
-        {"hourOffset": 3, "value": 25},
-        {"hourOffset": 4, "value": 28},
-        {"hourOffset": 5, "value": 30}
+        {
+          "hourOffset": 0,
+          "value": 18
+        },
+        {
+          "hourOffset": 1,
+          "value": 19
+        },
+        {
+          "hourOffset": 2,
+          "value": 21
+        },
+        {
+          "hourOffset": 3,
+          "value": 25
+        },
+        {
+          "hourOffset": 4,
+          "value": 28
+        },
+        {
+          "hourOffset": 5,
+          "value": 30
+        }
       ]
     },
     {
@@ -73,12 +129,30 @@
       "target": "later",
       "field": "sensibleHeatFluxWm2",
       "points": [
-        {"hourOffset": 0, "value": 20},
-        {"hourOffset": 1, "value": 40},
-        {"hourOffset": 2, "value": 100},
-        {"hourOffset": 3, "value": 220},
-        {"hourOffset": 4, "value": 320},
-        {"hourOffset": 5, "value": 250}
+        {
+          "hourOffset": 0,
+          "value": 20
+        },
+        {
+          "hourOffset": 1,
+          "value": 40
+        },
+        {
+          "hourOffset": 2,
+          "value": 100
+        },
+        {
+          "hourOffset": 3,
+          "value": 220
+        },
+        {
+          "hourOffset": 4,
+          "value": 320
+        },
+        {
+          "hourOffset": 5,
+          "value": 250
+        }
       ]
     }
   ],
@@ -87,7 +161,13 @@
   },
   "capabilities": {
     "levels": true,
-    "pressureLevels": [925, 850, 800, 700, 600],
+    "pressureLevels": [
+      925,
+      850,
+      800,
+      700,
+      600
+    ],
     "verticalVelocity": false,
     "heatFluxes": true,
     "gust": false,
@@ -99,31 +179,61 @@
   },
   "comparison": {
     "variants": [
-      {"id": "earlier", "title": "Earlier development"},
-      {"id": "later", "title": "Later development"}
+      {
+        "id": "earlier",
+        "title": "Earlier development"
+      },
+      {
+        "id": "later",
+        "title": "Later development"
+      }
     ]
   },
   "assertions": [
     {
       "id": "earlier-warmer-first",
       "description": "The earlier profile is warmer during the second teaching hour.",
-      "actual": {"field": "surface.temperatureC", "hour": 1, "target": "earlier"},
+      "actual": {
+        "field": "surface.temperatureC",
+        "hour": 1,
+        "target": "earlier"
+      },
       "operator": "greater-than",
-      "expected": {"field": "surface.temperatureC", "hour": 1, "target": "later"}
+      "expected": {
+        "field": "surface.temperatureC",
+        "hour": 1,
+        "target": "later"
+      }
     },
     {
       "id": "earlier-deeper-first",
       "description": "The earlier profile has deeper boundary-layer development by the third teaching hour.",
-      "actual": {"field": "derived.boundaryLayerTopM", "hour": 2, "target": "earlier"},
+      "actual": {
+        "field": "derived.boundaryLayerTopM",
+        "hour": 2,
+        "target": "earlier"
+      },
       "operator": "greater-than",
-      "expected": {"field": "derived.boundaryLayerTopM", "hour": 2, "target": "later"}
+      "expected": {
+        "field": "derived.boundaryLayerTopM",
+        "hour": 2,
+        "target": "later"
+      }
     },
     {
       "id": "later-stronger-last",
       "description": "The later profile retains stronger thermal velocity at the final teaching hour.",
-      "actual": {"field": "derived.thermalVelocityMs", "hour": 5, "target": "later"},
+      "actual": {
+        "field": "derived.thermalVelocityMs",
+        "hour": 5,
+        "target": "later"
+      },
       "operator": "greater-than",
-      "expected": {"field": "derived.thermalVelocityMs", "hour": 5, "target": "earlier"}
+      "expected": {
+        "field": "derived.thermalVelocityMs",
+        "hour": 5,
+        "target": "earlier"
+      }
     }
   ]
 }

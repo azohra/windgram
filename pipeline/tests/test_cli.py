@@ -15,13 +15,13 @@ SITE = {
     "name": "Test Hill",
     "latitude": 49.0,
     "longitude": -117.0,
-    "elevationM": 1000,
+    "timeZone": "America/Vancouver",
 }
 
 
 def write_sites(path: Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"schemaVersion": 1, "sites": [SITE]}))
+    path.write_text(json.dumps({"schemaVersion": 2, "sites": [SITE]}))
     return path
 
 

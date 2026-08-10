@@ -14,7 +14,6 @@ def source_profile() -> dict:
         "longitude": -117.183569,
         "modelElevationM": 1200,
         "referenceTime": "2026-07-27T18:00:00Z",
-        "siteAltitudeM": 1485,
         "siteId": "dundee",
         "siteName": "Dundee",
         "siteTimeZone": "America/Vancouver",
@@ -75,7 +74,6 @@ def test_publishes_the_contract_envelope_with_coordinates_verbatim():
         "name": "Dundee",
         "latitude": 49.291977,
         "longitude": -117.183569,
-        "altitudeM": 1485,
         "modelElevationM": 1200,
         "timeZone": "America/Vancouver",
     }

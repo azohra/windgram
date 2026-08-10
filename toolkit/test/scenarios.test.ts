@@ -27,6 +27,9 @@ interface ScenarioEntry {
   modelShape: string;
   timeZone: string;
   site: { id: string };
+  /** The launch the scenario teaches against — index metadata, passed to
+      the renderer as SceneOptions.launch; documents are launch-agnostic. */
+  launch: { elevationM: number };
   outputs: ScenarioOutput[];
 }
 
@@ -39,6 +42,8 @@ interface LoadedOutput {
   entry: ScenarioEntry;
   output: ScenarioOutput;
   profile: WindgramProfile;
+  /** The scenario's launch, read from its index entry. */
+  launch: { elevationM: number };
   scene: SceneGraph;
   svg: string;
 }
@@ -84,13 +89,18 @@ function loadOutput(entry: ScenarioEntry, output: ScenarioOutput): LoadedOutput 
   expect(profile, `${label} must satisfy parseWindgramProfile`).not.toBeNull();
   expect(profile!.site.id, `${label} site identity`).toBe(entry.site.id);
 
+  // Launches are render inputs (SceneOptions.launch); the scenario's launch
+  // is index metadata, never a document field.
+  const launch = entry.launch;
+  expect(launch?.elevationM, `${label} index entry must carry the launch`).toBeTypeOf("number");
+
   assertFiniteNumbers(profile, `${label} profile`);
-  const scene = buildScene(profile!, { timeZone: entry.timeZone });
+  const scene = buildScene(profile!, { timeZone: entry.timeZone, launch });
   assertFiniteNumbers(scene, `${label} scene`);
   const svg = renderSvg(scene, { idPrefix: `scenario-${entry.id}-${output.variant ?? "only"}` });
   validateSvg(svg, label);
 
-  return { entry, output, profile: profile!, scene, svg };
+  return { entry, output, profile: profile!, launch, scene, svg };
 }
 
 function assertFiniteNumbers(value: unknown, label: string, seen = new Set<object>()): void {
@@ -285,6 +295,7 @@ describe("scenario SVG goldens", () => {
     expect(loaded).toBeDefined();
     const scene = buildScene(loaded!.profile, {
       timeZone: loaded!.entry.timeZone,
+      launch: loaded!.launch,
       smokeAdjusted: true,
     });
     // The view must declare itself: the graph carries the derating smoke

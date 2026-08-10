@@ -83,7 +83,7 @@ const regions: Region[] = [
   title="One scene graph, mapped onto its own pixels"
   lesson="buildScene returns pure data; every region of the rendered chart is a named collection on that data."
   description="A rendered teaching windgram with outlined regions naming the SceneGraph collections that draw them: the time–height plot (fields, series, barbs, markers), the altitude axes, the hour-label and surface-temperature row, the metric strips, the launch line, and the selected-hour column."
-  caption="Region boxes are positioned from this scene's own scales and strip geometry at build time — scene.scales places the plot, each MetricStrip carries its top and height, and the launch line and selected hour are scene fields, not renderer guesses."
+  caption="Region boxes are positioned from this scene's own scales and strip geometry at build time — scene.scales places the plot, each MetricStrip carries its top and height, and the launch line and selected hour are scene fields, not renderer guesses. The launch itself is a render input (SceneOptions.launch, supplied at render time) — the document carries none."
   units="scene px · altitude m and ft · time UTC"
   {scenario}
 >
@@ -138,7 +138,8 @@ const regions: Region[] = [
         <span class="anatomy-legend__n">5</span>
         <span>
           <strong>Launch line</strong> — <code>scene.launch</code>: y,
-          altitude, and label for the surveyed launch ({scene.launch.label})
+          altitude, and label for the launch supplied at render time via
+          <code>SceneOptions.launch</code> ({scene.launch.label})
         </span>
       </li>
     )}

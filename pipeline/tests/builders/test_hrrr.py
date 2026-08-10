@@ -115,7 +115,6 @@ SITE = {
     "name": "Boulder",
     "latitude": 40.0,
     "longitude": 255.0,
-    "elevationM": 1600.0,
     "timeZone": "America/Denver",
 }
 LEVEL_HEIGHTS = {

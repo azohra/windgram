@@ -29,6 +29,12 @@ const TZ = "America/Vancouver";
 const hrrr = () => load("hrrrConusErie");
 const reps = () => load("repsErie");
 
+/* Erie's launch — ONE launch per comparison, a caller input since the
+   launch-decoupling wave (the fixtures baked it as v1 site.altitudeM,
+   which the contract now strips at parse). Same elevation the spike used,
+   so the expected votes and spreads are unchanged. */
+const ERIE_LAUNCH = { elevationM: 1247 };
+
 function ofKind<T extends { kind: string }>(
   findings: readonly { kind: string }[],
   kind: T["kind"],
@@ -51,6 +57,7 @@ describe("compareProfiles guards", () => {
 describe("the member ledger", () => {
   const comparison = compareProfiles([hrrr(), reps()], {
     timeZone: TZ,
+    launch: ERIE_LAUNCH,
     unavailable: [{ model: "nam-conus-nest", miss: "absent" }],
   });
 
@@ -77,22 +84,41 @@ describe("the member ledger", () => {
   });
 
   it("benches a member whose lift never reaches launch — the GEPS case, by arithmetic", () => {
-    const broken = hrrr();
-    (broken as { model: string }).model = "hrrr-toohigh";
-    (broken.site as { altitudeM: number | null }).altitudeM = 4000;
-    const withBenched = compareProfiles([hrrr(), reps(), broken], { timeZone: TZ });
-    const benched = withBenched.members.find((member) => member.model === "hrrr-toohigh")!;
+    // The real terrain-deficit document, retagged onto erie's site: GEPS
+    // models the ground at 144.1 m, and against the comparison's 1247 m
+    // launch its published lift tops (max 793.7 m) never reach launch.
+    const deficit = load("gepsFlagpole");
+    (deficit.site as { id: string }).id = "erie";
+    const withBenched = compareProfiles([hrrr(), reps(), deficit], {
+      timeZone: TZ,
+      launch: ERIE_LAUNCH,
+    });
+    const benched = withBenched.members.find((member) => member.model === "geps")!;
     expect(benched.benched).toMatchObject({ reason: "terrainMismatch" });
     // Benched members appear in the ledger and never in the votes.
     for (const finding of ofKind<WindowAgreementFinding>(withBenched.findings, "windowAgreement")) {
-      expect(finding.windows.map((vote) => vote.model)).not.toContain("hrrr-toohigh");
-      expect(finding.quiet.map((vote) => vote.model)).not.toContain("hrrr-toohigh");
+      expect(finding.windows.map((vote) => vote.model)).not.toContain("geps");
+      expect(finding.quiet.map((vote) => vote.model)).not.toContain("geps");
     }
+  });
+
+  it("benches nobody without a launch — terrainMismatch is a launch statement", () => {
+    const deficit = load("gepsFlagpole");
+    (deficit.site as { id: string }).id = "erie";
+    const launchFree = compareProfiles([hrrr(), reps(), deficit], { timeZone: TZ });
+    expect(launchFree.site.launchAltitudeM).toBeNull();
+    for (const member of launchFree.members) {
+      expect(member.benched).toBeNull();
+      expect(member.launchAltitudeM).toBeNull();
+      expect(member.elevationDeltaM).toBeNull();
+    }
+    // And with no launch-relative peaks there is no heightSpread to state.
+    expect(ofKind<HeightSpreadFinding>(launchFree.findings, "heightSpread")).toEqual([]);
   });
 });
 
 describe("windowAgreement", () => {
-  const comparison = compareProfiles([hrrr(), reps()], { timeZone: TZ });
+  const comparison = compareProfiles([hrrr(), reps()], { timeZone: TZ, launch: ERIE_LAUNCH });
   const agreement = ofKind<WindowAgreementFinding>(comparison.findings, "windowAgreement");
   const byDay = Object.fromEntries(agreement.map((finding) => [finding.day, finding]));
 
@@ -124,6 +150,7 @@ describe("windowAgreement", () => {
     // clip both their days, so every quiet call is a data boundary.
     const quiet = compareProfiles([hrrr(), reps()], {
       timeZone: TZ,
+      launch: ERIE_LAUNCH,
       thresholds: { flyableWindow: { wstarMinMs: 99, depthMinM: 300 } },
     });
     for (const finding of ofKind<WindowAgreementFinding>(quiet.findings, "windowAgreement")) {
@@ -140,7 +167,7 @@ describe("windowAgreement", () => {
 });
 
 describe("heightSpread", () => {
-  const comparison = compareProfiles([hrrr(), reps()], { timeZone: TZ });
+  const comparison = compareProfiles([hrrr(), reps()], { timeZone: TZ, launch: ERIE_LAUNCH });
   const spreads = ofKind<HeightSpreadFinding>(comparison.findings, "heightSpread");
 
   it("states launch-relative peaks per model with the spread — and no aggregate", () => {

@@ -35,7 +35,7 @@ const segments = [
   },
   {
     path: "site",
-    role: "Identity, coordinates, surveyed launch altitude, grid terrain, and the optional v0.4 timezone echo.",
+    role: "Sample provenance: identity, coordinates, the model's own terrain (modelElevationM), and the optional timezone echo. No launch elevation — the launch is supplied at render time, not stored in the document.",
     json: show(profile.site),
   },
   ...(profile.semantics
@@ -67,7 +67,7 @@ const segments = [
   id="ts-contract-anatomy"
   title="A profile document, block by block"
   lesson="One document carries its own contract version, publication identity, site context, semantics, and every forecast hour."
-  description={`Excerpts of a real teaching profile: the schemaVersion and model identity, the run block, the site block with its timezone echo, the semantics tag, and the peak-W* hour's surface, first level, and derived blocks, quoted verbatim from the committed document.`}
+  description={`Excerpts of a real teaching profile: the schemaVersion and model identity, the run block, the sample-provenance site block with its timezone echo, the semantics tag, and the peak-W* hour's surface, first level, and derived blocks, quoted verbatim from the committed document.`}
   caption={`Every fragment is stringified from the parsed committed profile at build time — these are the document's actual published values. The excerpted hour is hours[${hourIndex}] of ${profile.hours.length}; each hour repeats the surface/levels/derived shape.`}
   units="heights m MSL · temperatures °C · wind m/s · pressure Pa"
   {scenario}

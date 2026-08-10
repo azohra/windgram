@@ -50,8 +50,9 @@
      document's own `site.timeZone`, caller-overridable — local time is
      load-bearing for reading a windgram; the UTC `validAt` rides along in
      every cited instant so evidence joins back to the document;
-   - altitudes are launch-relative where a launch altitude exists
-     (`peakLiftTopAboveLaunchM`), because MSL numbers mean nothing to a
+   - altitudes are launch-relative where the caller supplies a launch
+     (`AnalyzeOptions.launch` — documents are launch-agnostic;
+     `peakLiftTopAboveLaunchM`), because MSL numbers mean nothing to a
      pilot standing on the hill;
    - ensemble documents are read at p50 with the p10-p90 band carried into
      evidence where the claim leans on it; per-position member counts are a

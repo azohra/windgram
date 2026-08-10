@@ -40,7 +40,6 @@ DUNDEE = {
     "name": "Dundee",
     "latitude": 49.291977,
     "longitude": -117.183569,
-    "elevationM": 1485,
     "timeZone": "America/Vancouver",
 }
 ERIE = {"slug": "erie", "latitude": 49.204789, "longitude": -117.406951}
@@ -285,6 +284,16 @@ def test_every_catalogue_entry_declares_cadence_and_precipitation():
             "instantRate",
             "windowMeanRate",
         ), entry["slug"]
+    # Every run-publishing dataset — profile and smoke entries alike —
+    # states the upper end of its normal publication lag, the freshness
+    # fact consumers judge run age against. Observation datasets have no
+    # runs to lag and deliberately carry nothing: cadenceMinutes is their
+    # yardstick.
+    for entry in catalogue["models"] + catalogue.get("smokeModels", []):
+        lag = entry["typicalPublicationLagHours"]
+        assert isinstance(lag, (int, float)) and lag > 0, entry["slug"]
+    for entry in catalogue.get("observationModels", []):
+        assert "typicalPublicationLagHours" not in entry, entry["slug"]
 
 
 def test_precip_rates_difference_run_totals_and_divide_by_the_window():
@@ -401,7 +410,6 @@ def test_derived_levels_carry_omega_only_where_the_source_has_it():
         "siteName": "Dundee",
         "latitude": DUNDEE["latitude"],
         "longitude": DUNDEE["longitude"],
-        "siteAltitudeM": 1485,
         "modelElevationM": 1000.0,
         "hours": [
             {

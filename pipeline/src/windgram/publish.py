@@ -17,7 +17,6 @@ from .dataset import published_history, published_manifest
 # deliberately — they publish verbatim. byClass keys its values by
 # land-cover class name, so the fractions inherit its precision.
 _FIELD_DECIMALS = {
-    "altitudeM": 1,
     "aot": 3,
     "boundaryLayerTopM": 1,
     "byClass": 3,

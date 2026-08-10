@@ -1,8 +1,9 @@
 /* derive/ — pure functions of published state. Everything here needs only
-   the profile JSON. The pipeline publishes the authoritative W*, boundary-
-   layer top, cloud base, and default usable-lift top. usableLiftTopM projects
-   the published inputs at another sink rate without changing that document;
-   its 1.0 m/s result matches the published value.
+   published JSON — the profile for the physics, plus the runs index and
+   catalogue for runFreshness. The pipeline publishes the authoritative W*,
+   boundary-layer top, cloud base, and default usable-lift top.
+   usableLiftTopM projects the published inputs at another sink rate without
+   changing that document; its 1.0 m/s result matches the published value.
 
    Every derivation takes plain numbers; to run one against an ensemble
    profile, select the median first with p50. The document-shaped helpers
@@ -51,6 +52,7 @@ export {
   type DayWindowOptions,
 } from "./day-window.js";
 export { smooth121 } from "./smoothing.js";
+export { runFreshness, type RunFreshness, type RunFreshnessThresholds } from "./freshness.js";
 export {
   projectProfile,
   type ProjectProfileOptions,

@@ -301,7 +301,6 @@ SITES = [
         "name": "Dundee",
         "latitude": 49.291977,
         "longitude": -117.183569,
-        "elevationM": 1485,
         "timeZone": "America/Vancouver",
     },
     {
@@ -309,7 +308,6 @@ SITES = [
         "name": "Erie",
         "latitude": 49.204789,
         "longitude": -117.406951,
-        "elevationM": 1247,
         "timeZone": "America/Vancouver",
     },
 ]
@@ -318,9 +316,10 @@ SITES = [
 def _terrain_block(site):
     # Unrounded floats, aspect deliberately at the north wrap for dundee.
     aspect = 359.7 if site["slug"] == "dundee" else 236.4
+    elevation = 1492.0666 if site["slug"] == "dundee" else 1254.0666
     return {
         "source": "glo30",
-        "elevationM": site["elevationM"] + 7.0666,
+        "elevationM": elevation,
         "slopeDeg": 18.3399,
         "aspectDeg": aspect,
         "relief": [
@@ -330,7 +329,9 @@ def _terrain_block(site):
     }
 
 
-def _bare_earth_block(site):
+def _elevation_block(site):
+    # No bare-earth model measures dundee here, forcing the loud GLO-30
+    # last resort; erie gets the preferred LidarBC ground returns.
     if site["slug"] == "dundee":
         return None
     return {"source": "lidarbc", "elevationM": 1245.7789}
@@ -353,7 +354,7 @@ def _built_document():
     return terrain.build_document(
         SITES,
         terrain_of=_terrain_block,
-        bare_earth_of=_bare_earth_block,
+        elevation_of=_elevation_block,
         land_cover_of=_land_cover_block,
         generated_at="2026-08-10T08:00:00Z",
     )
@@ -368,6 +369,7 @@ def test_document_round_trips_through_the_published_contract(tmp_path, capsys):
     schema = json.loads(Path("toolkit/schema/site-context.schema.json").read_text())
     Draft202012Validator(schema).validate(document)
 
+    assert document["schemaVersion"] == 2
     dundee = document["sites"]["dundee"]
     assert dundee["terrain"]["elevationM"] == 1492.1  # one decimal
     assert dundee["terrain"]["slopeDeg"] == 18.3
@@ -384,15 +386,21 @@ def test_document_round_trips_through_the_published_contract(tmp_path, capsys):
         "grassland": 0.029,
         "bareSparse": 0.001,
     }
-    # Absence means "not measured": no bare-earth model covered dundee.
-    assert "bareEarth" not in dundee
-    assert document["sites"]["erie"]["bareEarth"] == {
+    # The elevation pick is required at every site: with no bare-earth
+    # coverage, dundee falls back to the GLO-30 surface elevation — loudly.
+    assert dundee["elevation"] == {"source": "glo30", "elevationM": 1492.1}
+    assert document["sites"]["erie"]["elevation"] == {
         "source": "lidarbc",
         "elevationM": 1245.8,
     }
-    # A summary line per site as the build goes.
-    stdout = capsys.readouterr().out
-    assert "dundee:" in stdout and "erie:" in stdout
+    # v1's optional bareEarth block is gone: the pick IS the best bare-earth.
+    assert "bareEarth" not in dundee and "bareEarth" not in document["sites"]["erie"]
+    captured = capsys.readouterr()
+    assert "WARN dundee" in captured.err
+    assert "falls back to the GLO-30 surface model" in captured.err
+    # A summary line per site as the build goes, naming each pick.
+    assert "dundee: 1492.1 m (glo30)" in captured.out
+    assert "erie: 1245.8 m (lidarbc)" in captured.out
 
 
 def test_sources_list_exactly_the_referenced_sources():
@@ -409,27 +417,54 @@ def test_sources_list_exactly_the_referenced_sources():
         assert source == terrain.SOURCES[source["id"]]
 
 
-def test_a_large_survey_disagreement_warns_but_does_not_fail(capsys):
-    # The catalogue claims 985 m where the DEM reads ~1492 m — the
-    # coordinates are almost certainly wrong, but only a human can say
-    # which record to fix, so the document still publishes.
-    off_by_a_lot = [dict(SITES[0], elevationM=985)]
+def test_the_pick_prefers_lidarbc_then_mrdem_then_defers():
+    lidarbc_urls = ["https://example.test/tile-2022.tif", "https://example.test/tile-2017.tif"]
 
+    # The newest LidarBC tile that measures the point wins outright.
+    pick = terrain.pick_elevation(lambda url: 1245.7 if url == lidarbc_urls[0] else None, lidarbc_urls)
+    assert pick == {"source": "lidarbc", "elevationM": 1245.7}
+
+    # A declining reflight hands the point to the older survey, not to MRDEM.
+    pick = terrain.pick_elevation(lambda url: 1246.2 if url == lidarbc_urls[1] else None, lidarbc_urls)
+    assert pick == {"source": "lidarbc", "elevationM": 1246.2}
+
+    # No LidarBC coverage at all → the national DTM.
+    pick = terrain.pick_elevation(
+        lambda url: 1476.4 if url == terrain.MRDEM30_URL else None, lidarbc_urls
+    )
+    assert pick == {"source": "mrdem30", "elevationM": 1476.4}
+
+    # Every DTM declines → None, deferring to the caller's GLO-30 last resort.
+    assert terrain.pick_elevation(lambda url: None, lidarbc_urls) is None
+
+
+def test_a_cross_source_disagreement_warns_but_does_not_fail(capsys):
+    # LidarBC reads 985 m where GLO-30 reads ~1492 m: the catalogued pin
+    # almost certainly hits different terrain in the two sources, but only
+    # a human can say which record to fix, so the document still publishes.
     document = terrain.build_document(
-        off_by_a_lot,
-        terrain_of=lambda site: _terrain_block(SITES[0]),
-        bare_earth_of=lambda site: None,
+        [SITES[0]],
+        terrain_of=_terrain_block,
+        elevation_of=lambda site: {"source": "lidarbc", "elevationM": 985.0},
         land_cover_of=_land_cover_block,
         generated_at="2026-08-10T08:00:00Z",
     )
 
-    assert "dundee" in document["sites"]
+    assert document["sites"]["dundee"]["elevation"]["elevationM"] == 985.0
     stderr = capsys.readouterr().err
-    assert "WARN dundee" in stderr and "coordinate" in stderr
+    assert "WARN dundee" in stderr and "different terrain" in stderr
 
 
-def test_a_close_survey_agreement_does_not_warn(capsys):
-    _built_document()
+def test_a_close_cross_source_agreement_does_not_warn(capsys):
+    # erie's LidarBC pick sits ~8 m under the GLO-30 surface — canopy
+    # territory, not a coordinate mistake.
+    terrain.build_document(
+        [SITES[1]],
+        terrain_of=_terrain_block,
+        elevation_of=_elevation_block,
+        land_cover_of=_land_cover_block,
+        generated_at="2026-08-10T08:00:00Z",
+    )
     assert capsys.readouterr().err == ""
 
 
@@ -446,7 +481,7 @@ def test_missing_terrain_extra_names_the_install_command(monkeypatch):
 
 def test_cli_terrain_dispatches_resolved_paths(tmp_path, monkeypatch):
     sites_path = tmp_path / "sites.json"
-    sites_path.write_text(json.dumps({"schemaVersion": 1, "sites": SITES}))
+    sites_path.write_text(json.dumps({"schemaVersion": 2, "sites": SITES}))
     output = tmp_path / "context" / "site-context.json"
     calls = []
     monkeypatch.setattr(

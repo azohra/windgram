@@ -38,12 +38,25 @@ export function analyzeProfileJson(text: string): WindgramAnalysis {
   if (!profile) throw new Error("invalid profile");
 
   return analyzeProfile(profile, {
+    // The launch is yours, not the document's — typically site-context.json's
+    // elevation pick. It anchors every launch-relative statement.
+    launch: { elevationM: 1591 },
     thresholds: {
       flyableWindow: { wstarMinMs: 1.0, depthMinM: 350 },
     },
   });
 }
 ```
+
+`launch` is optional and mirrors the scene's `SceneOptions.launch`:
+documents are launch-agnostic, so the caller names the launch the analysis
+reads against. Without one the analysis degrades gracefully rather than
+guessing — launch-relative arithmetic (the `flyableWindow` depth
+threshold) falls back to the model's own ground (`site.modelElevationM`),
+`peakLiftTopAboveLaunchM` is `null` instead of a number relative to the
+wrong ground, and `terrainMismatch` — a launch-vs-model-ground statement —
+is never emitted. The analysis envelope records the launch it used as
+`site.launchAltitudeM` (`null` when none was supplied).
 
 `thresholds` is optional. Overrides are merged by finding kind over
 `DEFAULT_ANALYZE_THRESHOLDS`. They are conventions chosen by the caller, not
@@ -106,7 +119,7 @@ profile `schemaVersion` remains `1`.
 | `liftCeiling` | Whether each segment's arithmetic ceiling is cloud-capped or sink-limited | Carries usable-lift top, cloud base, and boundary-layer top for each segment |
 | `capTiming` | CAPE build, CIN erosion, and precipitation timing relative to a window | Emitted only for hourly deterministic documents with CIN; no ensemble-median or three-hour interpolation claim |
 | `windSummary` | Maximum gust and climb-band wind magnitudes, timing, altitude, and persistence | Carries the document's gust semantics and reports magnitudes without policy labels |
-| `terrainMismatch` | Grid terrain delta and whether published lift ever arithmetically reaches surveyed launch altitude | Emitted only when launch altitude is known and the embedded mismatch threshold is met |
+| `terrainMismatch` | Grid terrain delta and whether published lift ever arithmetically reaches the caller's launch | Emitted only when `AnalyzeOptions.launch` is supplied and the embedded mismatch threshold is met |
 | `ensembleMembership` | Contributor-count loss and p10–p90 band-width magnitude or trend | Spread and membership are not a confidence interval or confidence score |
 | `dataCaveats` | Absent quantity families, derived-null hours, coarse cadence, or UTC fallback | Threshold-free; absence remains “not published,” never zero |
 

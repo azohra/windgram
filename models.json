@@ -9,6 +9,7 @@
       "stepHours": 1,
       "horizonHours": 48,
       "runIntervalHours": 12,
+      "typicalPublicationLagHours": 5,
       "kind": "deterministic",
       "experimental": true,
       "capabilities": {
@@ -44,6 +45,7 @@
       "stepHours": 1,
       "horizonHours": 48,
       "runIntervalHours": 6,
+      "typicalPublicationLagHours": 4.5,
       "kind": "deterministic",
       "experimental": false,
       "capabilities": {
@@ -89,6 +91,7 @@
       "stepHours": 1,
       "horizonHours": 48,
       "runIntervalHours": 6,
+      "typicalPublicationLagHours": 2.5,
       "kind": "deterministic",
       "experimental": false,
       "capabilities": {
@@ -135,6 +138,7 @@
       "stepHours": 1,
       "horizonHours": 84,
       "runIntervalHours": 6,
+      "typicalPublicationLagHours": 4,
       "kind": "deterministic",
       "experimental": false,
       "capabilities": {
@@ -179,6 +183,7 @@
       "stepHours": 3,
       "horizonHours": 240,
       "runIntervalHours": 12,
+      "typicalPublicationLagHours": 6,
       "kind": "deterministic",
       "experimental": false,
       "capabilities": {
@@ -224,6 +229,7 @@
       "stepHours": 3,
       "horizonHours": 384,
       "runIntervalHours": 6,
+      "typicalPublicationLagHours": 6,
       "kind": "deterministic",
       "experimental": false,
       "capabilities": {
@@ -268,6 +274,7 @@
       "stepHours": 1,
       "horizonHours": 84,
       "runIntervalHours": 6,
+      "typicalPublicationLagHours": 3.5,
       "sunset": {
         "date": "2026-10-06",
         "successor": "rrfs"
@@ -318,6 +325,7 @@
       "stepHours": 1,
       "horizonHours": 60,
       "runIntervalHours": 6,
+      "typicalPublicationLagHours": 3.5,
       "sunset": {
         "date": "2026-10-06",
         "successor": "rrfs"
@@ -368,6 +376,7 @@
       "stepHours": 3,
       "horizonHours": 72,
       "runIntervalHours": 6,
+      "typicalPublicationLagHours": 4.5,
       "kind": "ensemble",
       "experimental": false,
       "capabilities": {
@@ -399,6 +408,7 @@
       "stepHours": 3,
       "horizonHours": 384,
       "runIntervalHours": 12,
+      "typicalPublicationLagHours": 6.5,
       "kind": "ensemble",
       "experimental": false,
       "capabilities": {
@@ -432,6 +442,7 @@
       "stepHours": 1,
       "horizonHours": 72,
       "runIntervalHours": 12,
+      "typicalPublicationLagHours": 5,
       "kind": "deterministic",
       "experimental": true
     }

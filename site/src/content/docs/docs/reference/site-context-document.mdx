@@ -1,14 +1,16 @@
 ---
 title: Site context document
-description: The static per-site terrain and land-cover context — envelope, sources with licences, generation, coverage lessons, and how it joins a profile.
+description: The static per-site ground truth — the measured elevation pick, terrain, and land cover, with sources, licences, generation, coverage lessons, and how it joins a profile.
 ---
 
 `site-context.json` is the third catalogue-root file, beside the
 hand-maintained [`models.json`](/docs/data/catalogue/) and
-[`sites.json`](/docs/publish/configure-launches/): static per-site terrain
-and land-cover context, machine-generated from open elevation and
-land-cover data and committed like the catalogues it annotates. It answers
-"what is this launch, physically?" where a
+[`sites.json`](/docs/publish/configure-launches/): static per-site ground
+truth, machine-measured from open elevation and land-cover data and
+committed like the catalogues it annotates. It is the **one published home
+of pipeline-measured physical fact** — humans author WHERE (`sites.json`),
+the pipeline measures WHAT (this file) — and it answers "what is this
+launch, physically?" where a
 [profile](/docs/reference/profile-document/) can only answer "what does
 this model think the atmosphere above it does?". It has no cadence and no
 runs — it is regenerated when the site catalogue changes, never on a
@@ -29,17 +31,43 @@ site-context.json
 ├── schemaVersion + generatedAt
 ├── sources[] { id, product, kind, resolutionM, licence, attribution, url }
 └── sites { <site-slug> → entry }
+    ├── elevation { source, elevationM }
     ├── terrain { source, elevationM, slopeDeg, aspectDeg, relief[] }
-    ├── bareEarth? { source, elevationM }
     └── landCover { source, atLaunch, fractions[] }
 ```
 
 Site slugs are the identity: join `sites` against `sites.json` by slug.
-Coordinates, surveyed elevation, and timezone are deliberately **not**
-echoed here — `sites.json` is their home. Every `source` field inside a
-site block names a `sources[]` entry, and each `sources[]` entry carries
-the attribution statement its licence requires — the attribution travels
-with the data, and renderers that display a source's values display it.
+Coordinates and timezone are deliberately **not** echoed here —
+`sites.json` is their home. Every `source` field inside a site block names
+a `sources[]` entry, and each `sources[]` entry carries the attribution
+statement its licence requires — the attribution travels with the data,
+and renderers that display a source's values display it.
+
+## The elevation block
+
+**THE launch elevation** — the number consumers render the launch line
+with (`SceneOptions.launch`) and read launch-relative analysis against.
+It is a **measurement selection, not a computation**: the pipeline
+samples ground observations at the catalogued coordinates and picks by
+explicit priority —
+
+1. `lidarbc` — 1 m bare-earth lidar ground returns, where its pixels
+   prove out;
+2. `mrdem30` — the national 30 m DTM, everywhere in Canada;
+3. `glo30` — the surface model, canopy included, as a **loud last
+   resort**: the terrain command warns on stderr when a site falls
+   through to it, because a surface height over forest is not ground.
+
+`source` names the winning `sources[]` entry, so the resolution and
+licence attribution of the pick are one join away. In the published
+document, sites covered by British Columbia's 1 m lidar read from
+LidarBC (`erie`, `flagpole`, `red-mountain`); `dundee`, which no 1 m
+lidar covers anywhere, reads from MRDEM-30. Since schemaVersion 2
+this block replaces v1's optional `bareEarth` block — the pick *is* the
+best bare-earth answer, and keeping both would duplicate it. The
+generator cross-checks the pick against `terrain.elevationM` and warns
+when they disagree by more than 100 m — a gap that large suggests the
+pin lands on different terrain in different sources, not canopy.
 
 ## The terrain block
 
@@ -48,7 +76,7 @@ site** — Copernicus GLO-30 — so the numbers compare across the catalogue.
 
 | Field | Meaning |
 | --- | --- |
-| `elevationM` | Terrain-model elevation at the launch point, metres MSL, bilinear. From a surface model this includes canopy — compare with `bareEarth.elevationM` and the surveyed `sites.json` elevation before reading small differences as error. |
+| `elevationM` | Terrain-model elevation at the launch point, metres MSL, bilinear. From a surface model this includes canopy — compare with the `elevation` pick before reading small differences as error. |
 | `slopeDeg` | Terrain slope at the launch, degrees (Horn 3×3 on the source grid). |
 | `aspectDeg` | Compass bearing of the downslope direction, degrees 0–359. Low-confidence on near-summit launches (relief percentile near 100), where tiny elevation noise swings the bearing. |
 | `relief[]` | Relief discs in ascending radius (1, 3, and 10 km here): the disc's `minM` and `maxM` terrain, and the launch elevation's `percentile` rank among it. |
@@ -57,15 +85,6 @@ The percentile is the topological reading: **100 means the launch is the
 local summit**, 50 means it sits mid-slope in its surroundings. Read the
 radii together — high at 1 km and low at 10 km is a foothill in front of
 bigger terrain.
-
-## The bareEarth block
-
-The best available bare-earth (DTM) elevation at the launch — ground
-returns, no canopy. The block is optional: **absence means "not
-measured", never agreement**. In the published document, sites covered by
-British Columbia's 1 m lidar DTM read from LidarBC (`erie`, `flagpole`,
-`red-mountain`); `dundee`, which no 1 m lidar covers anywhere, reads from
-NRCan's national 30 m MRDEM DTM instead.
 
 ## The landCover block
 
@@ -98,8 +117,9 @@ the contract, which mean "not published".
 Facts established by sampling the live feeds at the catalogued sites:
 
 - **GLO-30 is a surface model** — radar-derived, canopy and buildings
-  included, heights on EGM2008. At the catalogued sites it lands within
-  about ±7 m of the surveyed launch elevations [verified 2026-08-10].
+  included, heights on EGM2008. At the lidar-measured sites it lands
+  within about ±4 m of the bare-earth pick, and about +16 m at the one
+  forest-ringed MRDEM-30 site — the canopy [verified 2026-08-10].
   Its 90 m sibling GLO-90 smooths ridge-top launches low — by up to
   13 m here [verified 2026-08-10] — the same smoothing story, milder,
   that weather-model terrain tells at 2.5–10 km grids.
@@ -149,9 +169,9 @@ declared footprint can still sit on nodata, so **footprint intersection
 overstates coverage and only sampling the pixel at the point proves data
 exists there**. That is a reusable provider-verification lesson, the
 elevation twin of this project's rule that provider documentation is
-hypothesis until a live response confirms it. It is why bare earth comes
-from LidarBC where its pixels prove out and from MRDEM-30 at `dundee` —
-not from the catalogue that claimed more.
+hypothesis until a live response confirms it. It is why the `elevation`
+pick reads from LidarBC where its pixels prove out and from MRDEM-30 at
+`dundee` — not from the catalogue that claimed more.
 
 ## Reading caveats — verified 2026-08-10
 
@@ -172,12 +192,17 @@ not from the catalogue that claimed more.
 
 ## Consume it beside a profile
 
-Fetch `site-context.json` once from the dataset root, validate it at the
-trust boundary, and join by slug. The natural first product is the "model
-terrain vs real mountain" statement: every profile publishes
-`site.modelElevationM` (the model's smoothed terrain) and `site.altitudeM`
-(the surveyed launch); the context document adds what the launch actually
-sits on.
+Fetch `site-context.json` once from the dataset root — on your own
+schedule, it has no cadence — validate it at the trust boundary, and join
+by slug. It has two jobs beside a profile:
+
+- **The launch elevation.** Profiles are launch-agnostic samples; the
+  `elevation` pick is the measured launch elevation a consumer passes at
+  render time as `SceneOptions.launch` (and to `analyzeProfile` /
+  `compareProfiles` as their `launch` options).
+- **The terrain gap.** Every profile publishes `site.modelElevationM` —
+  the model's smoothed terrain; the context document adds what the launch
+  actually sits on.
 
 ```ts title="terrain-gap.ts"
 import { parseSiteContextJson, parseWindgramProfileJson } from "windgram/contract";
@@ -190,9 +215,8 @@ export function modelTerrainGap(contextText: string, profileText: string): strin
   const entry = context.sites[profile.site.id];
   if (!entry) return `${profile.site.id}: no published terrain context`;
 
-  // The real mountain: bare earth where measured, the consistent
-  // surface model otherwise.
-  const mountainM = entry.bareEarth?.elevationM ?? entry.terrain.elevationM;
+  // The real mountain: the document's measured elevation pick.
+  const mountainM = entry.elevation.elevationM;
   const gapM = profile.site.modelElevationM - mountainM;
   const direction = gapM < 0 ? "below" : "above";
 

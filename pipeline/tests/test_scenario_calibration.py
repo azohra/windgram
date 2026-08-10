@@ -84,7 +84,12 @@ def test_reconstructed_hrrr_baseline_preserves_teaching_relationships():
         semantics=HRRR_SEMANTICS,
     )
     assert regenerated["run"] == archived["run"]
-    assert regenerated["site"] == archived["site"]
+    # The archived profile is a captured v1 production document, so its site
+    # block still bakes the launch's altitudeM. Documents are launch-agnostic
+    # now: the reconstruction reproduces everything but that retired field.
+    assert regenerated["site"] == {
+        key: value for key, value in archived["site"].items() if key != "altitudeM"
+    }
     assert regenerated["semantics"] == HRRR_SEMANTICS
 
     documented = provenance["numericTolerances"]

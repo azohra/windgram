@@ -1,24 +1,31 @@
-"""One-shot terrain and land-cover context for the site catalogue.
+"""One-shot ground truth and land-cover context for the site catalogue.
 
 `windgram terrain` reads sites.json and writes site-context.json — the
-static "what is this launch, physically?" document the contract defines
-beside the hand-maintained catalogues. No cadence and no manifest: it is
-catalogue enrichment, regenerated when the catalogue changes and
-committed to git, never a dataset build.
+one published home of pipeline-measured physical fact: humans author
+WHERE (sites.json, identity only), this command measures WHAT. No
+cadence and no manifest: it is catalogue enrichment, regenerated when
+the catalogue changes and committed to git, never a dataset build.
+
+Since schemaVersion 2, every site carries a required `elevation` pick —
+THE launch elevation, a measurement selection rather than a computation,
+by explicit priority: LidarBC 1 m ground returns → MRDEM-30 national DTM
+→ GLO-30 as a loud last resort (a surface model, canopy included, so the
+fallback warns on stderr). It replaced v1's optional bareEarth block:
+the pick IS the best bare-earth, and keeping both would duplicate.
 
 Three open, anonymous COG endpoints, all access recipes proven by the
 live probe [verified 2026-08-10, streamed windows via rasterio /vsicurl/]:
 
 - **Copernicus GLO-30** (30 m DSM, EPSG:4326, EGM2008) is the terrain
   analysis source — one consistent model across every site, so slope,
-  aspect and relief compare across the catalogue. Point elevations
-  agreed with the surveyed launches within ±7 m at the founding sites.
+  aspect and relief compare across the catalogue — and the elevation
+  pick's last resort.
 - **LidarBC 1 m DTM**, discovered through the province's tile-index
-  FeatureServer, is the preferred bare-earth elevation; **MRDEM-30 DTM**
-  (national single COG) is the fallback. Both nodata → the `bareEarth`
-  block is omitted: absence means "not measured", never agreement.
-  HRDEM is deliberately not used — the probe proved its mosaic covers
-  only one catalogued site, which LidarBC also covers (agreement 5 cm).
+  FeatureServer, is the preferred elevation; **MRDEM-30 DTM** (national
+  single COG) is next. DTM nodata means "not measured here", never
+  agreement — the next source gets its chance. HRDEM is deliberately
+  not used — the probe proved its mosaic covers only one catalogued
+  site, which LidarBC also covers (agreement 5 cm).
 - **ESA WorldCover 2021 v200** (10 m classes, EPSG:4326) supplies the
   launch-point class and disc composition.
 
@@ -40,7 +47,7 @@ import requests
 
 from .publish import round_document, write_json
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 # Relief and composition discs, ascending radius — the contract publishes
 # radiusKm, so these stay whole kilometres.
@@ -51,10 +58,11 @@ LAND_COVER_RADII_M = (1_000, 3_000)
 # the catalogue's latitudes [verified 2026-08-10, probe cross-check].
 M_PER_DEG_LAT = 111_132.0
 
-# A terrain elevation this far from the surveyed one is far outside the
-# DEM's demonstrated ±7 m — almost certainly a catalogued coordinate
-# mistake, so the run warns (the surveyed value may be the stale one).
-SURVEY_DISAGREEMENT_WARN_M = 100.0
+# An elevation pick this far from the GLO-30 terrain elevation is far
+# outside canopy-versus-ground territory — it suggests the catalogued pin
+# hits different terrain in different sources (a coordinate mistake), so
+# the run warns while a human decides which record to fix.
+CROSS_SOURCE_DISAGREEMENT_WARN_M = 100.0
 
 REQUEST_TIMEOUT_S = 60
 
@@ -416,50 +424,76 @@ def lidarbc_candidates(payload: dict) -> list[str]:
     return [entry["s3Url"] for entry in ranked]
 
 
+def pick_elevation(point_of, lidarbc_urls: list[str]) -> dict | None:
+    """The bare-earth elevation pick, by the contract's explicit priority:
+    the newest LidarBC tile that measures the point, else MRDEM-30.
+    point_of(url) samples one DTM and returns metres or None for "not
+    measured here" — a declining candidate hands the point to the next
+    source. None from everything defers to the caller's loud GLO-30 last
+    resort (build_document owns that warning)."""
+    for url in lidarbc_urls:
+        elevation = point_of(url)
+        if elevation is not None:
+            return {"source": LIDARBC_ID, "elevationM": elevation}
+    elevation = point_of(MRDEM30_URL)
+    if elevation is not None:
+        return {"source": MRDEM30_ID, "elevationM": elevation}
+    return None
+
+
 # ---------------------------------------------------------------- assembly
 
 
 def build_document(
-    sites: list[dict], *, terrain_of, bare_earth_of, land_cover_of, generated_at: str
+    sites: list[dict], *, terrain_of, elevation_of, land_cover_of, generated_at: str
 ) -> dict:
     """Assembles the site-context document (unrounded) from per-site
-    samplers, printing a one-line summary per site as it goes. sources[]
-    lists exactly the sources some site block references, in catalogue
-    order, so licences never dangle and never go missing."""
+    samplers, printing a one-line summary per site as it goes.
+
+    elevation_of returns the bare-earth pick or None; when every DTM
+    declines, the GLO-30 terrain elevation stands in as the contract's
+    loud last resort — a surface model with canopy included, so the run
+    says so on stderr rather than publishing it silently. sources[] lists
+    exactly the sources some site block references, in catalogue order,
+    so licences never dangle and never go missing."""
     entries: dict[str, dict] = {}
     referenced: set[str] = set()
     for site in sites:
         slug = site["slug"]
         terrain = terrain_of(site)
-        bare_earth = bare_earth_of(site)
-        land_cover = land_cover_of(site)
-        entry = {"terrain": terrain}
-        if bare_earth is not None:
-            entry["bareEarth"] = bare_earth
-        entry["landCover"] = land_cover
-        entries[slug] = entry
-        referenced.update(
-            block["source"] for block in (terrain, bare_earth, land_cover) if block
-        )
-
-        surveyed = site["elevationM"]
-        if abs(terrain["elevationM"] - surveyed) > SURVEY_DISAGREEMENT_WARN_M:
+        elevation = elevation_of(site)
+        if elevation is None:
+            elevation = {"source": GLO30_ID, "elevationM": terrain["elevationM"]}
             print(
-                f"WARN {slug}: terrain elevation {terrain['elevationM']:.1f} m is "
-                f"{terrain['elevationM'] - surveyed:+.1f} m from the surveyed "
-                f"{surveyed} m — likely a coordinate mistake in sites.json",
+                f"WARN {slug}: no bare-earth model measures this point; the "
+                f"elevation pick falls back to the GLO-30 surface model "
+                f"({terrain['elevationM']:.1f} m, canopy included)",
                 file=sys.stderr,
             )
-        bare_note = (
-            f", bare earth {bare_earth['source']} {bare_earth['elevationM']:.1f} m"
-            if bare_earth is not None
-            else ", no bare-earth coverage"
+        land_cover = land_cover_of(site)
+        entries[slug] = {
+            "elevation": elevation,
+            "terrain": terrain,
+            "landCover": land_cover,
+        }
+        referenced.update(
+            block["source"] for block in (elevation, terrain, land_cover)
         )
+
+        gap = elevation["elevationM"] - terrain["elevationM"]
+        if abs(gap) > CROSS_SOURCE_DISAGREEMENT_WARN_M:
+            print(
+                f"WARN {slug}: the elevation pick ({elevation['source']} "
+                f"{elevation['elevationM']:.1f} m) sits {gap:+.1f} m from the "
+                f"GLO-30 terrain elevation {terrain['elevationM']:.1f} m — the "
+                "catalogued pin may hit different terrain in different sources",
+                file=sys.stderr,
+            )
         print(
-            f"{slug}: {terrain['elevationM']:.1f} m (surveyed {surveyed} m), "
+            f"{slug}: {elevation['elevationM']:.1f} m ({elevation['source']}), "
+            f"terrain {terrain['elevationM']:.1f} m, "
             f"slope {terrain['slopeDeg']:.1f}° aspect "
             f"{round(terrain['aspectDeg']) % 360}°, {land_cover['atLaunch']}"
-            f"{bare_note}"
         )
     return {
         "schemaVersion": SCHEMA_VERSION,
@@ -591,22 +625,13 @@ def generate(sites: list[dict], output_path: Path) -> int:
         )
         return terrain_from_window(arr, lats, lons, site)
 
-    def bare_earth_of(site: dict) -> dict | None:
-        # LidarBC candidates newest-first, then the national MRDEM; a
-        # nodata candidate is "not measured here", so the next one gets
-        # its chance, and when everything declines the block is omitted.
-        for url in _lidarbc_urls(site["latitude"], site["longitude"]):
-            elevation = _projected_point(
+    def elevation_of(site: dict) -> dict | None:
+        return pick_elevation(
+            lambda url: _projected_point(
                 dataset(url), site["latitude"], site["longitude"]
-            )
-            if elevation is not None:
-                return {"source": LIDARBC_ID, "elevationM": elevation}
-        elevation = _projected_point(
-            dataset(MRDEM30_URL), site["latitude"], site["longitude"]
+            ),
+            _lidarbc_urls(site["latitude"], site["longitude"]),
         )
-        if elevation is not None:
-            return {"source": MRDEM30_ID, "elevationM": elevation}
-        return None
 
     def land_cover_of(site: dict) -> dict:
         url = worldcover_url(site["latitude"], site["longitude"])
@@ -627,7 +652,7 @@ def generate(sites: list[dict], output_path: Path) -> int:
             document = build_document(
                 sites,
                 terrain_of=terrain_of,
-                bare_earth_of=bare_earth_of,
+                elevation_of=elevation_of,
                 land_cover_of=land_cover_of,
                 generated_at=generated_at,
             )

@@ -73,8 +73,10 @@ export interface ComparisonMemberLedger {
   stepHours: number;
   hours: number;
   modelElevationM: number;
+  /** The comparison's one launch (CompareOptions.launch — documents are
+   * launch-agnostic); null when none was supplied. */
   launchAltitudeM: number | null;
-  /** modelElevationM − launch; null when the launch is unsurveyed. */
+  /** modelElevationM − launch; null when no launch was supplied. */
   elevationDeltaM: number | null;
   /**
    * Non-null when the member cannot vote on window or height claims:
@@ -165,6 +167,14 @@ export interface CompareOptions {
   /** Threshold overrides, applied identically to every member. */
   thresholds?: Partial<AnalyzeThresholds>;
   /**
+   * ONE launch for the whole comparison, passed to every member's analysis
+   * (see AnalyzeOptions.launch) — documents are launch-agnostic, and
+   * launch-relative votes compare only when every member reads against the
+   * same launch. Absent, members analyze launch-free: no terrainMismatch
+   * benching, no launch-relative peaks, no heightSpread.
+   */
+  launch?: { elevationM: number } | null;
+  /**
    * Models that could not be compared because their documents never
    * arrived — the transport's DocumentMiss, passed through so the
    * roster names the whole field. "invalid" members are a contract
@@ -177,6 +187,8 @@ export interface CompareOptions {
 
 export interface WindgramComparison {
   vocabularyVersion: typeof COMPARE_VOCABULARY_VERSION;
+  /** The compared site plus the comparison's launch (CompareOptions.launch);
+   * launchAltitudeM is null when no launch was supplied. */
   site: { id: string; launchAltitudeM: number | null };
   timeZone: string;
   /** The one threshold set every member was analyzed with. */
@@ -217,6 +229,7 @@ export function compareProfiles(
   for (const profile of profiles) {
     analyses[profile.model] = analyzeProfile(profile, {
       timeZone: options.timeZone,
+      launch: options.launch,
       thresholds: options.thresholds,
     });
   }
@@ -225,12 +238,12 @@ export function compareProfiles(
     .map((profile) => profile.run.referenceTime)
     .sort()
     .at(-1)!;
+  const launch = options.launch?.elevationM ?? null;
   const members: ComparisonMemberLedger[] = profiles.map((profile) => {
     const analysis = analyses[profile.model];
     const terrain = analysis.findings.find(
       (finding) => finding.kind === "terrainMismatch",
     );
-    const launch = profile.site.altitudeM;
     return {
       model: profile.model,
       kind: isDeterministicProfile(profile) ? "deterministic" : "ensemble",
@@ -352,7 +365,7 @@ export function compareProfiles(
 
   return {
     vocabularyVersion: COMPARE_VOCABULARY_VERSION,
-    site: { id: siteId, launchAltitudeM: profiles[0].site.altitudeM },
+    site: { id: siteId, launchAltitudeM: launch },
     timeZone: options.timeZone,
     thresholds,
     newestReferenceTime,

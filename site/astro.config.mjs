@@ -96,6 +96,7 @@ export default defineConfig({
             { slug: "docs/typescript/render-first-windgram", label: "Render a first windgram" },
             { slug: "docs/typescript/contract", label: "Contract" },
             { slug: "docs/typescript/transport", label: "Transport" },
+            { slug: "docs/typescript/run-an-ingest", label: "Run an ingest" },
             { slug: "docs/typescript/derive", label: "Pure derivations" },
             { slug: "docs/typescript/analyze", label: "Analyze a profile" },
             { slug: "docs/typescript/compare", label: "Compare profiles" },

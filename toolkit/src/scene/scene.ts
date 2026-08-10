@@ -360,7 +360,10 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
   }
   const plotHeight = options.plotHeightPx ?? DEFAULT_PLOT_HEIGHT;
   const floorM = profile.site.modelElevationM;
-  const siteAltitudeM = profile.site.altitudeM;
+  /* The launch is a render input (options.launch), never a document field:
+     the document is launch-agnostic, and one document serves every launch
+     it covers. No option, no marker — honest, not an error. */
+  const launchElevationM = options.launch?.elevationM ?? null;
 
   /* Usable-lift-top values for the series (pre-smoothing). The published
      derived.usableLiftTopM embeds the pipeline's fixed 1.0 m/s sink-rate
@@ -398,7 +401,7 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
   // band edges (the site scanned only medians; bands would clip otherwise).
   // Only VISIBLE series count — a toggled-off height line must not reserve
   // headroom (with defaults all-on this scan is unchanged).
-  let topM = Math.max(floorM + 800, overlays.launch ? (siteAltitudeM ?? floorM) : floorM);
+  let topM = Math.max(floorM + 800, overlays.launch ? (launchElevationM ?? floorM) : floorM);
   for (const [hourIndex, hour] of hours.entries()) {
     for (const candidate of [
       overlays.cloudBase ? hour.derived.cloudBaseM : null,
@@ -1014,8 +1017,15 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
   }
 
   const launch =
-    overlays.launch && siteAltitudeM != null && siteAltitudeM >= floorM && siteAltitudeM <= topM
-      ? { y: y(siteAltitudeM), altitudeM: siteAltitudeM, label: `launch ${Math.round(siteAltitudeM)} m` }
+    overlays.launch &&
+    launchElevationM != null &&
+    launchElevationM >= floorM &&
+    launchElevationM <= topM
+      ? {
+          y: y(launchElevationM),
+          altitudeM: launchElevationM,
+          label: `${options.launch?.name ?? "launch"} ${Math.round(launchElevationM)} m`,
+        }
       : null;
 
 

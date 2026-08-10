@@ -23,6 +23,13 @@ export interface SyntheticScenarioSource {
   variant?: string;
   profile: WindgramProfile;
   timeZone: string;
+  /**
+   * The launch the scenario teaches against, from the scenario INDEX — the
+   * profile document is a launch-agnostic sample and carries none. Passed to
+   * buildScene as `SceneOptions.launch` so the marker draws; without it the
+   * render honestly has no launch line.
+   */
+  launch?: { name?: string; elevationM: number };
 }
 
 export interface SyntheticWindgramOptions
@@ -79,6 +86,10 @@ export function renderSyntheticWindgram(
     timeZone: scenario.timeZone,
     columnWidthPx: DEFAULT_COLUMN_WIDTH_PX,
     plotHeightPx: DEFAULT_PLOT_HEIGHT_PX,
+    /* The launch is a render input (SceneOptions.launch), never a document
+       field — it rides in from the scenario index here, once, for every
+       scenario-driven figure and lab. Callers may still override it. */
+    ...(scenario.launch ? { launch: scenario.launch } : {}),
     ...(displayDay ? { hours: displayHours(scenario) } : {}),
     ...sceneOptions,
   });

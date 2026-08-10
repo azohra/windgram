@@ -197,7 +197,6 @@ def test_all_deterministic_source_transforms_are_explicit_and_repeatable():
         {"type": "time-shift", "hours": 3},
         {
             "type": "elevation-adjustment",
-            "siteAltitudeDeltaM": 25,
             "modelElevationDeltaM": 50,
         },
     ]
@@ -211,7 +210,7 @@ def test_all_deterministic_source_transforms_are_explicit_and_repeatable():
     assert first == second
     assert first["referenceTime"] == "2000-01-01T09:00:00Z"
     assert first["hours"][0]["validAt"] == "2000-01-01T15:00:00Z"
-    assert first["siteAltitudeM"] == 1075
+    assert "siteAltitudeM" not in first
     assert first["modelElevationM"] == 950
     assert [hour["temperatureC"] for hour in first["hours"]] == [10, 14]
     assert first["hours"][0]["levels"][0]["temperatureC"] == 9
@@ -282,6 +281,21 @@ def test_baselines_cannot_author_derived_values(tmp_path: Path):
         generate_scenario(minimal_definition(), repository_root=repository)
 
 
+def test_baselines_cannot_carry_a_baked_launch_altitude(tmp_path: Path):
+    # A siteAltitudeM in a baseline means someone hasn't absorbed the launch
+    # decoupling — derivation inputs are launch-agnostic, and the rejection
+    # must direct them to the definition's launch block, not merely refuse.
+    repository = scenario_repository(tmp_path)
+    baseline_path = repository / "scenarios" / "baselines" / "minimal-hourly-core.source.json"
+    baseline = load_json(baseline_path)
+    baseline["siteAltitudeM"] = 1050
+    baseline_path.write_text(json.dumps(baseline))
+
+    with pytest.raises(ScenarioError, match="launch block") as raised:
+        generate_scenario(minimal_definition(), repository_root=repository)
+    assert "siteAltitudeM" in str(raised.value)
+
+
 def test_assertion_failure_names_scenario_hour_field_relation_and_actual():
     definition = minimal_definition()
     definition["assertions"][0] = {
@@ -325,6 +339,18 @@ def test_generation_is_byte_deterministic_and_index_hashes_the_output(tmp_path: 
             "sha256": hashlib.sha256(first_output).hexdigest(),
         }
     ]
+    # The launch lives in the index entry (render input), never in the
+    # generated document: its site block is sample provenance only.
+    assert minimal_entry["launch"] == {"elevationM": 1050}
+    profile = json.loads(first_output)
+    assert set(profile["site"]) == {
+        "id",
+        "name",
+        "latitude",
+        "longitude",
+        "modelElevationM",
+        "timeZone",
+    }
     check_repository(repository_root=repository)
 
 
@@ -480,18 +506,24 @@ def test_wg_140_convective_and_inversion_lessons_are_visible_in_derived_values()
         -110,
         -160,
     ]
+    # The launch each lesson teaches against is index metadata (documents
+    # are launch-agnostic), so the published lesson reads from the index.
+    launches = {
+        entry["id"]: entry["launch"]["elevationM"]
+        for entry in load_json(ROOT / "scenarios" / "index.json")["scenarios"]
+    }
     assert (
         eroding["hours"][0]["derived"]["boundaryLayerTopM"]
-        < eroding["site"]["altitudeM"]
+        < launches["morning-inversion-erodes"]
     )
     assert (
         eroding["hours"][4]["derived"]["boundaryLayerTopM"]
-        > eroding["site"]["altitudeM"]
+        > launches["morning-inversion-erodes"]
     )
     assert persistent["hours"][4]["surface"]["sensibleHeatFluxWm2"] >= 300
     assert (
         persistent["hours"][4]["derived"]["boundaryLayerTopM"]
-        < persistent["site"]["altitudeM"]
+        < launches["persistent-inversion"]
     )
 
 

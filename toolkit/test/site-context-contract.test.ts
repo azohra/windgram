@@ -5,9 +5,11 @@ import { describe, expect, it } from "vitest";
 import { parseSiteContext, parseSiteContextJson } from "../src/contract/index.js";
 
 /* Values from the live terrain probe [verified 2026-08-10]: GLO-30 at
-   dundee, LidarBC bare earth at erie, WorldCover fractions at flagpole. */
+   dundee, LidarBC bare earth at erie, WorldCover fractions at flagpole —
+   reshaped to the v2 contract: the required `elevation` pick (the
+   pipeline's priority selection) replaced v1's optional bareEarth block. */
 const CONTEXT = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   generatedAt: "2026-08-10T08:00:00Z",
   sources: [
     {
@@ -42,6 +44,9 @@ const CONTEXT = {
   ],
   sites: {
     dundee: {
+      // No bare-earth model covers dundee: the pick falls through to the
+      // GLO-30 surface model — the loud last resort, canopy included.
+      elevation: { source: "glo30", elevationM: 1492.1 },
       terrain: {
         source: "glo30",
         elevationM: 1492.1,
@@ -63,6 +68,8 @@ const CONTEXT = {
       },
     },
     erie: {
+      // LidarBC 1 m ground returns cover erie: the highest-priority pick.
+      elevation: { source: "lidarbc", elevationM: 1245.8 },
       terrain: {
         source: "glo30",
         elevationM: 1244.2,
@@ -70,7 +77,6 @@ const CONTEXT = {
         aspectDeg: 236,
         relief: [{ radiusKm: 1, minM: 760, maxM: 1503, percentile: 72 }],
       },
-      bareEarth: { source: "lidarbc", elevationM: 1245.8 },
       landCover: {
         source: "worldcover2021",
         atLaunch: "grassland",
@@ -81,7 +87,7 @@ const CONTEXT = {
 };
 
 describe("site context contract", () => {
-  it("parses the committed site-context.json — generator and contract cannot drift", () => {
+  it("parses the committed site-context.json", () => {
     const text = readFileSync(new URL("../../site-context.json", import.meta.url), "utf8");
     const parsed = parseSiteContextJson(text);
     expect(parsed).not.toBeNull();
@@ -92,8 +98,48 @@ describe("site context contract", () => {
     expect(parseSiteContext(CONTEXT)).not.toBeNull();
     const parsed = parseSiteContextJson(JSON.stringify(CONTEXT));
     expect(parsed?.sites.dundee?.terrain.relief[2]?.percentile).toBe(57);
-    expect(parsed?.sites.erie?.bareEarth?.elevationM).toBe(1245.8);
-    expect(parsed?.sites.dundee?.bareEarth).toBeUndefined();
+    expect(parsed?.sites.erie?.elevation.elevationM).toBe(1245.8);
+    expect(parsed?.sites.erie?.elevation.source).toBe("lidarbc");
+  });
+
+  it("requires the elevation pick and names its source — a selection, not a computation", () => {
+    // v2's elevation block is required: every site gets a pick, even when
+    // the pick is the loud last-resort surface model.
+    expect(parseSiteContext(CONTEXT)?.sites.dundee?.elevation).toEqual({
+      source: "glo30",
+      elevationM: 1492.1,
+    });
+    const { elevation: _dropped, ...pickless } = CONTEXT.sites.dundee;
+    const missing = {
+      ...CONTEXT,
+      sites: { ...CONTEXT.sites, dundee: pickless },
+    };
+    expect(parseSiteContext(missing)).toBeNull();
+    // And the pick must name its source — the priority that chose it is
+    // only auditable when the winner is stated.
+    const sourceless = {
+      ...CONTEXT,
+      sites: {
+        ...CONTEXT.sites,
+        dundee: { ...CONTEXT.sites.dundee, elevation: { elevationM: 1492.1 } },
+      },
+    };
+    expect(parseSiteContext(sourceless)).toBeNull();
+  });
+
+  it("rejects the v1 shape by its version literal — bareEarth gave way to the pick", () => {
+    const v1 = {
+      ...CONTEXT,
+      schemaVersion: 1,
+      sites: {
+        erie: {
+          terrain: CONTEXT.sites.erie.terrain,
+          bareEarth: { source: "lidarbc", elevationM: 1245.8 },
+          landCover: CONTEXT.sites.erie.landCover,
+        },
+      },
+    };
+    expect(parseSiteContext(v1)).toBeNull();
   });
 
   it("keeps the licence attributions — they must travel with the data", () => {

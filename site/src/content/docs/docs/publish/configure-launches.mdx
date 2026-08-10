@@ -11,16 +11,20 @@ absolute path for that dispatch.
 
 ## Catalogue shape
 
+Since schemaVersion 2 the catalogue is **identity and build selection
+only** — humans author WHERE, and nothing physical. The pipeline measures
+elevation, terrain, and land cover at those coordinates and publishes them
+in [`site-context.json`](/docs/reference/site-context-document/).
+
 ```json title="club-sites.json"
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "sites": [
     {
       "slug": "test-hill",
       "name": "Test Hill",
       "latitude": 49.0,
       "longitude": -117.0,
-      "elevationM": 1000,
       "timeZone": "America/Vancouver"
     }
   ]
@@ -28,21 +32,24 @@ absolute path for that dispatch.
 ```
 
 The catalogue must satisfy `sitesCatalogueSchema` from `windgram/contract` or
-the generated `toolkit/schema/sites.schema.json` artifact.
+the generated `toolkit/schema/sites.schema.json` artifact, and is published
+to the dataset root **verbatim**.
 
 | Field | Meaning |
 | --- | --- |
-| `schemaVersion` | Site-catalogue contract version; `1` |
+| `schemaVersion` | Site-catalogue contract version; `2` |
 | `slug` | Stable lowercase, hyphenated identity used in output paths |
 | `name` | Reader-facing launch name |
 | `latitude`, `longitude` | Decimal degrees |
-| `elevationM` | Surveyed launch elevation, metres MSL |
 | `timeZone` | IANA timezone used to read local days and clock times |
 
-<Aside type="note" title="Launch elevation and model elevation differ">
-  `elevationM` is the launch fact. Each profile records the sampled grid
-  terrain separately as `site.modelElevationM`; the pipeline uses model
-  elevation for pressure-level filtering and model-column derivations.
+<Aside type="note" title="No elevation of any kind lives here">
+  v1 carried a hand-typed `elevationM`; the pipeline now rejects any file
+  that includes it (or any other unknown field) with a pointer to the
+  measured replacement. The launch elevation is `site-context.json`'s
+  `elevation` pick, measured from ground observations at the catalogued
+  coordinates; each profile records the sampled grid terrain separately as
+  `site.modelElevationM`.
 </Aside>
 
 ## Add a site safely
@@ -50,35 +57,35 @@ the generated `toolkit/schema/sites.schema.json` artifact.
 <Steps>
 
 1. Choose a stable slug. Renaming it changes every profile and history path.
-2. Record coordinates and surveyed elevation from an appropriate source for
-   your club. Do not infer elevation from a forecast grid.
+2. Record coordinates from an appropriate source for your club. Do not
+   record elevation anywhere — the pipeline measures it in the next step.
 3. Declare the launch's IANA timezone. Local time changes day windows and the
    meaning of timing findings, so builders echo this value into each profile
    as `site.timeZone`; do not infer it from longitude in presentation code.
-4. Validate the whole file without fetching provider data:
-
-   ```sh title="Terminal"
-   uv run --project pipeline windgram build --model hrrr-conus --sites ./club-sites.json --output ./public/data --dry-run
-   ```
-
-5. Run the chosen model. If any configured site falls outside that model's
-   sampling guard, the build fails with an out-of-grid error rather than
-   publishing a clamped boundary value. Use a site catalogue appropriate to
-   the selected model domain.
-
-6. Regenerate the static site context and commit it with the catalogue
-   change, so the published terrain and land-cover context stays joined to
-   the sites it describes:
+4. Run the one-shot terrain measurement and commit `site-context.json`
+   together with the catalogue change, so the published elevation, terrain,
+   and land-cover context stays joined to the sites it describes:
 
    ```sh title="Terminal"
    uv sync --project pipeline --extra terrain
    uv run --project pipeline windgram terrain
    ```
 
-   The one-shot command reads `./sites.json` and rewrites
-   `./site-context.json` (both paths accept overrides via `--sites` and
-   `--output`). Its shape and sources are in the
+   The command reads `./sites.json` and rewrites `./site-context.json`
+   (both paths accept overrides via `--sites` and `--output`). Its shape,
+   the elevation-pick priority, and its sources are in the
    [site context reference](/docs/reference/site-context-document/).
+
+5. Validate the whole file without fetching provider data:
+
+   ```sh title="Terminal"
+   uv run --project pipeline windgram build --model hrrr-conus --sites ./club-sites.json --output ./public/data --dry-run
+   ```
+
+6. Run the chosen model. If any configured site falls outside that model's
+   sampling guard, the build fails with an out-of-grid error rather than
+   publishing a clamped boundary value. Use a site catalogue appropriate to
+   the selected model domain.
 
 </Steps>
 

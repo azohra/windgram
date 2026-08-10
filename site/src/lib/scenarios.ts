@@ -37,6 +37,12 @@ interface ScenarioOutputIndexEntry {
   title?: string;
 }
 
+/** The launch a scenario teaches against — a render input published in the
+ * index, never in the generated documents (documents are launch-agnostic). */
+export interface ScenarioLaunch {
+  elevationM: number;
+}
+
 interface ScenarioIndexEntry {
   id: string;
   title: string;
@@ -44,6 +50,7 @@ interface ScenarioIndexEntry {
   kind: ScenarioKind;
   modelShape: string;
   timeZone: string;
+  launch: ScenarioLaunch;
   capabilities: ScenarioCapabilities;
   outputs: ScenarioOutputIndexEntry[];
 }
@@ -57,6 +64,9 @@ export interface TeachingScenario {
   lesson: string;
   label: string;
   timeZone: string;
+  /** From the scenario index, not the profile: renderers pass it to
+   * buildScene as `SceneOptions.launch`. */
+  launch: ScenarioLaunch;
   capabilities: ScenarioCapabilities;
   accessibilityDescription: string;
 }
@@ -132,6 +142,15 @@ function parseCapabilities(value: unknown, id: string): ScenarioCapabilities {
   };
 }
 
+function parseLaunch(value: unknown, id: string): ScenarioLaunch {
+  if (value === null || typeof value !== "object") fail(`${id}.launch must be an object`);
+  const candidate = value as Record<string, unknown>;
+  if (!Number.isFinite(candidate.elevationM)) {
+    fail(`${id}.launch.elevationM must be a finite number`);
+  }
+  return { elevationM: candidate.elevationM as number };
+}
+
 function parseOutput(value: unknown, id: string, index: number): ScenarioOutputIndexEntry {
   if (value === null || typeof value !== "object") fail(`${id}.outputs[${index}] must be an object`);
   const candidate = value as Record<string, unknown>;
@@ -176,6 +195,7 @@ function parseIndexEntry(value: unknown, index: number): ScenarioIndexEntry {
     kind,
     modelShape: requireString(candidate.modelShape, `${id}.modelShape`),
     timeZone: requireString(candidate.timeZone, `${id}.timeZone`),
+    launch: parseLaunch(candidate.launch, id),
     capabilities: parseCapabilities(candidate.capabilities, id),
     outputs,
   };
@@ -230,6 +250,7 @@ function buildRegistry(): Map<string, TeachingScenario[]> {
         lesson: entry.lesson,
         label: output.title ?? entry.title,
         timeZone: entry.timeZone,
+        launch: entry.launch,
         capabilities: entry.capabilities,
         accessibilityDescription: accessibilityDescription(entry, output, parsed.data),
       } satisfies TeachingScenario;

@@ -5,7 +5,7 @@
   "properties": {
     "schemaVersion": {
       "type": "number",
-      "const": 1
+      "const": 2
     },
     "generatedAt": {
       "type": "string",
@@ -82,6 +82,25 @@
       "additionalProperties": {
         "type": "object",
         "properties": {
+          "elevation": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                "description": "The sources[] entry the pick came from."
+              },
+              "elevationM": {
+                "type": "number",
+                "description": "The picked ground elevation at the catalogued coordinates, metres MSL, bilinear."
+              }
+            },
+            "required": [
+              "source",
+              "elevationM"
+            ],
+            "description": "THE launch elevation: a measurement selection, not a computation — the pipeline samples ground observations at the catalogued coordinates and picks by explicit priority: lidarbc 1 m ground returns → mrdem30 30 m national DTM → glo30 surface model as a loud last resort (canopy included)."
+          },
           "terrain": {
             "type": "object",
             "properties": {
@@ -92,7 +111,7 @@
               },
               "elevationM": {
                 "type": "number",
-                "description": "Terrain-model elevation at the launch point, metres MSL, bilinear. From a surface model this includes canopy — compare with bareEarth.elevationM and the surveyed sites.json elevationM before reading small differences as error."
+                "description": "Terrain-model elevation at the catalogued point, metres MSL, bilinear. From a surface model this includes canopy — compare with the elevation pick before reading small differences as error (a gap over ~100 m suggests the pin hits different terrain in different sources)."
               },
               "slopeDeg": {
                 "type": "number",
@@ -149,25 +168,6 @@
               "relief"
             ],
             "description": "Terrain analysis from ONE consistent elevation model across every site, so numbers compare across the catalogue."
-          },
-          "bareEarth": {
-            "type": "object",
-            "properties": {
-              "source": {
-                "type": "string",
-                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
-                "description": "The sources[] entry this value came from."
-              },
-              "elevationM": {
-                "type": "number",
-                "description": "Bare-earth (DTM) elevation at the launch point, metres MSL, bilinear."
-              }
-            },
-            "required": [
-              "source",
-              "elevationM"
-            ],
-            "description": "The best available bare-earth elevation at the launch — ground returns, no canopy. Absent when no bare-earth model covers the site; absence means \"not measured\", never agreement."
           },
           "landCover": {
             "type": "object",
@@ -249,10 +249,11 @@
           }
         },
         "required": [
+          "elevation",
           "terrain",
           "landCover"
         ],
-        "description": "One site's terrain and land-cover context. Coordinates, surveyed elevation and timezone are NOT echoed here — sites.json is their home; join by slug."
+        "description": "One site's measured ground truth: the elevation pick, terrain analysis, and land cover. Coordinates and timezone are NOT echoed here — sites.json is their home; join by slug."
       },
       "description": "Site slug → context. Join against sites.json; slugs are the identity."
     }
@@ -263,5 +264,5 @@
     "sources",
     "sites"
   ],
-  "description": "site-context.json — static per-site terrain and land-cover context, machine-generated from open elevation and land-cover data and committed beside the hand-maintained catalogues. No cadence: regenerate when the site catalogue changes."
+  "description": "site-context.json — static per-site ground truth (the elevation pick, terrain, land cover), machine-measured from open data and committed beside the hand-maintained catalogues: humans author WHERE (sites.json); the pipeline measures WHAT (this file). No cadence: regenerate when the site catalogue changes."
 }

@@ -16,6 +16,14 @@ import { z } from "zod";
 
 export const SCHEMA_VERSION = 1;
 
+/* sites.json and site-context.json stepped to schemaVersion 2 in the
+   launch-decoupling wave: the site catalogue stopped carrying an elevation
+   of any kind (humans author WHERE; the pipeline measures WHAT), and the
+   context gained the required `elevation` pick that replaced v1's optional
+   bareEarth block. */
+export const SITES_SCHEMA_VERSION = 2;
+export const SITE_CONTEXT_SCHEMA_VERSION = 2;
+
 // Slugs are lowercase alphanumeric runs joined by single hyphens — the shape
 // of every data/ directory and site id today ("hrdps-continental", "red-mountain").
 const slugSchema = z
@@ -391,40 +399,47 @@ export const windgramHourSchema = z.object({
 });
 export type WindgramHour = z.infer<typeof windgramHourSchema>;
 
-export const windgramSiteSchema = z.object({
-  id: slugSchema,
-  name: z.string().min(1),
-  latitude: z.number(),
-  longitude: z.number(),
-  /**
-   * The launch's surveyed elevation, metres MSL — the same quantity the
-   * sites.json catalogue publishes as `elevationM`, stored per-profile.
-   * Null when unknown.
-   */
-  altitudeM: z
-    .number()
-    .nullable()
-    .describe(
-      "The launch's surveyed elevation, metres MSL — the same quantity sites.json publishes as elevationM, stored per-profile. Null when unknown.",
-    ),
-  modelElevationM: z
-    .number()
-    .describe("The model's terrain elevation at the site's grid point, metres MSL."),
-  /**
-   * The site's IANA timezone (e.g. "America/Vancouver"), echoed per-profile
-   * from the sites.json catalogue so a stored document stays interpretable
-   * on its own — local time is load-bearing for reading a windgram (the
-   * pilots' day, window edges, cap timing). Optional: absence means the
-   * document predates the echo, never that UTC applies locally.
-   */
-  timeZone: z
-    .string()
-    .min(1)
-    .optional()
-    .describe(
-      'The site\'s IANA timezone (e.g. "America/Vancouver"), echoed per-profile from the sites.json catalogue — local time is load-bearing for reading a windgram. Absence means the document predates the echo, never that UTC applies locally.',
-    ),
-});
+/* SAMPLE PROVENANCE, deliberately not launch identity: a windgram document
+   describes the atmosphere the model computed over a grid sample and is
+   launch-agnostic. This block records where the atmosphere was sampled and
+   what the model's own ground there is; launch attributes (a name, an
+   elevation) arrive at render time (SceneOptions.launch) — a missing
+   launch marker is honest, a baked-in one would bind a grid forecast to
+   one launch. */
+export const windgramSiteSchema = z
+  .object({
+    id: slugSchema,
+    name: z.string().min(1),
+    latitude: z.number(),
+    longitude: z.number(),
+    /**
+     * The model's own terrain elevation at the sampled grid point, metres
+     * MSL — the plot floor and the physics reference. It stays here because
+     * it is a fact about the model's sample, not about any launch.
+     */
+    modelElevationM: z
+      .number()
+      .describe(
+        "The model's own terrain elevation at the sampled grid point, metres MSL — the plot floor and the physics reference; a fact about the model's sample, not about any launch.",
+      ),
+    /**
+     * The site's IANA timezone (e.g. "America/Vancouver"), echoed per-profile
+     * from the sites.json catalogue so a stored document stays interpretable
+     * on its own — local time is load-bearing for reading a windgram (the
+     * pilots' day, window edges, cap timing). Optional: absence means the
+     * document predates the echo, never that UTC applies locally.
+     */
+    timeZone: z
+      .string()
+      .min(1)
+      .optional()
+      .describe(
+        'The site\'s IANA timezone (e.g. "America/Vancouver"), echoed per-profile from the sites.json catalogue — local time is load-bearing for reading a windgram. Absence means the document predates the echo, never that UTC applies locally.',
+      ),
+  })
+  .describe(
+    "Sample provenance: where the atmosphere was sampled and the model's own ground there. Launch attributes are deliberately absent — a windgram document is launch-agnostic, and the launch arrives at render time (SceneOptions.launch); a missing launch marker is honest, a baked-in one would bind a grid forecast to one launch.",
+  );
 export type WindgramSite = z.infer<typeof windgramSiteSchema>;
 
 export const windgramRunSchema = z.object({
@@ -949,6 +964,24 @@ export const modelEntrySchema = z.object({
       "Hours between the runs this dataset publishes — the model's own schedule where every run is built, or the built subset where it is not (HRRR declares 6, its published synoptic subset). Freshness metadata: a run older than about twice this interval is genuinely late. Required since 0.3.0.",
     ),
   /**
+   * The upper end of NORMAL for this dataset's publish of a run after its
+   * referenceTime, hours: the provider's complete-availability time plus
+   * pipeline overhead (a ≤15 min poll plus the build), rounded up. A run
+   * younger than `runIntervalHours + typicalPublicationLagHours` may be
+   * the newest that can exist; older, and its successor is late. The fact
+   * lives here; how much lateness a consumer tolerates is a threshold the
+   * consumer owns (see derive's `runFreshness`). Seeded 2026-08-10 from
+   * the dated [verified] provider availability in the portal's
+   * forecast-model-feeds reference page; to be re-verified against the
+   * accumulated run archive around September 2026.
+   */
+  typicalPublicationLagHours: z
+    .number()
+    .positive()
+    .describe(
+      "Upper end of normal for THIS dataset's publish of a run after its referenceTime, hours: provider complete-availability plus pipeline overhead (≤15 min poll + build), rounded up. Judge freshness against runIntervalHours + this; thresholds stay consumer-owned. Seeded 2026-08-10 from the dated [verified] availability times in the portal's forecast-model-feeds reference; re-verify against the accumulated run archive ~September 2026.",
+    ),
+  /**
    * Machine-readable retirement notice: no runs are expected after `date`
    * (UTC calendar date, YYYY-MM-DD). `successor` names the catalogue slug
    * that replaces this model, or null for end-of-life with no replacement.
@@ -988,6 +1021,13 @@ export const smokeModelEntrySchema = z.object({
     .number()
     .positive()
     .describe("Hours between published runs — freshness metadata, like the profile entries'."),
+  /** Same semantics, seeding, and re-verification intent as the profile entries'. */
+  typicalPublicationLagHours: z
+    .number()
+    .positive()
+    .describe(
+      "Upper end of normal for THIS dataset's publish of a run after its referenceTime, hours — semantics, 2026-08-10 forecast-model-feeds seeding, and ~September 2026 re-verification intent exactly as on the profile entries.",
+    ),
   kind: z.enum(["deterministic", "ensemble"]),
   experimental: z.boolean(),
 });
@@ -996,11 +1036,11 @@ export type SmokeModelEntry = z.infer<typeof smokeModelEntrySchema>;
 /**
  * An observation dataset (GOES-18 DSR today): satellite measurements at
  * the catalogued sites. Identity and provenance metadata only — there is
- * no forecast horizon or run interval; `cadenceMinutes` is the product's
- * native observation cadence, the freshness yardstick (an observation
- * series whose newest instant is much older than a few cadences during
- * daylight is genuinely late). Like `smokeModels`, deliberately NOT an
- * entry in `models`.
+ * no forecast horizon, run interval, or publication lag (nothing has
+ * runs to lag); `cadenceMinutes` is the product's native observation
+ * cadence, the freshness yardstick (an observation series whose newest
+ * instant is much older than a few cadences during daylight is genuinely
+ * late). Like `smokeModels`, deliberately NOT an entry in `models`.
  */
 export const observationModelEntrySchema = z.object({
   slug: slugSchema,
@@ -1056,60 +1096,60 @@ export type ModelCatalogue = z.infer<typeof modelCatalogueSchema>;
 
 /* -------------------------------------------------------------- sites.json */
 
-export const siteCatalogueEntrySchema = z.object({
-  slug: slugSchema,
-  name: z.string().min(1),
-  latitude: z.number(),
-  longitude: z.number(),
-  /**
-   * The launch's surveyed elevation, metres MSL — the catalogue is its
-   * home. Profile documents store the same quantity per-profile as
-   * `site.altitudeM`, where it may be null (a profile built before the
-   * launch was surveyed keeps its null forever; the catalogue is current).
-   */
-  elevationM: z
-    .number()
-    .describe(
-      "The launch's surveyed elevation, metres MSL — the catalogue is its home. Profile site.altitudeM stores the same quantity per-profile and may be null there (a profile built before the survey keeps its null; the catalogue is current).",
-    ),
-  /**
-   * The site's IANA timezone (e.g. "America/Vancouver") — the catalogue is
-   * its home, and it is required: local time is load-bearing for reading a
-   * windgram (the pilots' day, window edges, cap timing), so every
-   * catalogued launch declares it. Builders echo it per-profile as the
-   * optional `site.timeZone`.
-   */
-  timeZone: z
-    .string()
-    .min(1)
-    .describe(
-      'The site\'s IANA timezone (e.g. "America/Vancouver") — required; the catalogue is its home. Local time is load-bearing for reading a windgram, and builders echo it per-profile as the optional site.timeZone.',
-    ),
-});
+/* Identity and build selection ONLY — nothing physical. Humans author
+   WHERE (coordinates, identity); the pipeline measures WHAT (elevation,
+   terrain, land cover — site-context.json is the home of those). No
+   elevation of any kind lives here since schemaVersion 2. */
+export const siteCatalogueEntrySchema = z
+  .object({
+    slug: slugSchema,
+    name: z.string().min(1),
+    latitude: z.number(),
+    longitude: z.number(),
+    /**
+     * The site's IANA timezone (e.g. "America/Vancouver") — the catalogue is
+     * its home, and it is required: local time is load-bearing for reading a
+     * windgram (the pilots' day, window edges, cap timing), so every
+     * catalogued site declares it. Builders echo it per-profile as the
+     * optional `site.timeZone`.
+     */
+    timeZone: z
+      .string()
+      .min(1)
+      .describe(
+        'The site\'s IANA timezone (e.g. "America/Vancouver") — required; the catalogue is its home. Local time is load-bearing for reading a windgram, and builders echo it per-profile as the optional site.timeZone.',
+      ),
+  })
+  .describe(
+    "One catalogued site: identity and build selection only — humans author WHERE, and nothing physical. The pipeline measures WHAT at these coordinates and publishes it in site-context.json.",
+  );
 export type SiteCatalogueEntry = z.infer<typeof siteCatalogueEntrySchema>;
 
 /* sites.json at the repository root — hand-maintained, the site catalogue.
-   `{schemaVersion, sites}` since the 0.3.0 wave (previously a bare array,
-   which the guard rejects: an unversioned document cannot promise its
-   shape). */
+   schemaVersion 2 since the launch-decoupling wave: identity and build
+   selection only, no elevation field (v1 carried the launch's typed-in
+   elevationM; the guard rejects v1 by its version literal). Published to
+   the dataset root VERBATIM — there is no separate published shape. */
 export const sitesCatalogueSchema = z
   .object({
-    schemaVersion: z.literal(SCHEMA_VERSION),
+    schemaVersion: z.literal(SITES_SCHEMA_VERSION),
     sites: z.array(siteCatalogueEntrySchema),
   })
   .describe(
-    "sites.json — the hand-maintained site catalogue: every launch the builders publish profiles for. {schemaVersion, sites} since the 0.3.0 wave (previously a bare array).",
+    "sites.json — the hand-maintained site catalogue: every site the builders publish documents for. Identity and build selection only: humans author WHERE; the pipeline measures WHAT (site-context.json). Published to the dataset root verbatim.",
   );
 export type SitesCatalogue = z.infer<typeof sitesCatalogueSchema>;
 
 /* ------------------------------------------------------ site-context.json */
 
-/* Static per-site terrain and land-cover context, machine-generated from
-   open elevation and land-cover data — the third catalogue file, beside
-   hand-maintained sites.json and models.json. It answers "what is this
-   launch, physically?" where a profile can only answer "what does this
-   model think the atmosphere above it does?": how far the model's smoothed
-   terrain sits from the real mountain is read by joining a profile's
+/* Static per-site ground truth, machine-measured from open elevation and
+   land-cover data — the third catalogue file, beside hand-maintained
+   sites.json and models.json, and the ONE published home of
+   pipeline-measured physical fact: humans author WHERE (sites.json), the
+   pipeline measures WHAT (this file). It answers "what is this site,
+   physically?" where a profile can only answer "what does this model think
+   the atmosphere above it does?": how far the model's smoothed terrain
+   sits from the real mountain is read by joining a profile's
    site.modelElevationM against this document's elevations. No cadence and
    no runs — regenerate when the site catalogue changes, never on a
    schedule. */
@@ -1192,7 +1232,7 @@ export const siteContextTerrainSchema = z
     elevationM: z
       .number()
       .describe(
-        "Terrain-model elevation at the launch point, metres MSL, bilinear. From a surface model this includes canopy — compare with bareEarth.elevationM and the surveyed sites.json elevationM before reading small differences as error.",
+        "Terrain-model elevation at the catalogued point, metres MSL, bilinear. From a surface model this includes canopy — compare with the elevation pick before reading small differences as error (a gap over ~100 m suggests the pin hits different terrain in different sources).",
       ),
     slopeDeg: z
       .number()
@@ -1220,17 +1260,23 @@ export const siteContextTerrainSchema = z
   );
 export type SiteContextTerrain = z.infer<typeof siteContextTerrainSchema>;
 
-export const siteContextBareEarthSchema = z
+/* THE launch elevation: a measurement selection, not a computation. The
+   pipeline samples ground observations at the catalogued coordinates and
+   picks by explicit priority — lidarbc (1 m ground returns) → mrdem30
+   (30 m national DTM) → glo30 (surface model, canopy included — a loud
+   last resort). Replaced v1's optional bareEarth block: the pick IS the
+   best bare-earth, and keeping both would duplicate. */
+export const siteContextElevationSchema = z
   .object({
-    source: slugSchema.describe("The sources[] entry this value came from."),
+    source: slugSchema.describe("The sources[] entry the pick came from."),
     elevationM: z
       .number()
-      .describe("Bare-earth (DTM) elevation at the launch point, metres MSL, bilinear."),
+      .describe("The picked ground elevation at the catalogued coordinates, metres MSL, bilinear."),
   })
   .describe(
-    "The best available bare-earth elevation at the launch — ground returns, no canopy. Absent when no bare-earth model covers the site; absence means \"not measured\", never agreement.",
+    "THE launch elevation: a measurement selection, not a computation — the pipeline samples ground observations at the catalogued coordinates and picks by explicit priority: lidarbc 1 m ground returns → mrdem30 30 m national DTM → glo30 surface model as a loud last resort (canopy included).",
   );
-export type SiteContextBareEarth = z.infer<typeof siteContextBareEarthSchema>;
+export type SiteContextElevation = z.infer<typeof siteContextElevationSchema>;
 
 export const siteContextLandCoverFractionsSchema = z
   .object({
@@ -1262,12 +1308,12 @@ export type SiteContextLandCover = z.infer<typeof siteContextLandCoverSchema>;
 
 export const siteContextEntrySchema = z
   .object({
+    elevation: siteContextElevationSchema,
     terrain: siteContextTerrainSchema,
-    bareEarth: siteContextBareEarthSchema.optional(),
     landCover: siteContextLandCoverSchema,
   })
   .describe(
-    "One site's terrain and land-cover context. Coordinates, surveyed elevation and timezone are NOT echoed here — sites.json is their home; join by slug.",
+    "One site's measured ground truth: the elevation pick, terrain analysis, and land cover. Coordinates and timezone are NOT echoed here — sites.json is their home; join by slug.",
   );
 export type SiteContextEntry = z.infer<typeof siteContextEntrySchema>;
 
@@ -1277,7 +1323,7 @@ export type SiteContextEntry = z.infer<typeof siteContextEntrySchema>;
    sites.json. */
 export const siteContextSchema = z
   .object({
-    schemaVersion: z.literal(SCHEMA_VERSION),
+    schemaVersion: z.literal(SITE_CONTEXT_SCHEMA_VERSION),
     generatedAt: utcInstantSchema.describe("When the context was generated, UTC."),
     sources: z
       .array(siteContextSourceSchema)
@@ -1288,7 +1334,7 @@ export const siteContextSchema = z
       .describe("Site slug → context. Join against sites.json; slugs are the identity."),
   })
   .describe(
-    "site-context.json — static per-site terrain and land-cover context, machine-generated from open elevation and land-cover data and committed beside the hand-maintained catalogues. No cadence: regenerate when the site catalogue changes.",
+    "site-context.json — static per-site ground truth (the elevation pick, terrain, land cover), machine-measured from open data and committed beside the hand-maintained catalogues: humans author WHERE (sites.json); the pipeline measures WHAT (this file). No cadence: regenerate when the site catalogue changes.",
   );
 export type SiteContext = z.infer<typeof siteContextSchema>;
 

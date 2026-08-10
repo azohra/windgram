@@ -39,7 +39,8 @@ fixtures. It resolves baseline paths from `scenarios/`, not from the definition
 file's directory or the process working directory.
 
 `index.json` is a generated registry. Generation populates each entry with the
-definition's teaching metadata, generated output path or paths, and SHA-256
+definition's teaching metadata (including the `launch` a renderer should pass
+as `SceneOptions.launch`), generated output path or paths, and SHA-256
 output hash. A definition without generated output must not be advertised
 through the index.
 
@@ -54,7 +55,13 @@ Every definition has these required fields:
 - `timeZone` is an explicit IANA-style zone echoed into the generated
   profile as `site.timeZone` for local-time analysis, projection, and
   presentation;
-- `site.synthetic` is always `true`;
+- `site.synthetic` is always `true`; the site block is sample provenance
+  only — generated documents are launch-agnostic;
+- `launch` declares the launch elevation the lesson teaches against. It never
+  enters the generated document: the index publishes it, and renderers pass it
+  as the toolkit's `SceneOptions.launch`. Assertions read it as
+  `launch.elevationM`. Baselines are launch-agnostic too — one carrying the
+  retired `siteAltitudeM` is rejected with directions;
 - `clock` fixes the UTC reference, generation, and first-valid instants,
   sampling step, hour count, and random seed;
 - `baseline` names one local source file and, for calibrated material, its
@@ -98,7 +105,7 @@ The schema rejects any operation outside this list:
 | `pressure-tendency` | Apply a surface-pressure change per teaching hour |
 | `capability-field` | Explicitly add or omit an optional source field |
 | `time-shift` | Shift fixed profile times by a declared whole-hour offset |
-| `elevation-adjustment` | Adjust site and/or model elevation by declared deltas |
+| `elevation-adjustment` | Adjust the model elevation by a declared delta |
 
 Scheduled transform numbers can be constants or `byHour` point sets. The
 validator rejects duplicate or out-of-range hour offsets, inverted altitude

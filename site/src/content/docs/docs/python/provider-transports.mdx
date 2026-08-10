@@ -29,8 +29,10 @@ verified semantics declaration keeps its meaning attached to the profile.
 Grid readers sample the nearest model point for every configured site and
 check distance. A distant result usually means a library clamped an
 out-of-domain coordinate to the grid edge. The builder must reject that
-sample. Model terrain elevation is sampled separately and remains distinct
-from surveyed launch elevation.
+sample. Model terrain elevation is a sampled model fact
+(`site.modelElevationM`) — distinct from the launch elevation, which the
+pipeline measures into `site-context.json` and no builder ever writes into
+a document.
 
 Projected grids may publish winds relative to grid north. Where provider
 metadata requires it, builders rotate components to true north before
