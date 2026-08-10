@@ -8,8 +8,10 @@ import { scenarioById } from "../../lib/scenarios";
 /* Two committed timing-comparison profiles rendered side by side, with the
    windowAgreement finding compareProfiles computes from them printed
    beneath. The two documents share one model slug in the teaching corpus, so
-   each is re-parsed here under a distinct slug — the only change — because a
-   comparison keys its per-model analyses by slug. */
+   each is re-parsed here under a distinct slug — the only change — so each
+   panel's headline `model` token names its own document (a member is a
+   (model, referenceTime) run since compare v2, and the envelope keys its
+   analyses by the composite member key either way). */
 const earlier = scenarioById("model-timing-disagreement", "earlier");
 const later = scenarioById("model-timing-disagreement", "later");
 

@@ -127,7 +127,13 @@ boundaries:
 - 0.8.1 distinguishes unopposed buoyancy from an unavailable B/S ratio and
   documents the ratio's same-air-mass terrain assumption; and
 - 0.9 changes `sampledFieldPaths` to accept ordered banding and emit
-  interpolated iso-band paths filled with the even-odd rule.
+  interpolated iso-band paths filled with the even-odd rule; and
+- 0.21 advances `ANALYZE_VOCABULARY_VERSION` to 4 (the `flyableWindow`
+  finding kind is renamed `thermalWindow`; six kinds are added and the
+  diurnal-artifact verdicts removed) and `COMPARE_VOCABULARY_VERSION` to 2
+  (a comparison member is a `(model, referenceTime)` run, and the
+  envelope's `analyses` record is re-keyed by the composite member key —
+  a documented breaking change).
 
 Treat the release tag (currently <code>toolkit-v{WINDGRAM_PACKAGE_VERSION}</code>) as
 an API and SVG snapshot boundary while validating each
