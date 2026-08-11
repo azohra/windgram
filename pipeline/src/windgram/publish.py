@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 
 from .dataset import published_history, published_manifest
+from .history import write_month_index
 
 # The spec's rounding table, field name → decimal places, applied at the
 # serialization edge so published JSON carries no float64 noise. Compass
@@ -99,8 +100,10 @@ def append_history(profile: dict, history_dir: Path) -> None:
     the site's first run of the month — seeds empty). Each run is then
     appended as an independent gzip member: existing bytes are never
     rewritten, and any gzip reader sees one JSON line per model run.
+    Every append rewrites the month's sidecar byte-offset index — the
+    index is a pure function of the archive file (history.py).
     """
-    archive_path = _seeded_month_archive(
+    archive_path = seeded_month_archive(
         profile["model"],
         profile["site"]["id"],
         profile["run"]["referenceTime"][:7],
@@ -109,6 +112,7 @@ def append_history(profile: dict, history_dir: Path) -> None:
     line = compact_json(profile) + "\n"
     with archive_path.open("ab") as archive:
         archive.write(gzip.compress(line.encode()))
+    write_month_index(archive_path)
 
 
 def append_history_lines(
@@ -121,16 +125,19 @@ def append_history_lines(
     line, not one document per run)."""
     if not lines:
         return
-    archive_path = _seeded_month_archive(model, site_id, month, history_dir)
+    archive_path = seeded_month_archive(model, site_id, month, history_dir)
     payload = "".join(compact_json(line) + "\n" for line in lines)
     with archive_path.open("ab") as archive:
         archive.write(gzip.compress(payload.encode()))
+    write_month_index(archive_path)
 
 
-def _seeded_month_archive(model: str, site_id: str, month: str, history_dir: Path) -> Path:
+def seeded_month_archive(model: str, site_id: str, month: str, history_dir: Path) -> Path:
     """The site's month archive path, seeded from the published month's
     bytes on its first touch in this build (an unpublished month seeds
-    empty — the site's first archive of the month)."""
+    empty — the site's first archive of the month). Public because the
+    year-file repack (repack.py) rides exactly this guard: seeding from
+    the published bytes is what makes an append unable to rewrite them."""
     directory = history_dir / site_id
     directory.mkdir(parents=True, exist_ok=True)
     archive_path = directory / f"{month}.jsonl.gz"
