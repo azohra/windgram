@@ -4,6 +4,22 @@ Notable repository and `windgram` package changes are recorded here. Dataset
 schema, npm package, and Python pipeline versions are independent; each release
 entry names the versions it actually changes.
 
+## [0.22.1] - 2026-08-10
+
+`windgram` (npm and JSR) 0.22.1 — the scene stops fabricating optical
+depth from the quarantined column. Caught by the first downstream
+consumer within hours of 0.22.0: the joined-smoke haze tint still
+derived AOT via `smokeAotFromColumn` from the RAQDPS plume column the
+same release had quarantined — a column measured ~15–26× low paints a
+nearly invisible haze during heavy smoke, the worst direction to be
+wrong in. Joined hours now carry no AOT: the healthy surface
+magnitudes keep printing, no haze cell is drawn, and the opt-in
+smoke-adjusted view no-ops on joined smoke exactly like the analyze
+vocabulary's cut derate verdict. A profile's own published AOT (HRRR)
+is untouched. Until the provider fixes the column, `smokeAdjusted` is
+effectively inert across the live catalogue — stated here so nobody
+wonders why the toggle changes nothing.
+
 ## [0.22.0] - 2026-08-10
 
 `windgram` (npm and JSR) 0.22.0 and `windgram` pipeline (PyPI) 0.9.0 —
