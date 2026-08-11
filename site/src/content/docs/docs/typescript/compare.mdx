@@ -49,6 +49,75 @@ mismatch, and the launch-relative `heightSpread` finding is not emitted.
 The envelope echoes the launch it used as `site.launchAltitudeM` (`null`
 when none was supplied).
 
+## Compare cached analyses
+
+`compareProfiles` is a wrapper — one construction — over the real seam:
+`compareAnalyses`, which compares one site's **analysis envelopes** at the
+findings level. It is the door for cached and edge-produced envelopes:
+analyze each profile where the document lives, serialize the
+[self-describing envelope](/docs/typescript/analyze/#the-envelope-self-describes)
+as JSON, and compare later without re-opening any profile. Note what its
+options deliberately lack — `timeZone`, `launch`, `thresholds` come **from
+the members** and are validated, never supplied; that is the whole point
+of the envelope's self-description.
+
+```ts title="compare-cached.ts"
+import { ANALYZE_VOCABULARY_VERSION, type WindgramAnalysis } from "windgram/analyze";
+import { compareAnalyses, type WindgramComparison } from "windgram/compare";
+
+export function compareCached(
+  envelopes: readonly WindgramAnalysis[],
+): WindgramComparison {
+  // Version skew is the one routine failure of a long-lived cache, and
+  // re-analysis is its remedy. Left unchecked, compareAnalyses throws the
+  // same fact as a named error:
+  //   compareAnalyses: vocabulary version skew — member
+  //   gdps@2026-08-09T00:00:00Z carries vocabularyVersion 3, this toolkit
+  //   compares vocabulary 4; re-analyze the profile with this toolkit, or
+  //   compare with the toolkit that produced it
+  const skewed = envelopes.filter(
+    (envelope) => envelope.vocabularyVersion !== ANALYZE_VOCABULARY_VERSION,
+  );
+  if (skewed.length > 0) {
+    throw new Error(`re-analyze ${skewed.length} cached member(s) with this toolkit`);
+  }
+  return compareAnalyses(envelopes, {
+    unavailable: [{ model: "nam", miss: "absent" }],
+  });
+}
+```
+
+Coherence is **validated instead of reconstructed**, and every failure is
+a distinct, named error:
+
+- an empty member list;
+- `site.id` mismatch — one comparison, one site;
+- a duplicate `(model, referenceTime)` member — the same run twice is a
+  programming error, not a second member;
+- `vocabularyVersion` skew against this toolkit's own
+  `ANALYZE_VOCABULARY_VERSION`, with the remedy named (strict equality is
+  v1 of this surface — tolerating older envelopes is a later,
+  evidence-bearing decision, not a default);
+- missing self-description — an envelope serialized by a toolkit before
+  0.22 lacks `thresholds` / `deterministic` / `coveredDays`, and the
+  runtime check is the honest door for parsed JSON the compile-time type
+  cannot vouch for;
+- `timeZone` mismatch — day keys pair only in one zone;
+- launch mismatch (`site.launchAltitudeM`, null vs number included);
+- thresholds deep-inequality, naming the first differing path
+  (`thermalWindow.wstarMinMs: 0.9 vs 0.8`).
+
+Deliberately **not** validated: anything votes don't read —
+`windCeilings` and `smoke` are analysis inputs that shape kinds compare
+never consumes.
+
+Because `compareProfiles` analyzes every member itself with the
+comparison's single timezone, launch, and threshold set, its members
+validate coherent by construction: the profile-shaped errors (mixed
+sites, duplicate members, empty list) surface through the same
+validation, and the version-skew and self-description errors cannot occur
+there.
+
 ## A member is a run, not a model
 
 Since vocabulary 2, member identity is the pair `(model, referenceTime)`:
@@ -63,6 +132,11 @@ builds it) for **every** member, not by the model slug, because a model-slug
 key can hold only one of a model's two runs. Every vote, abstention, and
 roster entry carries both `member` (the `analyses` / ledger key) and `model`
 (the headline token), so provenance joins on one string without parsing it.
+
+Turning the member axis fully onto one model's runs through time is
+[`compareRuns`](/docs/typescript/history/#compare-a-models-runs-through-time)
+in `windgram/history` — the same discipline, the inverse axis, with its own
+independently versioned vocabulary.
 
 ```ts title="join-provenance.ts"
 import { comparisonMemberKey, type WindgramComparison } from "windgram/compare";
@@ -253,3 +327,13 @@ versions these finding kinds independently of the published profile
 votes read the renamed `thermalWindow` kind, and the `analyses` re-keying
 above is the release's breaking change. Downstream publishers choose
 weighting, display language, and operational thresholds.
+
+The 0.22 release rides **under** vocabulary 2 — no vocabulary event: the
+comparison kind set is untouched. Its additions are `compareAnalyses`
+above, and the widening of the envelope's `vocabularyVersion` from the
+literal to `number` under the
+[tolerant-reader convention](/docs/typescript/analyze/#versioning-reads-tolerantly)
+— the release's one type-level break, zero wire change. Readers of
+serialized comparison envelopes check the version at runtime and ignore
+kinds and fields they do not know; the convention governs readers of the
+closed set, never the set, which stays spike-gated and first-party.

@@ -168,6 +168,74 @@ export function windowRows(analysis: WindgramAnalysis) {
 Do not reduce a finding to a prose label before storing its thresholds and
 evidence. Those fields are what make the compressed statement auditable.
 
+## The envelope self-describes
+
+Since 0.22, everything a downstream comparison validates or states about a
+member is **on the envelope**, so a serialized `WindgramAnalysis` re-enters
+[`compareAnalyses`](/docs/typescript/compare/#compare-cached-analyses)
+without re-opening the profile:
+
+- `thresholds` — the complete resolved threshold set this analysis ran
+  under (per-finding echoes are absent when a kind emitted nothing; this
+  echo never is);
+- `deterministic` — whether the document is deterministic or an ensemble
+  read at p50, precomputed;
+- `coveredDays` — the local calendar days the document's hours actually
+  touch, computed in the envelope's own `timeZone` from `hours[].validAt`
+  and never from cadence arithmetic (live documents widen their step
+  mid-horizon);
+- `extensions` — named third-party statements, when
+  [extensions](#extend-over-the-public-frame) were passed; **absent, not
+  empty**, otherwise, so pre-0.22 serialized envelopes are byte-identical.
+
+These are required fields, which is additive for every *reader* of the
+envelope — only code that constructs `WindgramAnalysis` values by hand
+(test fixtures) gains fields to fill. Analyze once at the edge, cache the
+envelope as JSON, and compare later: the self-description is what makes
+the cached workflow honest.
+
+## Versioning reads tolerantly
+
+`vocabularyVersion` is typed `number`, not the version literal — the one
+type-level break of the 0.22 release, with zero wire change. It encodes
+the **tolerant-reader convention**: consumers of serialized envelopes must
+ignore finding kinds and envelope fields they do not know, so additive
+kinds bump the version number without breaking any conforming reader.
+Readers check the stamp at runtime (`compareAnalyses` throws on skew)
+instead of recompiling on every bump, and cached envelopes survive
+toolkit upgrades as data.
+
+An exhaustive `switch` over `finding.kind` stays available to compiled
+consumers — with a `default` arm it too is conforming:
+
+```ts title="tolerant-reader.ts"
+import { ANALYZE_VOCABULARY_VERSION, type WindgramAnalysis } from "windgram/analyze";
+
+export function dayVerdicts(envelope: WindgramAnalysis) {
+  if (envelope.vocabularyVersion > ANALYZE_VOCABULARY_VERSION) {
+    // A newer toolkit produced this envelope. Additive kinds are the
+    // normal growth mode: read the kinds you know, ignore the rest.
+  }
+  return envelope.findings.flatMap((finding) => {
+    switch (finding.kind) {
+      case "thermalWindow":
+        return [{ day: finding.day, window: true }];
+      case "quietDay":
+        return [{ day: finding.day, window: false }];
+      default:
+        // The default arm is what makes a compiled switch conforming:
+        // an unknown kind is ignorable, never an error.
+        return [];
+    }
+  });
+}
+```
+
+The convention governs **readers** of the closed set, never the set
+itself: unknown kinds are ignorable, not admissible. Nothing enters
+`findings` without the evidence spike that gates the vocabulary —
+third-party statements have their own door, below.
+
 ## The finding vocabulary
 
 `ANALYZE_VOCABULARY_VERSION` is <code>{ANALYZE_VOCABULARY_VERSION}</code>
@@ -254,8 +322,10 @@ export function upsideDays(analysis: WindgramAnalysis) {
 
 `smokeImpact` republishes numbers and deliberately states no derated window
 and no adjusted W* — the only live passive column source measured far below
-a satellite-verified column, and even satellite-magnitude optics flipped
-almost nothing. The `semantics` echo is load-bearing: `"radiativelyCoupled"`
+a satellite-verified column (the RAQDPS column field is quarantined from
+derived optics; the contract's `smokePlumeColumnMgm2` note is
+[that fact's one home](/docs/reference/smoke-document/#the-column-field-carries-a-provider-defect)),
+and even satellite-magnitude optics flipped almost nothing. The `semantics` echo is load-bearing: `"radiativelyCoupled"`
 means the document's own lift numbers already feel this smoke, so any
 downstream derate double-counts.
 
@@ -403,6 +473,86 @@ export function shearRows(analysis: WindgramAnalysis) {
   });
 }
 ```
+
+## Extend over the public frame
+
+The extraction frame — the normalization ground every first-party
+extractor stands on — is public since 0.22: `AnalysisFrame`, versioned
+separately as `ANALYSIS_FRAME_VERSION` (the frame is where extractors
+stand, the vocabulary is what they say; the frame changes rarely, and a
+frame change is its own contract event). `AnalyzeOptions.extensions` runs
+caller extractors over it **after** first-party extraction, receiving the
+finished findings read-only.
+
+The frame hands an extension the resolved per-analysis facts — timezone
+and its source, `deterministic`, the leading `stepHours` plus the per-gap
+`steps` truth, `referenceTime`, the launch resolution — and three bound
+functions, `cite`, `dayOf`, and `leadHours`, which are the three ways an
+extension gets midnight wrong on its own. The raw hour data stays
+available through `frame.profile`; `windgram/derive` exports the same
+selectors the first-party extractors use (`p50`, `localDateKey`,
+`groupByLocalDay`).
+
+```ts title="window-pace-extension.ts"
+import { analyzeProfile, type AnalysisExtension } from "windgram/analyze";
+import type { WindgramProfile } from "windgram/contract";
+
+/** The extension's OWN statement type. The vocabulary's guarantees stop
+ * at `findings`, so this contract is the extension's to state — and the
+ * house discipline (evidence, embedded thresholds) is documented but
+ * unenforceable expectation, yours to hold. */
+interface WindowPaceStatement {
+  day: string;
+  citedHours: number;
+  leadHoursAtStart: number;
+}
+
+const windowPace: AnalysisExtension = {
+  // Namespaced, echoed verbatim on the envelope entry. Duplicate names
+  // in one call throw.
+  name: "example/windowPace",
+  extract(frame, findings) {
+    const statements: WindowPaceStatement[] = [];
+    for (const finding of findings) {
+      if (finding.kind !== "thermalWindow") continue;
+      statements.push({
+        // dayOf and leadHours are BOUND to this analysis's zone and run,
+        // so timezone and lead arithmetic are correct for free.
+        day: frame.dayOf(finding.start.validAt),
+        citedHours: finding.evidence.hours.length,
+        leadHoursAtStart: frame.leadHours(finding.start.validAt),
+      });
+    }
+    return statements;
+  },
+};
+
+export function paceStatements(profile: WindgramProfile): WindowPaceStatement[] {
+  const analysis = analyzeProfile(profile, { extensions: [windowPace] });
+  // Statements land on the envelope's named `extensions` entry, NEVER in
+  // `findings` — they stay unknown[], and consumers narrow through the
+  // extension's own types, so no third-party statement can masquerade as
+  // a first-party finding.
+  const entry = analysis.extensions?.find((e) => e.extension === "example/windowPace");
+  return (entry?.statements ?? []) as WindowPaceStatement[];
+}
+```
+
+A throwing extension fails the analysis — you supplied the code, and
+`analyzeProfile` does not sandbox it.
+
+Three things are deliberately **not** exposed, and the absences are the
+design:
+
+- **the extraction `Context`** — it carries the full `AnalyzeThresholds`
+  and `WindCeilings`, so exposing it would re-couple this rarely-changing
+  surface to every vocabulary event. Extensions bring their own thresholds
+  and are expected to embed them in their own statements, per the house
+  discipline;
+- **the citation and cadence factories** — the frame carries their
+  *results* (`cite`, `dayOf`, `leadHours`, `steps`), not the machinery;
+- **the first-party kind extractors** — extensions consume the finished
+  findings; they do not re-run or re-order the pipeline.
 
 ## Local time and cadence stay visible
 

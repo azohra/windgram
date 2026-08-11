@@ -54,12 +54,13 @@ import { round1, type CitedInstant, type Context, type LocalDayKey } from "./sha
  *    inter-model w* spread (≥1 m/s) swamps the expected smoke depression
  *    (~0.15 m/s).
  * 5. RAQDPS `smokePlumeColumnMgm2` is QUARANTINED from any derived
- *    optics: measured ~15× below HRRR's column and ~20× below the
- *    GOES-18 AOT-implied column on 2026-08-10 at erie (its own fields
- *    imply a 49–212 m effective smoke depth against a 90–111 µg/m³
- *    surface). The joined finding republishes the column as the
- *    document's fact and carries NO aot until the pipeline resolves the
- *    field's meaning; the RAQDPS surface field does NOT share the problem.
+ *    optics: the provider declares an entire-atmosphere column, the
+ *    measured content is a ~50–250 m near-surface slab — the contract's
+ *    smokePlumeColumnMgm2 note is that fact's one home (2026-08-10
+ *    measurements, upstream-report status, and the re-arbitration
+ *    trigger). The joined finding republishes the column as the
+ *    document's fact and carries NO aot until that note lifts the
+ *    quarantine; the RAQDPS surface field does NOT share the problem.
  *
  * Threshold-free by construction: magnitudes and timing only, no verdict.
  * AQI banding is jurisdictional and belongs downstream.

@@ -32,6 +32,32 @@ history-only shape.
   published at that time.
 - Current catalogue values do not retroactively reinterpret an archived
   profile.
+- A corrected re-publication **appends** a new line for the same
+  `run.referenceTime` with a later `run.generatedAt` — it never rewrites
+  the earlier line. A republication is a fact the archive states; readers
+  dedupe by `referenceTime`, keeping the latest `generatedAt`.
+
+## The sidecar index
+
+Every archive publishes an advisory byte-offset index beside it:
+
+```text
+<model>/history/<site>/<YYYY-MM>.index.json
+```
+
+One entry per gzip member, in archive order: `byteOffset`, `byteLength`,
+`lines`, and the member's identity — `referenceTime` and `generatedAt`
+for a profile run, `firstObservedAt` / `lastObservedAt` for an
+observation batch. With it, a reader wanting "runs since T" or "the last
+N runs" Range-fetches only the members it needs instead of the whole
+month (the public dataset serves `Range` natively, CDN cache included).
+
+The index is recomputed from the archive bytes after every append — a
+pure function of the file — and it is **advisory, never authoritative**:
+a missing, stale, or unparsable index degrades a reader to the
+full-archive fetch, silently correct. Because the archives are
+append-only, fetching from a member offset to end-of-file can never miss
+a member the index had not yet seen.
 
 ## Observation history — one observation per line
 
@@ -64,8 +90,16 @@ curl -sS https://data.meteo.azohra.com/nam/history/dundee/2026-08.jsonl.gz \
 For an observation archive, the same pipeline works with `.observedAt` —
 each line is one measured instant, not one run.
 
-Use an equivalent gzip reader when `gzip` or `jq` is unavailable. Applications
-should stream lines rather than inflate an entire long archive into memory.
+Use an equivalent gzip reader when `gzip` or `jq` is unavailable — but
+know that the archives are **multi-member** gzip: command-line `gzip`
+handles concatenated members, while WHATWG
+`DecompressionStream("gzip")` does not (the runtimes disagree on *how*
+it fails, which is worse). TypeScript consumers should read archives
+through the [`windgram/history` loaders](/docs/typescript/history/),
+which split members correctly, dedupe republished runs
+keep-latest-`generatedAt`, and use the sidecar index for since-narrowed
+Range reads. Applications should stream lines rather than inflate an
+entire long archive into memory.
 
 History supports reproducible analysis, calibration audits, and downstream
 archives. Archived output can also calibrate teaching-profile ranges offline.

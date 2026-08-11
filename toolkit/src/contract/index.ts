@@ -565,8 +565,26 @@ export const smokeDocumentHourSchema = z.object({
   ),
   /**
    * Vertically integrated wildfire-smoke PM2.5, mg/m² (RAQDPS
-   * PM2.5-WildfireSmokePlume_EAtm) — total smoke over the site regardless
-   * of the layer it rides in; the mass input for optics-based derivations.
+   * PM2.5-WildfireSmokePlume_EAtm, published kg/m², converted ×1e6). The
+   * provider DECLARES a column integrated over the entire atmosphere
+   * (GRIB2 discipline 0, category 20, parameterNumber 1, typeOfLevel
+   * atmosphere; GeoMet titles the layer "entire column PM2.5 [kg/m²]");
+   * the measured content is not that. On 2026-08-10 (verified against the
+   * raw provider GRIBs, HRRR, and GOES-18) the field behaves as the
+   * surface concentration × a ~50–250 m near-surface slab: implied depth
+   * (column/surface) p5–p95 = 43–252 m over 13,410 plume gridpoints, max
+   * 572 m, elevated smoke at 3 of them; it correlates 0.84 with RAQDPS's
+   * own surface field and 0.16 with HRRR's column; in heavy smoke it runs
+   * ~15–26× below satellite-consistent columns (at 784 co-located smoke
+   * points the RAQDPS/HRRR column ratio is median 0.039 — no clean unit
+   * multiple — while the surface ratio is median 1.09). The field is
+   * therefore QUARANTINED from any derived optics: the analyze
+   * smokeImpact kind republishes it raw as the document's own fact and
+   * carries no AOT. This note is the fact's one home — the builder and
+   * the kind point here. Reported upstream to ECCC 2026-08-10
+   * (PM10-WildfireSmokePlume_EAtm shares the defect, median implied depth
+   * 119 m); re-arbitrate against GOES AOD when ECCC responds, or
+   * ~September.
    */
   smokePlumeColumnMgm2: scalarSchema.describe(
     "Vertically integrated wildfire-smoke PM2.5, mg/m² — total smoke over the site regardless of the layer it rides in; the mass input for optics-based derivations.",

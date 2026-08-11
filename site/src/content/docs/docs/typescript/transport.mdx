@@ -133,7 +133,11 @@ documents arrive through your own storage rather than these loaders.
 
 `fetch` is a parameter, not an import. Pass the runtime's own WHATWG-shaped
 fetch — browser, Node, workers, undici, or a test stub — which keeps this
-module runtime-agnostic and the rest of the package I/O-free.
+module runtime-agnostic. The one other subpath that fetches,
+[`windgram/history`](/docs/typescript/history/), follows the same manners
+(injected fetch, discriminated misses, `TransportHttpError` as the only
+throw) but is server-side by construction — its gzip reader needs
+`node:zlib`. Every remaining subpath is I/O-free.
 
 The transport performs no caching and no storage writes, because no storage
 API is portable across runtimes. Cache keys, quotas, invalidation, and

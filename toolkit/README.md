@@ -108,6 +108,7 @@ One import subpath per job; each links to its guide.
 | `windgram/analyze` | Typed findings over one profile, each carrying the thresholds and evidence that produced it | [Analyze a profile](https://windgram.azohra.com/docs/typescript/analyze/) |
 | `windgram/compare` | Cross-run window agreement, height spread, and wind divergence over a member ledger where every non-vote has a stated reason | [Compare model profiles](https://windgram.azohra.com/docs/typescript/compare/) |
 | `windgram/transport` | `loadProfile` and `loadRuns` with the torn-pair skew guard and discriminated misses | [Load published documents](https://windgram.azohra.com/docs/typescript/transport/) |
+| `windgram/history` | Month-archive loaders (member-splitting gzip reader, mandatory run dedupe, the advisory sidecar index) and `compareRuns` — one model's runs through time. Server-side: Node, Bun, Deno; not browsers | [History and run convergence](https://windgram.azohra.com/docs/typescript/history/) |
 | `windgram/scene` | The headless scene graph: scales, strips, series, barbs, markers, hit-testing, the key spec | [Build a scene graph](https://windgram.azohra.com/docs/typescript/scene/) |
 | `windgram/svg` | The deterministic reference serializer for chart and key, styled entirely by CSS custom-property tokens | [Render SVG and a key](https://windgram.azohra.com/docs/typescript/svg/) |
 

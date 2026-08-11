@@ -50,6 +50,10 @@ MAX_NEAREST_KM = 15.0
 # 1.4e-6 — kg/m³ (1445 µg/m³ inside that day's plume; a µg/m³ encoding
 # would make the national maximum a femtogram); column max 1.2e-4 — kg/m²
 # (123 mg/m², matching HRRR's COLMD magnitudes over the same event).
+# The _EAtm read and ×1e6 conversion are faithful to the published GRIB;
+# the column's CONTENT is defective upstream (declared entire-atmosphere,
+# measured as a ~50-250 m near-surface slab, 2026-08-10) — the toolkit
+# contract's smokePlumeColumnMgm2 note is that fact's one home.
 SMOKE_FIELDS = {
     "pm25Ugm3": ("PM2.5_Sfc", lambda v: v * 1e9),
     "smokePlumeSurfaceUgm3": ("PM2.5-WildfireSmokePlume_Sfc", lambda v: v * 1e9),

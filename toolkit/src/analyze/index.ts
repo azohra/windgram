@@ -34,6 +34,19 @@
    (hazard, barrier, confidence, consensus, outliers) are deliberately
    absent, not merely unimplemented.
 
+   THE TOLERANT-READER CONVENTION (0.22.0): consumers of serialized
+   envelopes MUST ignore finding kinds and envelope fields they do not
+   know — additive kinds bump the version number without breaking any
+   conforming reader, which is why `vocabularyVersion` is typed `number`
+   rather than the literal (readers check it at runtime; compareAnalyses
+   throws on skew). Exhaustive `switch` over `finding.kind` stays
+   available to compiled consumers — with a default arm it too is
+   conforming. The convention governs READERS of the closed set, never
+   the set itself: unknown kinds are ignorable, not admissible — nothing
+   enters `findings` without the evidence spike that gates the
+   vocabulary (third-party statements have their own door, the
+   `extensions` envelope array over the public AnalysisFrame).
+
    THE DISCIPLINE every kind obeys:
    - magnitudes and timing; NO VERDICT THAT DOES NOT REDUCE to stated
      arithmetic over stated, embedded, caller-movable thresholds (max lift
@@ -104,3 +117,11 @@ export {
   type WindSummaryFinding,
 } from "./vocabulary.js";
 export { analyzeProfile, resolveAnalyzeThresholds } from "./findings.js";
+export {
+  ANALYSIS_FRAME_VERSION,
+  round1,
+  round2,
+  type AnalysisExtension,
+  type AnalysisFrame,
+  type HourSteps,
+} from "./frame.js";

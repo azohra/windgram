@@ -42,7 +42,7 @@ so consumers that predate smoke keep parsing the catalogue untouched.
 | --- | --- | --- |
 | `pm25Ugm3` | µg/m³ | Total near-surface PM2.5, all sources — the air-quality number. |
 | `smokePlumeSurfaceUgm3` | µg/m³ | The wildfire-smoke share of that PM2.5 at the surface. |
-| `smokePlumeColumnMgm2` | mg/m² | Vertically integrated wildfire-smoke PM2.5 — the mass input for optics-based derivations. |
+| `smokePlumeColumnMgm2` | mg/m² | Vertically integrated wildfire-smoke PM2.5, as published — currently [quarantined from derived optics](#the-column-field-carries-a-provider-defect). |
 
 The site block carries identity and the timezone echo only — no
 elevations, because terrain is a profile concern, not an air-quality
@@ -50,10 +50,33 @@ one. Hours are all forecast hours, chronological, like a profile's.
 
 RAQDPS publishes **no optical-depth field** (verified 2026-08-09: the
 live Datamart tree carries concentration and column-mass files only), so
-optical thickness is derived downstream from the column through a cited
-mass-extinction efficiency — see
+optical thickness would be derived downstream from the column through a
+cited mass-extinction efficiency — see
 [`smokeAotFromColumn` in `windgram/derive`](/docs/typescript/derive/)
 and the narrative in [Smoke and thermals](/docs/learn/smoke-and-thermals/).
+Read the next section before using that derivation on this document's
+column.
+
+## The column field carries a provider defect
+
+Verified 2026-08-10 against the raw provider GRIBs, HRRR, and GOES-18:
+the provider **declares** a column integrated over the entire atmosphere,
+but the measured content behaves as the surface concentration times a
+~50–250 m near-surface slab — it correlates with RAQDPS's own surface
+field, not with a real column, and in heavy smoke it runs ~15–26× below
+satellite-consistent columns. The builder's read and unit conversion are
+faithful to the published GRIB; the defect is upstream, and it was
+reported to ECCC on 2026-08-10.
+
+The field is therefore **quarantined from any derived optics**: the
+analyze [`smokeImpact` kind](/docs/typescript/analyze/) republishes it
+raw as the document's own fact and carries no AOT for joined days. The
+quarantine is a note on the field itself — the contract's
+[`smokePlumeColumnMgm2` JSDoc](https://github.com/azohra/windgram/blob/main/toolkit/src/contract/index.ts)
+is the fact's **one home**, carrying the full measurements, the
+upstream-report status, and the re-arbitration trigger (GOES AOD when
+ECCC responds, or ~September). The surface field does **not** share the
+problem.
 
 ## Provider facts — verified 2026-08-09
 

@@ -19,8 +19,12 @@
    - compare statements, not series: members vote through their analyze
      findings, which are already launch-relative, local-day keyed, and
      threshold-embedded — the normalizations the value spike showed a raw
-     comparison lacks. Comparability holds by construction: every member
-     is analyzed here, with one timeZone and one threshold set.
+     comparison lacks. Comparability holds by construction
+     (compareProfiles analyzes every member here, one timeZone, one
+     threshold set) or by validation (compareAnalyses proves the same
+     coherence on caller-supplied envelopes — the self-description the
+     analysis envelope carries — and throws a named error where it
+     fails).
    - agreement is REPORTED, never manufactured: no averaging, no blended
      consensus, no synthesized forecast. Where members diverge, the
      divergence is the statement (heightSpread carries a roster and a
@@ -44,14 +48,22 @@
 
    THE VOCABULARY IS VERSIONED exactly like analyze/'s:
    COMPARE_VOCABULARY_VERSION names the kind set, and adding or changing
-   a kind is a contract event — bump it and record the evidence. */
+   a kind is a contract event — bump it and record the evidence. The
+   tolerant-reader convention holds here too (0.22.0, stated in full in
+   analyze/'s charter): consumers of serialized comparison envelopes MUST
+   ignore finding kinds and envelope fields they do not know —
+   `vocabularyVersion` is typed `number` for exactly that reason — and
+   the convention governs READERS of the closed set, never the set: the
+   kinds stay spike-gated and first-party. */
 
-import { isDeterministicProfile, type WindgramProfile } from "../contract/index.js";
+import type { WindgramProfile } from "../contract/index.js";
 import { localDateKey } from "../derive/day-window.js";
 import { componentsToWind, windToComponents } from "../derive/wind.js";
 import {
+  ANALYZE_VOCABULARY_VERSION,
   analyzeProfile,
-  resolveAnalyzeThresholds,
+  round1,
+  round2,
   type AnalyzeThresholdOverrides,
   type AnalyzeThresholds,
   type CitedInstant,
@@ -63,7 +75,6 @@ import {
   type WindgramAnalysis,
   type WindSummaryFinding,
 } from "../analyze/index.js";
-import { round1, round2 } from "../analyze/kinds/shared.js";
 
 /**
  * The comparison-kind set this module can emit. Version 1 shipped exactly
@@ -105,7 +116,18 @@ export const COMPARE_VOCABULARY_VERSION = 2;
    heightSpread peaks gain the optional p10–p90 band as verdict-free
    context (S1 Q6: 57 of 61 outside peaks sit ABOVE the band — exceedance
    is the norm, never an outlier verdict); WindowVote carries the
-   percentile test through as `minimalPassingPercentile`. */
+   percentile test through as `minimalPassingPercentile`.
+   0.22.0 rides UNDER v2 — NO vocabulary event (the comparison kind set
+   is untouched; Tier 2, notes/design-architecture.md). The additions:
+   `compareAnalyses(analyses[])` — the coherence-validated entry point
+   over self-describing analysis envelopes, with the enumerated throw
+   surface (version skew with the remedy named, missing
+   self-description, mixed sites/zones/launches, threshold
+   deep-inequality naming the first differing path) — with
+   `compareProfiles` as its wrapper (one construction); and
+   `vocabularyVersion` widens from the literal to `number` under the
+   tolerant-reader convention (the charter) — the release's one
+   type-level break, zero wire change. */
 
 /* ------------------------------------------------------------- vocabulary */
 
@@ -480,7 +502,12 @@ export interface CompareOptions {
 /* ---------------------------------------------------------------- envelope */
 
 export interface WindgramComparison {
-  vocabularyVersion: typeof COMPARE_VOCABULARY_VERSION;
+  /** The comparison-vocabulary version that produced this envelope —
+   * typed `number` under the same tolerant-reader convention as
+   * `WindgramAnalysis.vocabularyVersion` (see the charter above):
+   * readers check it at runtime and ignore kinds and fields they do not
+   * know, instead of recompiling on every bump. */
+  vocabularyVersion: number;
   /** The compared site plus the comparison's launch (CompareOptions.launch);
    * launchAltitudeM is null when no launch was supplied. */
   site: { id: string; launchAltitudeM: number | null };
@@ -502,76 +529,125 @@ export interface WindgramComparison {
   analyses: Readonly<Record<string, WindgramAnalysis>>;
 }
 
-/* ------------------------------------------------------------ entry point */
+/* ----------------------------------------------------------- entry points */
+
+/** Options for `compareAnalyses`. Note what is NOT here: timeZone,
+ * launch, thresholds — they come FROM the members and are validated,
+ * never supplied (that is the whole point of the envelope's
+ * self-description). */
+export interface CompareAnalysesOptions {
+  /** See `CompareOptions.unavailable`. */
+  unavailable?: ReadonlyArray<{ model: string; miss: "absent" | "invalid" }>;
+}
 
 /**
- * Compares one site's documents across models at the findings level.
- * Every profile must describe the same site (same `site.id`) — mixing
- * sites is a programming error and throws. Member identity is
- * `(model, referenceTime)` (v2): two runs of one model are two members,
- * each with its own ledger row, votes, and `analyses` entry; passing the
- * SAME run twice is a programming error and throws. Members are analyzed
- * here, with the comparison's single timeZone and threshold set, so votes
- * are apples-to-apples by construction.
+ * Compares one site's ANALYSES across members at the findings level —
+ * the seam `compareProfiles` wraps, and the door for cached and
+ * edge-produced envelopes: the analysis envelope echoes
+ * version/timeZone/launch/thresholds precisely so coherence is VALIDATED
+ * here instead of reconstructed. Every throw is a distinct, named error:
+ * - no members;
+ * - `site.id` mismatch — one comparison, one site;
+ * - duplicate `(model, referenceTime)` member;
+ * - `vocabularyVersion` skew: any member ≠ this toolkit's own
+ *   `ANALYZE_VOCABULARY_VERSION`. STRICT equality is v1 of this surface —
+ *   the vote readers below are compiled against exactly one vocabulary;
+ *   tolerating older envelopes is a later, evidence-bearing decision,
+ *   not a default;
+ * - missing self-description: an envelope from toolkit < 0.22 lacking
+ *   `thresholds`/`deterministic`/`coveredDays`;
+ * - `timeZone` mismatch — day keys pair only in one zone;
+ * - launch mismatch (`site.launchAltitudeM`, null vs number included) —
+ *   launch-relative votes compare only against one launch;
+ * - thresholds deep-inequality, naming the first differing path.
+ * Deliberately NOT validated: anything votes don't read — `windCeilings`
+ * and `smoke` inputs shape kinds compare never consumes.
  */
-export function compareProfiles(
-  profiles: ReadonlyArray<WindgramProfile>,
-  options: CompareOptions,
+export function compareAnalyses(
+  analyses: ReadonlyArray<WindgramAnalysis>,
+  options: CompareAnalysesOptions = {},
 ): WindgramComparison {
-  if (profiles.length === 0) throw new Error("compareProfiles: no members");
-  const siteId = profiles[0].site.id;
+  if (analyses.length === 0) throw new Error("compareAnalyses: no members");
+  const reference = analyses[0];
+  const siteId = reference.site.id;
   const seen = new Set<string>();
-  for (const profile of profiles) {
-    if (profile.site.id !== siteId) {
+  for (const analysis of analyses) {
+    const member = comparisonMemberKey(analysis.model, analysis.run.referenceTime);
+    if (analysis.site.id !== siteId) {
       throw new Error(
-        `compareProfiles: mixed sites (${siteId} vs ${profile.site.id}) — one comparison, one site`,
+        `compareAnalyses: mixed sites (${siteId} vs ${analysis.site.id}) — one comparison, one site`,
       );
     }
-    const key = comparisonMemberKey(profile.model, profile.run.referenceTime);
-    if (seen.has(key)) {
+    if (seen.has(member)) {
       throw new Error(
-        `compareProfiles: duplicate member (${key}) — a member is one (model, referenceTime) run; two runs of one model are two members, the same run twice is an error`,
+        `compareAnalyses: duplicate member (${member}) — a member is one (model, referenceTime) run; two runs of one model are two members, the same run twice is an error`,
       );
     }
-    seen.add(key);
+    seen.add(member);
+    if (analysis.vocabularyVersion !== ANALYZE_VOCABULARY_VERSION) {
+      throw new Error(
+        `compareAnalyses: vocabulary version skew — member ${member} carries vocabularyVersion ${analysis.vocabularyVersion}, this toolkit compares vocabulary ${ANALYZE_VOCABULARY_VERSION}; re-analyze the profile with this toolkit, or compare with the toolkit that produced it`,
+      );
+    }
+    /* Self-description (0.22.0): the compile-time type requires these,
+       but the routine caller holds PARSED envelopes an older toolkit
+       serialized — the runtime check is the honest door. */
+    for (const field of ["thresholds", "deterministic", "coveredDays"] as const) {
+      if (analysis[field] === undefined) {
+        throw new Error(
+          `compareAnalyses: member ${member} lacks ${field} — an envelope from a toolkit before 0.22 does not self-describe; re-analyze the profile with this toolkit, or compare with the toolkit that produced it`,
+        );
+      }
+    }
+    if (analysis.timeZone !== reference.timeZone) {
+      throw new Error(
+        `compareAnalyses: mixed timezones (${reference.timeZone} vs ${analysis.timeZone}) — day keys pair only in one zone`,
+      );
+    }
+    if (analysis.site.launchAltitudeM !== reference.site.launchAltitudeM) {
+      throw new Error(
+        `compareAnalyses: mixed launches (${reference.site.launchAltitudeM} vs ${analysis.site.launchAltitudeM}) — launch-relative votes compare only against one launch`,
+      );
+    }
+    const differs = firstThresholdDifference(reference.thresholds, analysis.thresholds, "");
+    if (differs) {
+      throw new Error(
+        `compareAnalyses: threshold mismatch (${differs}) — one comparison, one threshold set`,
+      );
+    }
   }
 
-  const thresholds = resolveAnalyzeThresholds(options.thresholds);
-  const analyses: Record<string, WindgramAnalysis> = {};
-  const profileByMember = new Map<string, WindgramProfile>();
-  for (const profile of profiles) {
-    const key = comparisonMemberKey(profile.model, profile.run.referenceTime);
-    profileByMember.set(key, profile);
-    analyses[key] = analyzeProfile(profile, {
-      timeZone: options.timeZone,
-      launch: options.launch,
-      thresholds: options.thresholds,
-    });
+  /* Validated above: every member agrees on these, so the first member's
+     echoes ARE the comparison's facts. */
+  const timeZone = reference.timeZone;
+  const thresholds = reference.thresholds;
+  const launch = reference.site.launchAltitudeM;
+  const analysesByMember: Record<string, WindgramAnalysis> = {};
+  for (const analysis of analyses) {
+    analysesByMember[comparisonMemberKey(analysis.model, analysis.run.referenceTime)] = analysis;
   }
 
-  const newestReferenceTime = profiles
-    .map((profile) => profile.run.referenceTime)
+  const newestReferenceTime = analyses
+    .map((analysis) => analysis.run.referenceTime)
     .sort()
     .at(-1)!;
-  const launch = options.launch?.elevationM ?? null;
-  const members: ComparisonMemberLedger[] = profiles.map((profile) => {
-    const member = comparisonMemberKey(profile.model, profile.run.referenceTime);
-    const analysis = analyses[member];
+  const members: ComparisonMemberLedger[] = analyses.map((analysis) => {
+    const member = comparisonMemberKey(analysis.model, analysis.run.referenceTime);
     const terrain = analysis.findings.find(
       (finding) => finding.kind === "terrainMismatch",
     );
     return {
       member,
-      model: profile.model,
-      kind: isDeterministicProfile(profile) ? "deterministic" : "ensemble",
-      referenceTime: profile.run.referenceTime,
+      model: analysis.model,
+      kind: analysis.deterministic ? "deterministic" : "ensemble",
+      referenceTime: analysis.run.referenceTime,
       runAgeHours:
-        (Date.parse(newestReferenceTime) - Date.parse(profile.run.referenceTime)) / 3_600_000,
+        (Date.parse(newestReferenceTime) - Date.parse(analysis.run.referenceTime)) / 3_600_000,
       stepHours: analysis.stepHours,
       hours: analysis.hours,
-      modelElevationM: profile.site.modelElevationM,
+      modelElevationM: analysis.site.modelElevationM,
       launchAltitudeM: launch,
-      elevationDeltaM: launch === null ? null : round1(profile.site.modelElevationM - launch),
+      elevationDeltaM: launch === null ? null : round1(analysis.site.modelElevationM - launch),
       benched:
         terrain && !terrain.liftTopEverReachesLaunch
           ? { reason: "terrainMismatch", deltaM: terrain.deltaM }
@@ -583,19 +659,16 @@ export function compareProfiles(
     members.filter((entry) => entry.benched !== null).map((entry) => entry.member),
   );
 
-  /* The day universe and each member's covered days, from the documents'
-     own cited hours — never stepHours arithmetic (live GEPS widens its
-     cadence mid-horizon; the hours are the truth). Benched members'
-     horizons still name days (the field's extent is a fact), but benched
-     members join no roster: the ledger's benched entry is their reason. */
+  /* The day universe and each member's covered days — the envelope's own
+     `coveredDays` echo, computed at analyze time from the document's
+     cited hours in this same zone (never stepHours arithmetic: live GEPS
+     widens its cadence mid-horizon). Benched members' horizons still
+     name days (the field's extent is a fact), but benched members join
+     no roster: the ledger's benched entry is their reason. */
   const coveredDays = new Map<string, Set<LocalDayKey>>();
   const allDays = new Set<LocalDayKey>();
   for (const entry of members) {
-    const days = new Set(
-      profileByMember
-        .get(entry.member)!
-        .hours.map((hour) => localDateKey(hour.validAt, options.timeZone)),
-    );
+    const days = new Set(analysesByMember[entry.member].coveredDays);
     coveredDays.set(entry.member, days);
     for (const day of days) allDays.add(day);
   }
@@ -608,7 +681,7 @@ export function compareProfiles(
   const directionFindings = new Map<string, WindDirectionFinding[]>();
   for (const entry of members) {
     if (benched.has(entry.member)) continue;
-    for (const finding of analyses[entry.member].findings) {
+    for (const finding of analysesByMember[entry.member].findings) {
       if (finding.kind === "percentileCrossing") {
         crossingTokens.set(at(entry.member, finding.day), finding.minimalPassingPercentile);
       } else if (finding.kind === "windSummary") {
@@ -637,7 +710,7 @@ export function compareProfiles(
   };
   for (const entry of members) {
     if (benched.has(entry.member)) continue;
-    for (const finding of analyses[entry.member].findings) {
+    for (const finding of analysesByMember[entry.member].findings) {
       if (finding.kind === "thermalWindow") {
         /* The midnight-electorate fix (Tier 0 #3): the window votes on
            EVERY local day its cited hours touch — exactly the days it
@@ -646,7 +719,7 @@ export function compareProfiles(
            start day are marked viaWindowFrom. */
         const touched = [
           ...new Set(
-            finding.evidence.hours.map((validAt) => localDateKey(validAt, options.timeZone)),
+            finding.evidence.hours.map((validAt) => localDateKey(validAt, timeZone)),
           ),
         ];
         for (const day of touched) {
@@ -728,7 +801,7 @@ export function compareProfiles(
     const starts: TimingVote[] = [...firstWindows.values()]
       .filter(
         (vote) =>
-          !vote.clippedAtStart && localDateKey(vote.start.validAt, options.timeZone) === day,
+          !vote.clippedAtStart && localDateKey(vote.start.validAt, timeZone) === day,
       )
       .map((vote) => ({
         member: vote.member,
@@ -738,7 +811,7 @@ export function compareProfiles(
       }));
     const ends: TimingVote[] = [...lastWindows.values()]
       .filter(
-        (vote) => !vote.clippedAtEnd && localDateKey(vote.end.validAt, options.timeZone) === day,
+        (vote) => !vote.clippedAtEnd && localDateKey(vote.end.validAt, timeZone) === day,
       )
       .map((vote) => ({
         member: vote.member,
@@ -798,7 +871,7 @@ export function compareProfiles(
           (vote) =>
             vote.member === member &&
             vote.peakLiftTopAboveLaunchM !== null &&
-            localDateKey(vote.peakLiftTopAt.validAt, options.timeZone) === day,
+            localDateKey(vote.peakLiftTopAt.validAt, timeZone) === day,
         )
         .sort((a, b) => b.peakLiftTopAboveLaunchM! - a.peakLiftTopAboveLaunchM!)[0];
       if (best) {
@@ -959,17 +1032,67 @@ export function compareProfiles(
   return {
     vocabularyVersion: COMPARE_VOCABULARY_VERSION,
     site: { id: siteId, launchAltitudeM: launch },
-    timeZone: options.timeZone,
+    timeZone,
     thresholds,
     newestReferenceTime,
     members,
     unavailable: options.unavailable ?? [],
     findings,
-    analyses,
+    analyses: analysesByMember,
   };
 }
 
+/**
+ * Compares one site's documents across models at the findings level —
+ * the wrapper over `compareAnalyses`, one construction: each profile is
+ * analyzed HERE, with the comparison's single timeZone, launch, and
+ * threshold set, so the members' envelopes validate coherent by
+ * construction. The profile-shaped errors surface through the same
+ * validation (mixed sites, duplicate `(model, referenceTime)` members,
+ * an empty list); the version-skew and self-description errors cannot
+ * occur — every envelope is freshly produced by this toolkit.
+ */
+export function compareProfiles(
+  profiles: ReadonlyArray<WindgramProfile>,
+  options: CompareOptions,
+): WindgramComparison {
+  return compareAnalyses(
+    profiles.map((profile) =>
+      analyzeProfile(profile, {
+        timeZone: options.timeZone,
+        launch: options.launch,
+        thresholds: options.thresholds,
+      }),
+    ),
+    { unavailable: options.unavailable },
+  );
+}
+
 /* ----------------------------------------------------------------- helpers */
+
+/* Deep walk for the thresholds coherence guard: the first path where two
+   resolved threshold values differ, stated with both values
+   ("thermalWindow.wstarMinMs: 0.9 vs 0.8"); null when deep-equal.
+   Bounded by construction — resolved thresholds are plain nested records
+   of numbers, and nothing votes don't read is ever validated. */
+function firstThresholdDifference(a: unknown, b: unknown, path: string): string | null {
+  if (a === b) return null;
+  if (typeof a === "object" && a !== null && typeof b === "object" && b !== null) {
+    const keys = [
+      ...new Set([...Object.keys(a), ...Object.keys(b)]),
+    ].sort();
+    for (const key of keys) {
+      const difference = firstThresholdDifference(
+        (a as Record<string, unknown>)[key],
+        (b as Record<string, unknown>)[key],
+        path ? `${path}.${key}` : key,
+      );
+      if (difference !== null) return difference;
+    }
+    return null;
+  }
+  return `${path}: ${String(a)} vs ${String(b)}`;
+}
 
 /* Spread of instants in hours; null below two voters — a spread of one
    is not a statement. */

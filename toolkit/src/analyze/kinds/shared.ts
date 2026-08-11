@@ -162,7 +162,8 @@ export function citedInstantFactory(timeZone: string): (validAt: string) => Cite
    authority: metre quantities at one decimal, m/s quantities at two.
    Coarser would let a finding contradict its own evidence (a raw w* of
    0.89 votes quiet against a 0.9 floor while a 1-dp print says 0.9).
-   compare/ imports these rather than restating them. */
+   Public through the frame (frame.ts re-exports them to the barrel);
+   compare/ imports them from there rather than restating them. */
 
 /** One decimal — contract precision for metre magnitudes
  * (usableLiftTopM, cloudBaseM, heights, deltas). */
