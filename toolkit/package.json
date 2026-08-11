@@ -35,6 +35,10 @@
       "types": "./dist/transport/index.d.ts",
       "default": "./dist/transport/index.js"
     },
+    "./history": {
+      "types": "./dist/history/index.d.ts",
+      "default": "./dist/history/index.js"
+    },
     "./scene": {
       "types": "./dist/scene/index.d.ts",
       "default": "./dist/scene/index.js"
