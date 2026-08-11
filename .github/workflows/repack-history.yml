@@ -1,0 +1,74 @@
+# The one-time year-file repack (pipeline 0.9.0's `windgram repack`),
+# run where the upload credentials already live instead of copying them
+# to a laptop. Manual dispatch only — the tool is idempotent, seeded
+# from published bytes, and aborts on races, so a re-run is safe, but
+# nothing here belongs on a schedule: once the legacy year files are
+# folded into the month scheme this workflow has nothing left to do.
+#
+# Dispatch with apply=false first: the dry run prints exactly what each
+# model's repack would write and delete, and uploads nothing.
+name: Repack history year files
+
+on:
+  workflow_dispatch:
+    inputs:
+      models:
+        description: "Space-separated model slugs, or 'all' for every catalogued dataset"
+        required: false
+        default: "all"
+      years:
+        description: "Space-separated years to fold"
+        required: false
+        default: "2026"
+      apply:
+        description: "Actually upload (false = dry run, uploads nothing)"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  repack:
+    runs-on: ubuntu-latest
+    # One repack at a time, and never beside itself.
+    concurrency:
+      group: repack-history
+      cancel-in-progress: false
+    timeout-minutes: 30
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+      R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+      - name: Repack
+        run: |
+          models="${{ inputs.models }}"
+          if [ "$models" = "all" ]; then
+            models=$(uv run --no-dev --project pipeline python -c "
+          from windgram.publish import catalogued_model_slugs
+          print(' '.join(catalogued_model_slugs()))
+          ")
+          fi
+          years=""
+          for y in ${{ inputs.years }}; do years="$years --year $y"; done
+          apply_flag="--dry-run"
+          if [ "${{ inputs.apply }}" = "true" ]; then apply_flag=""; fi
+          status=0
+          for model in $models; do
+            echo "::group::repack $model"
+            # shellcheck disable=SC2086 — years/apply_flag are word lists
+            uv run --no-dev --project pipeline windgram repack \
+              --model "$model" $years --sites sites.json $apply_flag || {
+                echo "::warning::repack $model failed"
+                status=1
+              }
+            echo "::endgroup::"
+          done
+          exit $status
