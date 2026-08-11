@@ -48,7 +48,13 @@
 
    THE VOCABULARY IS VERSIONED exactly like analyze/'s:
    COMPARE_VOCABULARY_VERSION names the kind set, and adding or changing
-   a kind is a contract event — bump it and record the evidence. */
+   a kind is a contract event — bump it and record the evidence. The
+   tolerant-reader convention holds here too (0.22.0, stated in full in
+   analyze/'s charter): consumers of serialized comparison envelopes MUST
+   ignore finding kinds and envelope fields they do not know —
+   `vocabularyVersion` is typed `number` for exactly that reason — and
+   the convention governs READERS of the closed set, never the set: the
+   kinds stay spike-gated and first-party. */
 
 import type { WindgramProfile } from "../contract/index.js";
 import { localDateKey } from "../derive/day-window.js";
@@ -110,7 +116,18 @@ export const COMPARE_VOCABULARY_VERSION = 2;
    heightSpread peaks gain the optional p10–p90 band as verdict-free
    context (S1 Q6: 57 of 61 outside peaks sit ABOVE the band — exceedance
    is the norm, never an outlier verdict); WindowVote carries the
-   percentile test through as `minimalPassingPercentile`. */
+   percentile test through as `minimalPassingPercentile`.
+   0.22.0 rides UNDER v2 — NO vocabulary event (the comparison kind set
+   is untouched; Tier 2, notes/design-architecture.md). The additions:
+   `compareAnalyses(analyses[])` — the coherence-validated entry point
+   over self-describing analysis envelopes, with the enumerated throw
+   surface (version skew with the remedy named, missing
+   self-description, mixed sites/zones/launches, threshold
+   deep-inequality naming the first differing path) — with
+   `compareProfiles` as its wrapper (one construction); and
+   `vocabularyVersion` widens from the literal to `number` under the
+   tolerant-reader convention (the charter) — the release's one
+   type-level break, zero wire change. */
 
 /* ------------------------------------------------------------- vocabulary */
 
@@ -485,7 +502,12 @@ export interface CompareOptions {
 /* ---------------------------------------------------------------- envelope */
 
 export interface WindgramComparison {
-  vocabularyVersion: typeof COMPARE_VOCABULARY_VERSION;
+  /** The comparison-vocabulary version that produced this envelope —
+   * typed `number` under the same tolerant-reader convention as
+   * `WindgramAnalysis.vocabularyVersion` (see the charter above):
+   * readers check it at runtime and ignore kinds and fields they do not
+   * know, instead of recompiling on every bump. */
+  vocabularyVersion: number;
   /** The compared site plus the comparison's launch (CompareOptions.launch);
    * launchAltitudeM is null when no launch was supplied. */
   site: { id: string; launchAltitudeM: number | null };

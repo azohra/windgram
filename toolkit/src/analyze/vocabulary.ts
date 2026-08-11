@@ -70,7 +70,21 @@ export const ANALYZE_VOCABULARY_VERSION = 4;
    direction evolution, analyze-only band shear), convective un-gating
    with quiet-day atmospheric context and the cappedAllDay verdict split
    (S4), and the removals: `bands.trend` and `maxRelativeSpread` (diurnal
-   confounds measured live in both directions), `liftCeiling.flips`. */
+   confounds measured live in both directions), `liftCeiling.flips`.
+   0.22.0 rides UNDER v4 — NO vocabulary event (no kind added, renamed,
+   or removed); the Tier 2 architecture release
+   (notes/design-architecture.md) is the proof case that envelope
+   self-description can grow under the tolerant-reader convention
+   without a contract event. The additions: the extraction frame goes
+   public (`AnalysisFrame`, its own ANALYSIS_FRAME_VERSION;
+   `AnalyzeOptions.extensions` runs caller extractors over it AFTER the
+   built-in findings, their statements landing in the envelope's named
+   `extensions` entries, never in `findings`); the envelope
+   self-describes for compareAnalyses (`thresholds`, `deterministic`,
+   `coveredDays` — required fields, so only hand-built envelope values
+   gain keys to fill); and `vocabularyVersion` widens from the literal
+   to `number` under the tolerant-reader convention (the charter) — the
+   release's one type-level break, zero wire change. */
 
 /* ------------------------------------------------------------- vocabulary */
 
@@ -115,6 +129,13 @@ export type FindingKind = WindgramFinding["kind"];
 
 /* -------------------------------------------------------------- thresholds */
 
+/**
+ * RESOLVED thresholds — an OUTPUT/echo type (the envelope's and every
+ * finding's `thresholds` echo, `resolveAnalyzeThresholds`'s return).
+ * Never construct one: pass `AnalyzeThresholdOverrides` and let the
+ * defaults fill — a new threshold-using kind adds a required key here,
+ * and only hand-built values feel it.
+ */
 /* One entry line per threshold-using kind. */
 export interface AnalyzeThresholds {
   thermalWindow: { wstarMinMs: number; depthMinM: number; maxGapHours: number };
@@ -233,7 +254,16 @@ export interface WindCeilings {
    of the envelope; only consumers who CONSTRUCT `WindgramAnalysis`
    values by hand (test fixtures) gain fields to fill. */
 export interface WindgramAnalysis {
-  vocabularyVersion: typeof ANALYZE_VOCABULARY_VERSION;
+  /** The vocabulary version that produced this envelope. Typed `number`,
+   * not the literal: readers check it at runtime (`compareAnalyses`
+   * throws on skew) instead of recompiling on every bump. THE
+   * TOLERANT-READER CONVENTION (see the module charter in index.ts):
+   * consumers of serialized envelopes MUST ignore finding kinds and
+   * envelope fields they do not know; additive kinds bump this number
+   * without breaking any conforming reader. Exhaustive `switch` over
+   * `finding.kind` remains available to compiled consumers — with a
+   * default arm it is also conforming. */
+  vocabularyVersion: number;
   model: string;
   /** Whether the document is deterministic (single-valued positions) or
    * an ensemble read at p50 — `isDeterministicProfile`'s verdict,

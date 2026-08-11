@@ -197,9 +197,9 @@ describe("compareAnalyses — the coherence-validated door", () => {
     // A cached envelope written by an older vocabulary: compare's vote
     // readers are compiled against exactly one — strict equality is v1
     // of this surface.
-    // The literal-3 stamp needs the detour through unknown until §3's
-    // widening lands (the envelope still types the field as literal 4).
-    const stale = { ...analyzed(hrrr()), vocabularyVersion: 3 } as unknown as WindgramAnalysis;
+    // No cast needed: §3's widening types the field as number, so a
+    // cached envelope's stale stamp is representable data, not a type error.
+    const stale: WindgramAnalysis = { ...analyzed(hrrr()), vocabularyVersion: 3 };
     expect(() => compareAnalyses([stale, analyzed(reps())])).toThrow(
       /vocabulary version skew — member hrrr-conus@2026-08-08T18:00:00Z carries vocabularyVersion 3, this toolkit compares vocabulary 4; re-analyze/,
     );
@@ -320,7 +320,10 @@ describe("the member ledger", () => {
   it("echoes the one threshold set and carries the unavailable roster through", () => {
     expect(comparison.thresholds).toEqual(DEFAULT_ANALYZE_THRESHOLDS);
     expect(comparison.unavailable).toEqual([{ model: "nam-conus-nest", miss: "absent" }]);
-    expect(comparison.vocabularyVersion).toBe(COMPARE_VOCABULARY_VERSION);
+    // §3 widening: the stamp binds as plain number and still reads the
+    // constant at runtime — checks, not recompiles.
+    const version: number = comparison.vocabularyVersion;
+    expect(version).toBe(COMPARE_VOCABULARY_VERSION);
   });
 
   it("benches a member whose lift never reaches launch — the GEPS case, by arithmetic", () => {

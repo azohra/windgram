@@ -2135,6 +2135,42 @@ describe("dataCaveats", () => {
   });
 });
 
+describe("tolerant-reader versioning (Tier 2 §3)", () => {
+  it("types vocabularyVersion as number — cached envelopes survive upgrades as data", () => {
+    const analysis = analyzeProfile(hrrr(), ERIE);
+    // The widening, as a consumer sees it: the field binds as plain
+    // number (a literal-4 binding no longer compiles) and runtime checks
+    // keep working unchanged.
+    const version: number = analysis.vocabularyVersion;
+    expect(version).toBe(ANALYZE_VOCABULARY_VERSION);
+  });
+
+  it("a compiled consumer with a default arm is conforming — unknown kinds are ignorable", () => {
+    // The convention's compiled shape: switch on the kinds you know and
+    // let the default arm pass the rest through — a future additive kind
+    // changes this consumer's counts, never its compilation. (Exhaustive
+    // switching stays available to consumers who choose the compile
+    // event instead.)
+    const analysis = analyzeProfile(hrrr(), ERIE);
+    let known = 0;
+    let ignored = 0;
+    for (const finding of analysis.findings) {
+      switch (finding.kind) {
+        case "thermalWindow":
+        case "quietDay":
+        case "dataCaveats":
+          known += 1;
+          break;
+        default:
+          ignored += 1;
+          break;
+      }
+    }
+    expect(known).toBeGreaterThan(0);
+    expect(known + ignored).toBe(analysis.findings.length);
+  });
+});
+
 describe("the extension door (the public frame)", () => {
   // A caller extension exercising every frame convention: citation, day
   // bucketing, and lead bound to the analysis zone/run, the resolved
