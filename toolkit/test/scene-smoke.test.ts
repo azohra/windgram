@@ -53,8 +53,12 @@ describe("the smoke strip", () => {
 
     const strip = scene.strips.find((entry) => entry.key === "smoke");
     expect(strip?.values.every((value) => value === 37.5)).toBe(true);
-    // AOT derives from the 200 mg/m² column: 0.94, so cells tint at 0.94/3.
-    expect(strip?.cells?.[0]?.opacity).toBeCloseTo(0.31, 2);
+    // No haze cells: the only AOT a joined hour could carry would derive
+    // from the quarantined plume column (measured ~15-26× low on
+    // 2026-08-10), and a too-faint haze tint under heavy smoke is the
+    // worst direction to be wrong in. Surface numbers print; tint waits
+    // for a validated column.
+    expect(strip?.cells?.every((cell) => cell === null)).toBe(true);
     // The label's provenance is the smoke model's run, not the profile's.
     expect(scene.smokeSource).toEqual({
       model: "raqdps",
@@ -76,7 +80,7 @@ describe("the smoke strip", () => {
     expect(scene.smokeSource?.model).toBe(profile.model);
   });
 
-  it("derates w* coherently in the adjusted view and declares it", () => {
+  it("no-ops the adjusted view on joined smoke — the column is quarantined", () => {
     const profile = tinySceneProfile();
     const smoke = smokeDocumentFor(profile.hours.map((hour) => hour.validAt));
     const base = buildScene(profile, { ...OPTIONS, smoke });
@@ -85,14 +89,13 @@ describe("the smoke strip", () => {
     const baseW = base.strips.find((strip) => strip.key === "thermalStrength")?.values[0];
     const adjustedW = adjusted.strips.find((strip) => strip.key === "thermalStrength")
       ?.values[0];
-    // τ from 200 mg/m² is 0.94; whatever the hour's sun angle, the derate
-    // is real but gentle — never below the extreme-slant floor ∛exp(−0.13·0.94/0.15).
-    expect(adjustedW).toBeLessThan(baseW as number);
-    expect(adjustedW).toBeGreaterThan((baseW as number) * 0.75);
-    expect(adjusted.smokeAdjustment).toEqual({
-      smokeModel: "raqdps",
-      smokeRun: "2026-08-09T12:00:00Z",
-    });
+    // A joined hour carries no AOT (deriving one from the plume column is
+    // quarantined — the same reasoning that cut the analyze derate
+    // verdict), so requesting the adjusted view changes nothing and
+    // declares nothing: a correction through a defective input is worse
+    // than no correction, and an unearned "adjusted" label lies.
+    expect(adjustedW).toBe(baseW);
+    expect(adjusted.smokeAdjustment).toBeNull();
     expect(base.smokeAdjustment).toBeNull();
   });
 
@@ -155,21 +158,33 @@ describe("the smoke strip", () => {
     expect(clear?.smokeAot).toBeNull();
   });
 
-  it("keys the haze chip and labels the adjusted view", () => {
-    const profile = tinySceneProfile();
-    const smoke = smokeDocumentFor(profile.hours.map((hour) => hour.validAt));
-    const base = buildKeySpec(buildScene(profile, { ...OPTIONS, smoke }));
+  it("keys the haze chip and labels the adjusted view — own smoke only", () => {
+    // A profile carrying its own (untagged = passive) smoke block: the
+    // published AOT is the model's own fact, so the haze chip and the
+    // adjusted view both work exactly as before the column quarantine.
+    const own = tinySceneProfile();
+    own.hours[0].smoke = { surfaceUgm3: 184.6, columnMgm2: 228.2, aot: 1.018 };
+    const base = buildKeySpec(buildScene(own, OPTIONS));
     expect(base.smokeHaze?.label).toContain("optical depth");
     expect(base.smokeAdjusted).toBeNull();
 
-    const adjusted = buildKeySpec(
-      buildScene(profile, { ...OPTIONS, smoke, smokeAdjusted: true }),
-    );
+    const adjusted = buildKeySpec(buildScene(own, { ...OPTIONS, smokeAdjusted: true }));
     // The key's note IS the must-label rule satisfied: model + run, visible.
-    expect(adjusted.smokeAdjusted?.label).toContain("raqdps");
-    expect(adjusted.smokeAdjusted?.label).toContain("2026-08-09T12:00:00Z");
+    expect(adjusted.smokeAdjusted?.label).toContain(own.model);
+    expect(adjusted.smokeAdjusted?.label).toContain(own.run.referenceTime);
 
-    const clean = buildKeySpec(buildScene(profile, OPTIONS));
+    // Joined smoke keys neither: no AOT exists (the column is
+    // quarantined), so there is no haze to explain and no adjustment to
+    // label — a chip for absent pixels would lie.
+    const joined = tinySceneProfile();
+    const smoke = smokeDocumentFor(joined.hours.map((hour) => hour.validAt));
+    const joinedKey = buildKeySpec(
+      buildScene(joined, { ...OPTIONS, smoke, smokeAdjusted: true }),
+    );
+    expect(joinedKey.smokeHaze).toBeNull();
+    expect(joinedKey.smokeAdjusted).toBeNull();
+
+    const clean = buildKeySpec(buildScene(tinySceneProfile(), OPTIONS));
     expect(clean.smokeHaze).toBeNull();
   });
 

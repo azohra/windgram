@@ -32,8 +32,13 @@ Two independent models supply it, and they disagree in useful ways:
 
 On a rendered windgram, smoke is a strip: the line is near-surface
 concentration (the breathe-it number), and the haze tint behind it
-deepens with optical depth (the sun-dimming number). The strip's label
-always names which model's smoke it shows.
+deepens with optical depth (the sun-dimming number). The tint appears
+only when the model publishes its own optical depth (HRRR); a joined
+smoke document draws the line without a tint, because the only optical
+depth it could offer would derive from the
+[quarantined RAQDPS column](/docs/reference/smoke-document/) — a
+too-faint haze under heavy smoke is the worst direction to be wrong
+in. The strip's label always names which model's smoke it shows.
 
 ## The physics of the correction, in one chain
 

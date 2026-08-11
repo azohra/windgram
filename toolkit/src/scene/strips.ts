@@ -72,7 +72,7 @@ export function buildStripSpecs(args: {
   floorM: number;
   /** Per-rendered-hour smoke (profile block or joined document), scene.ts's
       join; index-aligned with `hours`. Absent/all-null draws no strip. */
-  smokeSeries?: ReadonlyArray<{ surfaceUgm3: number; aot: number } | null>;
+  smokeSeries?: ReadonlyArray<{ surfaceUgm3: number; aot: number | null } | null>;
   /** The smoke strip's provenance statement (scene.ts decides it from the
       source and the semantics.smoke coupling claim). */
   smokeStripSource?: { provenance: MetricStrip["provenance"]; sourceLabel?: string };
@@ -195,7 +195,9 @@ export function buildStripSpecs(args: {
       minimum: 0,
       maximum: Math.max(50, ...finite(surface)),
       cells: smokeSeries.map((entry, index) =>
-        entry === null || entry.aot <= 0
+        // aot null = joined-document smoke (the quarantined column would
+        // be its only source): surface numbers print, no haze cell.
+        entry === null || entry.aot === null || entry.aot <= 0
           ? null
           : {
               x: marginLeft + index * columnWidth,

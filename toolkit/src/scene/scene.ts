@@ -5,7 +5,6 @@ import {
   cosSolarZenith,
   isSmokeAwareProfile,
   smokeAdjustedThermalVelocityMs,
-  smokeAotFromColumn,
   smokeHoursByValidAt,
   smokeTransmittance,
 } from "../derive/smoke.js";
@@ -246,9 +245,14 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
      strip carries one provenance label, so mixing two models' hours under
      it would lie. The profile's own block wins (same-run provenance, and
      its published AOT); only a profile with no smoke at all falls back to
-     the supplied smoke document through the validAt join, AOT derived
-     from the plume column. smokeSource records whichever model fed the
-     drawn strip. */
+     the supplied smoke document through the validAt join. A joined hour
+     carries NO aot: deriving one from the plume column is quarantined —
+     the column measured ~15-26× below satellite-consistent values on
+     2026-08-10 (see the contract's smokePlumeColumnMgm2 note), so a
+     column-derived haze tint under-paints heavy smoke, the worst
+     direction to be wrong in. The joined strip keeps its healthy surface
+     magnitudes and honestly shows no haze overlay. smokeSource records
+     whichever model fed the drawn strip. */
   const profileHasSmoke = hours.some((hour) => hour.smoke !== null);
   const joinedSmoke =
     !profileHasSmoke && options.smoke ? smokeHoursByValidAt(options.smoke) : null;
@@ -259,9 +263,8 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
     const documentHour = joinedSmoke?.get(hour.validAt);
     if (!documentHour) return null;
     const surfaceUgm3 = p50(documentHour.smokePlumeSurfaceUgm3);
-    const columnMgm2 = p50(documentHour.smokePlumeColumnMgm2);
-    if (surfaceUgm3 === null || columnMgm2 === null) return null;
-    return { surfaceUgm3, aot: smokeAotFromColumn(columnMgm2) };
+    if (surfaceUgm3 === null) return null;
+    return { surfaceUgm3, aot: null };
   });
   const smokeSource = profileHasSmoke
     ? { model: profile.model, referenceTime: profile.run.referenceTime }
@@ -288,8 +291,12 @@ export function buildScene(profile: WindgramProfile, options: SceneOptions): Sce
   if (options.smokeAdjusted && smokeSource && !isSmokeAwareProfile(profile)) {
     let adjustedAnHour = false;
     hours = hours.map((hour, index) => {
+      /* entry.aot is null for joined smoke (the column quarantine above),
+         so the adjusted view no-ops there exactly like the analyze
+         vocabulary's cut derate verdict — a correction through a
+         defective input is worse than no correction. */
       const entry = smokeSeries[index];
-      if (!entry || entry.aot <= 0) return hour;
+      if (!entry || entry.aot === null || entry.aot <= 0) return hour;
       const transmittance = smokeTransmittance(
         entry.aot,
         cosSolarZenith(hour.validAt, profile.site.latitude, profile.site.longitude),

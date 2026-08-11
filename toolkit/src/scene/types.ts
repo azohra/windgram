@@ -692,9 +692,12 @@ export interface HourSampling {
    * The hour's smoke as the strip drew it — the same single source
    * (profile block or joined document, never blended), so a tooltip can
    * never disagree with the pixels. Whole-column values, not
-   * altitude-interpolated; null where no smoke was drawn.
+   * altitude-interpolated; null where no smoke was drawn. `aot` is null
+   * on joined-document hours: the RAQDPS plume column it would derive
+   * from is quarantined (see the contract's smokePlumeColumnMgm2 note),
+   * so only a profile's own published AOT ever reaches a renderer.
    */
-  smoke: { surfaceUgm3: number; aot: number } | null;
+  smoke: { surfaceUgm3: number; aot: number | null } | null;
   /**
    * The hour's measured irradiance as the "Sun" strip drew it: W/m²
    * plus the observed transmittance against the clear-sky expectation
