@@ -52,6 +52,12 @@ def _positive_integer(value: str) -> int:
     return parsed
 
 
+def _calendar_year(value: str) -> str:
+    if len(value) != 4 or not value.isdigit():
+        raise argparse.ArgumentTypeError("must be a four-digit year (the year archive's name)")
+    return value
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="windgram",
@@ -88,6 +94,46 @@ def _parser() -> argparse.ArgumentParser:
 
     scenarios = commands.add_parser("scenarios", help="manage synthetic teaching scenarios")
     scenarios.add_argument("action", choices=("generate", "check"))
+
+    # One-time migration, run by hand with the upload credentials — see
+    # repack.py's docstring for the guards it rides.
+    repack = commands.add_parser(
+        "repack", help="one-time: fold legacy year history archives into the month scheme"
+    )
+    repack.add_argument("--model", metavar="SLUG", required=True, help="catalogued model slug")
+    repack.add_argument(
+        "--year",
+        metavar="YYYY",
+        action="append",
+        required=True,
+        dest="years",
+        type=_calendar_year,
+        help="legacy year archive to repack (repeatable)",
+    )
+    repack.add_argument(
+        "--site",
+        metavar="ID",
+        action="append",
+        dest="site_ids",
+        help="site to repack (repeatable; default: every catalogued site)",
+    )
+    repack.add_argument(
+        "--sites",
+        type=Path,
+        default=Path("sites.json"),
+        help="site catalogue (default: ./sites.json)",
+    )
+    repack.add_argument(
+        "--output",
+        type=Path,
+        default=Path("data"),
+        help="scratch tree for the merged month archives (default: ./data)",
+    )
+    repack.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="fetch, merge, and verify locally; upload and delete nothing",
+    )
 
     terrain = commands.add_parser(
         "terrain", help="generate the static site-context.json terrain catalogue"
@@ -240,6 +286,30 @@ def _terrain(arguments: argparse.Namespace) -> int:
     return terrain.generate(sites, resolve_path(arguments.output))
 
 
+def _repack(arguments: argparse.Namespace) -> int:
+    if arguments.model not in MODEL_SLUGS:
+        available = ", ".join(MODEL_SLUGS)
+        raise PublisherConfigurationError(
+            f"unknown model slug {arguments.model!r}; choose one of: {available}"
+        )
+    site_ids = arguments.site_ids or [
+        site["slug"] for site in _load_sites_for_cli(resolve_path(arguments.sites))
+    ]
+    from . import repack
+
+    history_dir = resolve_path(arguments.output) / arguments.model / "history"
+    for site_id in site_ids:
+        for year in arguments.years:
+            repack.repack_site_year(
+                arguments.model,
+                site_id,
+                year,
+                history_dir,
+                apply_changes=not arguments.dry_run,
+            )
+    return 0
+
+
 def _scenarios(action: str) -> int:
     # One dispatch and one root strategy: `windgram scenarios ...` is the
     # module entry point `python -m windgram.scenarios ...` under another name.
@@ -255,6 +325,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _build(arguments)
         if arguments.command == "terrain":
             return _terrain(arguments)
+        if arguments.command == "repack":
+            return _repack(arguments)
         return _scenarios(arguments.action)
     except (PublisherConfigurationError, RuntimeError) as error:
         print(f"error: {error}", file=sys.stderr)
