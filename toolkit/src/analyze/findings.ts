@@ -137,6 +137,7 @@ export function analyzeProfile(
   return {
     vocabularyVersion: ANALYZE_VOCABULARY_VERSION,
     model: profile.model,
+    deterministic: context.deterministic,
     site: {
       id: profile.site.id,
       launchAltitudeM: launchElevationM,
@@ -147,6 +148,13 @@ export function analyzeProfile(
     timeZoneSource,
     stepHours: context.stepHours,
     hours: profile.hours.length,
+    /* The days the hours actually touch, in this envelope's zone — the
+       comparison's day universe, precomputed (never cadence arithmetic:
+       live GEPS widens mid-horizon). */
+    coveredDays: [
+      ...new Set(profile.hours.map((hour) => localDateKey(hour.validAt, timeZone))),
+    ].sort(),
+    thresholds,
     findings,
     ...(extensions ? { extensions } : {}),
   };

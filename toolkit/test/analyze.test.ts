@@ -154,6 +154,34 @@ describe("the analysis envelope", () => {
     expect(analysis.hours).toBe(24);
   });
 
+  it("self-describes for comparison — resolved thresholds, deterministic, covered days", () => {
+    // The three fields compareAnalyses validates instead of reconstructing
+    // (Tier 2 §2): the resolved threshold echo, the deterministic verdict,
+    // and the local days the hours actually touch.
+    const analysis = analyzeProfile(hrrr(), {
+      ...ERIE,
+      thresholds: { thermalWindow: { wstarMinMs: 1.0 } },
+    });
+    expect(analysis.deterministic).toBe(true);
+    expect(analysis.thresholds).toEqual({
+      ...DEFAULT_ANALYZE_THRESHOLDS,
+      thermalWindow: { ...DEFAULT_ANALYZE_THRESHOLDS.thermalWindow, wstarMinMs: 1.0 },
+    });
+    // 19:00Z 08-08 through 18:00Z 08-09 is local noon to 11:00 next day.
+    expect(analysis.coveredDays).toEqual(["2026-08-08", "2026-08-09"]);
+    // No overrides: the echo IS the defaults; the ensemble reads ensemble.
+    const reps_ = analyzeProfile(reps(), ERIE);
+    expect(reps_.thresholds).toEqual(DEFAULT_ANALYZE_THRESHOLDS);
+    expect(reps_.deterministic).toBe(false);
+  });
+
+  it("computes coveredDays in the envelope's own zone — the same hours, different days", () => {
+    // The same 24 hours read Sydney-local (UTC+10): 08-08T19:00Z is 05:00
+    // on 08-09, 08-09T18:00Z is 04:00 on 08-10 — both day keys shift.
+    const analysis = analyzeProfile(hrrr(), { ...ERIE, timeZone: "Australia/Sydney" });
+    expect(analysis.coveredDays).toEqual(["2026-08-09", "2026-08-10"]);
+  });
+
   it("reads local time from the document's own site.timeZone", () => {
     const analysis = analyzeProfile(hrrr(), ERIE);
     expect(analysis.timeZone).toBe("America/Vancouver");

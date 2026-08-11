@@ -13,6 +13,7 @@
 
 import type { SmokeDocument } from "../contract/index.js";
 import type { AnalysisExtension } from "./frame.js";
+import type { LocalDayKey } from "./kinds/shared.js";
 import type { BandShearFinding } from "./kinds/band-shear.js";
 import type { CapTimingFinding } from "./kinds/cap-timing.js";
 import type { ConvectiveDayFinding } from "./kinds/convective-day.js";
@@ -225,9 +226,19 @@ export interface WindCeilings {
 
 /* ---------------------------------------------------------------- envelope */
 
+/* The envelope self-describes (0.22.0): everything `compareAnalyses`
+   validates or the comparison ledger states is ON the envelope —
+   `thresholds`, `deterministic`, `coveredDays` closed the last three
+   reads of the raw profile. Required fields: additive for every READER
+   of the envelope; only consumers who CONSTRUCT `WindgramAnalysis`
+   values by hand (test fixtures) gain fields to fill. */
 export interface WindgramAnalysis {
   vocabularyVersion: typeof ANALYZE_VOCABULARY_VERSION;
   model: string;
+  /** Whether the document is deterministic (single-valued positions) or
+   * an ensemble read at p50 — `isDeterministicProfile`'s verdict,
+   * precomputed so envelope consumers never re-open the profile. */
+  deterministic: boolean;
   /**
    * The document's sample identity plus the launch the analysis ran
    * against: `launchAltitudeM` echoes the caller's `AnalyzeOptions.launch`
@@ -247,6 +258,22 @@ export interface WindgramAnalysis {
    */
   stepHours: number;
   hours: number;
+  /**
+   * The local calendar days the document's hours actually touch (sorted,
+   * computed in this envelope's own `timeZone` from `hours[].validAt`) —
+   * the same truth the day universe and `outOfHorizon` abstentions read,
+   * precomputed. Never cadence arithmetic: live documents widen their
+   * step mid-horizon.
+   */
+  coveredDays: LocalDayKey[];
+  /**
+   * The RESOLVED thresholds this analysis ran under —
+   * `resolveAnalyzeThresholds` of the caller's overrides, echoed at the
+   * top level so a comparison can validate coherence without
+   * reconstructing it (per-finding echoes are absent when a kind emitted
+   * nothing).
+   */
+  thresholds: AnalyzeThresholds;
   findings: WindgramFinding[];
   /**
    * Named third-party statements (`AnalyzeOptions.extensions`), kept OUT

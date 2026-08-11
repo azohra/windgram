@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { parseWindgramProfile, type WindgramProfile } from "../src/contract/index.js";
 import {
+  compareAnalyses,
   compareProfiles,
   comparisonMemberKey,
   COMPARE_VOCABULARY_VERSION,
@@ -11,7 +12,12 @@ import {
   type WindDivergenceFinding,
   type WindowAgreementFinding,
 } from "../src/compare/index.js";
-import { DEFAULT_ANALYZE_THRESHOLDS } from "../src/analyze/index.js";
+import {
+  analyzeProfile,
+  DEFAULT_ANALYZE_THRESHOLDS,
+  type AnalyzeOptions,
+  type WindgramAnalysis,
+} from "../src/analyze/index.js";
 
 /* Same corpus as analyze's tests: two real erie documents (hourly
    deterministic HRRR, 3-hourly ensemble REPS) compare as members; the
@@ -150,6 +156,89 @@ describe("compareProfiles guards", () => {
     expect(() => compareProfiles([hrrr(), hrrr()], { timeZone: TZ })).toThrow(
       /duplicate member \(hrrr-conus@2026-08-08T18:00:00Z\)/,
     );
+  });
+});
+
+describe("compareAnalyses — the coherence-validated door", () => {
+  // The seam compareProfiles wraps: cached or edge-produced envelopes
+  // enter here, and coherence is VALIDATED from their self-description
+  // instead of reconstructed from raw profiles.
+  const analyzed = (profile: WindgramProfile, overrides: Partial<AnalyzeOptions> = {}) =>
+    analyzeProfile(profile, { timeZone: TZ, launch: ERIE_LAUNCH, ...overrides });
+
+  it("equals the wrapper on the same inputs — one construction, no duplicated logic", () => {
+    const unavailable = [{ model: "nam-conus-nest", miss: "absent" as const }];
+    const viaProfiles = compareProfiles([hrrr(), reps()], {
+      timeZone: TZ,
+      launch: ERIE_LAUNCH,
+      unavailable,
+    });
+    const viaAnalyses = compareAnalyses([analyzed(hrrr()), analyzed(reps())], { unavailable });
+    expect(viaAnalyses).toEqual(viaProfiles);
+  });
+
+  it("refuses an empty member list", () => {
+    expect(() => compareAnalyses([])).toThrow(/no members/);
+  });
+
+  it("refuses mixed sites — one comparison, one site", () => {
+    expect(() =>
+      compareAnalyses([analyzed(hrrr()), analyzed(load("gepsFlagpole"))]),
+    ).toThrow(/mixed sites \(erie vs flagpole\)/);
+  });
+
+  it("refuses the SAME analysis twice — identity is (model, referenceTime)", () => {
+    expect(() => compareAnalyses([analyzed(hrrr()), analyzed(hrrr())])).toThrow(
+      /duplicate member \(hrrr-conus@2026-08-08T18:00:00Z\)/,
+    );
+  });
+
+  it("refuses vocabulary version skew, naming the member, both versions, and the remedy", () => {
+    // A cached envelope written by an older vocabulary: compare's vote
+    // readers are compiled against exactly one — strict equality is v1
+    // of this surface.
+    // The literal-3 stamp needs the detour through unknown until §3's
+    // widening lands (the envelope still types the field as literal 4).
+    const stale = { ...analyzed(hrrr()), vocabularyVersion: 3 } as unknown as WindgramAnalysis;
+    expect(() => compareAnalyses([stale, analyzed(reps())])).toThrow(
+      /vocabulary version skew — member hrrr-conus@2026-08-08T18:00:00Z carries vocabularyVersion 3, this toolkit compares vocabulary 4; re-analyze/,
+    );
+  });
+
+  it("refuses an envelope that does not self-describe — the pre-0.22 case", () => {
+    // A toolkit-0.21 envelope carries vocabulary 4 but none of the three
+    // self-description fields; each absence is its own named error.
+    for (const field of ["thresholds", "deterministic", "coveredDays"]) {
+      const legacy = { ...analyzed(hrrr()) } as unknown as Record<string, unknown>;
+      delete legacy[field];
+      expect(() => compareAnalyses([legacy as unknown as WindgramAnalysis])).toThrow(
+        new RegExp(`member hrrr-conus@2026-08-08T18:00:00Z lacks ${field} — .*re-analyze`),
+      );
+    }
+  });
+
+  it("refuses mixed timezones — day keys pair only in one zone", () => {
+    expect(() =>
+      compareAnalyses([analyzed(hrrr()), analyzed(reps(), { timeZone: "America/Edmonton" })]),
+    ).toThrow(/mixed timezones \(America\/Vancouver vs America\/Edmonton\)/);
+  });
+
+  it("refuses mixed launches, null included — one launch per comparison", () => {
+    expect(() =>
+      compareAnalyses([analyzed(hrrr()), analyzed(reps(), { launch: null })]),
+    ).toThrow(/mixed launches \(1247 vs null\)/);
+    expect(() =>
+      compareAnalyses([analyzed(hrrr()), analyzed(reps(), { launch: { elevationM: 1200 } })]),
+    ).toThrow(/mixed launches \(1247 vs 1200\)/);
+  });
+
+  it("refuses threshold inequality, naming the first differing path with both values", () => {
+    expect(() =>
+      compareAnalyses([
+        analyzed(hrrr()),
+        analyzed(reps(), { thresholds: { thermalWindow: { wstarMinMs: 0.8 } } }),
+      ]),
+    ).toThrow(/threshold mismatch \(thermalWindow\.wstarMinMs: 0\.9 vs 0\.8\)/);
   });
 });
 
