@@ -63,8 +63,12 @@ const MIN_COS_ZENITH = 0.15;
 
 /**
  * Aerosol optical thickness (dimensionless, mid-visible) from a wildfire
- * PM2.5 column, mg/m² — the smoke document's smokePlumeColumnMgm2. For
- * profiles with their own smoke block prefer the published `aot` directly.
+ * PM2.5 column, mg/m² — the smoke document's smokePlumeColumnMgm2. That
+ * field is currently QUARANTINED from derived optics (the contract's
+ * smokePlumeColumnMgm2 note is the fact's one home); the arithmetic here
+ * is sound — it reproduced HRRR's own optics to 5 % — the input is not.
+ * For profiles with their own smoke block prefer the published `aot`
+ * directly.
  */
 export function smokeAotFromColumn(columnMgm2: number): number {
   if (!(columnMgm2 > 0)) return 0;
