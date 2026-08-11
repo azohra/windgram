@@ -177,6 +177,18 @@ describe("compareAnalyses — the coherence-validated door", () => {
     expect(viaAnalyses).toEqual(viaProfiles);
   });
 
+  it("accepts serialized envelopes — the cached-analysis door, whole point of the seam", () => {
+    // Envelopes are pure data: analyze at the edge, cache as JSON,
+    // compare later — the self-description survives the round trip and
+    // validates the same.
+    const cached = [analyzed(hrrr()), analyzed(reps())].map(
+      (analysis) => JSON.parse(JSON.stringify(analysis)) as WindgramAnalysis,
+    );
+    expect(compareAnalyses(cached)).toEqual(
+      compareProfiles([hrrr(), reps()], { timeZone: TZ, launch: ERIE_LAUNCH }),
+    );
+  });
+
   it("refuses an empty member list", () => {
     expect(() => compareAnalyses([])).toThrow(/no members/);
   });
