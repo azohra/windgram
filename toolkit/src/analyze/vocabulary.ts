@@ -12,6 +12,8 @@
    kind work merges without conflict. */
 
 import type { SmokeDocument } from "../contract/index.js";
+import type { AnalysisExtension } from "./frame.js";
+import type { LocalDayKey } from "./kinds/shared.js";
 import type { BandShearFinding } from "./kinds/band-shear.js";
 import type { CapTimingFinding } from "./kinds/cap-timing.js";
 import type { ConvectiveDayFinding } from "./kinds/convective-day.js";
@@ -68,7 +70,21 @@ export const ANALYZE_VOCABULARY_VERSION = 4;
    direction evolution, analyze-only band shear), convective un-gating
    with quiet-day atmospheric context and the cappedAllDay verdict split
    (S4), and the removals: `bands.trend` and `maxRelativeSpread` (diurnal
-   confounds measured live in both directions), `liftCeiling.flips`. */
+   confounds measured live in both directions), `liftCeiling.flips`.
+   0.22.0 rides UNDER v4 — NO vocabulary event (no kind added, renamed,
+   or removed); the Tier 2 architecture release
+   (notes/design-architecture.md) is the proof case that envelope
+   self-description can grow under the tolerant-reader convention
+   without a contract event. The additions: the extraction frame goes
+   public (`AnalysisFrame`, its own ANALYSIS_FRAME_VERSION;
+   `AnalyzeOptions.extensions` runs caller extractors over it AFTER the
+   built-in findings, their statements landing in the envelope's named
+   `extensions` entries, never in `findings`); the envelope
+   self-describes for compareAnalyses (`thresholds`, `deterministic`,
+   `coveredDays` — required fields, so only hand-built envelope values
+   gain keys to fill); and `vocabularyVersion` widens from the literal
+   to `number` under the tolerant-reader convention (the charter) — the
+   release's one type-level break, zero wire change. */
 
 /* ------------------------------------------------------------- vocabulary */
 
@@ -113,6 +129,13 @@ export type FindingKind = WindgramFinding["kind"];
 
 /* -------------------------------------------------------------- thresholds */
 
+/**
+ * RESOLVED thresholds — an OUTPUT/echo type (the envelope's and every
+ * finding's `thresholds` echo, `resolveAnalyzeThresholds`'s return).
+ * Never construct one: pass `AnalyzeThresholdOverrides` and let the
+ * defaults fill — a new threshold-using kind adds a required key here,
+ * and only hand-built values feel it.
+ */
 /* One entry line per threshold-using kind. */
 export interface AnalyzeThresholds {
   thermalWindow: { wstarMinMs: number; depthMinM: number; maxGapHours: number };
@@ -202,6 +225,15 @@ export interface AnalyzeOptions {
    * the findings it produces.
    */
   windCeilings?: WindCeilings;
+  /**
+   * Caller extractors run over the public `AnalysisFrame` AFTER the
+   * built-in findings, receiving the finished findings read-only. Their
+   * statements land on the envelope's `extensions` array as named
+   * entries, never in `findings` — see `AnalysisExtension` (frame.ts)
+   * for the contract and its discipline expectations. Duplicate names in
+   * one call throw; a throwing extension fails the analysis.
+   */
+  extensions?: ReadonlyArray<AnalysisExtension>;
 }
 
 /** See `AnalyzeOptions.windCeilings` — caller conventions, no defaults. */
@@ -215,9 +247,28 @@ export interface WindCeilings {
 
 /* ---------------------------------------------------------------- envelope */
 
+/* The envelope self-describes (0.22.0): everything `compareAnalyses`
+   validates or the comparison ledger states is ON the envelope —
+   `thresholds`, `deterministic`, `coveredDays` closed the last three
+   reads of the raw profile. Required fields: additive for every READER
+   of the envelope; only consumers who CONSTRUCT `WindgramAnalysis`
+   values by hand (test fixtures) gain fields to fill. */
 export interface WindgramAnalysis {
-  vocabularyVersion: typeof ANALYZE_VOCABULARY_VERSION;
+  /** The vocabulary version that produced this envelope. Typed `number`,
+   * not the literal: readers check it at runtime (`compareAnalyses`
+   * throws on skew) instead of recompiling on every bump. THE
+   * TOLERANT-READER CONVENTION (see the module charter in index.ts):
+   * consumers of serialized envelopes MUST ignore finding kinds and
+   * envelope fields they do not know; additive kinds bump this number
+   * without breaking any conforming reader. Exhaustive `switch` over
+   * `finding.kind` remains available to compiled consumers — with a
+   * default arm it is also conforming. */
+  vocabularyVersion: number;
   model: string;
+  /** Whether the document is deterministic (single-valued positions) or
+   * an ensemble read at p50 — `isDeterministicProfile`'s verdict,
+   * precomputed so envelope consumers never re-open the profile. */
+  deterministic: boolean;
   /**
    * The document's sample identity plus the launch the analysis ran
    * against: `launchAltitudeM` echoes the caller's `AnalyzeOptions.launch`
@@ -237,5 +288,32 @@ export interface WindgramAnalysis {
    */
   stepHours: number;
   hours: number;
+  /**
+   * The local calendar days the document's hours actually touch (sorted,
+   * computed in this envelope's own `timeZone` from `hours[].validAt`) —
+   * the same truth the day universe and `outOfHorizon` abstentions read,
+   * precomputed. Never cadence arithmetic: live documents widen their
+   * step mid-horizon.
+   */
+  coveredDays: LocalDayKey[];
+  /**
+   * The RESOLVED thresholds this analysis ran under —
+   * `resolveAnalyzeThresholds` of the caller's overrides, echoed at the
+   * top level so a comparison can validate coherence without
+   * reconstructing it (per-finding echoes are absent when a kind emitted
+   * nothing).
+   */
+  thresholds: AnalyzeThresholds;
   findings: WindgramFinding[];
+  /**
+   * Named third-party statements (`AnalyzeOptions.extensions`), kept OUT
+   * of `findings`: the versioned kind set stays closed and first-party,
+   * and the vocabulary's guarantees stop at the `findings` array. Each
+   * entry echoes its extension's `name` verbatim, so two extensions'
+   * outputs never blur; `statements` stays `unknown[]` — consumers narrow
+   * through the extension's own types. ABSENT (not empty) when no
+   * extensions were passed, so existing serialized envelopes are
+   * byte-identical.
+   */
+  extensions?: ReadonlyArray<{ extension: string; statements: unknown[] }>;
 }

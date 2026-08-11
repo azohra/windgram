@@ -9,6 +9,8 @@
    line so parallel kind work merges without conflict. */
 
 import { isDeterministicProfile, type WindgramProfile } from "../contract/index.js";
+import { localDateKey } from "../derive/day-window.js";
+import type { AnalysisFrame } from "./frame.js";
 import { findBandShear } from "./kinds/band-shear.js";
 import { findCapTiming } from "./kinds/cap-timing.js";
 import { findConvectiveDays } from "./kinds/convective-day.js";
@@ -18,7 +20,13 @@ import { findThermalWindows } from "./kinds/thermal-window.js";
 import { findLiftCeilings } from "./kinds/lift-ceiling.js";
 import { findPercentileCrossings } from "./kinds/percentile-crossing.js";
 import { findQuietDays } from "./kinds/quiet-day.js";
-import { citedInstantFactory, hourStepsOf, stepHoursOf, type Context } from "./kinds/shared.js";
+import {
+  citedInstantFactory,
+  hourStepsOf,
+  leadHoursTo,
+  stepHoursOf,
+  type Context,
+} from "./kinds/shared.js";
 import { findSmokeImpact } from "./kinds/smoke-impact.js";
 import { findTerrainMismatch } from "./kinds/terrain-mismatch.js";
 import { findWindDirection } from "./kinds/wind-direction.js";
@@ -90,9 +98,46 @@ export function analyzeProfile(
     findDataCaveats(context, timeZoneSource, smokeImpacts.length > 0),
   ];
 
+  /* Extensions run AFTER first-party extraction, over the public frame,
+     with the finished findings read-only (the closed-set equivalent of
+     the anchor access the first-party extractors get — eight of fourteen
+     take the thermal windows). Named entries land in `extensions`, never
+     in `findings`; the field is absent when no extensions were passed. */
+  let extensions: Array<{ extension: string; statements: unknown[] }> | undefined;
+  if (options.extensions && options.extensions.length > 0) {
+    const names = new Set<string>();
+    for (const extension of options.extensions) {
+      if (names.has(extension.name)) {
+        throw new Error(
+          `analyzeProfile: duplicate extension name (${extension.name}) — entries are keyed by name, so each extension in one call needs its own`,
+        );
+      }
+      names.add(extension.name);
+    }
+    const frame: AnalysisFrame = {
+      profile,
+      timeZone,
+      timeZoneSource,
+      deterministic: context.deterministic,
+      stepHours: context.stepHours,
+      steps: context.steps,
+      referenceTime: profile.run.referenceTime,
+      launchElevationM,
+      launchReferenceM: context.launchReferenceM,
+      cite: context.cite,
+      dayOf: (validAt) => localDateKey(validAt, timeZone),
+      leadHours: (validAt) => leadHoursTo(profile.run.referenceTime, validAt),
+    };
+    extensions = options.extensions.map((extension) => ({
+      extension: extension.name,
+      statements: extension.extract(frame, findings),
+    }));
+  }
+
   return {
     vocabularyVersion: ANALYZE_VOCABULARY_VERSION,
     model: profile.model,
+    deterministic: context.deterministic,
     site: {
       id: profile.site.id,
       launchAltitudeM: launchElevationM,
@@ -103,7 +148,15 @@ export function analyzeProfile(
     timeZoneSource,
     stepHours: context.stepHours,
     hours: profile.hours.length,
+    /* The days the hours actually touch, in this envelope's zone — the
+       comparison's day universe, precomputed (never cadence arithmetic:
+       live GEPS widens mid-horizon). */
+    coveredDays: [
+      ...new Set(profile.hours.map((hour) => localDateKey(hour.validAt, timeZone))),
+    ].sort(),
+    thresholds,
     findings,
+    ...(extensions ? { extensions } : {}),
   };
 }
 

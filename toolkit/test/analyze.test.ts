@@ -2,9 +2,11 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  ANALYSIS_FRAME_VERSION,
   ANALYZE_VOCABULARY_VERSION,
   analyzeProfile,
   DEFAULT_ANALYZE_THRESHOLDS,
+  type AnalysisExtension,
   type BandShearFinding,
   type CapTimingFinding,
   type ConvectiveDayFinding,
@@ -150,6 +152,34 @@ describe("the analysis envelope", () => {
     expect(analysis.run.referenceTime).toBe("2026-08-08T18:00:00Z");
     expect(analysis.stepHours).toBe(1);
     expect(analysis.hours).toBe(24);
+  });
+
+  it("self-describes for comparison — resolved thresholds, deterministic, covered days", () => {
+    // The three fields compareAnalyses validates instead of reconstructing
+    // (Tier 2 §2): the resolved threshold echo, the deterministic verdict,
+    // and the local days the hours actually touch.
+    const analysis = analyzeProfile(hrrr(), {
+      ...ERIE,
+      thresholds: { thermalWindow: { wstarMinMs: 1.0 } },
+    });
+    expect(analysis.deterministic).toBe(true);
+    expect(analysis.thresholds).toEqual({
+      ...DEFAULT_ANALYZE_THRESHOLDS,
+      thermalWindow: { ...DEFAULT_ANALYZE_THRESHOLDS.thermalWindow, wstarMinMs: 1.0 },
+    });
+    // 19:00Z 08-08 through 18:00Z 08-09 is local noon to 11:00 next day.
+    expect(analysis.coveredDays).toEqual(["2026-08-08", "2026-08-09"]);
+    // No overrides: the echo IS the defaults; the ensemble reads ensemble.
+    const reps_ = analyzeProfile(reps(), ERIE);
+    expect(reps_.thresholds).toEqual(DEFAULT_ANALYZE_THRESHOLDS);
+    expect(reps_.deterministic).toBe(false);
+  });
+
+  it("computes coveredDays in the envelope's own zone — the same hours, different days", () => {
+    // The same 24 hours read Sydney-local (UTC+10): 08-08T19:00Z is 05:00
+    // on 08-09, 08-09T18:00Z is 04:00 on 08-10 — both day keys shift.
+    const analysis = analyzeProfile(hrrr(), { ...ERIE, timeZone: "Australia/Sydney" });
+    expect(analysis.coveredDays).toEqual(["2026-08-09", "2026-08-10"]);
   });
 
   it("reads local time from the document's own site.timeZone", () => {
@@ -2102,5 +2132,147 @@ describe("dataCaveats", () => {
     expect(absent?.quantities ?? []).not.toContain("windGustMs");
     // Hourly cadence: no stepCadence note.
     expect(finding.caveats.some((caveat) => caveat.caveat === "stepCadence")).toBe(false);
+  });
+});
+
+describe("tolerant-reader versioning (Tier 2 §3)", () => {
+  it("types vocabularyVersion as number — cached envelopes survive upgrades as data", () => {
+    const analysis = analyzeProfile(hrrr(), ERIE);
+    // The widening, as a consumer sees it: the field binds as plain
+    // number (a literal-4 binding no longer compiles) and runtime checks
+    // keep working unchanged.
+    const version: number = analysis.vocabularyVersion;
+    expect(version).toBe(ANALYZE_VOCABULARY_VERSION);
+  });
+
+  it("a compiled consumer with a default arm is conforming — unknown kinds are ignorable", () => {
+    // The convention's compiled shape: switch on the kinds you know and
+    // let the default arm pass the rest through — a future additive kind
+    // changes this consumer's counts, never its compilation. (Exhaustive
+    // switching stays available to consumers who choose the compile
+    // event instead.)
+    const analysis = analyzeProfile(hrrr(), ERIE);
+    let known = 0;
+    let ignored = 0;
+    for (const finding of analysis.findings) {
+      switch (finding.kind) {
+        case "thermalWindow":
+        case "quietDay":
+        case "dataCaveats":
+          known += 1;
+          break;
+        default:
+          ignored += 1;
+          break;
+      }
+    }
+    expect(known).toBeGreaterThan(0);
+    expect(known + ignored).toBe(analysis.findings.length);
+  });
+});
+
+describe("the extension door (the public frame)", () => {
+  // A caller extension exercising every frame convention: citation, day
+  // bucketing, and lead bound to the analysis zone/run, the resolved
+  // launch, cadence truth, and read access to the finished findings.
+  const frameProbe: AnalysisExtension = {
+    name: "test/frameProbe",
+    extract: (frame, findings) => [
+      {
+        frameVersion: ANALYSIS_FRAME_VERSION,
+        deterministic: frame.deterministic,
+        stepHours: frame.stepHours,
+        maxStepHours: frame.steps.maxStepHours,
+        launchElevationM: frame.launchElevationM,
+        launchReferenceM: frame.launchReferenceM,
+        firstHour: frame.cite(frame.profile.hours[0].validAt),
+        firstDay: frame.dayOf(frame.profile.hours[0].validAt),
+        firstLeadHours: frame.leadHours(frame.profile.hours[0].validAt),
+        windowCount: findings.filter((finding) => finding.kind === "thermalWindow").length,
+      },
+    ],
+  };
+
+  it("hands the extension the resolved per-analysis facts, bound to the zone and run", () => {
+    const analysis = analyzeProfile(hrrr(), { ...ERIE, extensions: [frameProbe] });
+    expect(analysis.extensions).toHaveLength(1);
+    expect(analysis.extensions![0].extension).toBe("test/frameProbe");
+    const windowCount = ofKind<ThermalWindowFinding>(analysis.findings, "thermalWindow").length;
+    expect(analysis.extensions![0].statements).toEqual([
+      {
+        frameVersion: 1,
+        deterministic: true,
+        stepHours: 1,
+        maxStepHours: 1,
+        launchElevationM: 1247,
+        launchReferenceM: 1247,
+        // 2026-08-08T19:00Z is noon in America/Vancouver (UTC−7), one
+        // hour after the 18:00Z reference — all three by hand.
+        firstHour: { validAt: "2026-08-08T19:00:00Z", local: "2026-08-08T12:00" },
+        firstDay: "2026-08-08",
+        firstLeadHours: 1,
+        windowCount,
+      },
+    ]);
+  });
+
+  it("keeps extension statements OUT of findings, and findings untouched", () => {
+    const plain = analyzeProfile(hrrr(), ERIE);
+    const extended = analyzeProfile(hrrr(), { ...ERIE, extensions: [frameProbe] });
+    expect(extended.findings).toEqual(plain.findings);
+    // The plain envelope has NO extensions key at all — serialized
+    // envelopes from extension-free calls stay byte-identical.
+    expect("extensions" in plain).toBe(false);
+  });
+
+  it("delivers entries named and in caller order — two extensions never blur", () => {
+    const constant = (name: string, value: string): AnalysisExtension => ({
+      name,
+      extract: () => [value],
+    });
+    const analysis = analyzeProfile(hrrr(), {
+      ...ERIE,
+      extensions: [constant("a/one", "first"), constant("b/two", "second")],
+    });
+    expect(analysis.extensions).toEqual([
+      { extension: "a/one", statements: ["first"] },
+      { extension: "b/two", statements: ["second"] },
+    ]);
+  });
+
+  it("refuses duplicate extension names in one call", () => {
+    const noop: AnalysisExtension = { name: "dup", extract: () => [] };
+    expect(() => analyzeProfile(hrrr(), { ...ERIE, extensions: [noop, { ...noop }] })).toThrow(
+      /duplicate extension name \(dup\)/,
+    );
+  });
+
+  it("lets a throwing extension fail the analysis — caller code is not sandboxed", () => {
+    const broken: AnalysisExtension = {
+      name: "broken",
+      extract: () => {
+        throw new Error("extension bug");
+      },
+    };
+    expect(() => analyzeProfile(hrrr(), { ...ERIE, extensions: [broken] })).toThrow(
+      /extension bug/,
+    );
+  });
+
+  it("receives the FINISHED findings and the honest ensemble facts", () => {
+    // The probe's windowCount was computed from the findings handed to the
+    // extension; it must match the envelope's own final array.
+    const analysis = analyzeProfile(geps(), { ...FLAGPOLE, extensions: [frameProbe] });
+    const statement = analysis.extensions![0].statements[0] as {
+      windowCount: number;
+      deterministic: boolean;
+      stepHours: number;
+    };
+    expect(statement.windowCount).toBe(
+      ofKind<ThermalWindowFinding>(analysis.findings, "thermalWindow").length,
+    );
+    // And the frame facts read true: geps is a 3-hourly ensemble.
+    expect(statement.deterministic).toBe(false);
+    expect(statement.stepHours).toBe(3);
   });
 });
