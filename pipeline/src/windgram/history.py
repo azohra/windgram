@@ -77,7 +77,15 @@ def _member_entry(member: Member) -> dict:
     and run.generatedAt; an observation batch is one instant per line and
     carries the batch's observedAt span. A member speaking neither
     grammar still indexes — offsets are the load-bearing part."""
-    entry: dict = {"offset": member.offset, "length": member.length, "lines": len(member.lines)}
+    # Key names match the toolkit reader's index guard exactly
+    # (toolkit/src/history parseHistoryIndexJson: byteOffset/byteLength);
+    # a mismatch is not an error there, just a permanent silent
+    # degradation to full fetches — the worst kind of wrong.
+    entry: dict = {
+        "byteOffset": member.offset,
+        "byteLength": member.length,
+        "lines": len(member.lines),
+    }
     first = json.loads(member.lines[0]) if member.lines else {}
     run = first.get("run")
     if len(member.lines) == 1 and isinstance(run, dict) and "referenceTime" in run:

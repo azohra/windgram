@@ -173,14 +173,14 @@ def test_index_offsets_slice_the_archive_into_exact_member_boundaries(tmp_path, 
     assert index["archive"] == "2026-08.jsonl.gz"
     assert index["archiveLength"] == len(data)
     # Contiguous cover: members tile the file from byte 0 to the end.
-    assert index["members"][0]["offset"] == 0
+    assert index["members"][0]["byteOffset"] == 0
     for before, after in zip(index["members"], index["members"][1:]):
-        assert after["offset"] == before["offset"] + before["length"]
+        assert after["byteOffset"] == before["byteOffset"] + before["byteLength"]
     last = index["members"][-1]
-    assert last["offset"] + last["length"] == len(data)
+    assert last["byteOffset"] + last["byteLength"] == len(data)
     # Each slice is a complete gzip member holding exactly its run.
     sliced = [
-        gzip.decompress(data[entry["offset"] : entry["offset"] + entry["length"]])
+        gzip.decompress(data[entry["byteOffset"] : entry["byteOffset"] + entry["byteLength"]])
         for entry in index["members"]
     ]
     assert [json.loads(piece)["run"]["referenceTime"] for piece in sliced] == [
@@ -236,8 +236,8 @@ def test_observation_batch_members_index_their_observedAt_span(tmp_path, monkeyp
     index = read_index(tmp_path / "history/erie/2026-08.jsonl.gz")
     assert index["members"] == [
         {
-            "offset": 0,
-            "length": index["archiveLength"],
+            "byteOffset": 0,
+            "byteLength": index["archiveLength"],
             "lines": 2,
             "firstObservedAt": "2026-08-09T20:00:21Z",
             "lastObservedAt": "2026-08-09T20:10:21Z",
