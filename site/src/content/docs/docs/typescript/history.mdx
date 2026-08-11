@@ -1,0 +1,389 @@
+---
+title: History and run convergence
+description: Load the append-only month archives with the member-splitting reader, then compare successive runs of one model at the findings level.
+---
+
+import {
+  DEFAULT_LEAD_ANCHOR_LOCAL_HOUR,
+  DEFAULT_SETTLED_THRESHOLDS,
+  RUN_COMPARISON_VOCABULARY_VERSION,
+} from 'windgram/history';
+
+`windgram/history` is documents through time, in two halves that feed each
+other: loaders that read the published
+[month archives](/docs/data/history/) into deduped, chronological runs, and
+`compareRuns`, which turns [`windgram/compare`](/docs/typescript/compare/)'s
+member axis from "models at one instant" to "runs of one model" and states
+the convergence ladder — what each successive run said about the same local
+day.
+
+This is the package's one **server-side** subpath: the archive reader is
+built on `node:zlib`, so it runs in Node, Bun, and Deno but not in
+browsers. Every other subpath stays runtime-agnostic —
+[why, below](#the-runtime-story).
+
+## Why the reader splits gzip members itself
+
+A month archive is a sequence of **independent gzip members**: each
+pipeline build appends its run as its own member, so existing archive
+bytes are never rewritten and a closed month can publish immutable.
+Inside a member, one compact-JSON document per line — but never assume
+one line per member: forecast archives run one line per member, while
+observation archives batch a whole granule of instants per member
+(re-verified 2026-08-10 across every published model). The reader splits
+members first and lines second.
+
+WHATWG `DecompressionStream("gzip")` cannot be trusted with these
+archives. The spec treats bytes trailing the first member's end as an
+error, and the archives are deliberately multi-member. Worse, the
+runtimes disagree — measured 2026-08-10:
+
+| Runtime | `DecompressionStream("gzip")` on a multi-member archive |
+| --- | --- |
+| Node 24.19 | throws `ERR_TRAILING_JUNK_AFTER_STREAM_END` |
+| Deno 2.9 | throws a different `TypeError` |
+| Bun 1.3 | silently decompresses every member |
+
+Hence `splitHistoryArchive`: a member-splitting reader on `node:zlib`'s
+raw-deflate decoder, which reports exactly how many input bytes each
+member's deflate stream consumed — the boundary `DecompressionStream`
+never surfaces. It returns `null` on structurally corrupt bytes (not
+gzip, truncated member, trailer length mismatch), mirroring the contract
+guards' never-throw convention; the loaders report that as a
+`"miss": "invalid"`. It accepts any slice that starts on a member
+boundary, so a Range fetch from a member offset splits with the same
+code as a full fetch.
+
+## Load a site's months
+
+`loadProfileHistory` and `loadSmokeHistory` are the typed faces of
+`loadHistory`, whose `guard` parameter types each archive line — a
+history line is exactly the published document, so the guards are the
+contract's own (`parseWindgramProfileJson`, `parseSmokeDocumentJson`).
+Transport manners match [`windgram/transport`](/docs/typescript/transport/):
+injected fetch, discriminated `DocumentMiss`, `TransportHttpError` as the
+only throw, no storage side effects.
+
+```ts title="load-history.ts"
+import { loadProfileHistory } from "windgram/history";
+
+export async function loadRecentRuns(baseUrl: string) {
+  const result = await loadProfileHistory({
+    fetch, // the global WHATWG fetch satisfies HistoryFetch directly
+    baseUrl,
+    modelSlug: "geps",
+    siteSlug: "erie",
+    months: ["2026-07", "2026-08"],
+    // Inclusive referenceTime lower bound — also the index fast path's key.
+    since: "2026-07-25T00:00:00Z",
+  });
+
+  // "absent" here means EVERY requested month is absent — the site simply
+  // has no history at this root. Months absent beside present ones stay
+  // routine per-month entries in result.misses instead.
+  if ("miss" in result) return null;
+
+  for (const line of result.invalidLines) {
+    // A guard-rejected line is a contract break or prototype data — never
+    // routine; the surviving lines still load.
+    console.error(`contract break in ${line.url} @ member ${line.memberByteOffset}`);
+  }
+  return result;
+}
+```
+
+A `LoadedHistory` carries four statements:
+
+| Field | What it states |
+| --- | --- |
+| `runs` | The deduped runs, ascending by `referenceTime` — one per `(model, referenceTime)`, keep-latest-`generatedAt` |
+| `revisions` | Republications the dedupe discarded — which stamps were superseded, per run |
+| `invalidLines` | Guard-rejected lines, located by archive URL, member byte offset, and line number — log loudly |
+| `misses` | Per requested month with nothing to contribute: `"absent"` is routine (a month file exists only once a run of that month was archived); `"invalid"` — archive bytes that failed to split — never is |
+
+The dedupe is **mandatory, not optional**. The same `referenceTime` can
+legitimately appear on more than one archive line — a corrected
+re-publication appends a new line rather than rewriting bytes — and a
+republication is a fact, stated: the loader keeps the line with the
+latest `generatedAt` and reports what it discarded as `revisions`.
+Without that statement, convergence would score a pipeline fix as
+weather, which is exactly what `compareRuns`'s `identityDrift` finding
+exists to prevent.
+
+## The sidecar index and the since-suffix strategy
+
+The pipeline publishes an advisory byte-offset index beside every
+archive as `{YYYY-MM}.index.json`: per gzip member, where its bytes sit
+and which run they carry. When you pass `since` and a month's sidecar
+exists, the loader Range-fetches from the first needed member's offset
+**to end-of-file** instead of fetching the whole month.
+
+The suffix request is what makes the narrowing safe: the archives are
+append-only, so a sidecar that has not yet seen the newest appended
+members (an append racing the index upload, or a stale CDN cache) still
+yields every byte the selection could need. When nothing indexed matches
+`since`, the loader probes the uncovered tail past the last indexed
+member; a `416` past end-of-file honestly means nothing new. The index
+is **advisory, never authoritative**: a missing sidecar (the launch
+state), an unparsable one, any index fetch failure, or a server that
+ignores `Range` and answers `200` with the full body all degrade to the
+full-archive fetch, silently correct — both paths filter identically, so
+index-present and index-absent loads are equivalent.
+
+## The runtime story
+
+The reader needs a deflate decoder that reports consumed input bytes,
+and only `node:zlib` provides one — so this subpath is server-side.
+Verified 2026-08-10: Node 24.19 runs the full test suite; Bun 1.3
+(split and load) and Deno 2.9 (member splitting) run it via their
+`node:zlib` compatibility layers. **Browsers are not supported by this
+subpath**, and no other subpath is affected: contract, derive, analyze,
+compare, transport, scene, and SVG stay runtime-agnostic exactly as
+before.
+
+## Compare a model's runs through time
+
+`compareRuns` points [compare's discipline](/docs/typescript/compare/)
+— no verdict that does not reduce to stated arithmetic over stated,
+embedded, caller-movable thresholds; agreement reported, never
+manufactured; every non-vote with a stated reason — at successive runs
+of **one model** at **one site**. Compare vocabulary 2 made the axis
+literal (a member already *is* a `(model, referenceTime)` run), so the
+per-day vote constructions are delegated to `compareAnalyses` wholesale;
+what this half adds is the run axis. The product is the **convergence
+ladder**: per target local day, the ordered per-run statement stack,
+newest run first.
+
+```ts title="compare-runs.ts"
+import type { WindgramProfile } from "windgram/contract";
+import { compareRuns, type RunComparison } from "windgram/history";
+import type { HistoryRevision } from "windgram/history";
+
+export function convergenceLadder(
+  runs: readonly WindgramProfile[], // loadProfileHistory(...).runs, as-is
+  revisions: readonly HistoryRevision[], // ...and its revisions statement
+): RunComparison {
+  return compareRuns(runs, {
+    timeZone: "America/Vancouver",
+    launch: { elevationM: 1591 },
+    // Pass the loader's republication statements through, so a corrected
+    // re-publication is stated on identityDrift instead of silenced.
+    revisions,
+  });
+}
+```
+
+The natural feed is the history loader: `runs` is already deduped and
+chronological, and `revisions` passes straight through. Mixed models
+throw — one model through time is this axis; models at one instant are
+`compareProfiles`'. `compareRunAnalyses` is the seam `compareRuns`
+wraps, and the same door `compareAnalyses` opened: analyze at the edge,
+cache envelopes as JSON, compare through time later — with every
+coherence check (one site, one zone, one launch, one threshold set,
+duplicate runs, version skew, pre-0.22 self-description) delegated to
+`compareAnalyses` and thrown as its named errors.
+
+The `RunComparison` envelope carries its own
+`RUN_COMPARISON_VOCABULARY_VERSION` — currently
+<code>{RUN_COMPARISON_VOCABULARY_VERSION}</code>, imported here from the
+package — a **sibling** of `COMPARE_VOCABULARY_VERSION`, versioned
+independently so through-time statements can grow without a cross-model
+contract event and vice versa. The same tolerant-reader convention
+applies: readers of serialized envelopes ignore kinds and fields they do
+not know. The `runs` ledger reuses compare's member ledger verbatim,
+newest first — `runAgeHours` and `stepHours` are ledger facts for your
+judgment, and `benched` is a benched run's stated reason for appearing
+on no rung.
+
+Every `leadHours` in the envelope is anchored to one instant per target
+day: hour `leadAnchorLocalHour` of that day in the comparison's zone —
+default <code>{DEFAULT_LEAD_ANCHOR_LOCAL_HOUR}</code>, local noon, the
+honest single instant for "the flying day" without minting a judgment
+about window timing. Negative lead is arithmetic like any other: a run
+restating a past day reads negative, not wrong.
+
+## The five run-comparison kinds
+
+### existenceTrajectory
+
+Per target local day, every unbenched run's vote — window, quiet, or an
+abstention with its reason — newest run first. An existence flip is read
+off the `vote` sequence; the finding never names it with an adjective.
+Each rung carries the run's **own** sensitivity flip values against the
+shared floors, so a genuine flip at a threshold knife-edge reads as
+knife-edge arithmetic, not model chaos.
+
+```ts title="existence-ladder.ts"
+import type { RunComparison } from "windgram/history";
+
+export function existenceLadder(comparison: RunComparison) {
+  return comparison.findings.flatMap((finding) => {
+    if (finding.kind !== "existenceTrajectory") return [];
+    return [{
+      day: finding.day,
+      rungs: finding.rungs.map((rung) => ({
+        referenceTime: rung.referenceTime,
+        leadHours: rung.leadHours,
+        vote: rung.vote, // "window" | "quiet" | "abstained"
+        abstained: rung.abstained ?? null, // the stated non-vote reason
+        // A quiet rung one flip value under the floor is a knife-edge,
+        // not a reversal of opinion.
+        wstarFlipAtMs: rung.sensitivity.wstarFlipAtMs,
+      })),
+    }];
+  });
+}
+```
+
+### timingTrajectory
+
+Window start/end instants across runs, reusing compare's timing
+construction verbatim: only **unclipped** edges vote (a horizon-clipped
+edge reads as "open since at least", never as timing), an edge joins the
+day whose local calendar date contains its instant, and every vote
+carries its window's `stepHours` — up to that many minus one hours of
+run-to-run difference is quantization, not drift.
+
+```ts title="timing-ladder.ts"
+import type { RunComparison } from "windgram/history";
+
+export function timingLadder(comparison: RunComparison) {
+  return comparison.findings.flatMap((finding) => {
+    if (finding.kind !== "timingTrajectory") return [];
+    return [{
+      day: finding.day,
+      starts: finding.starts.map((vote) => ({
+        referenceTime: vote.referenceTime,
+        local: vote.at.local,
+        stepHours: vote.stepHours, // the quantization bound on this edge
+      })),
+      startSpreadHours: finding.startSpreadHours, // max − min; null below two
+      startStepHoursMax: finding.startStepHoursMax,
+    }];
+  });
+}
+```
+
+### magnitudeTrajectory
+
+Per voting run: peak W*, launch-relative peak lift, and covered window
+duration — the numbers whose run-to-run deltas state themselves.
+Whole-window numbers belong to the window's own day, so a run touching
+the day only via a midnight spanner keyed elsewhere states `null` rather
+than restating another day's magnitudes. Ensemble runs carry their own
+per-day p10–p90 band widths as **evidence with no narrowing verdict** —
+the recorded spike measured band widths moving both directions as lead
+fell, so "narrowing = converging" was manufactured, and no such verdict
+exists.
+
+```ts title="magnitude-ladder.ts"
+import type { RunComparison } from "windgram/history";
+
+export function magnitudeLadder(comparison: RunComparison) {
+  return comparison.findings.flatMap((finding) => {
+    if (finding.kind !== "magnitudeTrajectory") return [];
+    return [{
+      day: finding.day,
+      rungs: finding.rungs.map((rung) => ({
+        referenceTime: rung.referenceTime,
+        leadHours: rung.leadHours,
+        peakThermalVelocityMs: rung.peakThermalVelocityMs,
+        peakLiftAboveLaunchM: rung.peakLiftAboveLaunchM,
+        windowDurationHours: rung.windowDurationHours,
+        // Band widths ride as evidence; the reader sees the series.
+        bandWidth: rung.bandWidth ?? null,
+      })),
+    }];
+  });
+}
+```
+
+### identityDrift
+
+Non-meteorological facts that changed between runs, stated so a pipeline
+or model change is never read as weather: the loader's republication
+statements pass through verbatim, and a ledger walk names identity facts
+(`modelElevationM`, `stepHours`, `hours`) that differ between
+chronologically adjacent runs. Day-less, and emitted only when there is
+drift to state.
+
+```ts title="identity-drift.ts"
+import type { RunComparison } from "windgram/history";
+
+export function identityDrift(comparison: RunComparison) {
+  return comparison.findings.flatMap((finding) => {
+    if (finding.kind !== "identityDrift") return [];
+    return [{
+      republishedRuns: finding.revisions.map((revision) => revision.referenceTime),
+      changes: finding.changes.map((change) => ({
+        fact: change.fact, // "modelElevationM" | "stepHours" | "hours"
+        from: change.from,
+        to: change.to,
+      })),
+    }];
+  });
+}
+```
+
+### settled
+
+Arithmetic stability, per target local day: whether the newest `minRuns`
+runs' launch-relative lift magnitudes all sit within `magnitudeBandM` of
+each other (max − min ≤ band). A stability statement about **runs** —
+"the forecast has stopped moving" — and explicitly **not probability and
+not skill**: a settled forecast can be settled on the wrong answer, and
+nothing here scores the atmosphere. `settled` is `false` whenever the
+arithmetic cannot run — fewer runs than `minRuns`, or any sampled run
+stating no magnitude — and the `sample` roster shows which, so "not
+stable" and "not statable" stay readable apart.
+
+```ts title="settled.ts"
+import type { RunComparison } from "windgram/history";
+
+export function settledDays(comparison: RunComparison) {
+  return comparison.findings.flatMap((finding) => {
+    if (finding.kind !== "settled") return [];
+    return [{
+      day: finding.day,
+      settled: finding.settled,
+      spreadM: finding.spreadM, // null when the arithmetic could not run
+      // The roster separates "not stable" from "not statable": a null
+      // magnitude in the sample is a run that stated nothing for the day.
+      sample: finding.sample,
+      thresholds: finding.thresholds, // the embedded constants, echoed
+    }];
+  });
+}
+```
+
+The default constants —
+<code>minRuns: {DEFAULT_SETTLED_THRESHOLDS.minRuns}</code>,
+<code>magnitudeBandM: {DEFAULT_SETTLED_THRESHOLDS.magnitudeBandM}</code>,
+imported here from the package — are **trial values**, calibrated on a thin
+archive (days of runs, one basin), not a sweep over a representative
+one; a re-sweep at two or more weeks of month-file archive is a recorded
+obligation (~2026-08-24). They are caller-movable per call via
+`CompareRunsOptions.settled`, and every finding echoes the values that
+produced it.
+
+## What this vocabulary refuses to say
+
+The standing rejections are binding, not stylistic:
+
+- **no trend adjectives** — no "converging", "diverging", "shrinking",
+  or "growing" tokens anywhere. Trajectories are series; deltas and
+  rosters state themselves, and the reader sees the shape;
+- **no run weighting** — run age is the ledger's `runAgeHours` fact, for
+  your judgment, never applied as a score;
+- **no graded agreement enums**;
+- **no staleness-as-finding** — a target day beyond an old run's horizon
+  is an `outOfHorizon` abstention with a reason, never a "changed
+  forecast";
+- **no ensemble-narrowing verdict** — band widths ride the magnitude
+  trajectory as evidence and nothing more;
+- **no per-finding version tags** — the envelope's `vocabularyVersion`
+  governs, as everywhere else.
+
+Candidate kinds beyond the core five — flip counts, oscillation
+summaries, cross-model convergence — wait for their own evidence spike.
+Nothing here pre-approves them.

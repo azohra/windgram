@@ -35,7 +35,13 @@ public/data/
     history/
       <site-slug>/
         <YYYY-MM>.jsonl.gz
+        <YYYY-MM>.index.json
 ```
+
+The `<YYYY-MM>.index.json` beside each month archive is its
+[advisory byte-offset sidecar index](/docs/data/history/#the-sidecar-index),
+rewritten from the archive bytes on every append — publish it beside the
+archive it describes.
 
 `runs.json` at the published dataset's root is a cross-model index rebuilt by
 the publish workflow from every published manifest; a single-model external

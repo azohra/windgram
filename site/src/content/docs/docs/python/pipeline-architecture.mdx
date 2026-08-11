@@ -37,6 +37,7 @@ provider transport ──→ gridpoint sampling ──→ source-shaped hours
 | Derivation | `derive.py` | Produce published profile blocks and model-dependent derived values |
 | Ensemble aggregation | `ensemble.py` | Aggregate member profiles, including circular wind and censored counts |
 | Publication | `publish.py` | Round contract fields, write JSON, append gzip history, build run index |
+| History mechanics | `history.py`, `repack.py` | Split gzip members, recompute each month's [sidecar byte-offset index](/docs/data/history/#the-sidecar-index) after every append, one-time repack of the legacy year archives |
 | Teaching scenarios | `scenarios.py` | Generate fixed inputs through the same derivation authority |
 
 ## Authority boundary

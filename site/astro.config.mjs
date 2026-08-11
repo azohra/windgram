@@ -100,6 +100,7 @@ export default defineConfig({
             { slug: "docs/typescript/derive", label: "Pure derivations" },
             { slug: "docs/typescript/analyze", label: "Analyze a profile" },
             { slug: "docs/typescript/compare", label: "Compare profiles" },
+            { slug: "docs/typescript/history", label: "History and convergence" },
             { slug: "docs/typescript/scene", label: "Scene graph" },
             { slug: "docs/typescript/wire-an-inspector", label: "Wire an inspector" },
             { slug: "docs/typescript/svg", label: "SVG renderer and key" },
