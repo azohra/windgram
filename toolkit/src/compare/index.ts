@@ -52,6 +52,8 @@ import { componentsToWind, windToComponents } from "../derive/wind.js";
 import {
   analyzeProfile,
   resolveAnalyzeThresholds,
+  round1,
+  round2,
   type AnalyzeThresholdOverrides,
   type AnalyzeThresholds,
   type CitedInstant,
@@ -63,7 +65,6 @@ import {
   type WindgramAnalysis,
   type WindSummaryFinding,
 } from "../analyze/index.js";
-import { round1, round2 } from "../analyze/kinds/shared.js";
 
 /**
  * The comparison-kind set this module can emit. Version 1 shipped exactly

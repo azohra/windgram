@@ -104,3 +104,11 @@ export {
   type WindSummaryFinding,
 } from "./vocabulary.js";
 export { analyzeProfile, resolveAnalyzeThresholds } from "./findings.js";
+export {
+  ANALYSIS_FRAME_VERSION,
+  round1,
+  round2,
+  type AnalysisExtension,
+  type AnalysisFrame,
+  type HourSteps,
+} from "./frame.js";

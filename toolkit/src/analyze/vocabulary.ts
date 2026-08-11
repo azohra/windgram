@@ -12,6 +12,7 @@
    kind work merges without conflict. */
 
 import type { SmokeDocument } from "../contract/index.js";
+import type { AnalysisExtension } from "./frame.js";
 import type { BandShearFinding } from "./kinds/band-shear.js";
 import type { CapTimingFinding } from "./kinds/cap-timing.js";
 import type { ConvectiveDayFinding } from "./kinds/convective-day.js";
@@ -202,6 +203,15 @@ export interface AnalyzeOptions {
    * the findings it produces.
    */
   windCeilings?: WindCeilings;
+  /**
+   * Caller extractors run over the public `AnalysisFrame` AFTER the
+   * built-in findings, receiving the finished findings read-only. Their
+   * statements land on the envelope's `extensions` array as named
+   * entries, never in `findings` — see `AnalysisExtension` (frame.ts)
+   * for the contract and its discipline expectations. Duplicate names in
+   * one call throw; a throwing extension fails the analysis.
+   */
+  extensions?: ReadonlyArray<AnalysisExtension>;
 }
 
 /** See `AnalyzeOptions.windCeilings` — caller conventions, no defaults. */
@@ -238,4 +248,15 @@ export interface WindgramAnalysis {
   stepHours: number;
   hours: number;
   findings: WindgramFinding[];
+  /**
+   * Named third-party statements (`AnalyzeOptions.extensions`), kept OUT
+   * of `findings`: the versioned kind set stays closed and first-party,
+   * and the vocabulary's guarantees stop at the `findings` array. Each
+   * entry echoes its extension's `name` verbatim, so two extensions'
+   * outputs never blur; `statements` stays `unknown[]` — consumers narrow
+   * through the extension's own types. ABSENT (not empty) when no
+   * extensions were passed, so existing serialized envelopes are
+   * byte-identical.
+   */
+  extensions?: ReadonlyArray<{ extension: string; statements: unknown[] }>;
 }

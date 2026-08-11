@@ -2,9 +2,11 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  ANALYSIS_FRAME_VERSION,
   ANALYZE_VOCABULARY_VERSION,
   analyzeProfile,
   DEFAULT_ANALYZE_THRESHOLDS,
+  type AnalysisExtension,
   type BandShearFinding,
   type CapTimingFinding,
   type ConvectiveDayFinding,
@@ -2102,5 +2104,111 @@ describe("dataCaveats", () => {
     expect(absent?.quantities ?? []).not.toContain("windGustMs");
     // Hourly cadence: no stepCadence note.
     expect(finding.caveats.some((caveat) => caveat.caveat === "stepCadence")).toBe(false);
+  });
+});
+
+describe("the extension door (the public frame)", () => {
+  // A caller extension exercising every frame convention: citation, day
+  // bucketing, and lead bound to the analysis zone/run, the resolved
+  // launch, cadence truth, and read access to the finished findings.
+  const frameProbe: AnalysisExtension = {
+    name: "test/frameProbe",
+    extract: (frame, findings) => [
+      {
+        frameVersion: ANALYSIS_FRAME_VERSION,
+        deterministic: frame.deterministic,
+        stepHours: frame.stepHours,
+        maxStepHours: frame.steps.maxStepHours,
+        launchElevationM: frame.launchElevationM,
+        launchReferenceM: frame.launchReferenceM,
+        firstHour: frame.cite(frame.profile.hours[0].validAt),
+        firstDay: frame.dayOf(frame.profile.hours[0].validAt),
+        firstLeadHours: frame.leadHours(frame.profile.hours[0].validAt),
+        windowCount: findings.filter((finding) => finding.kind === "thermalWindow").length,
+      },
+    ],
+  };
+
+  it("hands the extension the resolved per-analysis facts, bound to the zone and run", () => {
+    const analysis = analyzeProfile(hrrr(), { ...ERIE, extensions: [frameProbe] });
+    expect(analysis.extensions).toHaveLength(1);
+    expect(analysis.extensions![0].extension).toBe("test/frameProbe");
+    const windowCount = ofKind<ThermalWindowFinding>(analysis.findings, "thermalWindow").length;
+    expect(analysis.extensions![0].statements).toEqual([
+      {
+        frameVersion: 1,
+        deterministic: true,
+        stepHours: 1,
+        maxStepHours: 1,
+        launchElevationM: 1247,
+        launchReferenceM: 1247,
+        // 2026-08-08T19:00Z is noon in America/Vancouver (UTC−7), one
+        // hour after the 18:00Z reference — all three by hand.
+        firstHour: { validAt: "2026-08-08T19:00:00Z", local: "2026-08-08T12:00" },
+        firstDay: "2026-08-08",
+        firstLeadHours: 1,
+        windowCount,
+      },
+    ]);
+  });
+
+  it("keeps extension statements OUT of findings, and findings untouched", () => {
+    const plain = analyzeProfile(hrrr(), ERIE);
+    const extended = analyzeProfile(hrrr(), { ...ERIE, extensions: [frameProbe] });
+    expect(extended.findings).toEqual(plain.findings);
+    // The plain envelope has NO extensions key at all — serialized
+    // envelopes from extension-free calls stay byte-identical.
+    expect("extensions" in plain).toBe(false);
+  });
+
+  it("delivers entries named and in caller order — two extensions never blur", () => {
+    const constant = (name: string, value: string): AnalysisExtension => ({
+      name,
+      extract: () => [value],
+    });
+    const analysis = analyzeProfile(hrrr(), {
+      ...ERIE,
+      extensions: [constant("a/one", "first"), constant("b/two", "second")],
+    });
+    expect(analysis.extensions).toEqual([
+      { extension: "a/one", statements: ["first"] },
+      { extension: "b/two", statements: ["second"] },
+    ]);
+  });
+
+  it("refuses duplicate extension names in one call", () => {
+    const noop: AnalysisExtension = { name: "dup", extract: () => [] };
+    expect(() => analyzeProfile(hrrr(), { ...ERIE, extensions: [noop, { ...noop }] })).toThrow(
+      /duplicate extension name \(dup\)/,
+    );
+  });
+
+  it("lets a throwing extension fail the analysis — caller code is not sandboxed", () => {
+    const broken: AnalysisExtension = {
+      name: "broken",
+      extract: () => {
+        throw new Error("extension bug");
+      },
+    };
+    expect(() => analyzeProfile(hrrr(), { ...ERIE, extensions: [broken] })).toThrow(
+      /extension bug/,
+    );
+  });
+
+  it("receives the FINISHED findings and the honest ensemble facts", () => {
+    // The probe's windowCount was computed from the findings handed to the
+    // extension; it must match the envelope's own final array.
+    const analysis = analyzeProfile(geps(), { ...FLAGPOLE, extensions: [frameProbe] });
+    const statement = analysis.extensions![0].statements[0] as {
+      windowCount: number;
+      deterministic: boolean;
+      stepHours: number;
+    };
+    expect(statement.windowCount).toBe(
+      ofKind<ThermalWindowFinding>(analysis.findings, "thermalWindow").length,
+    );
+    // And the frame facts read true: geps is a 3-hourly ensemble.
+    expect(statement.deterministic).toBe(false);
+    expect(statement.stepHours).toBe(3);
   });
 });
