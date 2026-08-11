@@ -29,7 +29,11 @@
    throw, no storage side effects. One deliberate divergence:
    `TransportResponse` exposes `text()` only, and a gzip reader needs bytes —
    so history carries its own `HistoryResponse` with `arrayBuffer()` rather
-   than widening the transport type under every existing test stub. */
+   than widening the transport type under every existing test stub.
+
+   The subpath's other half lives in compare-runs.ts (re-exported below):
+   `compareRuns`, convergence as compare's discipline pointed at the runs
+   this loader returns — one charter, "documents through time". */
 
 import { inflateRawSync } from "node:zlib";
 import {
@@ -505,3 +509,29 @@ function dedupeKeepLatest<T extends HistoryDocument>(
 function trimTrailingSlash(url: string): string {
   return url.endsWith("/") ? url.slice(0, -1) : url;
 }
+
+/* ------------------------------------------------------------------ */
+
+/* compareRuns — the subpath's convergence half (see the module docblock
+   and compare-runs.ts's own charter). */
+export {
+  compareRunAnalyses,
+  compareRuns,
+  DEFAULT_LEAD_ANCHOR_LOCAL_HOUR,
+  DEFAULT_SETTLED_THRESHOLDS,
+  RUN_COMPARISON_VOCABULARY_VERSION,
+  type CompareRunAnalysesOptions,
+  type CompareRunsOptions,
+  type CompareRunsSharedOptions,
+  type ExistenceRung,
+  type ExistenceTrajectoryFinding,
+  type IdentityDriftFinding,
+  type MagnitudeRung,
+  type MagnitudeTrajectoryFinding,
+  type RunComparison,
+  type RunComparisonFinding,
+  type RunComparisonFindingKind,
+  type RunTimingVote,
+  type SettledFinding,
+  type TimingTrajectoryFinding,
+} from "./compare-runs.js";
