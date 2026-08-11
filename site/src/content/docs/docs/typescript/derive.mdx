@@ -173,6 +173,13 @@ is the cube root of the heat flux; no flux re-derivation is needed or
 performed. Scope and derivation narrative:
 [Smoke and thermals](/docs/learn/smoke-and-thermals/).
 
+One caveat rides `smokeAotFromColumn`'s **input**: the RAQDPS
+`smokePlumeColumnMgm2` field is currently
+[quarantined from derived optics](/docs/reference/smoke-document/#the-column-field-carries-a-provider-defect)
+— the arithmetic is sound (it reproduced HRRR's own optics to 5 %), the
+provider's column content is not. For profiles with their own smoke
+block, prefer the published `aot` directly.
+
 ## Interpret measured irradiance
 
 Observation documents carry measured W/m²; three functions make that
