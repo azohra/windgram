@@ -4,6 +4,102 @@ Notable repository and `windgram` package changes are recorded here. Dataset
 schema, npm package, and Python pipeline versions are independent; each release
 entry names the versions it actually changes.
 
+## [0.22.0] - 2026-08-10
+
+`windgram` (npm and JSR) 0.22.0 and `windgram` pipeline (PyPI) 0.9.0 —
+documents through time, and the frame goes public. Two ratified
+programs in one release: the Tier 2 architecture thread (the
+normalization machinery stops being the vocabulary's private
+scaffolding) and the convergence/history program (the archive becomes
+a first-class read surface and successive runs of one model become a
+statement). Plus the RAQDPS column verdict: the provider's field is
+defective, and the dataset now says so where the field is described.
+
+### Added — `windgram/history` (new subpath, server-side)
+
+- **The member-splitting reader**: month archives are independent gzip
+  members, one document per line, and the platforms genuinely
+  disagree about that (measured 2026-08-10: Node 24 throws
+  ERR_TRAILING_JUNK_AFTER_STREAM_END, Deno 2.9 a different TypeError,
+  Bun 1.3 silently succeeds) — so the subpath ships its own splitter,
+  verified against all 92 live archive files. node:zlib makes this
+  the one server-side subpath; every other subpath stays
+  runtime-agnostic.
+- **`loadHistory` / `loadProfileHistory` / `loadSmokeHistory`**: months
+  load contract-guarded and DEDUPED (key (model, referenceTime),
+  keep-latest-generatedAt — mandatory, because the archive is
+  append-only and republications are real), with every republication
+  stated in `revisions`, per-month misses discriminated, and corrupt
+  lines quarantined without poisoning their month.
+- **The advisory sidecar index**: `{YYYY-MM}.index.json` beside each
+  archive (written by the pipeline on every append; exact byte
+  offsets per gzip member) lets a `since` load Range-fetch a suffix
+  instead of the month; absent or mismatched, loading silently does
+  the full fetch — the index can never make a read wrong.
+- **`compareRuns`**: the convergence ladder over one model's
+  successive runs, in its own sibling envelope (`RunComparison`,
+  vocabulary 1 — cross-model and through-time version independently).
+  Five kinds and nothing else: existence, timing, and magnitude
+  trajectories (windowAgreement's own vote/cadence/clipped-edge
+  discipline re-projected along the run axis), `identityDrift`
+  (republications and ledger-fact changes stated), and arithmetic
+  `settled` — a stability statement, explicitly not probability or
+  skill, whose minRuns=3 / 300 m defaults are TRIAL constants
+  awaiting the ≥2-weeks-of-archive re-sweep (~2026-08-24). The
+  recorded rejections stay binding: no trend adjectives, no model
+  weighting, no graded agreement — deltas and rosters state
+  themselves. Lead anchors local noon by default, parameterized.
+
+### Added — the architecture thread
+
+- **The analysis frame is public**: `AnalysisFrame` (its own
+  ANALYSIS_FRAME_VERSION, changes rarely — it is normalization, not
+  claims) + `AnalyzeOptions.extensions` run caller extractors over
+  the same citation/day/lead machinery the built-in kinds use, into a
+  separate envelope `extensions` array — the findings vocabulary
+  stays closed and first-party; the evidence-spike gate keeps
+  guarding it and stops being the only door in the building.
+- **`compareAnalyses(analyses)`**: compare now eats the
+  self-describing envelope analyze produces (new envelope fields:
+  `deterministic`, `coveredDays`, resolved `thresholds` echo), with
+  coherence VALIDATED — mixed sites, duplicate members, vocabulary
+  skew, mixed timezones/launches/thresholds each throw by name.
+  `compareProfiles` is now the convenience wrapper around it; cached
+  and edge-computed analyses round-trip through JSON.
+- **Tolerant-reader versioning**: both `vocabularyVersion` fields
+  widen from literal types to `number`, and the charters state the
+  convention — unknown kinds are ignorable, switch with a default
+  arm. The release's one type-level break; no wire change.
+
+### Changed — pipeline 0.9.0
+
+- **Every history append rewrites the month's sidecar index** (a pure
+  function of the archive bytes; key names deliberately match the
+  toolkit reader's guard — a mismatch there is not an error but a
+  permanent silent full-fetch, the worst kind of wrong).
+- **upload-data.sh syncs indexes on their month's TTL** — the old
+  everything-but-open-months pass would have swept an open month's
+  index onto the immutable TTL (caught on paper before the first
+  index shipped).
+- **`windgram repack`**: the one-time CLI that folds the legacy year
+  archives into the month scheme — idempotent, seeded from published
+  bytes, dedupe-keep-latest, aborts on mid-repack races and on
+  equal-generatedAt-different-bytes conflicts rather than guessing,
+  and deletes a year file only after every line is verified
+  byte-identical or superseded. Runs by hand, with credentials, once.
+
+### Changed — the RAQDPS column is described as measured
+
+- Root cause closed 2026-08-10: the pipeline republishes ECCC's
+  `PM2.5-WildfireSmokePlume_EAtm` faithfully, and the field itself is
+  defective — declared as an entire-atmosphere column (kg/m²),
+  measured as a ~50–250 m near-surface slab (~15–26× below
+  satellite-consistent columns; essentially no elevated smoke; full
+  chain in the contract JSDoc, the field's one home). Reported to
+  ECCC 2026-08-10; the optics quarantine stands until their response
+  or the ~September GOES re-arbitration. The smoke docs pages now
+  point at the note instead of selling the field as an optics input.
+
 ## [0.21.0] - 2026-08-10
 
 `windgram` (npm and JSR) 0.21.0 — analyze vocabulary 4, compare
