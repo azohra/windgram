@@ -55,14 +55,31 @@ previous_month=${open_months#* }
 
 # History before profiles before the manifest: the manifest is the
 # publication's commit point, so nothing it references appears after it.
+#
+# Each month's sidecar byte-offset index (*.index.json) syncs beside its
+# archive and follows the same open/closed TTL arithmetic. The index
+# months are named explicitly in their own passes: the old shape's
+# everything-but-the-open-months second pass would have swept an open
+# month's index onto the immutable TTL (caught in review 2026-08-10,
+# before the first index shipped) — a year of CDN staleness for the one
+# file whose job is to say what the archive holds right now.
 if [ -d "data/$model/history" ]; then
   s3 sync "data/$model/history" "$bucket/$model/history" \
     --exclude "*" \
     --include "*/${current_month}.jsonl.gz" --include "*/${previous_month}.jsonl.gz" \
     --cache-control "$short" --content-type application/gzip
   s3 sync "data/$model/history" "$bucket/$model/history" \
+    --exclude "*" \
+    --include "*/${current_month}.index.json" --include "*/${previous_month}.index.json" \
+    --cache-control "$short" --content-type application/json
+  s3 sync "data/$model/history" "$bucket/$model/history" \
+    --exclude "*" --include "*.jsonl.gz" \
     --exclude "*/${current_month}.jsonl.gz" --exclude "*/${previous_month}.jsonl.gz" \
     --cache-control "$closed" --content-type application/gzip
+  s3 sync "data/$model/history" "$bucket/$model/history" \
+    --exclude "*" --include "*.index.json" \
+    --exclude "*/${current_month}.index.json" --exclude "*/${previous_month}.index.json" \
+    --cache-control "$closed" --content-type application/json
 fi
 s3 sync "data/$model/sites" "$bucket/$model/sites" \
   --cache-control "$short" --content-type application/json
